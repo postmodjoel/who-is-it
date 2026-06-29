@@ -294,7 +294,9 @@
     collared: { collar: "shirt" },
     jacket: { collar: "zip" },
     turtleneck: { collar: "turtle" },
-    overalls: { collar: "overall" }
+    overalls: { collar: "overall" },
+    singlet: { collar: "none", bare: true },   // bare shoulders/arms + a thin-strap tank panel
+    bare: { collar: "none", bare: true, nude: true } // no shirt - skin shoulders/chest
   };
 
   const accessories = {
@@ -678,7 +680,7 @@
     ["leon", "Leon", "he", "brown", "coily", "black", "hoodie", "#22834b", "neutral", "none", "personal trainer"],
     ["naomi", "Naomi", "she", "fair", "bob", "blueBlack", "overalls", "#2b2b2b", "angry", "flowerClip", "designer"],
     ["javier", "Javier", "he", "tan", "longWaves", "darkBrown", "jacket", "#ddba78", "sad", "moustache", "bartender"],
-    ["tiana", "Tiana", "she", "deep", "locs", "black", "tee", "#df8f20", "happy", "necklace", "teacher", "bigSmile"],
+    ["tiana", "Arnold", "she", "deep", "locs", "black", "tee", "#df8f20", "happy", "necklace", "teacher", "bigSmile"],
     ["diego", "Diego", "he", "tan", "curls", "darkBrown", "collared", "#f6b334", "angry", "beard", "mechanic"],
     ["sophia", "Sophia", "she", "fair", "longWaves", "blonde", "tee", "#f077a6", "happy", "headband", "florist", "buckTeeth"],
     ["zeke", "Zeke", "he", "brown", "locs", "black", "tee", "#f1e4c5", "neutral", "chain", "musician"],
@@ -771,20 +773,78 @@
   // make its studio look the permanent default.
   const characterOverrides = {
     aaron: {
-      hair: "coily", faceShape: "long", clothing: "turtleneck", accessory: "choker",
-      headScaleX: 0.96, headScaleY: 1.09, headY: -7, eyeGap: 45, earScale: 0.88, earY: 2,
+      hair: "coily", faceShape: "long", clothing: "bare", accessory: "choker",
+      headScaleX: 0.96, headScaleY: 1.08, headY: -7, eyeGap: 45, earScale: 0.88, earY: 2,
       jawShadowY: -4.5, cheekY: 2, cheekOpacity: 0, browY: 2, browScaleX: 0.92,
       irisScale: 0.84, eyeOpen: 0.8, eyeScale: 0.9, noseScale: 0.96, noseY: 3,
-      mouthScale: 1.04, lips: "full", mouthY: 1, shoulderSlope: 0.76, build: 71,
-      accessoryY: 10, accessoryScale: 0.94, beardLength: 0.42,
+      mouthScale: 1.02, mouthY: 7, mouthStyle: "goofyTeeth", lipColor: "#25293c",
+      shoulderSlope: 0.76, build: 71, bodyWidth: 1.32, bust: 0.15,
+      accessoryY: 21, accessoryScale: 0.94, beardLength: 0.42,
+      animMode: "serious", blinkRate: 11.5,
       hairLocks: [
-        { lock: "longSideLock", x: 56, y: 25, scale: 0.4, rot: -111, lines: false },
+        { lock: "longSideLock", x: 56, y: 26, scale: 0.4, rot: -111, lines: false },
         { lock: "spikyFringe", x: 41, y: 41, scale: 0.72, rot: -20, lines: true },
         { lock: "sideSwoop", x: 67, y: 32, scale: 0.42, rot: -52, lines: true },
         { lock: "curlyForelock", x: 65, y: 43, scale: 0.54, rot: 13, lines: true, line: "#160808" },
         { lock: "longSideLock", x: 69, y: 46, scale: 0.56, rot: -14, lines: true },
-        { lock: "curtainBangs", x: 55, y: 42, scale: 0.52, rot: -7, lines: false }
+        { lock: "curtainBangs", x: 54, y: 41, scale: 0.52, rot: -7, lines: false, outline: "none" }
       ]
+    },
+    olivia: {
+      hair: "bald", hairColor: "silver", skin: "porcelain", faceShape: "long",
+      headScaleY: 0.99, headY: -5, eyeGap: 51,
+      chinShape: "dimple", chinY: -10, chinWidth: 0.94, jawLength: 0.24, jawShadowY: -5.5,
+      browShape: "thin", browScaleX: 1.04, browY: 3.5, earScale: 0.9, earY: -4,
+      noseY: 2, noseScale: 1.06, cheekY: 2, cheekOpacity: 0.06,
+      mouthY: 2, mouthScale: 1.28, mouthStyle: "wideSmile", lipColor: "#db295f",
+      teethStyle: "even", teethGap: 4, teethX: -1, teethY: -5, teethScale: 1.14,
+      eyeScale: 1.12, eyeOpen: 1.1, eyeY: 3,
+      build: 75, clothing: "bare", shoulderSlope: 0.64, bodyWidth: 1.3, bust: 0.05, beardScale: 1.02,
+      animMode: "serious", blinkRate: 0, winkRate: 16,
+      hairLocks: [
+        { lock: "sideSwoop", x: 60, y: 45, scale: 1, rot: 0, lines: true, outline: "none" },
+        { lock: "rightCascade", x: 57, y: 83, scale: 0.66, rot: 19, lines: false },
+        { lock: "extraLongPair", x: 49, y: 53, scale: 0.84, rot: 0, lines: true, mirror: true, behind: true },
+        { lock: "centerPartWaves", x: 78, y: 43, scale: 0.64, rot: -54, lines: true, behind: true },
+        { lock: "longSStrand", x: 72, y: 62, scale: 0.6, rot: -50, lines: false, mirror: true },
+        { lock: "longSideLock", x: 75, y: 54, scale: 0.6, rot: 0, lines: true, outline: "none" },
+        { lock: "longSideLock", x: 68, y: 48, scale: 0.56, rot: -144, lines: true, mirror: true, outline: "none" },
+        { lock: "splitSideLocks", x: 47, y: 55, scale: 1.16, rot: 0, lines: true, mirror: true, behind: true },
+        { lock: "longSStrand", x: 25, y: 55, scale: 1, rot: 0, lines: true },
+        { lock: "highPonytail", x: 31, y: 46, scale: 0.82, rot: -23, lines: true, outline: "none" }
+      ]
+    },
+    aisha: {
+      hair: "bald", hairColor: "darkBrown", skin: "brown", faceShape: "heart",
+      headScaleX: 0.97, headY: -10, eyeGap: 57, frontHairY: 2,
+      browShape: "arched", browY: 2, browScaleX: 1.1,
+      earVariant: "lobe", earY: 6, earScale: 1.08,
+      mouthY: 4, mouthScale: 1.26, mouthStyle: "goofyTeeth", lipColor: "#583f32",
+      teethStyle: "bucky", teethGap: 2.5, teethOverhang: 8, teethX: 4, teethY: 3, teethScale: 1.18,
+      clothing: "jacket", shirt: "#2a3c39", accessory: "studs", accessoryY: 16, accessoryX: 1, accessoryScale: 0.94,
+      chinY: 4, chinWidth: 1.14, chinScale: 1.24,
+      cheekY: -1.5, cheekOpacity: 0.02, noseY: 0.5, beardLength: 0.38,
+      eyeScale: 1.02, eyeOpen: 0.6, irisScale: 0.7, eyeY: 2.5,
+      animMode: "shifty", blinkRate: 10, winkRate: 23,
+      hairLocks: [
+        { lock: "softWaveCap", x: 50, y: 36, scale: 0.76, rot: 0, lines: true },
+        { lock: "highPonytail", x: 53, y: 36, scale: 0.78, rot: 0, lines: true, mirror: true },
+        { lock: "curlyForelock", x: 16, y: 32, scale: 0.62, rot: 0, lines: true, mirror: true },
+        { lock: "curlyForelock", x: 82, y: 43, scale: 0.6, rot: 0, lines: true },
+        { lock: "shortCrop", x: 47, y: 36, scale: 0.68, rot: 21, lines: true, outline: "none" }
+      ]
+    },
+    tiana: {
+      hair: "bald", hairColor: "blueBlack", skin: "porcelain",
+      headScaleX: 0.94, headScaleY: 1.08, headY: -8, eyeGap: 55,
+      browShape: "arched", browY: -2, browScaleX: 0.96,
+      eyeScale: 1.24, irisScale: 0.74, eyeOpen: 1.16, eyeY: 5,
+      pupilX: -1, pupilY: -1.5, lazyEye: 8,
+      noseScale: 0.64, mouthStyle: "goofyTeeth", mouthScale: 1.28, lips: "soft",
+      chinShape: "dimple", chinY: -5, chinWidth: 0.62, chinScale: 0.58, jawLength: -0.18, jawShadowY: -4,
+      cheekY: 3, cheekOpacity: 0.01,
+      clothing: "collared", shirt: "#545454", bodyWidth: 1.02, shoulderSlope: 1, build: 71,
+      accessoryY: 4, accessoryScale: 1.28, animMode: "alert"
     }
   };
 
@@ -908,6 +968,7 @@
           </linearGradient>
         </defs>
         <rect width='256' height='256' fill='${traits.background}'/>
+        ${animCSS(traits, seed)}
         ${renderClothing(outfit, traits, seed)}
         ${renderNeckBase(traits, skin)}
         ${renderCollar(traits)}
@@ -920,13 +981,16 @@
           ${renderFaceModeling(seed, skin, traits)}
           ${renderChin(traits, skin)}
           ${renderBeardBlobs(traits, seed)}
+          ${accessorySvg.behindHair || ""}
           ${useFacesHair ? "" : renderFrontHair(hairStyle, `url(#hair-${seed})`, traits) + renderHairHighlights(hairStyle, hair, traits, seed)}
           ${renderBrows(expression, traits)}
           ${renderEyes(expression, traits)}
           ${renderNose(seed, traits)}
           ${accessorySvg.beforeMouth}
           ${renderExpressionMouth(expression, traits, seed)}
-          ${renderCheeks(expression)}
+          ${/* Blush comes solely from renderFaceModeling's cheekOpacity (the studio Blush control).
+               The old expression-based renderCheeks() blush was a second layer that doubled up on
+               happy/surprised faces, so it's no longer drawn. */ ""}
           ${/* faces.js hair sits ON TOP of the face features (like the reference art) so swept hair
                overlaps the brow/cheek/temple instead of the brow & blush poking through it */ ""}
           ${useFacesHair ? facesHairSvg : ""}
@@ -975,27 +1039,109 @@
     // (thin on some sides, thick on others) instead of a clean proportional resize. Letting the
     // stroke scale naturally with the transform keeps line weight consistent and looks like a
     // true resize of the artwork rather than a geometry-only stretch.
-    return `<g transform='translate(${x} ${y}) translate(${pivotX} ${pivotY}) scale(${scaleX} ${scaleY}) translate(-${pivotX} -${pivotY})'>${content}</g>`;
+    // Inner `.fa-head` group carries the optional head-sway animation so it composes with this
+    // transform rather than overriding it.
+    return `<g transform='translate(${x} ${y}) translate(${pivotX} ${pivotY}) scale(${scaleX} ${scaleY}) translate(-${pivotX} -${pivotY})'><g class='fa-head'>${content}</g></g>`;
+  }
+
+  // Opt-in idle animation, emitted as a <style> embedded in the portrait SVG (works in an <img>:
+  // declarative CSS animation runs without script). animMode picks a preset; blinkRate/winkRate can
+  // override the cadence. A per-seed phase desyncs characters so they don't blink in unison.
+  function animCSS(traits, seed) {
+    const mode = traits.animMode || "still";
+    const cfg = {
+      calm:    { blink: 5,   dart: 0,   sway: 0, wink: 0 },
+      curious: { blink: 4,   dart: 6,   sway: 0, wink: 14 },
+      serious: { blink: 7,   dart: 0,   sway: 6, wink: 0 },
+      shifty:  { blink: 3,   dart: 3.5, sway: 0, wink: 0 },
+      alert:   { blink: 2.6, dart: 5,   sway: 0, wink: 0 }
+    }[mode];
+    if (!cfg) return ""; // still / unknown
+    const blink = traits.blinkRate != null && traits.blinkRate !== "" ? Number(traits.blinkRate) : cfg.blink;
+    const wink = traits.winkRate != null && traits.winkRate !== "" ? Number(traits.winkRate) : cfg.wink;
+    const dart = cfg.dart;
+    const sway = cfg.sway;
+    const ph = (Math.sin((seed + 1) * 12.9898) * 43758.5453) % 1; // deterministic 0..1 phase
+    const d = (period) => (-(Math.abs(ph) * period)).toFixed(2);
+    const kf = [];
+    const rules = ["g.fa-eye,g.fa-wink,g.fa-iris{transform-box:fill-box;transform-origin:center}"];
+    if (blink > 0) {
+      kf.push("@keyframes faBlink{0%,93%,100%{transform:scaleY(1)}96.5%{transform:scaleY(.08)}}");
+      rules.push(`g.fa-eye{animation:faBlink ${blink}s infinite;animation-delay:${d(blink)}s}`);
+    }
+    if (dart > 0) {
+      kf.push("@keyframes faDart{0%,16%{translate:0 0}20%,38%{translate:2.2px -1px}42%,60%{translate:-2.4px .8px}64%,82%{translate:1px 1.4px}86%,100%{translate:0 0}}");
+      rules.push(`g.fa-iris{animation:faDart ${dart}s infinite;animation-delay:${d(dart)}s}`);
+    }
+    if (wink > 0) {
+      kf.push("@keyframes faWink{0%,48%,52.5%,100%{transform:scaleY(1)}50%{transform:scaleY(.1)}}");
+      rules.push(`g.fa-wink{animation:faWink ${wink}s infinite;animation-delay:${d(wink)}s}`);
+    }
+    if (sway > 0) {
+      kf.push("@keyframes faSway{0%,100%{transform:rotate(-1.1deg)}50%{transform:rotate(1.1deg)}}");
+      rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 205px;animation:faSway ${sway}s ease-in-out infinite;animation-delay:${d(sway)}s}`);
+    }
+    return `<style>${kf.join("")}${rules.join("")}</style>`;
   }
 
   function renderClothing(outfit, traits, seed) {
+    const garment = clothing[traits.clothing] || clothing.tee;
+    const skin = skinTones[traits.skin] || "#c89070";
     const c = traits.shirt;
-    const lo = shadeColor(c, 0.84);
+    const fill = garment.bare ? skin : c;       // bare/singlet show skin shoulders, not the shirt
+    const lo = shadeColor(fill, 0.84);
     const sh = Number(traits.build) || 82;
-    // Per-character shoulders + a gentle chest-shadow arc near the neck for depth (replaces the
-    // old hard accent stroke). Anchored at the bottom edge (y=256) so it stays full-bleed.
-    const arc = `M${128 - sh * 0.62} 250C${128 - sh * 0.42} 226 ${128 - sh * 0.18} 215 128 215C${128 + sh * 0.18} 215 ${128 + sh * 0.42} 226 ${128 + sh * 0.62} 250`;
-    // Arm/torso seam creases: a curve dropping from each armpit down to the bottom edge separates the
-    // upper arm from the chest, so the body reads as shoulders+arms rather than a limbless triangle.
-    const f = (n) => n.toFixed(1);
-    const seam = (s) => `M${f(128 + s * sh * 0.5)} 224 C ${f(128 + s * sh * 0.62)} 236 ${f(128 + s * sh * 0.66)} 246 ${f(128 + s * sh * 0.66)} 256`;
+    // A single soft chest-shadow arc near the neck for depth (no hard arm/torso seam lines - those
+    // created a visible kink/"join" on the shoulder).
+    const arc = `M${128 - sh * 0.5} 248C${128 - sh * 0.3} 228 ${128 - sh * 0.14} 220 128 220C${128 + sh * 0.14} 220 ${128 + sh * 0.3} 228 ${128 + sh * 0.5} 248`;
     const body = `
-      <path d='${shoulderPath(traits)}' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
-      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.45'/>
-      <path d='${seam(-1)}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
-      <path d='${seam(1)}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
+      <path d='${shoulderPath(traits)}' fill='${fill}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+      ${renderBust(traits, sh, shadeColor(fill, 0.78))}
+      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.38'/>
+      ${traits.clothing === "singlet" ? renderSinglet(traits, c, sh) : ""}
     `;
     return `<g transform='translate(0 256) scale(1 1.13) translate(0 -256)'>${body}</g>`;
+  }
+
+  // Bust hint as a central Y: two curved branches sweeping in from each breast to a fork, then a
+  // cleavage stem dropping out of frame. Scaled by traits.bust (0 = none). Drawn in the body's own
+  // lowlight so it works clothed or bare.
+  function renderBust(traits, sh, lo) {
+    const bust = Number(traits.bust) || 0;
+    if (bust <= 0) return "";
+    const f = (n) => n.toFixed(1);
+    const forkY = 246 - bust * 12;            // the fork (top of the cleavage)
+    const spread = 18 + bust * 16;            // how far the branches reach out
+    const branchTopY = forkY - 16 - bust * 12;
+    const stemBotY = 257;                     // run the stem off the bottom edge
+    const op = (0.4 + bust * 0.22).toFixed(2);
+    const w = 2.6;
+    const branchL = `M${f(128 - spread)} ${f(branchTopY)}Q${f(128 - spread * 0.38)} ${f(forkY - 2)} 128 ${f(forkY)}`;
+    const branchR = `M${f(128 + spread)} ${f(branchTopY)}Q${f(128 + spread * 0.38)} ${f(forkY - 2)} 128 ${f(forkY)}`;
+    const stem = `M128 ${f(forkY)}L128 ${f(stemBotY)}`;
+    const stroke = (d) => `<path d='${d}' fill='none' stroke='${lo}' stroke-width='${w}' stroke-linecap='round' opacity='${op}'/>`;
+    return stroke(branchL) + stroke(branchR) + stroke(stem);
+  }
+
+  // A spaghetti-strap singlet: a shirt-coloured scoop-neck panel over the torso with two thin straps
+  // up over the shoulders. Drawn on top of the (skin) bare body so the shoulders/arms stay bare.
+  function renderSinglet(traits, c, sh) {
+    const f = (n) => n.toFixed(1);
+    const lo = shadeColor(c, 0.82);
+    const y = necklineY(traits);
+    const stX = sh * 0.28;               // strap x-offset from centre
+    const top = y - 2;
+    const scoop = top + 26;              // depth of the scoop neckline
+    const half = sh * 0.86;              // panel half-width at the bottom
+    const panel = `M${f(128 - stX)} ${f(top)}`
+      + `C${f(128 - stX - 4)} ${f(top + 34)} ${f(128 - half)} ${f(230)} ${f(128 - half)} 256`
+      + `L${f(128 + half)} 256`
+      + `C${f(128 + half)} ${f(230)} ${f(128 + stX + 4)} ${f(top + 34)} ${f(128 + stX)} ${f(top)}`
+      + `Q128 ${f(scoop)} ${f(128 - stX)} ${f(top)}Z`;
+    const strap = (s) => `<path d='M${f(128 + s * (stX + 5))} ${f(top - 1)}L${f(128 + s * (stX + 8))} ${f(196)}L${f(128 + s * (stX + 2))} ${f(196)}L${f(128 + s * (stX - 1))} ${f(top - 1)}Z' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>`;
+    return `${strap(-1)}${strap(1)}`
+      + `<path d='${panel}' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>`
+      + `<path d='M${f(128 - stX + 4)} ${f(top + 6)}Q128 ${f(scoop + 4)} ${f(128 + stX - 4)} ${f(top + 6)}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>`;
   }
 
   // Generates the shoulder/torso silhouette as smooth curves (no straight "arm" segments, which
@@ -1010,7 +1156,9 @@
     const neckHalf = sh < 76 ? 22 : 24;
     const neckY = 200;
     const tipY = 211 + slope * 20;          // how far the shoulder drops
-    const botHalf = sh - 2;                 // torso slightly tucked from the shoulder
+    // Bottom (torso) half-width as a fraction of the shoulder width. 1 = straight sides (no tuck);
+    // >1 flares the body out (reads as a torso, not a tapering limbless wedge); <1 tucks it in.
+    const botHalf = sh * (Number(traits.bodyWidth) || 1);
     const r = 7 + slope * 4;                // shoulder rounding radius
     const nl = 128 - neckHalf, nr = 128 + neckHalf;
     const tl = 128 - sh, tr = 128 + sh;
@@ -1035,12 +1183,20 @@
     // shirt opening reads as a curve, not a hard rectangle.
     const top = 150;
     const y = necklineY(traits);
+    // Bare/singlet: the neck merges straight into the chest - no crew-neckline curve (that bottom
+    // stroke read as a choker/necklace under the neck). Fill the column + stroke only the sides.
+    if ((clothing[traits.clothing] || {}).bare) {
+      const fill = `M106 ${top} L106 ${y + 12} L150 ${y + 12} L150 ${top} Z`;
+      const sides = `M106 ${top} L106 ${y + 12} M150 ${top} L150 ${y + 12}`;
+      return `<path d='${fill}' fill='${skin}'/><path d='${sides}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linecap='round'/>`;
+    }
     const d = `M106 ${top} L106 ${y} Q128 ${y + 14} 150 ${y} L150 ${top} Z`;
     return `<path d='${d}' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}'/>`;
   }
 
   // Per-garment collar, drawn ON TOP of the skin neck so its curved opening shapes the neckline.
   function renderCollar(traits) {
+    if ((clothing[traits.clothing] || {}).collar === "none") return ""; // bare / singlet
     const c = traits.shirt;
     const lo = shadeColor(c, 0.82);
     const hi = shadeColor(c, 1.12);
@@ -1588,8 +1744,13 @@
     }[expression.eyes];
     const eyes = eyeLayout(traits, shape.y + (profile.eyeY || 0));
     const skin = skinTones[traits.skin] || traits.skin;
-    const left = renderEye(eyes.left, shape, traits.eyeColor, skin, profile);
-    const right = renderEye(eyes.right, shape, traits.eyeColor, skin, profile);
+    // Pupil offset within the lens; lazyEye adds an extra horizontal drift to ONE eye only (a lazy
+    // eye / asymmetric strabismus look). Both stay clipped to the lens.
+    const px = profile.pupilX || 0;
+    const py = profile.pupilY || 0;
+    const lazy = Number(traits.lazyEye) || 0;
+    const left = renderEye(eyes.left, shape, traits.eyeColor, skin, profile, "l", px, py);
+    const right = renderEye(eyes.right, shape, traits.eyeColor, skin, profile, "r", px + lazy, py);
     return `${left}${right}`;
   }
 
@@ -1602,10 +1763,12 @@
     };
   }
 
-  function renderEye(cx, shape, eyeColor, skin, profile) {
+  function renderEye(cx, shape, eyeColor, skin, profile, side, pupilDX, pupilDY) {
     // eyeY shifts the whole eye up/down. (Previously this offset was only baked into eyeLayout's y,
     // which renderEye ignored - so the Eye Height control did nothing.)
     const y = shape.y + (profile.eyeY || 0);
+    const pdx = Number(pupilDX) || 0;
+    const pdy = Number(pupilDY) || 0;
     const w = 14.2 * (profile.eyeScale || 1);
     const open = profile.eyeOpen || 1;
     const up = shape.up * open;
@@ -1642,19 +1805,27 @@
     const crease = `M${f(cx - w * 0.66)} ${f(creaseY)}Q${f(cx)} ${f(creaseY - up * 0.32)} ${f(cx + w * 0.66)} ${f(creaseY)}`;
     // lower lid: a warm, lighter line (a soft skin shadow) instead of full-weight ink
     const lowerLid = shadeColor(skin, 0.52);
-    return `
+    // The iris/pupil/highlight sit in a `.fa-iris` group (eye-darts translate it within the clipped
+    // lens). The whole eye is wrapped in `.fa-eye`/`.fa-eye-{side}` (blink scales it); the right eye
+    // gets an extra `.fa-wink` group so a wink can close just that eye. Animations are opt-in via the
+    // <style> from animCSS(); with no animation these groups are inert.
+    const eye = `
       <defs><clipPath id='${clipId}'><path d='${lens}'/></clipPath></defs>
       <path d='${lens}' fill='#fcf8f0' stroke='none'/>
       <g clip-path='url(#${clipId})'>
-        <circle cx='${f(cx)}' cy='${f(irisY)}' r='${irisR.toFixed(2)}' fill='${eyeColor}' stroke='${ink}' stroke-width='1.3'/>
-        <circle cx='${f(cx)}' cy='${f(irisY)}' r='${pupilR.toFixed(2)}' fill='#15100c'/>
-        <circle cx='${f(cx - irisR * 0.32)}' cy='${f(irisY - irisR * 0.42)}' r='${(irisR * 0.16).toFixed(1)}' fill='#fff' opacity='.78'/>
+        <g class='fa-iris'>
+          <circle cx='${f(cx + pdx)}' cy='${f(irisY + pdy)}' r='${irisR.toFixed(2)}' fill='${eyeColor}' stroke='${ink}' stroke-width='1.3'/>
+          <circle cx='${f(cx + pdx)}' cy='${f(irisY + pdy)}' r='${pupilR.toFixed(2)}' fill='#15100c'/>
+          <circle cx='${f(cx + pdx - irisR * 0.32)}' cy='${f(irisY + pdy - irisR * 0.42)}' r='${(irisR * 0.16).toFixed(1)}' fill='#fff' opacity='.78'/>
+        </g>
         <path d='${topLid}' fill='none' stroke='rgba(31,35,48,.5)' stroke-width='2.6' stroke-linecap='round'/>
       </g>
       <path d='${bottomArc}' fill='none' stroke='${lowerLid}' stroke-width='1.9' stroke-linecap='round'/>
       <path d='${topArc}' fill='none' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linecap='round' stroke-linejoin='round'/>
       <path d='${crease}' fill='none' stroke='${softInk}' stroke-width='1.4' stroke-linecap='round'/>
     `;
+    const inner = side === "r" ? `<g class='fa-wink'>${eye}</g>` : eye;
+    return `<g class='fa-eye fa-eye-${side || "l"}'>${inner}</g>`;
   }
 
   function renderNose(seed, traits) {
@@ -1718,8 +1889,9 @@
         + `<path d='M114 169c8 3 20 3 28 0' fill='none' stroke='rgba(255,255,255,.6)' stroke-width='1.8' stroke-linecap='round'/>`;
     }
 
-    // open smiles: a dark mouth cavity, with the upper teeth CLIPPED to it so the upper lip masks
-    // their top edge - the teeth emerge from the mouth instead of sitting on top of it.
+    // Open smiles. Structure (back to front): lower lip, dark opening, teeth (clipped to opening),
+    // upper lip over the top edge, a lip sheen, then the lip-line outline. Lips are tinted with the
+    // lip colour and can be toggled off (smileLips === "off") to fall back to a lip-line-only smile.
     const presets = {
       wideSmile: { L: 100, R: 156, y: 163, topDip: 13, botDip: 28 },
       bigSmile: { L: 104, R: 152, y: 164, topDip: 12, botDip: 24 },
@@ -1728,23 +1900,47 @@
       goofyTeeth: { L: 104, R: 152, y: 167, topDip: 11, botDip: 22 }
     };
     const p = presets[style] || presets.bigSmile;
-    const cav = `M${p.L} ${p.y}Q128 ${p.y + p.topDip} ${p.R} ${p.y}Q128 ${p.y + p.botDip} ${p.L} ${p.y}Z`;
+    const skin = skinTones[traits.skin] || "#c89070";
+    const lipC = traits.lipColor || shadeColor(skin, 0.74);
+    const showLips = traits.smileLips !== "off";
+    const f = (n) => n.toFixed(1);
+    const arc = (cTop, cBot) => `M${p.L} ${p.y}Q128 ${f(p.y + cBot)} ${p.R} ${p.y}Q128 ${f(p.y + cTop)} ${p.L} ${p.y}Z`;
+    const opening = arc(p.topDip, p.botDip);
+    const overhang = Math.max(0, Number(traits.teethOverhang) || 0);
+    // The opening extended downward so overhanging incisors can pass below the mouth and over the lip.
+    const openingExt = arc(p.topDip, p.botDip + overhang + 2);
     const clipId = `mouth-${seed}`;
-    const tongue = p.botDip > 26
-      ? `<path d='M${p.L + 10} ${p.y + p.botDip - 6}c10 7 ${p.R - p.L - 20} 7 ${p.R - p.L - 20} 0' fill='none' stroke='#e76f72' stroke-width='5' stroke-linecap='round' opacity='.7'/>`
-      : "";
-    const teeth = transformTeeth(teethBand(teethStyle, p), traits, 128, p.y + 8);
+    const clipExtId = `mouthx-${seed}`;
+    const teeth = transformTeeth(teethBand(teethStyle, p, traits), traits, 128, p.y + 8);
+    const incisors = transformTeeth(teethIncisors(teethStyle, p, traits), traits, 128, p.y + 8);
+    const lowerLip = showLips ? `<path d='${arc(p.botDip - 4, p.botDip + 12)}' fill='${lipC}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
+    const upperLip = showLips ? `<path d='${arc(p.topDip - 8, p.topDip)}' fill='${shadeColor(lipC, 0.9)}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
+    const sheen = showLips ? `<path d='M${p.L + 8} ${f(p.y - 1)}Q128 ${f(p.y + p.botDip + 8)} ${p.R - 8} ${f(p.y - 1)}' fill='none' stroke='${shadeColor(lipC, 1.12)}' stroke-width='1.8' stroke-linecap='round' opacity='.45'/>` : "";
     return `
-      <defs><clipPath id='${clipId}'><path d='${cav}'/></clipPath></defs>
-      <path d='${cav}' fill='#3a1d18' stroke='${ink}' stroke-width='3.3' stroke-linejoin='round'/>
-      <g clip-path='url(#${clipId})'>${teeth}${tongue}</g>
-      <path d='${cav}' fill='none' stroke='${ink}' stroke-width='3.3' stroke-linejoin='round'/>
+      <defs>
+        <clipPath id='${clipId}'><path d='${opening}'/></clipPath>
+        <clipPath id='${clipExtId}'><path d='${openingExt}'/></clipPath>
+      </defs>
+      ${lowerLip}
+      <path d='${opening}' fill='#3a1d18'/>
+      <g clip-path='url(#${clipId})'>${teeth}</g>
+      <g clip-path='url(#${clipExtId})'>${incisors}</g>
+      ${upperLip}
+      ${sheen}
+      <path d='${opening}' fill='none' stroke='${ink}' stroke-width='3' stroke-linejoin='round'/>
     `;
   }
 
-  // Upper-teeth band filling the cavity from just under the lip downward. Drawn generously and then
-  // clipped (externally) to the mouth cavity, so its top is hidden behind the upper lip.
-  function teethBand(teethStyle, p) {
+  // Does this mouth draw distinct central incisors (vs. just a flat tooth row)?
+  function hasIncisors(teethStyle, traits) {
+    return (Math.max(0, Number(traits.teethGap) || 0) > 0.4)
+      || (Math.max(0, Number(traits.teethOverhang) || 0) > 0.4)
+      || teethStyle === "bucky";
+  }
+
+  // Upper-teeth ROW + the side-tooth pattern, clipped (externally) to the mouth opening. The two
+  // central incisors live in teethIncisors() so they can hang over the lower lip.
+  function teethBand(teethStyle, p, traits) {
     const top = p.y - 3;
     const L = p.L + 2.5;
     const R = p.R - 2.5;
@@ -1756,22 +1952,36 @@
     teeth += `<rect x='${f(L)}' y='${f(top)}' width='${f(w)}' height='3.4' fill='rgba(58,29,24,.16)'/>`; // gum shadow under lip
     const y2 = f(top + h - 2);
     const vline = (x, wdt, c) => `<line x1='${f(x)}' y1='${f(top + 2)}' x2='${f(x)}' y2='${y2}' stroke='${c}' stroke-width='${wdt}' stroke-linecap='round'/>`;
-    if (teethStyle === "bucky") {
-      const bw = 6.4;
-      const by = top + 1;
-      const bh = h + 6;
-      teeth += `<path d='M${f(128 - bw)} ${f(by)}h${bw}v${f(bh)}c0 2-1.4 3.2-3.2 3.2s-3.2-1.2-3.2-3.2Z' fill='#fff' stroke='${ink}' stroke-width='1.5' stroke-linejoin='round'/>`;
-      teeth += `<path d='M128 ${f(by)}h${bw}v${f(bh)}c0 2-1.4 3.2-3.2 3.2s-3.2-1.2-3.2-3.2Z' fill='#fff' stroke='${ink}' stroke-width='1.5' stroke-linejoin='round'/>`;
-    } else if (teethStyle === "gappy") {
-      teeth += vline(128, 2.6, ink);
-      teeth += vline(L + w * 0.3, 1.1, div);
-      teeth += vline(R - w * 0.3, 1.1, div);
-    } else if (teethStyle === "spaced") {
+    const incisors = hasIncisors(teethStyle, traits);
+    if (teethStyle === "spaced") {
       for (let i = 1; i < 5; i++) teeth += vline(L + (w * i) / 5, 1.6, div);
-    } else {
+    } else if (teethStyle === "gappy") {
+      if (!incisors) teeth += vline(128, 2.6, ink);
+      teeth += vline(L + w * 0.3, 1.1, div) + vline(R - w * 0.3, 1.1, div);
+    } else if (teethStyle !== "bucky") {
       for (let i = 1; i < 4; i++) teeth += vline(L + (w * i) / 4, 1.1, div);
     }
     return teeth;
+  }
+
+  // The two central incisors (spaced by teethGap, hanging lower by teethOverhang). Drawn in their own
+  // layer, clipped to the DOWNWARD-EXTENDED opening, AFTER the lower lip - so the overhang actually
+  // overlaps the lip (buck teeth resting on it) instead of being cut off at the mouth opening.
+  function teethIncisors(teethStyle, p, traits) {
+    if (!hasIncisors(teethStyle, traits)) return "";
+    const f = (n) => n.toFixed(1);
+    const top = p.y - 3;
+    const h = p.topDip + 9;
+    const gap = Math.max(0, Number(traits.teethGap) || 0);
+    const overhang = Math.max(0, Number(traits.teethOverhang) || 0);
+    const iw = 6.6;
+    const inTop = top + 1;
+    const inH = h - 2 + overhang;
+    const incisor = (x) => `<path d='M${f(x)} ${f(inTop)}h${f(iw)}v${f(inH - 3.2)}c0 1.8-1.4 3.2-${f(iw / 2)} 3.2s-${f(iw / 2)}-1.4-${f(iw / 2)}-3.2Z' fill='#fff' stroke='${ink}' stroke-width='1.4' stroke-linejoin='round'/>`;
+    // The gap shows the mouth interior, but only within the tooth ROW height - below the row (over the
+    // lip) the space between the teeth shows the lip itself.
+    const gapRect = gap > 0.4 ? `<rect x='${f(128 - gap / 2)}' y='${f(inTop)}' width='${f(gap)}' height='${f(h)}' fill='#3a1d18'/>` : "";
+    return gapRect + incisor(128 - gap / 2 - iw) + incisor(128 + gap / 2);
   }
 
   // Closed resting mouth: a simple line by default, or sculpted lips (with a cupid's-bow upper and
@@ -1787,7 +1997,7 @@
       return `<path d='${expression.mouth}' fill='none' stroke='${ink}' stroke-width='${mw}' stroke-linecap='round'/>`;
     }
     const skin = skinTones[traits.skin] || "#c89070";
-    const lip = shadeColor(skin, 0.78);
+    const lip = traits.lipColor || shadeColor(skin, 0.78);
     const full = style === "full";
     const upper = full
       ? "M106 170q11-6 22-2 11-4 22 2-10 5-22 3-12 2-22-3Z"
@@ -1828,9 +2038,13 @@
     // The backwards cap and the wide-brim sun hat must sit ON TOP of the (faces.js) hair so the
     // crown/brim cover it and only the hair below the brim shows - drawn under the hair they'd be
     // buried, which is what hid the hat behind Tara's fringe.
+    // Earrings hang on the ears, which the hair sweeps over - so they render BEHIND the (front) hair,
+    // peeking out below it, rather than on top. (Behind-flagged hair locks still sit further back.)
+    const earrings = ["hoops", "dropEarrings"].includes(traits.accessory);
     if (traits.accessory === "capBack" || traits.accessory === "sunHat") return { beforeMouth: "", afterMouth: transformed };
     if (headwear) return { beforeMouth: transformed, afterMouth: "" };
     if (facial) return { beforeMouth: transformed, afterMouth: "" };
+    if (earrings) return { beforeMouth: "", afterMouth: "", behindHair: transformed };
     return { beforeMouth: "", afterMouth: transformed };
   }
 
@@ -1950,13 +2164,16 @@
       cheekOpacity: 0.09,
       eyeSocketY: 0,
       jawShadowY: 0,
-      jawLength: 0
+      jawLength: 0,
+      pupilX: 0,
+      pupilY: 0
     };
   }
 
   const profileOverrideKeys = [
     "eyeScale", "eyeOpen", "irisScale", "eyeY", "browY", "browScaleX",
-    "noseY", "noseScale", "cheekY", "cheekOpacity", "eyeSocketY", "jawShadowY", "jawLength"
+    "noseY", "noseScale", "cheekY", "cheekOpacity", "eyeSocketY", "jawShadowY", "jawLength",
+    "pupilX", "pupilY"
   ];
 
   // Lets flat trait corrections (eg from the studio editor) override the per-character
@@ -2139,9 +2356,11 @@
       teethStyles: ["even", "perfect", "gappy", "bucky", "spaced"],
       lipStyles: ["line", "soft", "full"],
       chinShapes: ["none", "round", "square", "dimple", "pointed"],
+      animModes: ["still", "calm", "curious", "serious", "shifty", "alert"],
       skinTones: Object.keys(skinTones),
       hairColors: Object.keys(hairColors),
-      hairColorHex: hairColors
+      hairColorHex: hairColors,
+      skinToneHex: skinTones
     }
   };
 })();

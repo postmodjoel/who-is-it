@@ -30,6 +30,9 @@ const editorFields = [
   { group: "Eyes", key: "eyeOpen", label: "Eye Openness", min: 0.5, max: 1.2, step: 0.02, fallback: 0.95 },
   { group: "Eyes", key: "irisScale", label: "Iris Size", min: 0.7, max: 1.2, step: 0.02, fallback: 0.92 },
   { group: "Eyes", key: "eyeY", label: "Eye Height", min: -8, max: 8, step: 0.5, fallback: 0 },
+  { group: "Eyes", key: "pupilX", label: "Pupil X", min: -5, max: 5, step: 0.5, fallback: 0 },
+  { group: "Eyes", key: "pupilY", label: "Pupil Y", min: -5, max: 5, step: 0.5, fallback: 0 },
+  { group: "Eyes", key: "lazyEye", label: "Lazy Eye", min: -8, max: 8, step: 0.5, fallback: 0 },
   // Nose
   { group: "Nose", key: "noseY", label: "Nose Height", min: -8, max: 10, step: 0.5, fallback: 0 },
   { group: "Nose", key: "noseScale", label: "Nose Size", min: 0.6, max: 1.5, step: 0.02, fallback: 1 },
@@ -41,11 +44,16 @@ const editorFields = [
   { group: "Ears", key: "earScale", label: "Ear Size", min: 0.7, max: 1.3, step: 0.02, fallback: 1 },
   { group: "Ears", key: "earY", label: "Ear Height", min: -10, max: 10, step: 1, fallback: 0 },
   // Mouth
+  { group: "Mouth", key: "mouthStyle", label: "Smile Style", type: "select", options: () => selectOptions(traitBook.mouthStyles), fallback: "warmSmile" },
+  { group: "Mouth", key: "smileLips", label: "Smile Lips", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
   { group: "Mouth", key: "lips", label: "Lip Shape", type: "select", options: () => selectOptions(traitBook.lipStyles), fallback: "line" },
+  { group: "Mouth", key: "lipColor", label: "Lip Colour", type: "color", fallback: "" },
   { group: "Mouth", key: "mouthY", label: "Mouth Y", min: -16, max: 18, step: 1, fallback: 0 },
   { group: "Mouth", key: "mouthScale", label: "Mouth Size", min: 0.72, max: 1.28, step: 0.02, fallback: 1 },
   // Teeth
   { group: "Teeth", key: "teethStyle", label: "Teeth Style", type: "select", options: () => selectOptions(traitBook.teethStyles), fallback: "even" },
+  { group: "Teeth", key: "teethGap", label: "Front Gap", min: 0, max: 10, step: 0.5, fallback: 0 },
+  { group: "Teeth", key: "teethOverhang", label: "Bucky Overhang", min: 0, max: 14, step: 0.5, fallback: 0 },
   { group: "Teeth", key: "teethX", label: "Teeth X", min: -16, max: 16, step: 1, fallback: 0 },
   { group: "Teeth", key: "teethY", label: "Teeth Y", min: -14, max: 14, step: 1, fallback: 0 },
   { group: "Teeth", key: "teethScale", label: "Teeth Size", min: 0.62, max: 1.38, step: 0.02, fallback: 1 },
@@ -59,8 +67,11 @@ const editorFields = [
   { group: "Chin", key: "chinScale", label: "Chin Size", min: 0.5, max: 2, step: 0.02, fallback: 1 },
   // Clothing
   { group: "Clothing", key: "clothing", label: "Outfit", type: "select", options: () => selectOptions(traitBook.clothing), fallback: "tee" },
+  { group: "Clothing", key: "shirt", label: "Clothing Colour", type: "color", fallback: "" },
   { group: "Clothing", key: "build", label: "Build (shoulder width)", min: 60, max: 100, step: 1, fallback: 82 },
   { group: "Clothing", key: "shoulderSlope", label: "Shoulder Slope", min: 0, max: 1, step: 0.02, fallback: 0.5 },
+  { group: "Clothing", key: "bodyWidth", label: "Body Width (torso)", min: 0.7, max: 1.4, step: 0.01, fallback: 1 },
+  { group: "Clothing", key: "bust", label: "Bust", min: 0, max: 1.5, step: 0.05, fallback: 0 },
   // Accessory
   { group: "Accessory", key: "accessory", label: "Accessory", type: "select", options: () => selectOptions(accessoryChoices), fallback: "none" },
   { group: "Accessory", key: "accessoryX", label: "Accessory X", min: -24, max: 24, step: 1, fallback: 0 },
@@ -71,6 +82,10 @@ const editorFields = [
   { group: "Beard", key: "beardX", label: "Beard X", min: -18, max: 18, step: 1, fallback: 0 },
   { group: "Beard", key: "beardY", label: "Beard Y", min: -18, max: 22, step: 1, fallback: 0 },
   { group: "Beard", key: "beardScale", label: "Beard Scale", min: 0.72, max: 1.42, step: 0.02, fallback: 1 },
+  // Animation (per-character idle motion)
+  { group: "Animation", key: "animMode", label: "Animation", type: "select", options: () => selectOptions(traitBook.animModes), fallback: "still" },
+  { group: "Animation", key: "blinkRate", label: "Blink Every (s)", min: 0, max: 12, step: 0.5, fallback: 4.5 },
+  { group: "Animation", key: "winkRate", label: "Wink Every (s)", min: 0, max: 30, step: 1, fallback: 0 },
   // Moustache
   { group: "Moustache", key: "moustacheX", label: "Moustache X", min: -18, max: 18, step: 1, fallback: 0 },
   { group: "Moustache", key: "moustacheY", label: "Moustache Y", min: -18, max: 18, step: 1, fallback: 0 },
@@ -381,6 +396,15 @@ function renderEditor(character) {
         </select>
         <span class="editor-value"></span>
       `
+      : field.type === "color"
+      ? (() => {
+          const set = correction[field.key] != null && correction[field.key] !== "";
+          const shown = set ? correction[field.key] : colorAutoFor(character, field);
+          return `
+        <input id="edit-${escapeHtml(field.key)}" type="color" value="${escapeHtml(shown)}" data-key="${escapeHtml(field.key)}" data-kind="color">
+        <span class="editor-value">${set ? `<button type="button" class="mini-button" data-color-reset="${escapeHtml(field.key)}" title="Auto colour">auto</button>` : "auto"}</span>
+      `;
+        })()
       : `
         <input
           id="edit-${escapeHtml(field.key)}"
@@ -423,7 +447,32 @@ function renderEditor(character) {
       updateEnumCorrection(character, select.dataset.key, select.value);
     });
   });
+  els.editorControls.querySelectorAll("[data-kind='color']").forEach((input) => {
+    input.addEventListener("input", () => updateColorCorrection(character, input.dataset.key, input.value));
+  });
+  els.editorControls.querySelectorAll("[data-color-reset]").forEach((btn) => {
+    btn.addEventListener("click", () => updateColorCorrection(character, btn.dataset.colorReset, ""));
+  });
   renderCorrectionExport();
+}
+
+// The auto (unset) colour shown in a colour picker. lipColor's auto derives from the skin tone.
+function colorAutoFor(character, field) {
+  if (field.key === "lipColor") {
+    const skinName = correctionFor(character.id).skin || character.traits.skin;
+    const hex = (traitBook.skinToneHex && traitBook.skinToneHex[skinName]) || "#c89070";
+    return shadeHex(hex, 0.78);
+  }
+  if (field.key === "shirt") return character.traits.shirt || "#4a7bd9";
+  return "#000000";
+}
+
+function updateColorCorrection(character, key, value) {
+  const next = { ...correctionFor(character.id) };
+  if (!value) delete next[key];
+  else next[key] = value;
+  setCorrection(character.id, next);
+  render();
 }
 
 function updateCorrection(character, key, value) {

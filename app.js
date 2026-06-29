@@ -213,56 +213,120 @@ const generatedCharacters = window.faceGenerator
   ? window.faceGenerator.createCharacters(makeTags, fallbackGeneratedCharacters)
   : fallbackGeneratedCharacters;
 
+// Illustrated location banners (1600x520) live in assets/locations/.
+// Each location ships a day and a night variant; a variant is chosen per game.
+const LOCATION_ART_DIR = "assets/locations";
+
 const locations = [
   {
-    name: "Airport Terminal",
-    prompt: "A delayed evening flight, crowded seating, and everyone pretending not to listen.",
-    stamp: "Gate 14",
-    vars: ["#18212b", "#7ba6d8", "#3f5876", "#d9edff"]
+    name: "Cafe",
+    slug: "cafe",
+    prompt: "Mid-morning, the espresso machine hissing, and three conversations pretending not to overhear each other.",
+    stamp: "Table 4"
   },
   {
-    name: "Wedding Reception",
-    prompt: "A hotel ballroom after dinner, when the speeches are over and the real stories start.",
-    stamp: "Table 8",
-    vars: ["#271920", "#d98c99", "#8f5c66", "#ffe2e7"]
+    name: "Restaurant",
+    slug: "restaurant",
+    prompt: "A late dinner service where the wine has loosened tongues and someone has ordered too much.",
+    stamp: "Booth 9"
   },
   {
-    name: "Office Party",
-    prompt: "A conference room with cheap wine, polite laughter, and several unfinished conversations.",
-    stamp: "After hours",
-    vars: ["#1a2119", "#8fbb7d", "#556b4c", "#e4f7da"]
+    name: "Bar",
+    slug: "bar",
+    prompt: "Last call energy, sticky counters, and at least one story that gets better every time it's told.",
+    stamp: "Last call"
   },
   {
-    name: "Suburban Dinner Party",
-    prompt: "A neat dining room, a tense dessert course, and one story nobody should have brought up.",
-    stamp: "Dessert",
-    vars: ["#221c17", "#ca9a6d", "#5d7456", "#f7e2c9"]
+    name: "Rooftop",
+    slug: "rooftop",
+    prompt: "Skyline views, a cocktail nobody finished, and a confession waiting for the right gust of wind.",
+    stamp: "Level 22"
+  },
+  {
+    name: "Library",
+    slug: "library",
+    prompt: "Hushed aisles, a dropped book, and somebody very deliberately not making eye contact.",
+    stamp: "Reading room"
+  },
+  {
+    name: "Bookstore",
+    slug: "bookstore",
+    prompt: "Cramped shelves, a misfiled paperback, and two strangers reaching for the same spine.",
+    stamp: "Aisle 3"
+  },
+  {
+    name: "Art Gallery",
+    slug: "art_gallery",
+    prompt: "White walls, free wine, and everyone nodding at a painting nobody understands.",
+    stamp: "Opening night"
+  },
+  {
+    name: "Museum Lobby",
+    slug: "museum_lobby",
+    prompt: "Marble floors, a school tour just left, and a meeting that was supposed to look accidental.",
+    stamp: "Main hall"
+  },
+  {
+    name: "Cinema",
+    slug: "cinema",
+    prompt: "Trailers rolling, popcorn going cold, and the seat that was definitely supposed to stay empty.",
+    stamp: "Screen 6"
   },
   {
     name: "Hotel Lobby",
-    prompt: "Late check-in, soft lighting, and a receptionist who has seen everything.",
-    stamp: "Check-in",
-    vars: ["#1a1d24", "#98a6bb", "#6d7380", "#e5edf8"]
+    slug: "hotel_lobby",
+    prompt: "Late check-in, soft lighting, and a receptionist who has seen absolutely everything.",
+    stamp: "Check-in"
   },
   {
-    name: "High School Reunion",
-    prompt: "A hired hall, old name tags, and people measuring each other very politely.",
-    stamp: "Class of '06",
-    vars: ["#171b28", "#73a2da", "#9a7731", "#dbe8ff"]
+    name: "Airport Lounge",
+    slug: "airport_lounge",
+    prompt: "A delayed flight, free pretzels, and everyone pretending not to listen to the gate announcements.",
+    stamp: "Gate 14"
   },
   {
-    name: "Hospital Waiting Room",
-    prompt: "Plastic chairs, stale coffee, and people deciding what not to say.",
-    stamp: "Ward B",
-    vars: ["#172220", "#83c1b5", "#496f68", "#d8f4ef"]
+    name: "Train Station",
+    slug: "train_station",
+    prompt: "A platform between departures, a missed connection, and a goodbye running out of minutes.",
+    stamp: "Platform 2"
   },
   {
-    name: "Beach House",
-    prompt: "A weekend away with too many couples, too little sleep, and one locked spare room.",
-    stamp: "Long weekend",
-    vars: ["#15211f", "#7ccdbb", "#8f7a39", "#e0f6ef"]
+    name: "Gym",
+    slug: "gym",
+    prompt: "Clanging weights, a borrowed towel, and a rivalry nobody admits is a rivalry.",
+    stamp: "Floor 1"
+  },
+  {
+    name: "Yoga Studio",
+    slug: "yoga_studio",
+    prompt: "Soft mats, deep breaths, and an inner peace that is being severely tested today.",
+    stamp: "9am flow"
+  },
+  {
+    name: "Greenhouse",
+    slug: "greenhouse",
+    prompt: "Warm glass, dripping ferns, and a quiet argument held just out of earshot.",
+    stamp: "East wing"
+  },
+  {
+    name: "Park",
+    slug: "park",
+    prompt: "A bench, a shared bag of chips, and a secret that's about to be very badly kept.",
+    stamp: "The green"
+  },
+  {
+    name: "Beach",
+    slug: "beach",
+    prompt: "Low tide, a dying bonfire, and a long weekend with too many people and one locked beach house.",
+    stamp: "Low tide"
   }
-];
+].map((loc) => ({
+  ...loc,
+  art: {
+    day: `${LOCATION_ART_DIR}/${loc.slug}_day_banner.png`,
+    night: `${LOCATION_ART_DIR}/${loc.slug}_night_banner.png`
+  }
+}));
 
 const absurdPrompts = [
   "How would this person ask for a divorce?",
@@ -331,6 +395,7 @@ const state = {
   board: [],
   players: [],
   location: null,
+  locationVariant: "day",
   roomCode: "0000",
   gameSalt: "",
   log: [],
@@ -356,11 +421,8 @@ const els = {
   mysteryResult: document.querySelector("#mysteryResult"),
   mysteryUseCount: document.querySelector("#mysteryUseCount"),
   eventLog: document.querySelector("#eventLog"),
-  boardTitle: document.querySelector("#boardTitle"),
   hintShelf: document.querySelector("#hintShelf"),
   characterBoard: document.querySelector("#characterBoard"),
-  undoButton: document.querySelector("#undoButton"),
-  clearButton: document.querySelector("#clearButton"),
   themeButton: document.querySelector("#themeButton"),
   setupButton: document.querySelector("#setupButton"),
   newGameButton: document.querySelector("#newGameButton"),
@@ -411,8 +473,6 @@ function installStaticIcons() {
   setButtonIcon(els.newGameButton, "refresh", "New game");
   setButtonIcon(els.swapSeatButton, "swap", "Swap seat");
   setButtonIcon(els.drawPromptButton, "prompt", "Draw prompt");
-  setButtonIcon(els.undoButton, "undo", "Undo");
-  setButtonIcon(els.clearButton, "clear", "Clear board");
 }
 
 function currentTheme() {
@@ -489,6 +549,7 @@ function newGame() {
   const boardSize = Math.min(state.settings.boardSize, pool.length);
   state.board = buildBoard(pool, boardSize);
   state.location = state.settings.locations ? pick(locations) : null;
+  state.locationVariant = Math.random() < 0.5 ? "day" : "night";
   state.gameSalt = `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
   state.players = [makePlayer(0), makePlayer(1)];
@@ -530,20 +591,20 @@ function renderLocation() {
     els.locationBand.className = "location-band is-off";
     return;
   }
-  const [bg, a, b, c] = state.location.vars;
-  document.documentElement.style.setProperty("--location-bg", bg);
-  document.documentElement.style.setProperty("--location-a", a);
-  document.documentElement.style.setProperty("--location-b", b);
-  document.documentElement.style.setProperty("--location-c", c);
-  els.locationBand.className = "location-band";
+  const variant = state.locationVariant === "night" ? "night" : "day";
+  const artSrc = state.location.art[variant];
+  els.locationBand.className = `location-band is-${variant}`;
   els.locationBand.innerHTML = `
-    <div class="location-art" aria-label="${escapeHtml(state.location.name)} image"></div>
-    <div class="location-copy">
-      <p class="eyebrow">Location</p>
-      <h2>${escapeHtml(state.location.name)}</h2>
-      <p>${escapeHtml(state.location.prompt)}</p>
+    <div class="location-photo" style="background-image:url('${encodeURI(artSrc)}')" role="img" aria-label="${escapeHtml(state.location.name)}, ${variant}"></div>
+    <div class="location-scrim"></div>
+    <div class="location-overlay">
+      <div class="location-copy">
+        <p class="eyebrow">Location · ${variant === "night" ? "Night" : "Day"}</p>
+        <h2>${escapeHtml(state.location.name)}</h2>
+        <p>${escapeHtml(state.location.prompt)}</p>
+      </div>
+      <div class="location-stamp">${escapeHtml(state.location.stamp)}</div>
     </div>
-    <div class="location-stamp">${escapeHtml(state.location.stamp)}</div>
   `;
 }
 
@@ -551,7 +612,6 @@ function renderRoom() {
   els.roomCode.innerHTML = `${iconSvg("hash")}<span>${escapeHtml(state.roomCode)}</span>`;
   els.roomCode.setAttribute("aria-label", `Room ${state.roomCode}`);
   els.roomStatus.textContent = "";
-  els.boardTitle.textContent = "The lineup";
   els.seatRoster.innerHTML = "";
   state.players.forEach((player, index) => {
     const chip = document.createElement("button");
@@ -630,26 +690,12 @@ function renderLog() {
 
 function toggleEliminated(id) {
   const player = currentPlayer();
-  state.global.undo[state.currentPlayer].push(new Set(player.eliminated));
+  // Clicking a downed tile flips it back up, so the toggle is its own undo.
   if (player.eliminated.has(id)) {
     player.eliminated.delete(id);
   } else {
     player.eliminated.add(id);
   }
-  renderBoard();
-}
-
-function undo() {
-  const stack = state.global.undo[state.currentPlayer];
-  if (!stack.length) return;
-  currentPlayer().eliminated = stack.pop();
-  renderBoard();
-}
-
-function clearBoard() {
-  const player = currentPlayer();
-  state.global.undo[state.currentPlayer].push(new Set(player.eliminated));
-  player.eliminated.clear();
   renderBoard();
 }
 
@@ -705,8 +751,10 @@ function createCharacterCard(character, player) {
       <img src="${character.image}" alt="${escapeHtml(character.name)}">
       ${prop}
     </div>
-    <h3>${displayName(character)}</h3>
-    <div class="card-meta">${role}${mystery.html}</div>
+    <div class="card-plate">
+      <h3>${displayName(character)}</h3>
+      <div class="card-meta">${role}${mystery.html}</div>
+    </div>
   `;
   card.addEventListener("click", () => toggleEliminated(character.id));
   return card;
@@ -1335,8 +1383,6 @@ els.swapSeatButton.addEventListener("click", () => {
 
 els.drawPromptButton.addEventListener("click", drawPrompt);
 els.mysteryButton.addEventListener("click", activateMystery);
-els.undoButton.addEventListener("click", undo);
-els.clearButton.addEventListener("click", clearBoard);
 els.newGameButton.addEventListener("click", newGame);
 els.themeButton.addEventListener("click", toggleTheme);
 

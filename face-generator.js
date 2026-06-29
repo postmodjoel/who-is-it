@@ -177,22 +177,25 @@
   // fall past the shoulders with a gently scalloped (wavy) outer edge. Strand lines are added by
   // renderHairHighlights (clipped to the front layer). Replaces the borrowed faces.js "female1"
   // silhouette, which rendered as a blunt-banged bob.
+  // Back mass: tapers from a high rounded crown, falls down both sides past the shoulders (to the
+  // canvas bottom) with a gently waved outer edge — wider up top than at the ends, never a closed oval.
   const longWaveBack = catmull([
-    [128, 38], [166, 44], [192, 62], [208, 104], [219, 150], [215, 184], [221, 214],
-    [210, 244], [196, 252], [180, 244], [150, 250], [128, 248], [106, 250],
-    [76, 244], [60, 252], [46, 244], [35, 214], [41, 184], [37, 150], [48, 104], [64, 62], [90, 44]
+    [128, 30], [170, 38], [198, 64], [212, 106], [216, 150], [210, 184], [212, 214], [202, 244], [192, 256],
+    [150, 250], [128, 250], [106, 250],
+    [64, 256], [54, 244], [46, 214], [48, 184], [42, 150], [46, 106], [60, 64], [86, 38]
   ], true);
   const longWaveFront = catmull([
-    // left lock: outer scalloped edge down to the tip, inner edge back up the cheek to the temple
-    [60, 98], [48, 128], [56, 162], [44, 198], [58, 230], [66, 254],
-    [88, 232], [82, 188], [80, 150], [90, 114],
-    // soft centre-part hairline (shows forehead)
-    [104, 100], [120, 94], [126, 95], [136, 94], [150, 100],
-    // right temple down to the right lock, then its outer scalloped edge back up
-    [166, 114], [176, 150], [174, 188], [168, 232],
-    [190, 254], [198, 230], [212, 198], [200, 162], [208, 128], [196, 98],
-    // crown over the skull (above the hairline) with soft volume
-    [170, 50], [128, 42], [86, 50]
+    // left lock: outer edge from the temple down with S-waves to the tip at the bottom edge
+    [64, 96], [50, 124], [60, 158], [46, 196], [56, 230], [50, 256],
+    // tip -> inner edge back up, kept OUTSIDE the cheek so the face stays open
+    [76, 238], [82, 196], [80, 156], [88, 116],
+    // clean shallow centre-part hairline (sits high so a forehead shows, no widow's-peak notch)
+    [100, 92], [114, 87], [128, 85], [142, 87], [154, 92],
+    // right inner edge down (outside the cheek), then the right lock + its S-waved outer edge up
+    [168, 116], [176, 156], [174, 196], [180, 238],
+    [206, 256], [200, 230], [210, 196], [196, 158], [206, 124], [192, 96],
+    // crown over the skull (high and rounded, with soft volume)
+    [168, 40], [128, 32], [88, 40]
   ], true);
 
   const hairStyles = {
@@ -244,13 +247,17 @@
     }
   };
 
+  // One soft, naturally-sloping shoulder silhouette shared by every garment; the per-style
+  // character lives in the collar (drawn on top of the neck by renderCollar). Rounded shoulders
+  // + curved necklines replace the old hard rectangles/V-notches that read as "angular".
+  const softShoulders = "M24 256C30 214 62 198 100 196C118 195 138 195 156 196C194 198 226 214 232 256Z";
   const clothing = {
-    hoodie: { body: "M50 256c7-60 149-60 156 0Z", neck: "M89 214c18-24 60-24 78 0v25H89Z", accent: "M92 222c8 11 64 11 72 0" },
-    tee: { body: "M47 256c12-53 150-53 162 0Z", neck: "M104 204h48v32h-48Z", accent: "M83 230c27 15 63 15 90 0" },
-    collared: { body: "M48 256c10-55 150-55 160 0Z", neck: "M91 204l37 29 37-29v52H91Z", accent: "M92 204l36 29 36-29" },
-    jacket: { body: "M48 256c8-57 152-57 160 0Z", neck: "M101 202h54v42h-54Z", accent: "M80 218l31-14M176 218l-31-14" },
-    turtleneck: { body: "M49 256c9-54 149-54 158 0Z", neck: "M98 198h60v48H98Z", accent: "M98 212h60M98 226h60" },
-    overalls: { body: "M47 256c11-54 151-54 162 0Z", neck: "M102 202h52v32h-52Z", accent: "M91 208v48M165 208v48" }
+    hoodie: { body: softShoulders, collar: "hood" },
+    tee: { body: softShoulders, collar: "crew" },
+    collared: { body: softShoulders, collar: "shirt" },
+    jacket: { body: softShoulders, collar: "zip" },
+    turtleneck: { body: softShoulders, collar: "turtle" },
+    overalls: { body: softShoulders, collar: "overall" }
   };
 
   const accessories = {
@@ -775,7 +782,7 @@
     // this project's original back/front hair.
     const useFacesHair = typeof window !== "undefined" && window.facesHair && window.facesHair.has(traits.hair);
     const facesHairSvg = useFacesHair
-      ? `<g transform='translate(0 ${Number(traits.frontHairY) || 0})'>${window.facesHair.render(traits.hair, `url(#hair-${seed})`, ink, { ...hairStrandTones(hair), seed })}</g>`
+      ? `<g transform='translate(0 ${Number(traits.frontHairY) || 0})'>${window.facesHair.render(traits.hair, `url(#hair-${seed})`, ink, { ...hairStrandTones(hair), hairHex: hair, seed })}</g>`
       : "";
     const svg = `
       <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>
@@ -794,6 +801,7 @@
         <rect width='256' height='256' fill='${traits.background}'/>
         ${renderClothing(outfit, traits, seed)}
         ${renderNeckBase(traits, skin)}
+        ${renderCollar(traits)}
         ${headGroup(traits, `
           ${useFacesHair ? "" : renderBackHair(hairStyle, `url(#hair-${seed})`, traits)}
           ${renderEars(traits, skin)}
@@ -842,26 +850,111 @@
   }
 
   function renderClothing(outfit, traits, seed) {
-    const neckDrop = Number(traits.neckLength) || 0;
-    const collarLift = Math.min(neckDrop * 0.35, 4);
-    // Raise the shoulders/collar so more of the torso fills the lower frame to meet the now
-    // longer neck. Anchored at the bottom edge (y=256) so the garment stays full-bleed and no
-    // background strip opens up beneath it.
+    const c = traits.shirt;
+    const lo = shadeColor(c, 0.84);
+    // Soft shoulder silhouette + a gentle chest-shadow arc near the neck for depth (replaces the
+    // old hard accent stroke). Anchored at the bottom edge (y=256) so it stays full-bleed.
     const body = `
-      <path d='${outfit.body}' fill='${traits.shirt}' stroke='${ink}' stroke-width='${stroke.contour}'/>
-      <g transform='translate(0 ${collarLift})'><path d='${outfit.accent}' fill='none' stroke='${shadeColor(traits.shirt, 0.82)}' stroke-width='${stroke.detail}' stroke-linecap='round' stroke-linejoin='round'/></g>
-      <g transform='translate(0 ${neckDrop})'><path d='${outfit.neck}' fill='${traits.shirt}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/></g>
+      <path d='${outfit.body}' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+      <path d='M58 250C68 224 95 213 128 213C161 213 188 224 198 250' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.45'/>
     `;
-    return `<g transform='translate(0 256) scale(1 1.16) translate(0 -256)'>${body}</g>`;
+    return `<g transform='translate(0 256) scale(1 1.13) translate(0 -256)'>${body}</g>`;
+  }
+
+  // Neckline geometry shared by the skin column and the collar so they always meet on the same
+  // curve. `y` is where the neckline crosses; it dips ~7px lower at centre for a soft crew curve.
+  function necklineY(traits) {
+    return 200 + (Number(traits.neckLength) || 0);
   }
 
   function renderNeckBase(traits, skin) {
-    // Starts up behind the (now lifted) chin and runs down into the collar so a real length of
-    // neck shows between the jaw and the shoulders, instead of the chin sitting on the collar.
-    const extra = Number(traits.neckLength) || 0;
-    const y = 150;
-    const height = 70 + extra;
-    return `<path d='M106 ${y}h44v${height}h-44Z' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}'/>`;
+    // Starts up behind the (lifted) chin and runs down into a softly rounded crew neckline so the
+    // shirt opening reads as a curve, not a hard rectangle.
+    const top = 150;
+    const y = necklineY(traits);
+    const d = `M106 ${top} L106 ${y} Q128 ${y + 14} 150 ${y} L150 ${top} Z`;
+    return `<path d='${d}' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}'/>`;
+  }
+
+  // Per-garment collar, drawn ON TOP of the skin neck so its curved opening shapes the neckline.
+  function renderCollar(traits) {
+    const c = traits.shirt;
+    const lo = shadeColor(c, 0.82);
+    const hi = shadeColor(c, 1.12);
+    const rib = shadeColor(c, 0.68);
+    const y = necklineY(traits);
+    const cy = y + 7; // centre of the neckline dip
+    const style = traits.clothing;
+
+    if (style === "turtleneck") {
+      // a tall folded tube hugging the neck with one soft horizontal fold
+      return `
+        <path d='M104 ${y} Q128 ${cy} 152 ${y} L152 ${y - 22} Q128 ${y - 33} 104 ${y - 22} Z' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+        <path d='M107 ${y - 13} Q128 ${y - 5} 149 ${y - 13}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.6'/>
+      `;
+    }
+    if (style === "collared") {
+      // folded collar band around the neckline + two pointed front collar tips making a clean V
+      const band = `M150 ${y} Q128 ${cy} 106 ${y} L100 ${y + 10} Q128 ${cy + 13} 156 ${y + 10} Z`;
+      const tipL = `M104 ${y + 2} L126 ${y + 18} L128 ${y + 5} Z`;
+      const tipR = `M152 ${y + 2} L130 ${y + 18} L128 ${y + 5} Z`;
+      return `
+        <path d='${band}' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
+        <path d='${tipL}' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
+        <path d='${tipR}' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
+        <path d='M128 ${y + 18} V ${y + 46}' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
+      `;
+    }
+    if (style === "jacket") {
+      // a zip-up jacket: stand-collar band + centre zip (teeth + pull) and two soft front seams
+      const band = `M150 ${y} Q128 ${cy} 106 ${y} L101 ${y + 11} Q128 ${cy + 14} 155 ${y + 11} Z`;
+      let teeth = "";
+      for (let ty = y + 16; ty <= y + 50; ty += 4) teeth += `<path d='M125 ${ty} L131 ${ty}'/>`;
+      return `
+        <path d='${band}' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
+        <path d='M110 ${y + 11} C 112 ${y + 28} 116 ${y + 40} 120 ${y + 52}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
+        <path d='M146 ${y + 11} C 144 ${y + 28} 140 ${y + 40} 136 ${y + 52}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
+        <path d='M128 ${y + 6} V ${y + 52}' stroke='${ink}' stroke-width='2.6' stroke-linecap='round'/>
+        <g stroke='${rib}' stroke-width='1.1' opacity='.55'>${teeth}</g>
+        <circle cx='128' cy='${y + 13}' r='2.3' fill='${hi}' stroke='${ink}' stroke-width='1.4'/>
+      `;
+    }
+    if (style === "overalls") {
+      // bib panel + two rounded straps over the shoulders
+      return `
+        <path d='M104 ${y + 6} Q128 ${y + 16} 152 ${y + 6} L152 ${y + 52} L104 ${y + 52} Z' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
+        <path d='M104 ${y + 8} C 92 ${y - 2} 80 ${y - 4} 70 ${y + 2}' fill='none' stroke='${c}' stroke-width='10' stroke-linecap='round'/>
+        <path d='M152 ${y + 8} C 164 ${y - 2} 176 ${y - 4} 186 ${y + 2}' fill='none' stroke='${c}' stroke-width='10' stroke-linecap='round'/>
+        <path d='M104 ${y + 8} C 92 ${y - 2} 80 ${y - 4} 70 ${y + 2}' fill='none' stroke='${ink}' stroke-width='2' stroke-linecap='round' opacity='.6'/>
+        <path d='M152 ${y + 8} C 164 ${y - 2} 176 ${y - 4} 186 ${y + 2}' fill='none' stroke='${ink}' stroke-width='2' stroke-linecap='round' opacity='.6'/>
+        <circle cx='112' cy='${y + 16}' r='2.2' fill='${hi}' stroke='${ink}' stroke-width='1.4'/>
+        <circle cx='144' cy='${y + 16}' r='2.2' fill='${hi}' stroke='${ink}' stroke-width='1.4'/>
+      `;
+    }
+
+    // default: crew / hoodie ribbed collar band hugging the neckline curve
+    const band = `M150 ${y} Q128 ${cy} 106 ${y} L102 ${y + 6} Q128 ${cy + 8} 154 ${y + 6} Z`;
+    let ribs = "";
+    for (let x = 108; x <= 148; x += 5) {
+      const t = (x - 128) / 22;
+      const ry = y + 7 * (1 - t * t);
+      ribs += `<path d='M${x} ${ry + 1} L${x} ${ry + 5}'/>`;
+    }
+    let extra = "";
+    if (style === "hoodie") {
+      // a hood seam behind the neck + two drawstrings
+      extra = `
+        <path d='M158 ${y - 1} Q128 ${y - 18} 98 ${y - 1}' fill='none' stroke='${lo}' stroke-width='${stroke.feature}' stroke-linecap='round' opacity='.7'/>
+        <path d='M120 ${y + 6} L117 ${y + 30}M136 ${y + 6} L139 ${y + 30}' stroke='${lo}' stroke-width='2.6' stroke-linecap='round'/>
+        <circle cx='117' cy='${y + 32}' r='2.4' fill='${hi}' stroke='${ink}' stroke-width='1.3'/>
+        <circle cx='139' cy='${y + 32}' r='2.4' fill='${hi}' stroke='${ink}' stroke-width='1.3'/>
+      `;
+    }
+    return `
+      ${extra}
+      <path d='${band}' fill='${lo}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
+      <g stroke='${rib}' stroke-width='1' stroke-linecap='round' opacity='.5'>${ribs}</g>
+    `;
   }
 
   function renderEars(traits, skin) {
@@ -1001,16 +1094,16 @@
       for (const side of [-1, 1]) {
         for (let k = 0; k < N; k++) {
           const t = k / (N - 1);
-          const topX = 128 + side * (8 + t * 54), topY = 92 - t * 40;
-          const botX = 128 + side * (40 + t * 30), botY = 232 + t * 18;
-          const m1x = topX + side * ((botX - topX) * 0.25) - side * 9, m1y = topY + (botY - topY) * 0.32;
-          const m2x = topX + side * ((botX - topX) * 0.62) + side * 8, m2y = topY + (botY - topY) * 0.66;
+          const topX = 128 + side * (6 + t * 56), topY = 86 - t * 42;
+          const botX = 128 + side * (52 + t * 22), botY = 236 + t * 16;
+          const m1x = topX + side * ((botX - topX) * 0.28) - side * 10, m1y = topY + (botY - topY) * 0.34;
+          const m2x = topX + side * ((botX - topX) * 0.6) + side * 9, m2y = topY + (botY - topY) * 0.66;
           const lit = k % 3 === 0;
           marks += `<path d='${catmull([[topX, topY], [m1x, m1y], [m2x, m2y], [botX, botY]], false)}' fill='none' stroke='${lit ? lite : dark}' stroke-width='${lit ? 1.6 : 2}' stroke-linecap='round' opacity='${lit ? 0.5 : 0.62}'/>`;
         }
       }
-      const part = `<path d='M126 60Q127 78 126 96' fill='none' stroke='${dark}' stroke-width='1.6' stroke-linecap='round' opacity='.5'/>`;
-      const sheen = `<path d='M96 64Q128 52 160 64' fill='none' stroke='${lite}' stroke-width='2.4' stroke-linecap='round' opacity='.5'/>`;
+      const part = `<path d='M127 50Q128 70 127 86' fill='none' stroke='${dark}' stroke-width='1.6' stroke-linecap='round' opacity='.5'/>`;
+      const sheen = `<path d='M98 58Q128 46 158 58' fill='none' stroke='${lite}' stroke-width='2.4' stroke-linecap='round' opacity='.5'/>`;
       inner = marks + part + sheen;
     } else if (style.texture === "curls" || style.texture === "coils") {
       const dark = shadeColor(hair, 0.64);

@@ -1,0 +1,240 @@
+[
+  {
+    "name": "Cafe",
+    "variant": "day",
+    "file": "cafe_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Cafe",
+    "variant": "night",
+    "file": "cafe_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Restaurant",
+    "variant": "day",
+    "file": "restaurant_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Restaurant",
+    "variant": "night",
+    "file": "restaurant_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Bar",
+    "variant": "day",
+    "file": "bar_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Bar",
+    "variant": "night",
+    "file": "bar_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Rooftop",
+    "variant": "day",
+    "file": "rooftop_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Rooftop",
+    "variant": "night",
+    "file": "rooftop_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Library",
+    "variant": "day",
+    "file": "library_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Library",
+    "variant": "night",
+    "file": "library_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Bookstore",
+    "variant": "day",
+    "file": "bookstore_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Bookstore",
+    "variant": "night",
+    "file": "bookstore_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Art Gallery",
+    "variant": "day",
+    "file": "art_gallery_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Art Gallery",
+    "variant": "night",
+    "file": "art_gallery_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Museum Lobby",
+    "variant": "day",
+    "file": "museum_lobby_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Museum Lobby",
+    "variant": "night",
+    "file": "museum_lobby_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Cinema",
+    "variant": "day",
+    "file": "cinema_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Cinema",
+    "variant": "night",
+    "file": "cinema_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Hotel Lobby",
+    "variant": "day",
+    "file": "hotel_lobby_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Hotel Lobby",
+    "variant": "night",
+    "file": "hotel_lobby_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Airport Lounge",
+    "variant": "day",
+    "file": "airport_lounge_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Airport Lounge",
+    "variant": "night",
+    "file": "airport_lounge_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Train Station",
+    "variant": "day",
+    "file": "train_station_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Train Station",
+    "variant": "night",
+    "file": "train_station_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Gym",
+    "variant": "day",
+    "file": "gym_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Gym",
+    "variant": "night",
+    "file": "gym_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Yoga Studio",
+    "variant": "day",
+    "file": "yoga_studio_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Yoga Studio",
+    "variant": "night",
+    "file": "yoga_studio_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Greenhouse",
+    "variant": "day",
+    "file": "greenhouse_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Greenhouse",
+    "variant": "night",
+    "file": "greenhouse_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Park",
+    "variant": "day",
+    "file": "park_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Park",
+    "variant": "night",
+    "file": "park_night_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Beach",
+    "variant": "day",
+    "file": "beach_day_banner.png",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "name": "Beach",
+    "variant": "night",
+    "file": "beach_night_banner.png",
+    "width": 1600,
+    "height": 520
+  }
+]

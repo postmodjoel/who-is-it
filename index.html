@@ -23,51 +23,32 @@
       <section id="locationBand" class="location-band" aria-live="polite"></section>
 
       <section class="game-bar">
-        <div class="room-strip">
-          <div class="room-copy">
-            <div class="room-row">
-              <span id="roomCode" class="room-code"></span>
-              <span id="roomStatus" class="room-status"></span>
-            </div>
-            <div id="seatRoster" class="seat-roster" aria-label="Room seats"></div>
-          </div>
-          <div class="game-bar-actions">
-            <button id="swapSeatButton" class="button compact icon-only" type="button" aria-label="Swap seat" title="Swap seat"></button>
-            <button id="revealSecretButton" class="button secondary compact icon-only" type="button" aria-label="Hide face" title="Hide face"></button>
-            <button id="drawPromptButton" class="button compact icon-only" type="button" aria-label="Draw prompt" title="Draw prompt"></button>
-            <button id="mysteryButton" class="button mystery compact icon-only" type="button" aria-label="Mystery effect" title="Mystery effect"></button>
-          </div>
+        <div class="seat-cluster">
+          <span id="roomCode" class="room-code"></span>
+          <span id="roomStatus" class="room-status"></span>
+          <div id="seatRoster" class="seat-roster" aria-label="Room seats"></div>
         </div>
 
-        <div class="identity-strip">
-          <div class="identity-panel">
-            <p class="label sr-only">You are</p>
-            <div id="secretCard" class="secret-card is-hidden"></div>
-          </div>
+        <p class="label sr-only">You are</p>
+        <div id="secretCard" class="secret-card is-hidden"></div>
 
-          <div class="prompt-panel prompt-inline">
-            <div class="panel-heading">
-              <p class="label sr-only">Question</p>
-              <span id="mysteryUseCount" class="counter">0/2</span>
-            </div>
-            <p id="questionPrompt" class="question-prompt"></p>
-            <p id="mysteryResult" class="mystery-result"></p>
-          </div>
+        <div class="prompt-inline">
+          <p class="label sr-only">Question</p>
+          <p id="questionPrompt" class="question-prompt"></p>
+          <p id="mysteryResult" class="mystery-result"></p>
+        </div>
+
+        <div class="game-bar-actions">
+          <span id="mysteryUseCount" class="counter">0/2</span>
+          <button id="swapSeatButton" class="button compact icon-only" type="button" aria-label="Swap seat" title="Swap seat"></button>
+          <button id="revealSecretButton" class="button secondary compact icon-only" type="button" aria-label="Hide face" title="Hide face"></button>
+          <button id="drawPromptButton" class="button compact icon-only" type="button" aria-label="Draw prompt" title="Draw prompt"></button>
+          <button id="mysteryButton" class="button mystery compact icon-only" type="button" aria-label="Mystery effect" title="Mystery effect"></button>
         </div>
       </section>
 
       <main class="game-shell">
         <section class="board-wrap">
-          <div class="board-toolbar">
-            <div>
-              <p class="label sr-only">Suspects</p>
-              <h2 id="boardTitle">The lineup</h2>
-            </div>
-            <div class="board-actions">
-              <button id="undoButton" class="button compact icon-only" type="button" aria-label="Undo" title="Undo"></button>
-              <button id="clearButton" class="button compact icon-only" type="button" aria-label="Clear board" title="Clear board"></button>
-            </div>
-          </div>
           <div id="hintShelf" class="hint-shelf"></div>
           <div id="characterBoard" class="character-board" aria-label="Character board"></div>
           <div class="log-panel log-panel-inline">

@@ -60,7 +60,10 @@ it renders strokes unevenly. Let strokes scale naturally.
 Most styles now render from real faces.js silhouettes (Apache-2.0, attributed) instead of the
 procedural paths below. `faces-hair.js` exposes `window.facesHair.{render,has,styles}` and holds the
 copied path data. Mapping: messy→messy, cropped→crop, sidePart→parted, bob→middle-part, curls→curly,
-coily→afro, longWaves→**female1** (both-sides long hair, replaced the one-sided longHair), locs→dreads. faces.js authors on a 400×600 canvas; the
+coily→afro, locs→dreads. (`longWaves` is now a purpose-built **procedural** style for Luna's
+flowing waves — see the longWaves note below — and is excluded from the faces.js table; the borrowed
+`female1` data is kept in faces-hair.js but rendered as a blunt-banged bob, so it's disabled there.)
+faces.js authors on a 400×600 canvas; the
 `FACES_HAIR_TRANSFORM` (`translate(50.5 22) scale(0.387)`) maps that onto this 256×256 head (head
 centres + skull-top aligned, head width matched, uniform scale so shapes don't distort). In
 `composePortrait`, `useFacesHair = window.facesHair.has(traits.hair)`: when true it draws ONE hair
@@ -76,6 +79,20 @@ Most `hairStyles` are hand-authored `back`/`front` path strings. The `messy` sty
 bar: a swept shape with an irregular, face-framing hairline. When a smooth style looks like a
 helmet, give it a higher/more natural hairline (show forehead, recede at temples) and add strand
 lines.
+
+### longWaves — long flowing waves (Luna's gold standard)
+Built procedurally from point lists smoothed by `catmull(points, closed)` (Catmull-Rom → bezier).
+`longWaveBack` is a wide voluminous mass with a gently scalloped (wavy) outer edge; `longWaveFront`
+is the front layer — a high soft centre-part hairline (shows forehead), a crown with volume, and two
+long locks that frame the face and fall past the shoulders. `hairStyles.longWaves` is tagged
+`longFlow:true`, which: (a) makes `renderFrontHair` return the long front for ALL longWaves
+characters (the old per-character `curtainWaves/centerPartWaves/shoulderWaves` fringes were for the
+short version and are bypassed); (b) makes `renderHairHighlights` draw the flowing strand lines
+(fanning from the part, down both locks) and **clip them to the FRONT layer, not the back blob** —
+clipping to back would scatter strands onto the forehead the back mass covers. To tune length/volume,
+edit the point lists; keep the outer-edge waves gentle (small in/out) so it reads as soft waves, not
+spikes. Verifying compare.html via screenshot fails (it never reaches document_idle); render Luna in
+a tiny static page that inlines the SVG instead (see workflow note in SKILL).
 
 ### Curly / coily — generated, smooth + strands
 `curls` and `coily` are built procedurally:

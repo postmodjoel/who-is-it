@@ -701,7 +701,9 @@
         accent: accentFor(index, accessory),
         background: backgrounds[index % backgrounds.length],
         eyeGap: eyeGapFor(index),
-        eyeColor: ["#2d593b", "#3a6ea5", "#6a4b3b", "#5d4a98"][index % 4],
+        // Natural iris palette, brown-weighted like real portraits (no fantasy violet, muted blue):
+        // 3 brown variants + forest green + steel blue + hazel-amber.
+        eyeColor: ["#5a3d28", "#6a4b3b", "#43301f", "#3f6048", "#45698f", "#7a5530"][index % 6],
         hairProfile: hairProfileFor(id, hair),
         beardProfile: beardProfileFor(id, accessory),
         portraitProfile: portraitProfileFor(id, index),

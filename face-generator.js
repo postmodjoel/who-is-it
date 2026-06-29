@@ -845,6 +845,28 @@
       cheekY: 3, cheekOpacity: 0.01,
       clothing: "collared", shirt: "#545454", bodyWidth: 1.02, shoulderSlope: 1, build: 71,
       accessoryY: 4, accessoryScale: 1.28, animMode: "alert"
+    },
+    gianni: {
+      browShape: "bushy", browY: 4.5, browScaleX: 1.04,
+      cheekOpacity: 0.02, pupilX: -1.5, pupilY: -1.5, eyeY: -2, eyeOpen: 0.54,
+      jawShadowY: -2, jawLength: -0.03, chinY: 1, chinWidth: 1.06,
+      smileLips: "off", lips: "full", lipColor: "#78503b", mouthScale: 1.08,
+      headScaleX: 1.04, headScaleY: 1.08, headY: 8,
+      earScale: 0.86, earVariant: "attached", earY: -3,
+      accessory: "none", beardScale: 0.78, animMode: "serious", blinkRate: 6,
+      hairLocks: [
+        { lock: "shortCrop", x: 50, y: 44, scale: 0.82, rot: 5, lines: false, outline: "#1a1a1a", fill: "#000000", dark: "#000000" },
+        { lock: "rightCascade", x: 59, y: 55, scale: 0.78, rot: 0, lines: true, outline: "none" },
+        { lock: "sideSwoop", x: 66, y: 29, scale: 0.3, rot: -86, lines: false, outline: "none", fill: "#030303" }
+      ],
+      beardBlobs: [
+        { dx: 44, y: 177, r: 14 },
+        { dx: 27, y: 183, r: 16 },
+        { dx: 14, y: 198, r: 16 },
+        { dx: 33, y: 195, r: 25 },
+        { dx: 10, y: 209, r: 28 },
+        { dx: 40, y: 187, r: 16 }
+      ]
     }
   };
 
@@ -1410,7 +1432,12 @@
     const clipId = `beardblob-${seed}`;
     const clip = circles.map(([x, y, r]) => `<circle cx='${x.toFixed(1)}' cy='${y.toFixed(1)}' r='${r.toFixed(1)}'/>`).join("");
     const low = circles.map(([x, y, r]) => c(x, y + r * 0.55, r * 0.7, lo)).join("");
-    return `${outline}${fill}<defs><clipPath id='${clipId}'>${clip}</clipPath></defs><g clip-path='url(#${clipId})' opacity='0.5'>${low}</g>`;
+    const body = `${outline}${fill}<defs><clipPath id='${clipId}'>${clip}</clipPath></defs><g clip-path='url(#${clipId})' opacity='0.5'>${low}</g>`;
+    // Optional skew (around the beard centre ~128,205) to lean/taper the whole mass.
+    const skx = Number(traits.beardSkewX) || 0;
+    const sky = Number(traits.beardSkewY) || 0;
+    if (!skx && !sky) return body;
+    return `<g transform='translate(128 205) skewX(${skx}) skewY(${sky}) translate(-128 -205)'>${body}</g>`;
   }
 
   function renderFaceModeling(seed, skin, traits) {
@@ -1696,7 +1723,7 @@
     const shape = browShapes[traits.browShape] || browShapes.soft;
     const emo = browEmotion[expression.eyes] || browEmotion.calm;
     const len = shape.len * sx;
-    const th = shape.th;
+    const th = shape.th * (profile.browThick || 1);
     const arch = shape.arch + emo.arch;
     const peakX = shape.peakX || 0.5;
     const f = (n) => n.toFixed(1);
@@ -1874,7 +1901,7 @@
     const y = (Number(traits.mouthY) || 0) + jawDrop(getProfile(traits).jawLength, anchorY);
     const scale = Number(traits.mouthScale) || 1;
     if (!y && scale === 1) return svg;
-    return `<g class='fixed-stroke' transform='translate(0 ${y}) translate(128 ${anchorY}) scale(${scale}) translate(-128 -${anchorY})'>${svg}</g>`;
+    return `<g transform='translate(0 ${y}) translate(128 ${anchorY}) scale(${scale}) translate(-128 -${anchorY})'>${svg}</g>`;
   }
 
   function renderSmileMouth(mouthStyle, traits, seed) {
@@ -1999,18 +2026,30 @@
     const skin = skinTones[traits.skin] || "#c89070";
     const lip = traits.lipColor || shadeColor(skin, 0.78);
     const full = style === "full";
-    const upper = full
-      ? "M106 170q11-6 22-2 11-4 22 2-10 5-22 3-12 2-22-3Z"
-      : "M109 170q9-4 19-1 10-3 19 1-9 4-19 2-10 1-19-2Z";
-    const lower = full
-      ? "M108 172q20 11 40 0-8 9-20 9-12 0-20-9Z"
-      : "M111 172q17 8 34 0-7 6-17 6-10 0-17-6Z";
-    const seam = "M108 171q20 5 40 0";
+    const f = (n) => n.toFixed(1);
+    const cx = 128;
+    const my = 171;                 // the mouth line (where the lips meet - shared, so no open gap)
+    const L = full ? 106 : 109;
+    const R = full ? 150 : 147;
+    const upH = full ? 7 : 5;       // upper-lip height
+    const loH = full ? 13 : 9;      // lower-lip drop
+    const seamTo = (x2) => `Q${cx} ${f(my + 1.4)} ${f(x2)} ${f(my)}`;
+    // Upper lip: cupid's-bow top edge, bottom edge = the mouth line.
+    const upper = `M${f(L)} ${f(my)}`
+      + `C${f(L + 5)} ${f(my - upH)} ${f(cx - 11)} ${f(my - upH + 1)} ${f(cx - 5)} ${f(my - 2.5)}`
+      + `C${f(cx - 2)} ${f(my - 4)} ${f(cx + 2)} ${f(my - 4)} ${f(cx + 5)} ${f(my - 2.5)}`
+      + `C${f(cx + 11)} ${f(my - upH + 1)} ${f(R - 5)} ${f(my - upH)} ${f(R)} ${f(my)}`
+      + seamTo(L) + "Z";
+    // Lower lip: top edge = the mouth line, fuller curve below.
+    const lower = `M${f(L)} ${f(my)}` + seamTo(R)
+      + `C${f(R - 5)} ${f(my + loH - 2)} ${f(cx + 11)} ${f(my + loH)} ${f(cx)} ${f(my + loH)}`
+      + `C${f(cx - 11)} ${f(my + loH)} ${f(L + 5)} ${f(my + loH - 2)} ${f(L)} ${f(my)}Z`;
+    const seam = `M${f(L)} ${f(my)}${seamTo(R)}`;
     return `
       <path d='${lower}' fill='${lip}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
       <path d='${upper}' fill='${shadeColor(lip, 0.92)}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
       <path d='${seam}' fill='none' stroke='${ink}' stroke-width='2.2' stroke-linecap='round'/>
-      <path d='M120 169q8-2 16 0' fill='none' stroke='rgba(255,255,255,.32)' stroke-width='1.6' stroke-linecap='round'/>
+      <path d='M${f(cx - 8)} ${f(my + loH * 0.5)}q8 2 16 0' fill='none' stroke='rgba(255,255,255,.3)' stroke-width='1.4' stroke-linecap='round'/>
     `;
   }
 
@@ -2019,7 +2058,7 @@
     const y = Number(traits.teethY) || 0;
     const scale = Number(traits.teethScale) || 1;
     if (!x && !y && scale === 1) return svg;
-    return `<g class='fixed-stroke' transform='translate(${x} ${y}) translate(${anchorX} ${anchorY}) scale(${scale}) translate(-${anchorX} -${anchorY})'>${svg}</g>`;
+    return `<g transform='translate(${x} ${y}) translate(${anchorX} ${anchorY}) scale(${scale}) translate(-${anchorX} -${anchorY})'>${svg}</g>`;
   }
 
   function renderCheeks(expression) {
@@ -2054,7 +2093,7 @@
     const scale = Number(traits.accessoryScale) || 1;
     if (!svg || (!x && !y && scale === 1)) return svg;
     const anchor = accessoryAnchor(traits.accessory);
-    return `<g class='fixed-stroke' transform='translate(${x} ${y}) translate(${anchor.x} ${anchor.y}) scale(${scale}) translate(-${anchor.x} -${anchor.y})'>${svg}</g>`;
+    return `<g transform='translate(${x} ${y}) translate(${anchor.x} ${anchor.y}) scale(${scale}) translate(-${anchor.x} -${anchor.y})'>${svg}</g>`;
   }
 
   function accessoryAnchor(accessory) {
@@ -2090,7 +2129,7 @@
     const y = (Number(traits.beardY) || 0) + jawDrop(getProfile(traits).jawLength, 196);
     const scale = Number(traits.beardScale) || 1;
     if (!x && !y && scale === 1) return svg;
-    return `<g class='fixed-stroke' transform='translate(${x} ${y}) translate(128 184) scale(${scale}) translate(-128 -184)'>${svg}</g>`;
+    return `<g transform='translate(${x} ${y}) translate(128 184) scale(${scale}) translate(-128 -184)'>${svg}</g>`;
   }
 
   function transformMoustache(svg, traits) {
@@ -2098,7 +2137,7 @@
     const y = (Number(traits.moustacheY) || 0) + jawDrop(getProfile(traits).jawLength, 160);
     const scale = Number(traits.moustacheScale) || 1;
     if (!x && !y && scale === 1) return svg;
-    return `<g class='fixed-stroke' transform='translate(${x} ${y}) translate(128 160) scale(${scale}) translate(-128 -160)'>${svg}</g>`;
+    return `<g transform='translate(${x} ${y}) translate(128 160) scale(${scale}) translate(-128 -160)'>${svg}</g>`;
   }
 
   function describeVisibleTraits(traits) {
@@ -2166,14 +2205,15 @@
       jawShadowY: 0,
       jawLength: 0,
       pupilX: 0,
-      pupilY: 0
+      pupilY: 0,
+      browThick: 1
     };
   }
 
   const profileOverrideKeys = [
     "eyeScale", "eyeOpen", "irisScale", "eyeY", "browY", "browScaleX",
     "noseY", "noseScale", "cheekY", "cheekOpacity", "eyeSocketY", "jawShadowY", "jawLength",
-    "pupilX", "pupilY"
+    "pupilX", "pupilY", "browThick"
   ];
 
   // Lets flat trait corrections (eg from the studio editor) override the per-character

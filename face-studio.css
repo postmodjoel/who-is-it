@@ -194,6 +194,12 @@ textarea {
   display: grid;
   gap: 12px;
   padding: 12px;
+  /* Pin the portrait so it stays visible while the editor controls scroll. */
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
 }
 
 .editor-panel {

@@ -16,6 +16,7 @@ const editorFields = [
   { group: "Face", key: "eyeGap", label: "Eye Gap", min: 40, max: 62, step: 1, fallback: 47 },
   // Skin
   { group: "Skin", key: "skin", label: "Skin Tone", type: "select", options: () => selectOptions(traitBook.skinTones), fallback: "fair" },
+  { group: "Skin", key: "background", label: "Background", type: "color", fallback: "" },
   // Hair
   { group: "Hair", key: "hair", label: "Hair Style", type: "select", options: () => selectOptions(traitBook.hairStyles), fallback: "messy" },
   { group: "Hair", key: "hairColor", label: "Hair Color", type: "select", options: () => selectOptions(traitBook.hairColors), fallback: "brown" },
@@ -25,6 +26,7 @@ const editorFields = [
   { group: "Brows", key: "browShape", label: "Brow Shape", type: "select", options: () => selectOptions(traitBook.browShapes), fallback: "soft" },
   { group: "Brows", key: "browY", label: "Brow Height", min: -6, max: 6, step: 0.5, fallback: 0 },
   { group: "Brows", key: "browScaleX", label: "Brow Width", min: 0.8, max: 1.25, step: 0.02, fallback: 1 },
+  { group: "Brows", key: "browThick", label: "Brow Thickness", min: 0.5, max: 2, step: 0.05, fallback: 1 },
   // Eyes
   { group: "Eyes", key: "eyeScale", label: "Eye Size", min: 0.7, max: 1.25, step: 0.02, fallback: 0.94 },
   { group: "Eyes", key: "eyeOpen", label: "Eye Openness", min: 0.5, max: 1.2, step: 0.02, fallback: 0.95 },
@@ -82,6 +84,8 @@ const editorFields = [
   { group: "Beard", key: "beardX", label: "Beard X", min: -18, max: 18, step: 1, fallback: 0 },
   { group: "Beard", key: "beardY", label: "Beard Y", min: -18, max: 22, step: 1, fallback: 0 },
   { group: "Beard", key: "beardScale", label: "Beard Scale", min: 0.72, max: 1.42, step: 0.02, fallback: 1 },
+  { group: "Beard", key: "beardSkewX", label: "Beard Skew X", min: -30, max: 30, step: 1, fallback: 0 },
+  { group: "Beard", key: "beardSkewY", label: "Beard Skew Y", min: -30, max: 30, step: 1, fallback: 0 },
   // Animation (per-character idle motion)
   { group: "Animation", key: "animMode", label: "Animation", type: "select", options: () => selectOptions(traitBook.animModes), fallback: "still" },
   { group: "Animation", key: "blinkRate", label: "Blink Every (s)", min: 0, max: 12, step: 0.5, fallback: 4.5 },
@@ -464,6 +468,7 @@ function colorAutoFor(character, field) {
     return shadeHex(hex, 0.78);
   }
   if (field.key === "shirt") return character.traits.shirt || "#4a7bd9";
+  if (field.key === "background") return character.traits.background || "#a9c4e0";
   return "#000000";
 }
 

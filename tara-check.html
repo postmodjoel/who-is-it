@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><style>
+  body{background:#222;margin:0;display:flex;gap:24px;padding:24px;align-items:flex-start}
+  .cell img{width:460px;height:460px;border-radius:14px;display:block}
+  .cell.s img{width:170px;height:170px}
+  figure{margin:0}
+</style></head>
+<body>
+<div class="cell"><figure id="big"></figure></div>
+<div class="cell s"><figure id="small"></figure></div>
+<script src="faces-hair.js?v=40"></script>
+<script src="face-generator.js?v=40"></script>
+<script>
+  const base = {
+    faceShape:"oval", skin:"fair", hair:"messy", hairColor:"brown", clothing:"tee",
+    shirt:"#3a6ea8", expression:"neutral", mouthStyle:"warmSmile", accessory:"none",
+    background:"#c6b9e0", eyeGap:47, eyeColor:"#3a6ea5", teethStyle:"even", lips:"line",
+    earVariant:"round", browShape:"soft", neckLength:0
+  };
+  const tara = { ...base, skin:"fair", hairColor:"silver", hair:"longWaves", accessory:"sunHat",
+    expression:"neutral", clothing:"tee", shirt:"#1f7a78", background:"#c6b9e0",
+    eyeColor:"#2d593b", lips:"soft" };
+  const url = window.faceGenerator.renderPortrait(19, tara);
+  document.getElementById("big").innerHTML = `<img src="${url}">`;
+  document.getElementById("small").innerHTML = `<img src="${url}">`;
+</script>
+</body>
+</html>

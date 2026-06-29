@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Face Studio</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23f4c84e'/%3E%3Ccircle cx='32' cy='26' r='15' fill='%23fffdf7' stroke='%23171512' stroke-width='4'/%3E%3Cpath d='M16 62c3-17 29-17 32 0' fill='%234a7bd9' stroke='%23171512' stroke-width='4'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="face-studio.css?v=49">
+  </head>
+  <body>
+    <main class="studio-shell">
+      <header class="studio-topbar">
+        <div>
+          <p class="eyebrow">Generator workbench</p>
+          <h1>Face Studio</h1>
+        </div>
+        <div class="topbar-actions">
+          <a class="button ghost" href="index.html">Game</a>
+          <button id="resetButton" class="button primary" type="button">Reset</button>
+        </div>
+      </header>
+
+      <section class="controls-band" aria-label="Generator controls">
+        <label>
+          <span>Expression</span>
+          <select id="expressionFilter"></select>
+        </label>
+        <label>
+          <span>Hair</span>
+          <select id="hairFilter"></select>
+        </label>
+        <label>
+          <span>Accessory</span>
+          <select id="accessoryFilter"></select>
+        </label>
+        <label>
+          <span>Name</span>
+          <input id="searchInput" type="search" autocomplete="off">
+        </label>
+        <label class="toggle-control">
+          <input id="matrixToggle" type="checkbox">
+          <span>Matrix</span>
+        </label>
+      </section>
+
+      <section class="studio-layout">
+        <section class="workbench-layout" aria-label="Selected face editor">
+          <aside class="inspect-panel" aria-label="Selected face">
+            <div class="portrait-stage">
+              <div id="selectedPortrait" class="selected-portrait"></div>
+              <div id="portraitHotspots" class="portrait-hotspots"></div>
+            </div>
+            <p class="hotspot-hint">Click a region on the face to jump to its controls</p>
+            <div id="selectedMeta" class="selected-meta"></div>
+            <div id="variantStrip" class="variant-strip"></div>
+          </aside>
+
+          <section class="editor-panel">
+            <section class="correction-editor" aria-label="Correction editor">
+              <div class="editor-head">
+                <div>
+                  <p class="meta-label">Editor</p>
+                  <h2>Corrections</h2>
+                </div>
+                <button id="resetCorrectionButton" class="mini-button" type="button">Clear Face</button>
+              </div>
+              <div id="editorControls" class="editor-controls"></div>
+              <label class="export-box">
+                <span>Export</span>
+                <textarea id="correctionExport" readonly spellcheck="false"></textarea>
+              </label>
+            </section>
+          </section>
+        </section>
+
+        <section class="gallery-wrap">
+          <div class="gallery-head">
+            <div>
+              <p class="eyebrow">Roster</p>
+              <h2 id="resultCount">0 faces</h2>
+            </div>
+            <div id="expressionSummary" class="summary-pills"></div>
+          </div>
+          <div id="faceGrid" class="face-grid" aria-label="Generated faces"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="faces-hair.js?v=49"></script>
+    <script src="face-generator.js?v=49"></script>
+    <script src="face-studio.js?v=49"></script>
+  </body>
+</html>

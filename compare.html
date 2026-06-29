@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gold-standard comparison</title>
+    <style>
+      :root { --bg:#14161c; --panel:#1d2027; --line:#2c313c; --text:#e8eaf0; --muted:#8a90a0; }
+      * { box-sizing: border-box; }
+      body { margin:0; padding:24px; background:var(--bg); color:var(--text);
+             font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; }
+      h1 { font-size:1.4rem; margin:0 0 4px; }
+      p.sub { margin:0 0 20px; color:var(--muted); font-size:.85rem; }
+      .controls { margin-bottom:18px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+      .controls label { font-size:.8rem; color:var(--muted); display:flex; gap:6px; align-items:center; }
+      .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:18px; }
+      .cell { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px; }
+      .cell h2 { font-size:.85rem; margin:0 0 8px; text-transform:capitalize; letter-spacing:.04em; }
+      .pair { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+      .pair figure { margin:0; }
+      .pair img { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px;
+                  background:#0c0d10; display:block; }
+      .pair figcaption { font-size:.62rem; color:var(--muted); text-align:center; margin-top:4px;
+                         text-transform:uppercase; letter-spacing:.06em; }
+      .ours img { border:1px solid var(--line); }
+      body.overlay .pair { grid-template-columns:1fr; }
+      body.overlay .ref { display:none; }
+    </style>
+  </head>
+  <body>
+    <h1>Gold standard vs. ours</h1>
+    <p class="sub">Left = reference (gold standard). Right = our generator's best match for the same traits. Use this to spot what still diverges.</p>
+    <div class="controls">
+      <label><input type="checkbox" id="oursOnly"> Show ours only</label>
+    </div>
+    <div id="grid" class="grid"></div>
+
+    <script src="faces-hair.js?v=48"></script>
+    <script src="face-generator.js?v=48"></script>
+    <script>
+      // Trait approximations of each gold-standard reference (some accessories — bowties, fedoras,
+      // straw hats, necklaces, scarves — aren't modelled yet, so those are left out or approximated).
+      const base = {
+        faceShape:"oval", skin:"fair", hair:"messy", hairColor:"brown", clothing:"tee",
+        shirt:"#3a6ea8", expression:"neutral", mouthStyle:"warmSmile", accessory:"none",
+        background:"#a9c4e0", eyeGap:47, eyeColor:"#3a6ea5", teethStyle:"even", lips:"line",
+        earVariant:"round", browShape:"soft", neckLength:0
+      };
+      const targets = {
+        alex:   { skin:"fair", hairColor:"brown", hair:"messy", accessory:"roundGlasses", expression:"happy", mouthStyle:"bigOpenSmile", clothing:"collared", shirt:"#d8a23c", background:"#a9c4e0", eyeColor:"#6a4b3b" },
+        bella:  { skin:"fair", hairColor:"blonde", hair:"longWaves", expression:"happy", mouthStyle:"wideSmile", clothing:"tee", shirt:"#239aa6", background:"#eeb6bd", eyeColor:"#3a6ea5", lips:"full" },
+        carlos: { skin:"tan", hairColor:"black", hair:"cropped", accessory:"beard", expression:"neutral", clothing:"tee", shirt:"#f2f0ea", background:"#9fccb0", eyeColor:"#5a3a2a" },
+        diana:  { skin:"fair", hairColor:"auburn", hair:"longWaves", accessory:"roundGlasses", expression:"happy", mouthStyle:"wideSmile", clothing:"turtleneck", shirt:"#1f7a86", background:"#f0b884", lips:"full" },
+        ethan:  { skin:"fair", hairColor:"brown", hair:"messy", accessory:"beard", expression:"happy", mouthStyle:"bigSmile", clothing:"collared", shirt:"#3f6ea8", background:"#f0b884" },
+        fiona:  { skin:"tan", hairColor:"darkBrown", hair:"longWaves", accessory:"cap", expression:"neutral", clothing:"tee", shirt:"#8a5bbf", background:"#c6b9e0", lips:"full" },
+        george: { skin:"fair", hairColor:"silver", hair:"cropped", accessory:"beard", expression:"neutral", clothing:"collared", shirt:"#4f7a4a", background:"#9fccb0", eyeColor:"#6a6a6a", faceShape:"square" },
+        hannah: { skin:"fair", hairColor:"brown", hair:"longWaves", accessory:"headband", expression:"happy", mouthStyle:"wideSmile", clothing:"tee", shirt:"#e88a4a", background:"#bcd09a", eyeColor:"#2d593b", lips:"soft" },
+        ivan:   { skin:"fair", hairColor:"blonde", hair:"messy", accessory:"beanie", expression:"happy", mouthStyle:"bigSmile", clothing:"jacket", shirt:"#2f6ea8", background:"#a9c4e0", eyeColor:"#3a6ea5" },
+        jade:   { skin:"tan", hairColor:"black", hair:"bob", accessory:"roundGlasses", expression:"neutral", clothing:"turtleneck", shirt:"#1f6f78", background:"#e8836f", eyeColor:"#5a3a2a", lips:"full" },
+        kevin:  { skin:"fair", hairColor:"auburn", hair:"cropped", accessory:"moustache", expression:"angry", clothing:"collared", shirt:"#2f6a3a", background:"#f0c8b0", eyeColor:"#2d593b" },
+        luna:   { skin:"fair", hairColor:"silver", hair:"longWaves", expression:"neutral", clothing:"tee", shirt:"#b9b0d8", background:"#c6b9e0", eyeColor:"#3a6ea5", lips:"soft" },
+        marco:  { skin:"fair", hairColor:"black", hair:"sidePart", accessory:"roundGlasses", expression:"happy", mouthStyle:"bigSmile", clothing:"collared", shirt:"#5a5a5a", background:"#bcd09a" },
+        nina:   { skin:"fair", hairColor:"copper", hair:"longWaves", accessory:"beret", expression:"neutral", clothing:"collared", shirt:"#2a3a5a", background:"#eeb6bd", lips:"soft" },
+        oscar:  { skin:"fair", hairColor:"darkBrown", hair:"bald", accessory:"beard", expression:"neutral", clothing:"tee", shirt:"#2f5a55", background:"#9fccb0" },
+        penny:  { skin:"fair", hairColor:"blonde", hair:"longWaves", accessory:"catEyeGlasses", expression:"happy", mouthStyle:"wideSmile", clothing:"turtleneck", shirt:"#3a7a4a", background:"#f0c860", lips:"full" },
+        quinn:  { skin:"fair", hairColor:"brown", hair:"messy", accessory:"capBack", accent:"#3f9d4f", expression:"happy", mouthStyle:"bigSmile", clothing:"tee", shirt:"#2f4a6a", background:"#c8ccd0", eyeColor:"#3a6ea5" },
+        rosa:   { skin:"amber", hairColor:"black", hair:"longWaves", expression:"happy", mouthStyle:"wideSmile", clothing:"tee", shirt:"#1f8a8a", background:"#e8836f", lips:"full" },
+        sam:    { skin:"fair", hairColor:"blonde", hair:"messy", accessory:"beard", expression:"neutral", clothing:"collared", shirt:"#1f6f78", background:"#a9c4e0", eyeColor:"#3a6ea5" },
+        tara:   { skin:"fair", hairColor:"silver", hair:"longWaves", accessory:"sunHat", expression:"neutral", clothing:"tee", shirt:"#1f7a78", background:"#c6b9e0", eyeColor:"#2d593b", lips:"soft" },
+        umar:   { skin:"tan", hairColor:"black", hair:"messy", accessory:"beard", expression:"happy", mouthStyle:"bigSmile", clothing:"collared", shirt:"#5a7a5a", background:"#f0b884" },
+        violet: { skin:"fair", hairColor:"auburn", hair:"longWaves", accessory:"roundGlasses", expression:"neutral", clothing:"collared", shirt:"#1f5a3a", background:"#c6b9e0", eyeColor:"#3a6ea5", lips:"full" },
+        will:   { skin:"fair", hairColor:"auburn", hair:"bald", accessory:"beard", expression:"happy", mouthStyle:"bigOpenSmile", clothing:"tee", shirt:"#2f7a78", background:"#9fccb0" },
+        xena:   { skin:"tan", hairColor:"silver", hair:"longWaves", accessory:"bucketHat", expression:"happy", mouthStyle:"wideSmile", clothing:"tee", shirt:"#3a6ea8", background:"#e8836f", lips:"soft" }
+      };
+
+      const grid = document.getElementById("grid");
+      Object.keys(targets).forEach((name, i) => {
+        const traits = { ...base, ...targets[name] };
+        const ours = window.faceGenerator.renderPortrait(i + 1, traits);
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.innerHTML = `
+          <h2>${name}</h2>
+          <div class="pair">
+            <figure class="ref"><img src="assets/reference/${name}.png" alt="${name} reference"><figcaption>gold standard</figcaption></figure>
+            <figure class="ours"><img src="${ours}" alt="${name} ours"><figcaption>ours</figcaption></figure>
+          </div>`;
+        grid.appendChild(cell);
+      });
+
+      document.getElementById("oursOnly").addEventListener("change", (e) => {
+        document.body.classList.toggle("overlay", e.target.checked);
+      });
+    </script>
+  </body>
+</html>

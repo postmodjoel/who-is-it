@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LICKYSPIT'S</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23ffbe0b'/%3E%3Ccircle cx='32' cy='24' r='13' fill='%23fffdf7' stroke='%23171512' stroke-width='4'/%3E%3Cpath d='M14 58c2-16 34-16 36 0' fill='%233a86ff' stroke='%23171512' stroke-width='4'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div>
+          <h1>LICKYSPIT'S</h1>
+        </div>
+        <div class="topbar-actions">
+          <button id="themeButton" class="button ghost icon-only" type="button" aria-label="Light mode" title="Light mode"></button>
+          <button id="setupButton" class="button ghost icon-only" type="button" aria-label="Setup" title="Setup"></button>
+          <button id="newGameButton" class="button primary icon-only" type="button" aria-label="New game" title="New game"></button>
+        </div>
+      </header>
+
+      <section id="locationBand" class="location-band" aria-live="polite"></section>
+
+      <section class="game-bar">
+        <div class="room-strip">
+          <div class="room-copy">
+            <div class="room-row">
+              <span id="roomCode" class="room-code"></span>
+              <span id="roomStatus" class="room-status"></span>
+            </div>
+            <div id="seatRoster" class="seat-roster" aria-label="Room seats"></div>
+          </div>
+          <div class="game-bar-actions">
+            <button id="swapSeatButton" class="button compact icon-only" type="button" aria-label="Swap seat" title="Swap seat"></button>
+            <button id="revealSecretButton" class="button secondary compact icon-only" type="button" aria-label="Hide face" title="Hide face"></button>
+            <button id="drawPromptButton" class="button compact icon-only" type="button" aria-label="Draw prompt" title="Draw prompt"></button>
+            <button id="mysteryButton" class="button mystery compact icon-only" type="button" aria-label="Mystery effect" title="Mystery effect"></button>
+          </div>
+        </div>
+
+        <div class="identity-strip">
+          <div class="identity-panel">
+            <p class="label sr-only">You are</p>
+            <div id="secretCard" class="secret-card is-hidden"></div>
+          </div>
+
+          <div class="prompt-panel prompt-inline">
+            <div class="panel-heading">
+              <p class="label sr-only">Question</p>
+              <span id="mysteryUseCount" class="counter">0/2</span>
+            </div>
+            <p id="questionPrompt" class="question-prompt"></p>
+            <p id="mysteryResult" class="mystery-result"></p>
+          </div>
+        </div>
+      </section>
+
+      <main class="game-shell">
+        <section class="board-wrap">
+          <div class="board-toolbar">
+            <div>
+              <p class="label sr-only">Suspects</p>
+              <h2 id="boardTitle">The lineup</h2>
+            </div>
+            <div class="board-actions">
+              <button id="undoButton" class="button compact icon-only" type="button" aria-label="Undo" title="Undo"></button>
+              <button id="clearButton" class="button compact icon-only" type="button" aria-label="Clear board" title="Clear board"></button>
+            </div>
+          </div>
+          <div id="hintShelf" class="hint-shelf"></div>
+          <div id="characterBoard" class="character-board" aria-label="Character board"></div>
+          <div class="log-panel log-panel-inline">
+            <p class="label sr-only">Receipts</p>
+            <div id="eventLog" class="event-log"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="setupDialog" class="setup-dialog">
+      <form method="dialog" class="setup-form">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow">Game setup</p>
+            <h2>Choose the nonsense</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="Close setup" type="submit">X</button>
+        </div>
+
+        <div class="settings-grid">
+          <label class="toggle-row">
+            <span>
+              <strong>Absurd prompts</strong>
+              <small>Darker social questions.</small>
+            </span>
+            <input id="settingPrompts" type="checkbox" checked>
+          </label>
+
+          <label class="toggle-row">
+            <span>
+              <strong>Mystery effects</strong>
+              <small>One random power per player.</small>
+            </span>
+            <input id="settingMystery" type="checkbox" checked>
+          </label>
+
+          <label class="toggle-row">
+            <span>
+              <strong>Locations</strong>
+              <small>Grounded setting, image, and mood.</small>
+            </span>
+            <input id="settingLocations" type="checkbox" checked>
+          </label>
+
+          <label class="toggle-row">
+            <span>
+              <strong>Roles</strong>
+              <small>Everyone gets a job to explain badly.</small>
+            </span>
+            <input id="settingRoles" type="checkbox" checked>
+          </label>
+
+          <label class="toggle-row">
+            <span>
+              <strong>Expanded library</strong>
+              <small>48 unique faces, shuffled each game.</small>
+            </span>
+            <input id="settingExpanded" type="checkbox" checked>
+          </label>
+        </div>
+
+        <label class="select-row">
+          <span>
+            <strong>Board size</strong>
+            <small>Smaller boards breathe better on phones.</small>
+          </span>
+          <select id="settingBoardSize">
+            <option value="18">18 faces</option>
+            <option value="24" selected>24 faces</option>
+            <option value="30">30 faces</option>
+          </select>
+        </label>
+
+        <div class="dialog-actions">
+          <button id="saveSetupButton" class="button primary" value="default" type="submit">Start</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="faces-hair.js"></script>
+    <script src="face-generator.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -222,102 +222,119 @@ const locations = [
     name: "Cafe",
     slug: "cafe",
     prompt: "Mid-morning, the espresso machine hissing, and three conversations pretending not to overhear each other.",
+    gayPrompt: "Oat milk, oversharing, and someone crying in the bathroom because a barista was too nice to them.",
     stamp: "Table 4"
   },
   {
     name: "Restaurant",
     slug: "restaurant",
     prompt: "A late dinner service where the wine has loosened tongues and someone has ordered too much.",
+    gayPrompt: "The waiter is definitely a part-time drag queen and someone just proposed to their situationship.",
     stamp: "Booth 9"
   },
   {
     name: "Bar",
     slug: "bar",
     prompt: "Last call energy, sticky counters, and at least one story that gets better every time it's told.",
+    gayPrompt: "Last call, Charli XCX on the speaker, and someone's ex just walked in with a hotter ex.",
     stamp: "Last call"
   },
   {
     name: "Rooftop",
     slug: "rooftop",
     prompt: "Skyline views, a cocktail nobody finished, and a confession waiting for the right gust of wind.",
+    gayPrompt: "Golden hour, someone's crying on cue, and the group photo has three exes and one situationship.",
     stamp: "Level 22"
   },
   {
     name: "Library",
     slug: "library",
     prompt: "Hushed aisles, a dropped book, and somebody very deliberately not making eye contact.",
+    gayPrompt: "The library is open, hunty. Reading is what? Fundamental. Yes gawd, somebody is getting dragged through the nonfiction section.",
     stamp: "Reading room"
   },
   {
     name: "Bookstore",
     slug: "bookstore",
     prompt: "Cramped shelves, a misfiled paperback, and two strangers reaching for the same spine.",
+    gayPrompt: "Two people reached for the same Roxane Gay and now they're in love. The poetry section is crying.",
     stamp: "Aisle 3"
   },
   {
     name: "Art Gallery",
     slug: "art_gallery",
     prompt: "White walls, free wine, and everyone nodding at a painting nobody understands.",
+    gayPrompt: "Free wine, a painting that's just a red square, and three people claiming it changed their life.",
     stamp: "Opening night"
   },
   {
     name: "Museum Lobby",
     slug: "museum_lobby",
     prompt: "Marble floors, a school tour just left, and a meeting that was supposed to look accidental.",
+    gayPrompt: "Marble columns, a forbidden tryst near the Grecian urns, and someone is absolutely giving ancient gay panic.",
     stamp: "Main hall"
   },
   {
     name: "Cinema",
     slug: "cinema",
     prompt: "Trailers rolling, popcorn going cold, and the seat that was definitely supposed to stay empty.",
+    gayPrompt: "The movie is Brokeback Mountain. Nobody is watching it. Three people are sobbing anyway.",
     stamp: "Screen 6"
   },
   {
     name: "Hotel Lobby",
     slug: "hotel_lobby",
     prompt: "Late check-in, soft lighting, and a receptionist who has seen absolutely everything.",
+    gayPrompt: "Late check-in, the concierge is a retired drag queen, and someone definitely booked a room for two without asking.",
     stamp: "Check-in"
   },
   {
     name: "Airport Lounge",
     slug: "airport_lounge",
     prompt: "A delayed flight, free pretzels, and everyone pretending not to listen to the gate announcements.",
+    gayPrompt: "A delayed flight to Fire Island, someone's crying in the lounge, and the pretzels are complimentary.",
     stamp: "Gate 14"
   },
   {
     name: "Train Station",
     slug: "train_station",
     prompt: "A platform between departures, a missed connection, and a goodbye running out of minutes.",
+    gayPrompt: "A missed connection, a dramatic slow-motion run down the platform, and someone is blasting Celine Dion.",
     stamp: "Platform 2"
   },
   {
     name: "Gym",
     slug: "gym",
     prompt: "Clanging weights, a borrowed towel, and a rivalry nobody admits is a rivalry.",
+    gayPrompt: "Everyone is doing bicep curls and nobody is making eye contact and literally everyone is gay.",
     stamp: "Floor 1"
   },
   {
     name: "Yoga Studio",
     slug: "yoga_studio",
     prompt: "Soft mats, deep breaths, and an inner peace that is being severely tested today.",
+    gayPrompt: "Downward dog, emotional processing, and a teacher who keeps saying 'release what no longer serves you' directly at one person.",
     stamp: "9am flow"
   },
   {
     name: "Greenhouse",
     slug: "greenhouse",
     prompt: "Warm glass, dripping ferns, and a quiet argument held just out of earshot.",
+    gayPrompt: "Warm glass, rare orchids, and two plant dads having a passive-aggressive disagreement about moisture levels.",
     stamp: "East wing"
   },
   {
     name: "Park",
     slug: "park",
     prompt: "A bench, a shared bag of chips, and a secret that's about to be very badly kept.",
+    gayPrompt: "Picnic blankets, a frisbee nobody asked for, and a group chat meltdown happening in real time.",
     stamp: "The green"
   },
   {
     name: "Beach",
     slug: "beach",
     prompt: "Low tide, a dying bonfire, and a long weekend with too many people and one locked beach house.",
+    gayPrompt: "Fire Island energy: a locked beach house, a cooler full of seltzers, and someone already crying by 2pm.",
     stamp: "Low tide"
   }
 ].map((loc) => ({
@@ -388,7 +405,6 @@ const state = {
     mystery: true,
     locations: true,
     roles: true,
-    expanded: true,
     boardSize: 24
   },
   currentPlayer: 0,
@@ -420,28 +436,33 @@ const els = {
   mysteryButton: document.querySelector("#mysteryButton"),
   mysteryResult: document.querySelector("#mysteryResult"),
   mysteryUseCount: document.querySelector("#mysteryUseCount"),
-  eventLog: document.querySelector("#eventLog"),
   hintShelf: document.querySelector("#hintShelf"),
   characterBoard: document.querySelector("#characterBoard"),
   themeButton: document.querySelector("#themeButton"),
   setupButton: document.querySelector("#setupButton"),
   newGameButton: document.querySelector("#newGameButton"),
+  debugEffectPicker: document.querySelector("#debugEffectPicker"),
   setupDialog: document.querySelector("#setupDialog"),
   saveSetupButton: document.querySelector("#saveSetupButton"),
   settingPrompts: document.querySelector("#settingPrompts"),
   settingMystery: document.querySelector("#settingMystery"),
   settingLocations: document.querySelector("#settingLocations"),
   settingRoles: document.querySelector("#settingRoles"),
-  settingExpanded: document.querySelector("#settingExpanded"),
   settingBoardSize: document.querySelector("#settingBoardSize")
 };
+
+els.houseMap = document.createElement("section");
+els.houseMap.id = "houseMap";
+els.houseMap.className = "house-map is-hidden";
+els.houseMap.setAttribute("aria-live", "polite");
+els.characterBoard.parentNode.insertBefore(els.houseMap, els.characterBoard);
 
 function iconSvg(name) {
   const common = "viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'";
   const paths = {
     moon: "<path d='M20 14.2A7.7 7.7 0 0 1 9.8 4 8.6 8.6 0 1 0 20 14.2Z'/>",
     sun: "<circle cx='12' cy='12' r='4'/><path d='M12 2.5v2.5M12 19v2.5M21.5 12H19M5 12H2.5M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8M18.7 18.7l-1.8-1.8M7.1 7.1L5.3 5.3'/>",
-    settings: "<circle cx='12' cy='12' r='3.2'/><path d='M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.55 5.45l-1.7 1.7M7.15 16.85l-1.7 1.7M18.55 18.55l-1.7-1.7M7.15 7.15l-1.7-1.7'/>",
+    settings: "<circle cx='12' cy='12' r='3'/><path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z'/>",
     refresh: "<path d='M20 11a8 8 0 0 0-14.9-3'/><path d='M4 4v4h4'/><path d='M4 13a8 8 0 0 0 14.9 3'/><path d='M20 20v-4h-4'/>",
     swap: "<path d='M7 7h12'/><path d='M15 3l4 4-4 4'/><path d='M17 17H5'/><path d='M9 13l-4 4 4 4'/>",
     eye: "<path d='M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z'/><circle cx='12' cy='12' r='2.8'/>",
@@ -524,6 +545,12 @@ const mysteryEffects = [
     exampleQuestion: "Is your person someone’s twin?"
   },
   {
+    id: "knockoff-manor",
+    name: "MURDER TIME!!!",
+    apply: applyKnockoffManor,
+    exampleQuestion: "Is your person in the BATHS ROOM?"
+  },
+  {
     id: "emotional-audit",
     name: "Emotional Audit",
     apply: applyEmotionalAudit,
@@ -540,12 +567,58 @@ const mysteryEffects = [
     name: "Witness Protection Filter",
     apply: applyWitnessProtectionFilter,
     exampleQuestion: "Is your person under nightclub lighting?"
+  },
+  {
+    id: "role-reveal",
+    name: "Role Reveal",
+    apply: applyRoleReveal,
+    exampleQuestion: "Does your person work with their hands?"
+  },
+  {
+    id: "hidden-agendas",
+    name: "Hidden Agendas",
+    apply: applyHiddenAgendas,
+    exampleQuestion: "Is your person secretly seething behind that smile?"
+  },
+  {
+    id: "monocultural",
+    name: "Monocultural",
+    apply: applyMonocultural,
+    exampleQuestion: "Is your person a different colour to anyone else?"
+  },
+  {
+    id: "gay-frogged",
+    name: "Gay Frogged",
+    apply: applyGayFrogged,
+    exampleQuestion: "Is your person glowing the same colour as yours?"
+  },
+  {
+    id: "face-first",
+    name: "Face First",
+    apply: applyFaceFirst,
+    exampleQuestion: "Could you pick your person from their face alone?"
+  },
+  {
+    id: "ps1-mode",
+    name: "PS1 Mode",
+    apply: applyPs1Mode,
+    exampleQuestion: ""
   }
 ];
 
+const KNOCKOFF_MANOR_TEST_TRIGGERS = ["manor", "murder"];
+const PS1_TEST_TRIGGERS = ["ps1"];
+const GAY_FROGGED_TEST_TRIGGERS = ["gay"];
+let testTriggerBuffer = "";
+let ps1Install = null;
+let ps1Cleanup = null;
+
 function newGame() {
   clearMysteryEffectUI();
-  const pool = state.settings.expanded ? allCharacters : baseCharacters;
+  // The board only draws from the procedurally generated faces. The hand-illustrated PNG
+  // characters (baseCharacters) stay defined as the gold-standard reference but are never dealt
+  // into the playable board.
+  const pool = generatedCharacters;
   const boardSize = Math.min(state.settings.boardSize, pool.length);
   state.board = buildBoard(pool, boardSize);
   state.location = state.settings.locations ? pick(locations) : null;
@@ -580,10 +653,10 @@ function render() {
   renderLocation();
   renderRoom();
   renderSecret();
-  renderBoard();
   renderHints();
+  renderHouseMap();
+  renderBoard();
   renderMystery();
-  renderLog();
 }
 
 function renderLocation() {
@@ -593,15 +666,17 @@ function renderLocation() {
   }
   const variant = state.locationVariant === "night" ? "night" : "day";
   const artSrc = state.location.art[variant];
-  els.locationBand.className = `location-band is-${variant}`;
+  const isGayFrogged = state.global.mystery?.id === "gay-frogged";
+  els.locationBand.className = `location-band is-${variant}${isGayFrogged ? " is-gay-frogged" : ""}`;
   els.locationBand.innerHTML = `
     <div class="location-photo" style="background-image:url('${encodeURI(artSrc)}')" role="img" aria-label="${escapeHtml(state.location.name)}, ${variant}"></div>
     <div class="location-scrim"></div>
+    ${isGayFrogged ? '<div class="location-rainbow" aria-hidden="true"></div>' : ""}
     <div class="location-overlay">
       <div class="location-copy">
         <p class="eyebrow">Location · ${variant === "night" ? "Night" : "Day"}</p>
-        <h2>${escapeHtml(state.location.name)}</h2>
-        <p>${escapeHtml(state.location.prompt)}</p>
+        <h2>${isGayFrogged ? '<span class="gay-frogged-label">GAY</span> ' : ""}${escapeHtml(state.location.name)}</h2>
+        <p>${escapeHtml(isGayFrogged && state.location.gayPrompt ? state.location.gayPrompt : state.location.prompt)}</p>
       </div>
       <div class="location-stamp">${escapeHtml(state.location.stamp)}</div>
     </div>
@@ -642,11 +717,13 @@ function renderSecret() {
     return;
   }
   els.secretCard.className = "secret-card";
+  const gayFroggedAssignment = state.global.mystery?.id === "gay-frogged" ? state.global.mystery.assignments?.[secret.id] : null;
   els.secretCard.innerHTML = `
-    <img src="${secret.image}" alt="${escapeHtml(secret.name)}">
+    <img src="${gayFroggedAssignment?.image || secret.image}" alt="${escapeHtml(secret.name)}">
     <div>
       <p class="secret-name">${displayName(secret)}</p>
-      <p class="secret-meta">${escapeHtml(roleFor(secret.id))}</p>
+      ${gayFroggedAssignment ? `<p class="secret-meta secret-pronouns">${escapeHtml(gayFroggedAssignment.pronoun || "they/them")}</p>` : ""}
+      ${state.global.mystery?.id === "role-reveal" ? `<p class="secret-meta">${escapeHtml(roleFor(secret.id))}</p>` : ""}
     </div>
   `;
   setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
@@ -656,8 +733,13 @@ function renderBoard() {
   const player = currentPlayer();
   els.characterBoard.innerHTML = "";
   els.characterBoard.className = "character-board";
+  els.characterBoard.setAttribute("aria-label", "Character board");
   if (state.global.mystery?.id === "family-tree-disaster") {
     renderFamilyBoard(player);
+    return;
+  }
+  if (state.global.mystery?.id === "knockoff-manor") {
+    renderKnockoffManorBoard(player);
     return;
   }
   state.board.forEach((character) => {
@@ -671,6 +753,62 @@ function renderHints() {
   els.hintShelf.innerHTML = hints.map((hint) => `<span class="hint-pill">${escapeHtml(hint)}</span>`).join("");
 }
 
+function renderHouseMap() {
+  const mystery = state.global.mystery;
+  if (mystery?.id !== "knockoff-manor") {
+    els.houseMap.className = "house-map is-hidden";
+    els.houseMap.innerHTML = "";
+    return;
+  }
+  els.houseMap.className = "house-map is-hidden";
+  els.houseMap.innerHTML = "";
+}
+
+function renderKnockoffManorBoard(player) {
+  const mystery = state.global.mystery;
+  const rooms = mystery.rooms || [];
+  els.characterBoard.classList.add("knockoff-manor-board");
+  els.characterBoard.setAttribute("aria-label", "MURDER TIME room board");
+  renderMurderCenter(mystery);
+  rooms.forEach((room) => {
+    const roomTile = document.createElement("section");
+    roomTile.className = `manor-room-tile ${room.id === mystery.bloodRoomId ? "has-blood" : ""}`.trim();
+    roomTile.dataset.room = room.name;
+    roomTile.style.setProperty("--room-row", room.row);
+    roomTile.style.setProperty("--room-col", room.col);
+    roomTile.style.setProperty("--room-row-span", room.rowSpan);
+    roomTile.style.setProperty("--room-col-span", room.colSpan);
+    roomTile.style.setProperty("--room-tone", room.tone);
+    roomTile.innerHTML = `
+      <div class="manor-room-label">
+        <span>${escapeHtml(room.name)}</span>
+      </div>
+      ${room.id === mystery.bloodRoomId ? "<div class=\"blood-splatter\" aria-hidden=\"true\"></div>" : ""}
+      <div class="manor-room-cards"></div>
+    `;
+    const cardWrap = roomTile.querySelector(".manor-room-cards");
+    state.board
+      .filter((character) => mystery.assignments[character.id]?.roomId === room.id)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach((character) => {
+        cardWrap.appendChild(createManorCharacterToken(character, player));
+      });
+    els.characterBoard.appendChild(roomTile);
+  });
+}
+
+function renderMurderCenter(mystery) {
+  const center = document.createElement("section");
+  center.className = "murder-center";
+  center.setAttribute("aria-label", "Murder weapons");
+  center.innerHTML = `
+    <div class="weapon-pile">
+      ${(mystery.weapons || []).map((weapon) => `<span>${escapeHtml(weapon.emoji)}</span>`).join("")}
+    </div>
+  `;
+  els.characterBoard.appendChild(center);
+}
+
 function renderMystery() {
   const used = state.players.filter((player) => player.mysteryUsed).length;
   els.mysteryUseCount.textContent = `${used}/2`;
@@ -682,10 +820,6 @@ function renderMystery() {
   } else if (currentPlayer().mysteryUsed && !els.mysteryResult.textContent) {
     els.mysteryResult.textContent = "This seat already burned its mystery.";
   }
-}
-
-function renderLog() {
-  els.eventLog.innerHTML = state.log.slice(-8).reverse().map((entry) => `<div class="event-entry">${escapeHtml(entry)}</div>`).join("");
 }
 
 function toggleEliminated(id) {
@@ -704,6 +838,21 @@ function drawPrompt() {
   els.questionPrompt.textContent = pick(deck);
 }
 
+let cueCardTimer = null;
+
+function startCueCardRotation() {
+  if (cueCardTimer) clearInterval(cueCardTimer);
+  cueCardTimer = setInterval(() => {
+    const cueCard = document.querySelector(".cue-card");
+    if (!cueCard) return;
+    cueCard.classList.add("is-fading");
+    setTimeout(() => {
+      drawPrompt();
+      cueCard.classList.remove("is-fading");
+    }, 400);
+  }, 10000);
+}
+
 function activateMystery() {
   triggerMysteryEffect(state.currentPlayer);
   render();
@@ -715,8 +864,39 @@ function triggerMysteryEffect(playerIndex) {
   player.mysteryUsed = true;
   const effect = pick(mysteryEffects);
   applyMysteryEffect(effect.id);
+  playEffectAnnouncement(effect.name);
   showMysteryAnnouncement(effect.name, effect.exampleQuestion);
   addLog(`${player.name} triggered a mystery effect.`);
+}
+
+function triggerKnockoffManorTest() {
+  currentPlayer().mysteryUsed = true;
+  applyMysteryEffect("knockoff-manor");
+  const effect = mysteryEffects.find((item) => item.id === "knockoff-manor");
+  playEffectAnnouncement(effect.name);
+  showMysteryAnnouncement(effect.name, effect.exampleQuestion);
+  addLog(`${currentPlayer().name} typed the test trigger.`);
+  render();
+}
+
+function triggerPs1Test() {
+  currentPlayer().mysteryUsed = true;
+  applyMysteryEffect("ps1-mode");
+  const effect = mysteryEffects.find((item) => item.id === "ps1-mode");
+  playEffectAnnouncement(effect.name);
+  showMysteryAnnouncement(effect.name, effect.exampleQuestion);
+  addLog(`${currentPlayer().name} typed the test trigger.`);
+  render();
+}
+
+function triggerGayFroggedTest() {
+  currentPlayer().mysteryUsed = true;
+  applyMysteryEffect("gay-frogged");
+  const effect = mysteryEffects.find((item) => item.id === "gay-frogged");
+  playEffectAnnouncement(effect.name);
+  showMysteryAnnouncement(effect.name, effect.exampleQuestion);
+  addLog(`${currentPlayer().name} typed the test trigger.`);
+  render();
 }
 
 function applyMysteryEffect(effectId) {
@@ -728,8 +908,9 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board");
   els.mysteryResult.textContent = "";
+  if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
 }
 
 function createCharacterCard(character, player) {
@@ -741,23 +922,47 @@ function createCharacterCard(character, player) {
   card.classList.toggle("is-down", player.eliminated.has(character.id));
   card.dataset.id = character.id;
   if (mystery.effectName) card.dataset.mysteryEffect = mystery.effectName;
+  if (mystery.style) card.setAttribute("style", mystery.style);
   Object.entries(mystery.dataset || {}).forEach(([key, value]) => {
     card.dataset[key] = value;
   });
   const prop = mystery.propEmoji ? `<span class="prop-overlay" aria-label="${escapeHtml(mystery.primaryText)}">${mystery.propEmoji}</span>` : "";
-  const role = state.settings.roles ? `<span class="role-chip">${escapeHtml(roleFor(character.id))}</span>` : "";
+  // Roles are hidden by default - they are not known initially and only surface once the
+  // Role Reveal mystery effect is triggered (which renders them via mystery.html below).
   card.innerHTML = `
     <div class="portrait-wrap">
-      <img src="${character.image}" alt="${escapeHtml(character.name)}">
+      <img src="${mystery.image || character.image}" alt="${escapeHtml(character.name)}">
       ${prop}
+      ${mystery.cornerHtml || ""}
     </div>
     <div class="card-plate">
       <h3>${displayName(character)}</h3>
-      <div class="card-meta">${role}${mystery.html}</div>
+      ${state.global.mystery?.id === "gay-frogged" ? `<p class="card-pronouns">${escapeHtml(mystery.pronoun || "they/them")}</p>` : ""}
+      ${state.global.mystery?.id === "gay-frogged" ? `<div class="card-grindr-tags">${[...(stableHash(character.id + ":poc") % 3 === 0 ? ["POC"] : []), ...characterTags(character)].map((t) => `<span class="grindr-tag">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
+      <div class="card-meta">${mystery.html}</div>
     </div>
   `;
   card.addEventListener("click", () => toggleEliminated(character.id));
   return card;
+}
+
+function createManorCharacterToken(character, player) {
+  const token = document.createElement("button");
+  const assignment = state.global.mystery?.assignments[character.id];
+  token.type = "button";
+  token.id = `token-${character.id}`;
+  token.className = "manor-token";
+  token.classList.toggle("is-down", player.eliminated.has(character.id));
+  token.dataset.id = character.id;
+  if (assignment?.roomName) token.dataset.houseRoom = assignment.roomName;
+  token.setAttribute("aria-label", `${character.name}${assignment?.roomName ? ` in ${assignment.roomName}` : ""}`);
+  token.setAttribute("title", `${character.name}${assignment?.roomName ? ` · ${assignment.roomName}` : ""}`);
+  token.innerHTML = `
+    <img src="${character.image}" alt="">
+    <span>${escapeHtml(character.name)}</span>
+  `;
+  token.addEventListener("click", () => toggleEliminated(character.id));
+  return token;
 }
 
 function renderFamilyBoard(player) {
@@ -986,7 +1191,7 @@ function pathFromPoints(points) {
 
 function getMysteryCardData(character) {
   const mystery = state.global.mystery;
-  if (!mystery) return { html: "", dataset: {} };
+  if (!mystery || !mystery.assignments) return { html: "", dataset: {} };
   const assignment = mystery.assignments[character.id];
   if (!assignment) return { html: "", dataset: {} };
   if (mystery.id === "prop-panic") {
@@ -1005,6 +1210,14 @@ function getMysteryCardData(character) {
       html: addMysteryBadge(assignment.role, "family")
     };
   }
+  if (mystery.id === "knockoff-manor") {
+    return {
+      effectName: mystery.name,
+      cardClass: "manor-guest",
+      dataset: { houseRoom: assignment.roomName },
+      html: addMysteryBadge(assignment.roomName, "room")
+    };
+  }
   if (mystery.id === "emotional-audit") {
     return {
       effectName: mystery.name,
@@ -1019,11 +1232,58 @@ function getMysteryCardData(character) {
       html: addMysteryBadge(assignment.value, "vibe")
     };
   }
+  if (mystery.id === "role-reveal") {
+    return {
+      effectName: mystery.name,
+      dataset: { mysteryValue: assignment.value },
+      html: addMysteryBadge(assignment.value, "role")
+    };
+  }
+  if (mystery.id === "hidden-agendas") {
+    const side = assignment.party === "Democrat" ? "dem" : "rep";
+    return {
+      effectName: mystery.name,
+      cardClass: `agenda-${side}`,
+      image: assignment.image || undefined,
+      propEmoji: assignment.emoji,
+      primaryText: `${assignment.party} · ${assignment.state} · ${assignment.mood}`,
+      dataset: { agendaParty: assignment.party, agendaState: assignment.state, agendaMood: assignment.mood },
+      html: `${addMysteryBadge(assignment.party, `agenda-${side}`)}${addMysteryBadge(assignment.state, "agenda-state")}`
+    };
+  }
   if (mystery.id === "witness-protection-filter") {
     return {
       effectName: mystery.name,
       cardClass: assignment.className,
       dataset: { mysteryValue: assignment.value },
+      html: ""
+    };
+  }
+  if (mystery.id === "monocultural") {
+    return {
+      effectName: mystery.name,
+      image: assignment.image || undefined,
+      html: ""
+    };
+  }
+  if (mystery.id === "gay-frogged") {
+    const cornerHtml = `<div class="gayfrog-corner">${assignment.letters.map((l) => `<span class="gayfrog-letter">${escapeHtml(l)}</span>`).join("")}</div>`;
+    const titleBadge = assignment.title ? addMysteryBadge(assignment.title, "gayfrog-badge gayfrog-word") : "";
+    return {
+      effectName: mystery.name,
+      cardClass: `gayfrog gayfrog-${assignment.key}`,
+      dataset: { gayfrogColor: assignment.color },
+      style: `--glow:${assignment.color}`,
+      image: assignment.image || undefined,
+      cornerHtml,
+      pronoun: assignment.pronoun,
+      html: titleBadge
+    };
+  }
+  if (mystery.id === "face-first") {
+    return {
+      effectName: mystery.name,
+      cardClass: "facefirst",
       html: ""
     };
   }
@@ -1108,6 +1368,93 @@ function applyFamilyTreeDisaster(effect) {
     assignments[character.id] = { clusterId: cluster.id, role };
   });
   return { id: effect.id, name: effect.name, assignments, clusters };
+}
+
+const KNOCKOFF_ROOM_NAMES = [
+  "DINING ROOM",
+  "FOOD HALL",
+  "BATHS ROOM",
+  "WORSHIP HALL",
+  "WHISPER KITCHEN",
+  "KNIFE LIBRARY",
+  "UPSTAIRS DOWNSTAIRS",
+  "PANIC PARLOR",
+  "GARAGE OF TRUTH",
+  "FORMAL CLOSET",
+  "SECOND LOUNGE",
+  "CRIME NOOK",
+  "LAUNDRY BALLROOM",
+  "CONSERVATORY-ISH",
+  "HALLWAY HALL",
+  "STUDY BUDDY",
+  "BILLIARD ADJACENT",
+  "MUD ROOM COURT"
+];
+
+const KNOCKOFF_ROOM_LAYOUTS = [
+  { row: 1, col: 1, rowSpan: 2, colSpan: 3 },
+  { row: 1, col: 4, rowSpan: 2, colSpan: 3 },
+  { row: 1, col: 7, rowSpan: 2, colSpan: 3 },
+  { row: 3, col: 1, rowSpan: 4, colSpan: 2 },
+  { row: 3, col: 8, rowSpan: 4, colSpan: 2 },
+  { row: 7, col: 1, rowSpan: 3, colSpan: 3 },
+  { row: 8, col: 4, rowSpan: 2, colSpan: 3 },
+  { row: 7, col: 7, rowSpan: 3, colSpan: 3 }
+];
+
+const KNOCKOFF_ROOM_TONES = [
+  "#ffd166",
+  "#8bd3dd",
+  "#f7a8b8",
+  "#b8e986",
+  "#cdb4db",
+  "#f4a261",
+  "#a8dadc",
+  "#ffddd2",
+  "#bde0fe",
+  "#d9ed92"
+];
+
+const MURDER_WEAPONS = [
+  { name: "candlestick", emoji: "🕯️" },
+  { name: "kitchen knife", emoji: "🔪" },
+  { name: "revolver-ish", emoji: "🔫" },
+  { name: "wrench", emoji: "🔧" },
+  { name: "rope", emoji: "🪢" },
+  { name: "hammer", emoji: "🔨" },
+  { name: "axe", emoji: "🪓" },
+  { name: "poison bottle", emoji: "🧪" },
+  { name: "shovel", emoji: "🪏" },
+  { name: "brick", emoji: "🧱" }
+];
+
+function applyKnockoffManor(effect) {
+  const roomCount = KNOCKOFF_ROOM_LAYOUTS.length;
+  const roomNames = deterministicOrder(
+    KNOCKOFF_ROOM_NAMES.map((name, index) => ({ id: `room-name-${index}`, name })),
+    `${state.gameSalt}:${effect.id}:names`
+  ).slice(0, roomCount);
+  const rooms = roomNames.map((roomName, index) => ({
+    id: `manor-room-${index + 1}`,
+    name: roomName.name,
+    row: KNOCKOFF_ROOM_LAYOUTS[index].row,
+    col: KNOCKOFF_ROOM_LAYOUTS[index].col,
+    rowSpan: KNOCKOFF_ROOM_LAYOUTS[index].rowSpan,
+    colSpan: KNOCKOFF_ROOM_LAYOUTS[index].colSpan,
+    tone: KNOCKOFF_ROOM_TONES[index % KNOCKOFF_ROOM_TONES.length]
+  }));
+  const assignments = {};
+  deterministicOrder(state.board, `${state.gameSalt}:${effect.id}:guests`).forEach((character, index) => {
+    const room = rooms[index % rooms.length];
+    assignments[character.id] = { roomId: room.id, roomName: room.name };
+  });
+  const bloodRoom = rooms[stableHash(`${state.gameSalt}:${effect.id}:blood-room`) % rooms.length];
+  const weapons = deterministicOrder(MURDER_WEAPONS.map((weapon, index) => ({
+    id: `weapon-${index}`,
+    name: weapon.name,
+    emoji: weapon.emoji
+  })), `${state.gameSalt}:${effect.id}:weapons`).slice(0, 6);
+  return { id: effect.id, name: effect.name, assignments, rooms, bloodRoomId: bloodRoom.id, weapons };
 }
 
 function applyEmotionalAudit(effect) {
@@ -1217,6 +1564,190 @@ function applyWitnessProtectionFilter(effect) {
   return { id: effect.id, name: effect.name, assignments, selectedIds };
 }
 
+function applyRoleReveal(effect) {
+  const assignments = {};
+  state.board.forEach((character) => {
+    assignments[character.id] = { value: roleFor(character.id) };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
+  "Florida", "Georgia", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+  "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Mexico", "New York", "Ohio", "Oklahoma",
+  "Oregon", "Pennsylvania", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+  "Wisconsin", "Wyoming"
+];
+
+// The "true" feelings revealed behind the smile. Each label maps to one of the face generator's
+// five expressions so generated portraits can actually re-render with the new mood.
+const HIDDEN_EMOTIONS = [
+  { key: "angry", label: "Furious", emoji: "😠" },
+  { key: "sad", label: "Resentful", emoji: "😔" },
+  { key: "surprised", label: "Rattled", emoji: "😦" },
+  { key: "happy", label: "Smug", emoji: "😏" },
+  { key: "neutral", label: "Scheming", emoji: "🫥" }
+];
+
+// Hidden Agendas: splits the board into red/blue political sides, gives everyone a home state, and
+// flips their expression to a "true" feeling. Generated faces are repainted with the new emotion;
+// the hand-illustrated PNG faces keep their art but still get the mood emoji + colour treatment.
+function applyHiddenAgendas(effect) {
+  const assignments = {};
+  deterministicOrder(state.board, `${state.gameSalt}:${effect.id}:side`).forEach((character, index) => {
+    const party = index % 2 === 0 ? "Democrat" : "Republican";
+    const homeState = getDeterministicMysteryValue(character.id, US_STATES, `${state.gameSalt}:${effect.id}:state`);
+    const current = character.traits ? character.traits.expression : null;
+    const moodPool = HIDDEN_EMOTIONS.filter((mood) => mood.key !== current);
+    const mood = getDeterministicMysteryValue(character.id, moodPool, `${state.gameSalt}:${effect.id}:mood`);
+    const image = character.traits && window.faceGenerator
+      ? window.faceGenerator.renderPortrait(character.seed, { ...character.traits, expression: mood.key })
+      : null;
+    assignments[character.id] = { party, state: homeState, mood: mood.label, emoji: mood.emoji, image };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// Monocultural: repaints every generated face with ONE shared skin tone, randomly chosen from the
+// generator's defined skin tones (so it's always a real human tone - never an alien/blue/etc).
+function applyMonocultural(effect) {
+  const tb = window.faceGenerator && window.faceGenerator.traitBook;
+  const names = (tb && tb.skinTones) || ["fair"];
+  const skin = pick(names);
+  const color = (tb && tb.skinToneHex && tb.skinToneHex[skin]) || "#c88968";
+  const assignments = {};
+  state.board.forEach((character) => {
+    const image = character.traits && window.faceGenerator
+      ? window.faceGenerator.renderPortrait(character.seed, { ...character.traits, skin })
+      : null;
+    assignments[character.id] = { image };
+  });
+  return { id: effect.id, name: effect.name, color, assignments };
+}
+
+// Gay Frogged: everyone gets LGBTQIA+ letter(s) + an orientation title, independently assigned.
+const PRIDE_LETTERS_POOL = [
+  { letters: ["L"],        key: "L",    color: "#e40303" },
+  { letters: ["G"],        key: "G",    color: "#ff8c00" },
+  { letters: ["B"],        key: "B",    color: "#ffd400" },
+  { letters: ["T"],        key: "T",    color: "#2ecc71" },
+  { letters: ["Q"],        key: "Q",    color: "#00bcd4" },
+  { letters: ["I"],        key: "I",    color: "#3a86ff" },
+  { letters: ["A"],        key: "A",    color: "#8338ec" },
+  { letters: ["+"],        key: "plus", color: "#ff4fd8" },
+  { letters: ["L", "G"],   key: "LG",   color: "#ff6b35" },
+  { letters: ["B", "T"],   key: "BT",   color: "#55efc4" },
+  { letters: ["Q", "I"],   key: "QI",   color: "#74b9ff" },
+  { letters: ["Q", "I", "A"], key: "QIA", color: "#4a90e2" },
+];
+
+const PRIDE_PRONOUNS_POOL = [
+  "he/him", "she/her", "they/them", "they/them",
+  "this/that", "this/that", "xe/xem", "ze/zir",
+  "it/its", "she/they", "he/they", "any/all",
+];
+
+const PRIDE_TITLES_POOL = [
+  "gay", "ultragay", "bisexual", "pansexual", "demisexual",
+  "supersexual", "faggot", "fat++", "queer", "fluid",
+  "unlabelled", "arospec", "asexual", "curious", "sapphic",
+  "straight+", "omnisexual", "graysexual", "it's complicated",
+  "homoflexible", "skoliosexual", "lithosexual", "polyamorous",
+  "butch", "femme", "twink", "bear", "masc4masc",
+];
+
+function applyGayFrogged(effect) {
+  const assignments = {};
+  const letterAssignments = {};
+  const titleAssignments = {};
+  assignEvenCategories(state.board, PRIDE_LETTERS_POOL, `${state.gameSalt}:${effect.id}:letters`).forEach(({ character, value }) => {
+    letterAssignments[character.id] = value;
+  });
+  assignEvenCategories(state.board, PRIDE_TITLES_POOL, `${state.gameSalt}:${effect.id}:titles`).forEach(({ character, value }) => {
+    titleAssignments[character.id] = value;
+  });
+  const pronounAssignments = {};
+  assignEvenCategories(state.board, PRIDE_PRONOUNS_POOL, `${state.gameSalt}:${effect.id}:pronouns`).forEach(({ character, value }) => {
+    pronounAssignments[character.id] = value;
+  });
+  state.board.forEach((character) => {
+    const letter = letterAssignments[character.id];
+    assignments[character.id] = {
+      letters: letter?.letters || ["Q"],
+      key: letter?.key || "Q",
+      color: letter?.color || "#00bcd4",
+      title: titleAssignments[character.id] || "queer",
+      pronoun: pronounAssignments[character.id] || "they/them",
+    };
+  });
+
+  // Shuffle hairstyles between characters and re-render portraits
+  if (window.faceGenerator) {
+    const eligible = state.board.filter((c) => c.traits);
+    const hairPool = shuffle(eligible.map((c) => ({ hair: c.traits.hair, hairColor: c.traits.hairColor, hairProfile: c.traits.hairProfile, hairLocks: c.traits.hairLocks, frontHairY: c.traits.frontHairY })));
+    eligible.forEach((character, index) => {
+      const swappedHair = hairPool[index];
+      const image = window.faceGenerator.renderPortrait(character.seed, { ...character.traits, ...swappedHair });
+      if (assignments[character.id]) {
+        assignments[character.id].image = image;
+      }
+    });
+  }
+
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// Face First: crops every portrait in tight so only the face fills the tile.
+function applyFaceFirst(effect) {
+  const assignments = {};
+  state.board.forEach((character) => {
+    assignments[character.id] = {};
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+function applyPs1Mode(effect) {
+  if (ps1Install) {
+    ps1Cleanup = ps1Install();
+  }
+  return { id: effect.id, name: effect.name };
+}
+
+// Full-frame announcement: a white flash plus the effect's name, each letter flung in from
+// off-screen along its own path to slam together in the centre.
+function playEffectAnnouncement(name) {
+  const prev = document.getElementById("effectBlast");
+  if (prev) prev.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "effectBlast";
+  overlay.className = "effect-blast";
+
+  const flash = document.createElement("div");
+  flash.className = "effect-blast-flash";
+  overlay.appendChild(flash);
+
+  const word = document.createElement("div");
+  word.className = "effect-blast-word";
+  [...name.toUpperCase()].forEach((ch, index) => {
+    const span = document.createElement("span");
+    span.className = "effect-blast-letter";
+    span.textContent = ch === " " ? " " : ch;
+    const dir = index % 2 === 0 ? -1 : 1;
+    span.style.setProperty("--dx", `${dir * (55 + Math.random() * 45)}vw`);
+    span.style.setProperty("--dy", `${(Math.random() - 0.5) * 70}vh`);
+    span.style.setProperty("--rot", `${dir * (15 + Math.random() * 35)}deg`);
+    span.style.setProperty("--delay", `${index * 40}ms`);
+    word.appendChild(span);
+  });
+  overlay.appendChild(word);
+
+  document.body.appendChild(overlay);
+  window.setTimeout(() => overlay.remove(), 1900);
+}
+
 function showMysteryAnnouncement(_effectName, exampleQuestion) {
   els.mysteryResult.textContent = exampleQuestion;
 }
@@ -1260,6 +1791,28 @@ function stableHash(value) {
   return hash >>> 0;
 }
 
+const GRINDR_TAGS = [
+  "bb", "fisting", "group", "leather", "gape", "doggy",
+  "oral", "vers", "top", "bottom", "pig", "daddy",
+  "kinky", "hung", "bear", "otter", "twink", "cub",
+  "wolf", "jock", "masc", "fem", "dom", "sub",
+  "feet", "rim", "raw", "pup", "gear", "sling",
+  "safe", "pnp", "420", "party", "discreet", "str8",
+  "hairy", "smooth", "chub", "muscle", "thick", "lean",
+  "nsa", "ltr", "host", "travel", "now", "tonight",
+];
+
+function characterTags(character) {
+  const h = stableHash(character.id + ":tags");
+  const count = 2 + (h % 3);
+  const tags = [];
+  for (let i = 0; i < count; i++) {
+    const tag = GRINDR_TAGS[stableHash(character.id + ":tag:" + i) % GRINDR_TAGS.length];
+    if (!tags.includes(tag)) tags.push(tag);
+  }
+  return tags;
+}
+
 function displayName(character) {
   return escapeHtml(character.name);
 }
@@ -1282,6 +1835,25 @@ function addLog(entry) {
 
 function pick(items) {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+function handleTestTextTrigger(event) {
+  const target = event.target;
+  const isTypingField = target?.matches?.("input, textarea, select, [contenteditable='true']");
+  if (isTypingField || event.ctrlKey || event.metaKey || event.altKey || event.key.length !== 1) return;
+  const allTriggers = [...KNOCKOFF_MANOR_TEST_TRIGGERS, ...PS1_TEST_TRIGGERS, ...GAY_FROGGED_TEST_TRIGGERS];
+  const maxTriggerLength = Math.max(...allTriggers.map((trigger) => trigger.length));
+  testTriggerBuffer = `${testTriggerBuffer}${event.key.toLowerCase()}`.slice(-maxTriggerLength);
+  if (KNOCKOFF_MANOR_TEST_TRIGGERS.some((trigger) => testTriggerBuffer.endsWith(trigger))) {
+    testTriggerBuffer = "";
+    triggerKnockoffManorTest();
+  } else if (PS1_TEST_TRIGGERS.some((trigger) => testTriggerBuffer.endsWith(trigger))) {
+    testTriggerBuffer = "";
+    triggerPs1Test();
+  } else if (GAY_FROGGED_TEST_TRIGGERS.some((trigger) => testTriggerBuffer.endsWith(trigger))) {
+    testTriggerBuffer = "";
+    triggerGayFroggedTest();
+  }
 }
 
 function buildBoard(pool, boardSize) {
@@ -1386,6 +1958,29 @@ els.mysteryButton.addEventListener("click", activateMystery);
 els.newGameButton.addEventListener("click", newGame);
 els.themeButton.addEventListener("click", toggleTheme);
 
+// Debug: manually trigger any mystery effect from a dropdown (handy while building/balancing).
+if (els.debugEffectPicker) {
+  mysteryEffects.forEach((effect) => {
+    const opt = document.createElement("option");
+    opt.value = effect.id;
+    opt.textContent = effect.name;
+    els.debugEffectPicker.appendChild(opt);
+  });
+  els.debugEffectPicker.addEventListener("change", () => {
+    const id = els.debugEffectPicker.value;
+    els.debugEffectPicker.value = "";
+    const effect = mysteryEffects.find((item) => item.id === id);
+    if (!effect) return;
+    if (currentPlayer()) currentPlayer().mysteryUsed = true;
+    applyMysteryEffect(effect.id);
+    playEffectAnnouncement(effect.name);
+    showMysteryAnnouncement(effect.name, effect.exampleQuestion);
+    addLog(`Debug: triggered "${effect.name}".`);
+    render();
+  });
+}
+document.addEventListener("keydown", handleTestTextTrigger);
+
 els.setupButton.addEventListener("click", () => {
   syncSettingsToForm();
   els.setupDialog.showModal();
@@ -1396,7 +1991,6 @@ els.saveSetupButton.addEventListener("click", () => {
   state.settings.mystery = els.settingMystery.checked;
   state.settings.locations = els.settingLocations.checked;
   state.settings.roles = els.settingRoles.checked;
-  state.settings.expanded = els.settingExpanded.checked;
   state.settings.boardSize = Number(els.settingBoardSize.value);
   newGame();
 });
@@ -1406,10 +2000,305 @@ function syncSettingsToForm() {
   els.settingMystery.checked = state.settings.mystery;
   els.settingLocations.checked = state.settings.locations;
   els.settingRoles.checked = state.settings.roles;
-  els.settingExpanded.checked = state.settings.expanded;
   els.settingBoardSize.value = String(state.settings.boardSize);
 }
 
 loadTheme();
 installStaticIcons();
 newGame();
+startCueCardRotation();
+(function () {
+  const boardSelector = "#characterBoard";
+  const cardSelector = ".character-card";
+  const portraitSelector = ".portrait-wrap";
+  const secretSelector = "#secretCard";
+  const locationSelector = "#locationBand";
+
+  function stableHash(value) {
+    let hash = 2166136261;
+    const text = String(value || "ps1");
+    for (let index = 0; index < text.length; index += 1) {
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function makePalette(seed) {
+    const palette = [
+      ["#101824", "#f4c45f"],
+      ["#131a2a", "#efb86d"],
+      ["#1b1524", "#dec769"],
+      ["#16191d", "#f0a65d"],
+      ["#141d16", "#d2c75d"],
+      ["#171321", "#e2b1ff"]
+    ];
+    const [booth, light] = palette[seed % palette.length];
+    return {
+      booth,
+      light,
+      skin: seed % 3 === 0 ? "#b87454" : seed % 3 === 1 ? "#d59a70" : "#8f5d43",
+      skinDark: seed % 3 === 0 ? "#83513e" : seed % 3 === 1 ? "#a86f50" : "#65402f",
+      skinLight: seed % 3 === 0 ? "#d59068" : seed % 3 === 1 ? "#efb17f" : "#a97454",
+      hair: seed % 4 === 0 ? "#2b1c18" : seed % 4 === 1 ? "#7b4328" : seed % 4 === 2 ? "#151515" : "#c58b2f",
+      hairLight: seed % 4 === 0 ? "#5a3529" : seed % 4 === 1 ? "#a96338" : seed % 4 === 2 ? "#373737" : "#e0b95b"
+    };
+  }
+
+  function cssUrl(value) {
+    return `url("${String(value).replace(/"/g, '\\"')}")`;
+  }
+
+  function createStage(card, portrait, image) {
+    const seed = stableHash(card.dataset.id || image.currentSrc || image.src);
+    const colors = makePalette(seed);
+    const stage = document.createElement("div");
+    stage.className = "ps1-character-stage";
+    stage.setAttribute("aria-hidden", "true");
+    stage.style.setProperty("--ps1-face", cssUrl(image.currentSrc || image.src));
+    stage.style.setProperty("--ps1-booth", colors.booth);
+    stage.style.setProperty("--ps1-light", colors.light);
+    stage.style.setProperty("--ps1-skin", colors.skin);
+    stage.style.setProperty("--ps1-skin-dark", colors.skinDark);
+    stage.style.setProperty("--ps1-skin-light", colors.skinLight);
+    stage.style.setProperty("--ps1-hair", colors.hair);
+    stage.style.setProperty("--ps1-hair-light", colors.hairLight);
+    const angle = (seed % 9) - 4;
+    stage.style.setProperty("--ps1-angle", `${angle}deg`);
+    stage.style.setProperty("--ps1-hover-angle", `${Math.round(angle * -0.4)}deg`);
+    stage.style.setProperty("--ps1-bob-delay", `${-(seed % 4800)}ms`);
+
+    stage.innerHTML = `
+      <div class="ps1-booth">
+        <span class="ps1-floor"></span>
+        <div class="ps1-head-rig">
+          <span class="ps1-shadow"></span>
+          <div class="ps1-head-blob">
+            <span class="ps1-map-plane ps1-map-left"></span>
+            <span class="ps1-map-plane ps1-map-right"></span>
+            <span class="ps1-ear ps1-ear-left"></span>
+            <span class="ps1-ear ps1-ear-right"></span>
+            <span class="ps1-map-plane ps1-map-top"></span>
+            <span class="ps1-map-plane ps1-map-front"></span>
+            <span class="ps1-front-facet ps1-front-facet-brow"></span>
+            <span class="ps1-front-facet ps1-front-facet-left"></span>
+            <span class="ps1-front-facet ps1-front-facet-right"></span>
+            <span class="ps1-front-facet ps1-front-facet-jaw"></span>
+            <span class="ps1-nose-facet"></span>
+            <span class="ps1-chin-facet"></span>
+          </div>
+        </div>
+        <span class="ps1-scanline"></span>
+      </div>
+    `;
+
+    const prop = portrait.querySelector(".prop-overlay");
+    portrait.classList.add("has-ps1-character");
+    portrait.insertBefore(stage, prop || null);
+  }
+
+  function syncPortrait(container, image, id) {
+    let stage = container.querySelector(":scope > .ps1-character-stage");
+    if (!stage) {
+      createStage({ dataset: { id } }, container, image);
+      stage = container.querySelector(":scope > .ps1-character-stage");
+    }
+
+    if (stage) {
+      if (stage.dataset.textureSampled !== "true") {
+        stage.style.setProperty("--ps1-face", cssUrl(image.currentSrc || image.src));
+      }
+      sampleTextureColors(stage, image);
+    }
+  }
+
+  function syncStage(card) {
+    const portrait = card.querySelector(portraitSelector);
+    const image = portrait?.querySelector(":scope > img");
+    if (!portrait || !image) return;
+    syncPortrait(portrait, image, card.dataset.id || image.src);
+  }
+
+  function enhanceBoard(board) {
+    board.querySelectorAll(cardSelector).forEach(syncStage);
+  }
+
+  function enhanceSecret(secretCard) {
+    if (!secretCard || secretCard.classList.contains("is-hidden")) return;
+    let wrapper = secretCard.querySelector(":scope > .ps1-secret-portrait");
+    let image = wrapper?.querySelector(":scope > img") || secretCard.querySelector(":scope > img");
+    if (!image) return;
+
+    if (!wrapper) {
+      wrapper = document.createElement("div");
+      wrapper.className = "portrait-wrap ps1-secret-portrait";
+      secretCard.insertBefore(wrapper, image);
+      wrapper.appendChild(image);
+    }
+
+    syncPortrait(wrapper, image, `secret-${image.alt || image.src}`);
+  }
+
+  function enhanceLocation(locationBand) {
+    const photo = locationBand?.querySelector(".location-photo");
+    if (!photo) return;
+    const source = extractCssUrl(photo.style.backgroundImage);
+    if (!source || photo.dataset.ps1Source === source) return;
+    photo.dataset.ps1Source = source;
+
+    const image = new Image();
+    image.onload = () => {
+      try {
+        const texture = pixelTexture(image, 112, 36);
+        if (texture && photo.dataset.ps1Source === source) {
+          photo.style.backgroundImage = cssUrl(texture);
+          photo.classList.add("is-ps1-pixelated");
+        }
+      } catch (error) {
+        photo.classList.add("is-ps1-pixelated");
+      }
+    };
+    image.src = source;
+  }
+
+  function sampleTextureColors(stage, image) {
+    if (stage.dataset.textureSampled === "true") return;
+    if (!image.complete || !image.naturalWidth) {
+      if (stage.dataset.textureSamplePending === "true") return;
+      stage.dataset.textureSamplePending = "true";
+      image.addEventListener("load", () => sampleTextureColors(stage, image), { once: true });
+      return;
+    }
+
+    try {
+      const canvas = document.createElement("canvas");
+      const size = 24;
+      canvas.width = size;
+      canvas.height = size;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return;
+      context.imageSmoothingEnabled = false;
+      context.drawImage(image, 0, 0, size, size);
+      const skin = averageRect(context, size, 9, 9, 15, 17);
+      const hair = averageRect(context, size, 8, 4, 16, 8);
+      const texture = pixelTexture(image, 64);
+      if (texture) {
+        stage.style.setProperty("--ps1-face", cssUrl(texture));
+      }
+      if (skin) {
+        stage.style.setProperty("--ps1-skin", skin);
+        stage.style.setProperty("--ps1-skin-dark", shadeHex(skin, 0.68));
+        stage.style.setProperty("--ps1-skin-light", shadeHex(skin, 1.2));
+      }
+      if (hair) {
+        stage.style.setProperty("--ps1-hair", shadeHex(hair, 0.86));
+        stage.style.setProperty("--ps1-hair-light", shadeHex(hair, 1.24));
+      }
+      delete stage.dataset.textureSamplePending;
+      stage.dataset.textureSampled = "true";
+    } catch (error) {
+      delete stage.dataset.textureSamplePending;
+      stage.dataset.textureSampled = "true";
+    }
+  }
+
+  function averageRect(context, size, x1, y1, x2, y2) {
+    const data = context.getImageData(0, 0, size, size).data;
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let count = 0;
+    for (let y = y1; y < y2; y += 1) {
+      for (let x = x1; x < x2; x += 1) {
+        const index = (y * size + x) * 4;
+        if (data[index + 3] < 32) continue;
+        r += data[index];
+        g += data[index + 1];
+        b += data[index + 2];
+        count += 1;
+      }
+    }
+    if (!count) return "";
+    return rgbToHex(Math.round(r / count), Math.round(g / count), Math.round(b / count));
+  }
+
+  function pixelTexture(image, width, height = width) {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) return "";
+    context.imageSmoothingEnabled = false;
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/png");
+  }
+
+  function extractCssUrl(value) {
+    const match = String(value || "").match(/url\((['"]?)(.*?)\1\)/);
+    return match ? match[2] : "";
+  }
+
+  function shadeHex(hex, amount) {
+    const value = hex.replace("#", "");
+    const r = Math.max(0, Math.min(255, Math.round(parseInt(value.slice(0, 2), 16) * amount)));
+    const g = Math.max(0, Math.min(255, Math.round(parseInt(value.slice(2, 4), 16) * amount)));
+    const b = Math.max(0, Math.min(255, Math.round(parseInt(value.slice(4, 6), 16) * amount)));
+    return rgbToHex(r, g, b);
+  }
+
+  function rgbToHex(r, g, b) {
+    return `#${[r, g, b].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+  }
+
+  function install() {
+    document.body.dataset.characterRenderer = "ps1";
+    const board = document.querySelector(boardSelector);
+    const secretCard = document.querySelector(secretSelector);
+    const locationBand = document.querySelector(locationSelector);
+    if (!board) return () => {};
+
+    enhanceBoard(board);
+    enhanceSecret(secretCard);
+    enhanceLocation(locationBand);
+
+    let scheduled = false;
+    const scheduleEnhance = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        enhanceBoard(board);
+        enhanceSecret(secretCard);
+        enhanceLocation(locationBand);
+      });
+    };
+    const observer = new MutationObserver(scheduleEnhance);
+    observer.observe(board, { childList: true });
+    if (secretCard) observer.observe(secretCard, { childList: true });
+    if (locationBand) observer.observe(locationBand, { childList: true, subtree: true });
+
+    return function uninstall() {
+      observer.disconnect();
+      delete document.body.dataset.characterRenderer;
+      document.querySelectorAll(".ps1-character-stage").forEach((el) => el.remove());
+      document.querySelectorAll(".has-ps1-character").forEach((el) => {
+        el.classList.remove("has-ps1-character");
+      });
+      document.querySelectorAll(".ps1-secret-portrait").forEach((el) => {
+        const img = el.querySelector("img");
+        if (img) el.parentElement?.insertBefore(img, el);
+        el.remove();
+      });
+      document.querySelectorAll("[data-ps1-source]").forEach((el) => {
+        delete el.dataset.ps1Source;
+        el.classList.remove("is-ps1-pixelated");
+      });
+    };
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => { ps1Install = install; }, { once: true });
+  } else {
+    ps1Install = install;
+  }
+})();

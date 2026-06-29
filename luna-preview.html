@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8">
+<title>Luna preview</title>
+<body style="margin:0;background:#15171f;display:flex;gap:10px;flex-wrap:wrap;padding:10px">
+<script src="faces-hair.js?v=48"></script>
+<script src="face-generator.js?v=48"></script>
+<script>
+const g = window.faceGenerator;
+const refs = {
+  luna:   { skin:"fair", hairColor:"silver", hair:"longWaves", expression:"neutral", clothing:"tee", shirt:"#b9b0d8", background:"#c6b9e0", eyeColor:"#3a6ea5", lips:"soft" },
+  maya:   { skin:"amber", hairColor:"black", hair:"longWaves", expression:"happy", clothing:"tee", shirt:"#b063c8", background:"#c6b9e0", eyeColor:"#3a2a22", lips:"soft" },
+  sophia: { skin:"fair", hairColor:"blonde", hair:"longWaves", expression:"happy", clothing:"tee", shirt:"#f077a6", background:"#c6b9e0", eyeColor:"#3a6ea5", lips:"soft" },
+  elena:  { skin:"tan", hairColor:"brown", hair:"longWaves", expression:"neutral", clothing:"tee", shirt:"#c33f38", background:"#e0d3b9", eyeColor:"#3a2a22", lips:"soft" }
+};
+for (const [id, t] of Object.entries(refs)) {
+  const out = g.renderPortrait(id, t);
+  const i = new Image(320, 320);
+  i.src = out;
+  document.body.appendChild(i);
+}
+document.title = "ready";
+</script>

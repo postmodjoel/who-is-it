@@ -943,10 +943,20 @@
     const cheek = seed % 2
       ? `<ellipse cx='88' cy='${cheekY}' rx='13' ry='6' fill='#dc6f6a' opacity='${cheekOpacity}'/><ellipse cx='168' cy='${cheekY}' rx='13' ry='6' fill='#dc6f6a' opacity='${cheekOpacity}'/>`
       : `<ellipse cx='89' cy='${cheekY + 1}' rx='11' ry='5' fill='#dc6f6a' opacity='${Math.max((profile.cheekOpacity || 0.09) - 0.02, 0.04).toFixed(2)}'/><ellipse cx='167' cy='${cheekY + 1}' rx='11' ry='5' fill='#dc6f6a' opacity='${Math.max((profile.cheekOpacity || 0.09) - 0.02, 0.04).toFixed(2)}'/>`;
+    // Nasolabial fold: a soft crease from each nostril wing down to just outside the mouth corner.
+    // The reference art (penny/jade/kevin) always carries this faint pair on a smile - its absence is
+    // the #1 "flat/AI" tell. Gated to smiling expressions and kept very soft (skin-shadow tone, low
+    // opacity, round caps) so it reads as cheek form, not a drawn line. Sits under the nose/mouth.
+    const expr = expressions[traits.expression];
+    const smiling = expr && (expr.teeth || expr.openMouth);
+    const naso = smiling
+      ? `<path d='M119 ${150 + (profile.nasoY || 0)}C114 157 110 162 106 167M137 ${150 + (profile.nasoY || 0)}C142 157 146 162 150 167' fill='none' stroke='${shadeColor(skin, 0.82)}' stroke-width='1.8' stroke-linecap='round' opacity='0.55'/>`
+      : "";
     // One very-soft jaw shade (kept faint so it reads as form, not a floating line). The old
     // below-mouth crease + a second arc looked like stray marks across the chin, so they're gone.
     return `
       ${cheek}
+      ${naso}
       <path d='M84 ${134 + (profile.eyeSocketY || 0)}c6-4 16-6 27-3M145 ${131 + (profile.eyeSocketY || 0)}c12-3 22-1 28 4' fill='none' stroke='rgba(255,255,255,.09)' stroke-width='2' stroke-linecap='round'/>
       <path d='M104 ${201 + (profile.jawShadowY || 0)}c10 6 38 6 48 0' fill='none' stroke='rgba(24,21,18,.05)' stroke-width='3' stroke-linecap='round'/>
     `;

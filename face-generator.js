@@ -847,7 +847,7 @@
       accessoryY: 4, accessoryScale: 1.28, animMode: "alert"
     },
     gianni: {
-      browShape: "bushy", browY: 4.5, browScaleX: 1.04,
+      browShape: "thick", browY: 4.5, browScaleX: 1.04, browThick: 1.45,
       cheekOpacity: 0.02, pupilX: -1.5, pupilY: -1.5, eyeY: -2, eyeOpen: 0.54,
       jawShadowY: -2, jawLength: -0.03, chinY: 1, chinWidth: 1.06,
       smileLips: "off", lips: "full", lipColor: "#78503b", mouthScale: 1.08,
@@ -866,6 +866,43 @@
         { dx: 33, y: 195, r: 25 },
         { dx: 10, y: 209, r: 28 },
         { dx: 40, y: 187, r: 16 }
+      ]
+    },
+    // --- A few exploratory quirky looks on un-baked base characters (mostly beard-blob driven) ---
+    bruno: {
+      accessory: "none", browShape: "thick", browThick: 1.35, browY: 1,
+      eyeOpen: 0.7, jawShadowY: -2, mouthScale: 1.06, headScaleX: 1.03,
+      animMode: "serious", blinkRate: 8,
+      hairLocks: [
+        { lock: "messyTufts", x: 50, y: 34, scale: 0.8, rot: 0, lines: true },
+        { lock: "sideSwoop", x: 64, y: 30, scale: 0.34, rot: -70, lines: false }
+      ],
+      beardBlobs: [
+        { dx: 46, y: 176, r: 14 }, { dx: 30, y: 184, r: 17 }, { dx: 14, y: 197, r: 18 },
+        { dx: 34, y: 196, r: 24 }, { dx: 8, y: 210, r: 30 }, { dx: 44, y: 188, r: 15 }
+      ]
+    },
+    diego: {
+      accessory: "none", browShape: "bushy", browThick: 1.2, eyeOpen: 0.74,
+      animMode: "curious", blinkRate: 5, winkRate: 12,
+      beardBlobs: [
+        { dx: 40, y: 180, r: 15 }, { dx: 22, y: 188, r: 16 }, { dx: 10, y: 200, r: 17 },
+        { dx: 30, y: 198, r: 22 }, { dx: 6, y: 208, r: 24 }
+      ]
+    },
+    javier: {
+      browThick: 1.15, eyeOpen: 0.78, mouthScale: 1.04, animMode: "shifty", blinkRate: 6,
+      beardBlobs: [
+        { dx: 0, y: 206, r: 13 }, { dx: 12, y: 199, r: 11 }, { dx: 9, y: 214, r: 12 }
+      ]
+    },
+    sanaa: {
+      browShape: "arched", browThick: 1.1, eyeScale: 1.06, eyeOpen: 1.0, cheekOpacity: 0.1,
+      animMode: "alert", blinkRate: 3.5, lips: "full", lipColor: "#7a3b46",
+      hairLocks: [
+        { lock: "curlyForelock", x: 24, y: 30, scale: 0.66, rot: 0, lines: true, mirror: true },
+        { lock: "curlyForelock", x: 76, y: 30, scale: 0.66, rot: 0, lines: true },
+        { lock: "softWaveCap", x: 50, y: 32, scale: 0.8, rot: 0, lines: true }
       ]
     }
   };
@@ -994,6 +1031,7 @@
         ${renderClothing(outfit, traits, seed)}
         ${renderNeckBase(traits, skin)}
         ${renderCollar(traits)}
+        ${renderTattoo(traits)}
         ${headGroup(traits, `
           ${renderHairLocks(traits, seed, hair, true)}
           ${useFacesHair ? "" : renderBackHair(hairStyle, `url(#hair-${seed})`, traits)}
@@ -1085,18 +1123,30 @@
     const sway = cfg.sway;
     const ph = (Math.sin((seed + 1) * 12.9898) * 43758.5453) % 1; // deterministic 0..1 phase
     const d = (period) => (-(Math.abs(ph) * period)).toFixed(2);
+    // A blink/wink should take a fixed amount of TIME no matter the interval, so its keyframe width is
+    // (duration / interval); short intervals don't make a frantic blink.
+    const BLINK_DUR = 0.18, WINK_DUR = 0.32;
+    const widthPct = (dur, period) => Math.max(1, Math.min(26, (dur / period) * 100));
     const kf = [];
     const rules = ["g.fa-eye,g.fa-wink,g.fa-iris{transform-box:fill-box;transform-origin:center}"];
     if (blink > 0) {
-      kf.push("@keyframes faBlink{0%,93%,100%{transform:scaleY(1)}96.5%{transform:scaleY(.08)}}");
+      const bw = widthPct(BLINK_DUR, blink);
+      const bs = (100 - bw).toFixed(2);          // blink begins
+      const bm = (100 - bw * 0.5).toFixed(2);     // eye fully shut
+      // The eye squishes a touch while the skin lid sweeps down over it (a real-feeling blink).
+      kf.push(`@keyframes faBlink{0%,${bs}%,100%{transform:scaleY(1)}${bm}%{transform:scaleY(.82)}}`);
+      kf.push(`@keyframes faLid{0%,${bs}%,100%{transform:translateY(-30px)}${bm}%{transform:translateY(0)}}`);
       rules.push(`g.fa-eye{animation:faBlink ${blink}s infinite;animation-delay:${d(blink)}s}`);
+      rules.push(`g.fa-lid{animation:faLid ${blink}s infinite;animation-delay:${d(blink)}s}`);
     }
     if (dart > 0) {
       kf.push("@keyframes faDart{0%,16%{translate:0 0}20%,38%{translate:2.2px -1px}42%,60%{translate:-2.4px .8px}64%,82%{translate:1px 1.4px}86%,100%{translate:0 0}}");
       rules.push(`g.fa-iris{animation:faDart ${dart}s infinite;animation-delay:${d(dart)}s}`);
     }
     if (wink > 0) {
-      kf.push("@keyframes faWink{0%,48%,52.5%,100%{transform:scaleY(1)}50%{transform:scaleY(.1)}}");
+      const ww = widthPct(WINK_DUR, wink);
+      const a = (50 - ww / 2).toFixed(2), b = (50 + ww / 2).toFixed(2);
+      kf.push(`@keyframes faWink{0%,${a}%,${b}%,100%{transform:scaleY(1)}50%{transform:scaleY(.12)}}`);
       rules.push(`g.fa-wink{animation:faWink ${wink}s infinite;animation-delay:${d(wink)}s}`);
     }
     if (sway > 0) {
@@ -1104,6 +1154,30 @@
       rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 205px;animation:faSway ${sway}s ease-in-out infinite;animation-delay:${d(sway)}s}`);
     }
     return `<style>${kf.join("")}${rules.join("")}</style>`;
+  }
+
+  // Custom text tattoo, placed on the chest/neck. Movable, scalable, rotatable and skewable, with a
+  // choice of font families. Drawn over the clothing.
+  const tattooFonts = {
+    bold: "Archivo, system-ui, sans-serif",
+    serif: "Georgia, 'Times New Roman', serif",
+    script: "'Brush Script MT', 'Segoe Script', cursive",
+    mono: "'Courier New', ui-monospace, monospace",
+    display: "'Press Start 2P', Impact, fantasy"
+  };
+  function renderTattoo(traits) {
+    const text = traits.tattooText;
+    if (!text) return "";
+    const x = 128 + (Number(traits.tattooX) || 0);
+    const y = 236 + (Number(traits.tattooY) || 0);
+    const scale = Number(traits.tattooScale) || 1;
+    const rot = Number(traits.tattooRot) || 0;
+    const skew = Number(traits.tattooSkewX) || 0;
+    const font = tattooFonts[traits.tattooFont] || tattooFonts.bold;
+    const color = traits.tattooColor || "#23232b";
+    const esc = String(text).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    return `<g transform='translate(${x} ${y}) rotate(${rot}) skewX(${skew}) scale(${scale})'>`
+      + `<text x='0' y='0' text-anchor='middle' font-family="${font}" font-size='17' font-weight='700' fill='${color}' opacity='0.9'>${esc}</text></g>`;
   }
 
   function renderClothing(outfit, traits, seed) {
@@ -1846,6 +1920,12 @@
           <circle cx='${f(cx + pdx - irisR * 0.32)}' cy='${f(irisY + pdy - irisR * 0.42)}' r='${(irisR * 0.16).toFixed(1)}' fill='#fff' opacity='.78'/>
         </g>
         <path d='${topLid}' fill='none' stroke='rgba(31,35,48,.5)' stroke-width='2.6' stroke-linecap='round'/>
+        ${/* Eyelid: a skin cover sitting 30px above (hidden by the clip) that the blink sweeps down
+             over the eye. Inline transform keeps it hidden when there's no animation. */ ""}
+        <g class='fa-lid' transform='translate(0 -30)'>
+          <path d='${lens}' fill='${skin}'/>
+          <path d='M${f(cx - w * 0.9)} ${f(y)}Q${f(cx)} ${f(y + 1.3)} ${f(cx + w * 0.9)} ${f(y)}' fill='none' stroke='${ink}' stroke-width='1.9' stroke-linecap='round' opacity='.65'/>
+        </g>
       </g>
       <path d='${bottomArc}' fill='none' stroke='${lowerLid}' stroke-width='1.9' stroke-linecap='round'/>
       <path d='${topArc}' fill='none' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linecap='round' stroke-linejoin='round'/>
@@ -1942,7 +2022,9 @@
     const incisors = transformTeeth(teethIncisors(teethStyle, p, traits), traits, 128, p.y + 8);
     const lowerLip = showLips ? `<path d='${arc(p.botDip - 4, p.botDip + 12)}' fill='${lipC}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
     const upperLip = showLips ? `<path d='${arc(p.topDip - 8, p.topDip)}' fill='${shadeColor(lipC, 0.9)}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
-    const sheen = showLips ? `<path d='M${p.L + 8} ${f(p.y - 1)}Q128 ${f(p.y + p.botDip + 8)} ${p.R - 8} ${f(p.y - 1)}' fill='none' stroke='${shadeColor(lipC, 1.12)}' stroke-width='1.8' stroke-linecap='round' opacity='.45'/>` : "";
+    // A small highlight on the LOWER LIP only (the old sheen arced across the whole mouth, reading as
+    // a stray pink curve over the teeth).
+    const sheen = showLips ? `<path d='M${f(128 - 9)} ${f(p.y + p.botDip + 5)}q9 2 18 0' fill='none' stroke='${shadeColor(lipC, 1.14)}' stroke-width='1.6' stroke-linecap='round' opacity='.4'/>` : "";
     return `
       <defs>
         <clipPath id='${clipId}'><path d='${opening}'/></clipPath>
@@ -2397,6 +2479,7 @@
       lipStyles: ["line", "soft", "full"],
       chinShapes: ["none", "round", "square", "dimple", "pointed"],
       animModes: ["still", "calm", "curious", "serious", "shifty", "alert"],
+      tattooFonts: ["bold", "serif", "script", "mono", "display"],
       skinTones: Object.keys(skinTones),
       hairColors: Object.keys(hairColors),
       hairColorHex: hairColors,

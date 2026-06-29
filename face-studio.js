@@ -93,7 +93,16 @@ const editorFields = [
   // Moustache
   { group: "Moustache", key: "moustacheX", label: "Moustache X", min: -18, max: 18, step: 1, fallback: 0 },
   { group: "Moustache", key: "moustacheY", label: "Moustache Y", min: -18, max: 18, step: 1, fallback: 0 },
-  { group: "Moustache", key: "moustacheScale", label: "Moustache Size", min: 0.62, max: 1.5, step: 0.02, fallback: 1 }
+  { group: "Moustache", key: "moustacheScale", label: "Moustache Size", min: 0.62, max: 1.5, step: 0.02, fallback: 1 },
+  // Tattoo (custom text on the chest/neck)
+  { group: "Tattoo", key: "tattooText", label: "Text", type: "text", fallback: "" },
+  { group: "Tattoo", key: "tattooFont", label: "Font", type: "select", options: () => selectOptions(traitBook.tattooFonts), fallback: "bold" },
+  { group: "Tattoo", key: "tattooColor", label: "Colour", type: "color", fallback: "" },
+  { group: "Tattoo", key: "tattooX", label: "X", min: -70, max: 70, step: 1, fallback: 0 },
+  { group: "Tattoo", key: "tattooY", label: "Y", min: -40, max: 20, step: 1, fallback: 0 },
+  { group: "Tattoo", key: "tattooScale", label: "Size", min: 0.4, max: 3, step: 0.05, fallback: 1 },
+  { group: "Tattoo", key: "tattooRot", label: "Rotate", min: -60, max: 60, step: 1, fallback: 0 },
+  { group: "Tattoo", key: "tattooSkewX", label: "Skew", min: -45, max: 45, step: 1, fallback: 0 }
 ];
 
 const hotspots = [
@@ -409,6 +418,11 @@ function renderEditor(character) {
         <span class="editor-value">${set ? `<button type="button" class="mini-button" data-color-reset="${escapeHtml(field.key)}" title="Auto colour">auto</button>` : "auto"}</span>
       `;
         })()
+      : field.type === "text"
+      ? `
+        <input id="edit-${escapeHtml(field.key)}" type="text" value="${escapeHtml(value || "")}" data-key="${escapeHtml(field.key)}" data-kind="text" placeholder="tattoo text" spellcheck="false">
+        <span class="editor-value"></span>
+      `
       : `
         <input
           id="edit-${escapeHtml(field.key)}"
@@ -454,6 +468,9 @@ function renderEditor(character) {
   els.editorControls.querySelectorAll("[data-kind='color']").forEach((input) => {
     input.addEventListener("input", () => updateColorCorrection(character, input.dataset.key, input.value));
   });
+  els.editorControls.querySelectorAll("[data-kind='text']").forEach((input) => {
+    input.addEventListener("input", () => updateColorCorrection(character, input.dataset.key, input.value));
+  });
   els.editorControls.querySelectorAll("[data-color-reset]").forEach((btn) => {
     btn.addEventListener("click", () => updateColorCorrection(character, btn.dataset.colorReset, ""));
   });
@@ -469,6 +486,7 @@ function colorAutoFor(character, field) {
   }
   if (field.key === "shirt") return character.traits.shirt || "#4a7bd9";
   if (field.key === "background") return character.traits.background || "#a9c4e0";
+  if (field.key === "tattooColor") return character.traits.tattooColor || "#23232b";
   return "#000000";
 }
 

@@ -43,6 +43,43 @@
     long: "M128 60c33 0 55 30 55 76 0 27-7 50-20 65-9 11-22 17-35 17s-26-6-35-17c-13-15-20-38-20-65 0-46 22-76 55-76Z"
   };
 
+  // The brow line (~y128) is the pivot that separates "forehead" from "jaw". Head Height scales the
+  // whole skull; Jaw Length stretches ONLY the lower face (below the brow) so a long chin doesn't
+  // also squish the forehead - that uniform squish is what made faces look "compressed".
+  const JAW_PIVOT = 128;
+  // How much a feature at baseline `y` should slide down when the jaw is lengthened by `factor`.
+  function jawDrop(factor, y) {
+    return Math.max(0, y - JAW_PIVOT) * (Number(factor) || 0);
+  }
+  // Stretch a face-outline path vertically below JAW_PIVOT by (1+factor). Parses the M/c/s/Z paths in
+  // faceShapes (absolute moveto + relative cubics) into absolute cubics with the lower half warped.
+  function warpJaw(d, factor) {
+    if (!factor) return d;
+    const wy = (y) => (y > JAW_PIVOT ? JAW_PIVOT + (y - JAW_PIVOT) * (1 + factor) : y);
+    const toks = d.match(/[A-Za-z]|-?\d*\.?\d+/g) || [];
+    let i = 0, cx = 0, cy = 0, c2x = 0, c2y = 0, cmd = "", out = "";
+    const n = () => parseFloat(toks[i++]);
+    const r = (v) => v.toFixed(2);
+    while (i < toks.length) {
+      if (/[A-Za-z]/.test(toks[i])) { cmd = toks[i++]; if (cmd === "Z" || cmd === "z") { out += "Z"; continue; } }
+      if (cmd === "M" || cmd === "L") {
+        const x = n(), y = n(); cx = x; cy = y; out += `${cmd}${r(x)} ${r(wy(y))} `;
+      } else if (cmd === "m" || cmd === "l") {
+        const x = cx + n(), y = cy + n(); cx = x; cy = y; out += `${cmd === "m" ? "M" : "L"}${r(x)} ${r(wy(y))} `;
+      } else if (cmd === "c") {
+        const x1 = cx + n(), y1 = cy + n(), x2 = cx + n(), y2 = cy + n(), x = cx + n(), y = cy + n();
+        out += `C${r(x1)} ${r(wy(y1))} ${r(x2)} ${r(wy(y2))} ${r(x)} ${r(wy(y))} `;
+        c2x = x2; c2y = y2; cx = x; cy = y;
+      } else if (cmd === "s") {
+        const x2 = cx + n(), y2 = cy + n(), x = cx + n(), y = cy + n();
+        const x1 = 2 * cx - c2x, y1 = 2 * cy - c2y;
+        out += `C${r(x1)} ${r(wy(y1))} ${r(x2)} ${r(wy(y2))} ${r(x)} ${r(wy(y))} `;
+        c2x = x2; c2y = y2; cx = x; cy = y;
+      } else { i++; }
+    }
+    return out.trim();
+  }
+
   const expressions = {
     neutral: {
       brows: "M84 113c13-5 27-5 40 0M134 113c13-5 27-5 40 0",
@@ -247,17 +284,17 @@
     }
   };
 
-  // One soft, naturally-sloping shoulder silhouette shared by every garment; the per-style
-  // character lives in the collar (drawn on top of the neck by renderCollar). Rounded shoulders
-  // + curved necklines replace the old hard rectangles/V-notches that read as "angular".
-  const softShoulders = "M24 256C30 214 62 198 100 196C118 195 138 195 156 196C194 198 226 214 232 256Z";
+  // The shoulder silhouette is generated per-character by shoulderPath(traits) from traits.build
+  // (a half-width that's narrower for women + varies per person) so the cast isn't a row of
+  // identically broad torsos. Each garment only carries its collar style; the soft rounded
+  // shoulders + curved necklines replace the old hard rectangles/V-notches that read as "angular".
   const clothing = {
-    hoodie: { body: softShoulders, collar: "hood" },
-    tee: { body: softShoulders, collar: "crew" },
-    collared: { body: softShoulders, collar: "shirt" },
-    jacket: { body: softShoulders, collar: "zip" },
-    turtleneck: { body: softShoulders, collar: "turtle" },
-    overalls: { body: softShoulders, collar: "overall" }
+    hoodie: { collar: "hood" },
+    tee: { collar: "crew" },
+    collared: { collar: "shirt" },
+    jacket: { collar: "zip" },
+    turtleneck: { collar: "turtle" },
+    overalls: { collar: "overall" }
   };
 
   const accessories = {
@@ -333,10 +370,16 @@
 
       // length comes from an explicit override (studio editor / corrections) or, failing that, the
       // named profile carried by existing characters.
-      const profileLen = { trimShort: 0.3, chinCurtain: 0.45, boxedFull: 0.72, roundedHeavy: 0.9 };
+      const profileLen = { trimShort: 0.3, chinCurtain: 0.45, boxedFull: 0.72, roundedHeavy: 0.9, roundedFull: 0.62 };
       const profile = traits.beardProfile || "trimShort";
       let length = traits.beardLength == null ? (profileLen[profile] != null ? profileLen[profile] : 0.35) : Number(traits.beardLength);
       length = Math.max(0, Math.min(1, length));
+
+      // "roundedFull" = the Ethan look: a solid, neatly-groomed full beard with a CLEAN shaved frame
+      // around the mouth (lips sit on bare skin), an integrated moustache over the lip, smooth rounded
+      // edges and downward strand texture - none of the scraggly cheek-stubble halo of the stubble look.
+      const isRounded = profile === "roundedFull";
+      const skinHex = skinTones[traits.skin] || "#e8b48f";
 
       const cheekY = 158 - length * 14;   // sideburn / top of the cheek coverage (climbs with length)
       const centerY = 158 - length * 2;   // top of the beard at the midline, just under the nose
@@ -356,8 +399,9 @@
       // Ragged top edge: a polyline along topAt with small per-step jitter so the hairline reads as
       // hair, not a smooth arc. Reused for the fill path and to plant edge hairs.
       const edgePts = [];
+      const jitterAmp = isRounded ? 2.0 : 4.2;   // groomed beards have a cleaner top edge
       for (let x = 78; x <= 178; x += 3.5) {
-        const jitter = (rng(Math.round(x), 7) - 0.5) * 4.2;
+        const jitter = (rng(Math.round(x), 7) - 0.5) * jitterAmp;
         edgePts.push([x, topAt(x) + jitter]);
       }
       const topPath = edgePts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join("");
@@ -368,36 +412,51 @@
       // cut-out. The edge-hairs are what soften the boundary - no loose dot halo needed.
       let solidLayer = "";
       if (length > 0.16) {
-        const fillOp = (0.55 + 0.4 * solid).toFixed(2);
+        // Groomed beards read as a solid block of hair; the stubble look stays semi-translucent.
+        const fillOp = isRounded ? "0.97" : (0.55 + 0.4 * solid).toFixed(2);
         let strands = "";
-        const strandCount = Math.round(4 + length * 7);
+        const strandCount = Math.round((isRounded ? 9 : 4) + length * 7);
         for (let i = 0; i < strandCount; i++) {
           const x = 92 + (i / Math.max(1, strandCount - 1)) * 72;
           const y0 = topAt(x) + 12;
-          const sway = (rng(i, 5) - 0.5) * 8;
+          // rounded beards comb straight down; stubble sways loosely
+          const sway = (rng(i, 5) - 0.5) * (isRounded ? 3 : 8);
           const len = 24 + rng(i, 9) * 28;
-          strands += `<path d='M${x.toFixed(1)} ${y0.toFixed(1)}q${sway.toFixed(1)} ${(len * 0.6).toFixed(1)} ${(sway * 0.35).toFixed(1)} ${len.toFixed(1)}' fill='none' stroke='${hi}' stroke-width='1' stroke-linecap='round' opacity='${(0.12 + solid * 0.12).toFixed(2)}'/>`;
+          const op = isRounded ? (0.18 + solid * 0.14) : (0.12 + solid * 0.12);
+          strands += `<path d='M${x.toFixed(1)} ${y0.toFixed(1)}q${sway.toFixed(1)} ${(len * 0.6).toFixed(1)} ${(sway * 0.35).toFixed(1)} ${len.toFixed(1)}' fill='none' stroke='${hi}' stroke-width='1' stroke-linecap='round' opacity='${op.toFixed(2)}'/>`;
         }
         let edgeHairs = "";
         for (let i = 0; i < edgePts.length; i += 1) {
           if (rng(i, 11) > 0.66) continue;
           const [x, y] = edgePts[i];
-          const h = 2.2 + rng(i, 13) * 4.5;
+          const h = (isRounded ? 1.6 : 2.2) + rng(i, 13) * (isRounded ? 3 : 4.5);
           const dx = (rng(i, 15) - 0.5) * 3.2;
           edgeHairs += `<path d='M${x.toFixed(1)} ${y.toFixed(1)}q${(dx * 0.5).toFixed(1)} ${(-h * 0.6).toFixed(1)} ${dx.toFixed(1)} ${(-h).toFixed(1)}' fill='none' stroke='${base}' stroke-width='1.2' stroke-linecap='round' opacity='${(0.45 + 0.3 * solid).toFixed(2)}'/>`;
         }
+
+        // Ethan look: carve a skin-coloured frame around the mouth so the lips sit on bare skin, and
+        // lay an integrated moustache over the upper lip. Both ride inside the face clip with the mass.
+        let mouthFrame = "";
+        if (isRounded) {
+          // shaved oval around the lips (kept above the chin so the goatee point stays bearded)
+          mouthFrame = `
+            <path d='M104 160c8-4 32-4 48 0 6 6 5 16 -2 20 -8 4 -36 4 -44 0 -7 -4 -8 -14 -2 -20Z' fill='${skinHex}'/>
+            <path d='M101 158c13-11 22-7 27 0 5-7 14-11 27 0-15 8-26 7-27 0-1 7-12 8-27 0Z' fill='${shadeColor(hairHex, 0.7)}' stroke='${shadeColor(hairHex, 0.5)}' stroke-width='1' stroke-linejoin='round'/>`;
+        }
+
         solidLayer = `
           <path d='${region}' fill='${base}' fill-opacity='${fillOp}'/>
           <path d='M88 195C108 224 148 224 168 195L168 214C150 236 106 236 88 214Z' fill='${lo}' opacity='0.5'/>
           ${strands}
-          ${edgeHairs}`;
+          ${edgeHairs}
+          ${mouthFrame}`;
       }
 
       // Loose stubble dots: only meaningful for genuine stubble (low length). They fade out as the
       // beard fills in solid, stay TIGHT to the beard zone (tiny 3px fringe above the edge, then down
       // into the mass), and are small + low-contrast so they read as shadow grain, not cake crumbs.
       let stipple = "";
-      const stubbleStrength = Math.pow(1 - solid, 1.1);
+      const stubbleStrength = isRounded ? 0 : Math.pow(1 - solid, 1.1);
       if (stubbleStrength > 0.03) {
         const dotCount = 190;
         for (let i = 0; i < dotCount; i++) {
@@ -556,42 +615,58 @@
     // clothing/neck so the collar disappears into the wrap. Each portrait is its own isolated
     // SVG document, so the fixed `scarfclip` id never collides between characters.
     scarf: () => {
-      const green = "#7e9d57", greenLo = "#67844a";
+      const green = "#7e9d57", greenLo = "#67844a", greenHi = "#92ad68";
       const cream = "#ece6c8", creamLo = "#d6cda0";
       const knit = "rgba(31,35,48,.20)";
-      // wrapped cowl around the neck (shallow bottom so the tails read below it) + two draping
-      // tails: a wide front panel and a narrower flap peeking behind it to the right.
+      // Chunky cowl wound around the neck. It reads as a round TUBE rather than a flat
+      // front-on panel because: the stripes ARC (sag in the middle) following the cylinder
+      // of the neck, the rolled top rim catches light while the opening just below it falls
+      // into shadow (the neck disappears into the wrap), and both sides turn darker as the
+      // wrap rounds away from the viewer. Same depth idea as the sun-hat underside plane.
       const body = "M80 205C90 196 166 196 176 205C184 214 184 230 178 239C150 245 106 245 78 239C72 230 72 214 80 205Z";
-      const tailFront = "M106 236C102 242 101 247 103 251L151 251C153 247 152 242 148 236Z";
-      const tailFlap = "M148 238C150 244 151 248 154 251L170 251C169 245 167 240 162 238Z";
-      // cream stripes banded over the green base (16px pitch -> roughly even green/cream blocks)
+      // One scarf end draping down from UNDER the cowl. It reads as soft folded fabric (not a
+      // boxy tab) because the right third is a folded-over UNDERSIDE strip (darker, with a
+      // crease line) and the cowl casts a shadow over the tail's top edge - same depth idea as
+      // the reference scarf, where the tail twists to show its darker back. Drops off-frame.
+      const tail = "M104 240C102 248 103 256 106 262L152 262C156 254 156 246 154 240C140 245 118 245 104 240Z";
+      const tailFold = "M136 241C136 249 138 256 142 262L152 262C156 254 156 246 154 240C148 242 142 242 136 241Z";
+      const foldCrease = "M136 241C136 249 138 256 142 262";
+      // curved stripe bands - each bows downward in the middle so the wrap reads as round
+      const sag = 6;
       let stripes = "";
-      for (let y = 192; y < 254; y += 16) {
-        stripes += `<rect x='60' y='${y}' width='132' height='7.6' fill='${cream}'/>`;
-        stripes += `<rect x='60' y='${y + 7.6}' width='132' height='1.7' fill='${creamLo}' opacity='.7'/>`;
+      for (let y = 193; y < 262; y += 15) {
+        stripes += `<path d='M54 ${y} Q128 ${y + sag} 202 ${y} L202 ${y + 7.4} Q128 ${y + sag + 7.4} 54 ${y + 7.4} Z' fill='${cream}'/>`;
+        stripes += `<path d='M54 ${y + 7.4} Q128 ${y + sag + 7.4} 202 ${y + 7.4} L202 ${y + 9} Q128 ${y + sag + 9} 54 ${y + 9} Z' fill='${creamLo}' opacity='.7'/>`;
       }
       // vertical knit ribs read as a chunky stitch under the stripes
       let ribs = "";
-      for (let x = 78; x <= 180; x += 7) ribs += `<path d='M${x} 197V250'/>`;
-      // chunky fringe hanging off the tail ends, alternating green/cream, running off the frame
+      for (let x = 78; x <= 180; x += 7) ribs += `<path d='M${x} 197V262'/>`;
+      // chunky fringe hanging off the tail end, alternating green/cream, running off the frame;
+      // the strands over the folded underside are darker so the fold still reads at the bottom
       let fringe = "";
-      for (let i = 0; i < 11; i++) {
-        const fx = 104 + i * 6.4;
-        fringe += `<path d='M${fx} 250v7' stroke='${i % 2 ? cream : green}' stroke-width='3' stroke-linecap='round'/>`;
+      for (let i = 0; i < 9; i++) {
+        const fx = 108 + i * 5.2;
+        const len = 7 + (i % 2 ? 1.6 : 0);
+        const col = fx > 134 ? greenLo : (i % 2 ? cream : green);
+        fringe += `<path d='M${fx} 261v${len}' stroke='${col}' stroke-width='3.2' stroke-linecap='round'/>`;
       }
       return `
-        <clipPath id='scarfclip'><path d='${body}'/><path d='${tailFront}'/><path d='${tailFlap}'/></clipPath>
+        <clipPath id='scarfclip'><path d='${body}'/><path d='${tail}'/></clipPath>
         <g clip-path='url(#scarfclip)'>
-          <rect x='58' y='188' width='128' height='72' fill='${green}'/>
+          <rect x='58' y='188' width='128' height='86' fill='${green}'/>
           ${stripes}
           <g stroke='${knit}' stroke-width='1.3'>${ribs}</g>
-          <path d='M80 205C90 197 166 197 176 205C150 214 106 214 80 205Z' fill='rgba(31,35,48,.15)'/>
-          <path d='M78 239C106 245 150 245 178 239C176 243 150 247 128 247C106 247 80 243 78 239Z' fill='${greenLo}' opacity='.45'/>
+          <path d='M80 205C90 197 166 197 176 205C150 211 106 211 80 205Z' fill='${greenHi}' opacity='.5'/>
+          <path d='M90 207C104 214 152 214 166 207C162 220 94 220 90 207Z' fill='rgba(31,35,48,.26)'/>
+          <path d='M78 205C72 214 72 230 78 239C86 236 90 230 90 222C90 216 88 210 86 206C83 205 80 204 78 205Z' fill='rgba(31,35,48,.20)'/>
+          <path d='M178 205C184 214 184 230 178 239C170 236 166 230 166 222C166 216 168 210 170 206C173 205 176 204 178 205Z' fill='rgba(31,35,48,.20)'/>
+          <path d='M78 239C106 245 150 245 178 239C176 243 150 247 128 247C106 247 80 243 78 239Z' fill='${greenLo}' opacity='.5'/>
+          <path d='${tailFold}' fill='rgba(31,35,48,.30)'/>
+          <path d='M104 240C120 246 140 246 154 240C153 247 152 250 150 252C138 256 118 256 108 252C106 250 105 247 104 240Z' fill='rgba(31,35,48,.24)'/>
         </g>
         ${fringe}
-        <path d='${tailFlap}' fill='none' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
-        <path d='${tailFront}' fill='none' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
-        <path d='M128 238v13' stroke='${ink}' stroke-width='1.6' stroke-linecap='round' opacity='.4'/>
+        <path d='${tail}' fill='none' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
+        <path d='${foldCrease}' fill='none' stroke='${ink}' stroke-width='1.6' stroke-linecap='round' opacity='.55'/>
         <path d='${body}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
       `;
     }
@@ -691,10 +766,33 @@
     sunHat: "sun hat"
   };
 
+  // Per-character design overrides folded in from the studio (exported corrections). Keyed by the
+  // base seed id (not the "gen-" portrait id). Drop an exported character's correction block here to
+  // make its studio look the permanent default.
+  const characterOverrides = {
+    aaron: {
+      hair: "coily", faceShape: "long", clothing: "turtleneck", accessory: "choker",
+      headScaleX: 0.96, headScaleY: 1.09, headY: -7, eyeGap: 45, earScale: 0.88, earY: 2,
+      jawShadowY: -4.5, cheekY: 2, cheekOpacity: 0, browY: 2, browScaleX: 0.92,
+      irisScale: 0.84, eyeOpen: 0.8, eyeScale: 0.9, noseScale: 0.96, noseY: 3,
+      mouthScale: 1.04, lips: "full", mouthY: 1, shoulderSlope: 0.76, build: 71,
+      accessoryY: 10, accessoryScale: 0.94, beardLength: 0.42,
+      hairLocks: [
+        { lock: "longSideLock", x: 56, y: 25, scale: 0.4, rot: -111, lines: false },
+        { lock: "spikyFringe", x: 41, y: 41, scale: 0.72, rot: -20, lines: true },
+        { lock: "sideSwoop", x: 67, y: 32, scale: 0.42, rot: -52, lines: true },
+        { lock: "curlyForelock", x: 65, y: 43, scale: 0.54, rot: 13, lines: true, line: "#160808" },
+        { lock: "longSideLock", x: 69, y: 46, scale: 0.56, rot: -14, lines: true },
+        { lock: "curtainBangs", x: 55, y: 42, scale: 0.52, rot: -7, lines: false }
+      ]
+    }
+  };
+
   function createCharacters(makeTags, fallbackCharacters = []) {
     const fallbackRoles = fallbackCharacters.map((character) => character.role);
     return seedSpecs.map((seed, index) => {
       const [id, name, pronouns, skin, hair, hairColor, clothingStyle, shirt, expression, accessory, role, mouthStyle] = seed;
+      const build = buildFor(id, index, pronouns, role);
       const traits = {
         faceShape: Object.keys(faceShapes)[index % Object.keys(faceShapes).length],
         skin,
@@ -718,8 +816,14 @@
         browShape: browShapeFor(id, index),
         teethStyle: teethStyleFor(id, index),
         lips: lipsFor(id, index, pronouns),
-        neckLength: neckLengthFor(id, index)
+        neckLength: neckLengthFor(id, index),
+        build,
+        shoulderSlope: slopeFor(build, pronouns)
       };
+      // Studio-tuned per-character overrides (folded in from exported corrections). Flat keys win over
+      // the seed/profile defaults; getProfile() picks up any profileOverrideKeys (eyeScale, jawLength…)
+      // and hairLocks/categorical traits are read straight off traits.
+      Object.assign(traits, characterOverrides[id] || {});
       const feature = describeVisibleTraits(traits);
       return {
         id: `gen-${id}`,
@@ -731,7 +835,10 @@
         image: composePortrait(index, traits),
         tags: makeTags(name, secretForExpression(expression), role || "local witness"),
         variant: "",
-        traits
+        traits,
+        // Seed is kept so the portrait can be re-rendered later with a changed expression
+        // (eg. the Hidden Agendas mystery) without the face's gradients/jitter shifting.
+        seed: index
       };
     });
   }
@@ -771,10 +878,12 @@
   }
 
   function composePortrait(seed, traits) {
-    const skin = skinTones[traits.skin];
+    // traits.skinHex lets callers force an explicit skin colour (eg. the Monocultural
+    // mystery paints every face the same tone); otherwise resolve the named skin tone.
+    const skin = traits.skinHex || skinTones[traits.skin] || skinTones.fair;
     const hair = hairColors[traits.hairColor];
     const expression = expressions[traits.expression];
-    const faceShape = faceShapes[traits.faceShape];
+    const faceShape = warpJaw(faceShapes[traits.faceShape], getProfile(traits).jawLength);
     const hairStyle = hairStyles[traits.hair] || hairStyles.messy;
     const outfit = clothing[traits.clothing];
     const accessorySvg = renderAccessory(traits, faceShape);
@@ -808,6 +917,8 @@
           <path d='${faceShape}' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
           ${renderFaceShading(seed, skin, faceShape)}
           ${renderFaceModeling(seed, skin, traits)}
+          ${renderChin(traits, skin)}
+          ${renderBeardBlobs(traits, seed)}
           ${useFacesHair ? "" : renderFrontHair(hairStyle, `url(#hair-${seed})`, traits) + renderHairHighlights(hairStyle, hair, traits, seed)}
           ${renderBrows(expression, traits)}
           ${renderEyes(expression, traits)}
@@ -818,11 +929,23 @@
           ${/* faces.js hair sits ON TOP of the face features (like the reference art) so swept hair
                overlaps the brow/cheek/temple instead of the brow & blush poking through it */ ""}
           ${useFacesHair ? facesHairSvg : ""}
+          ${renderHairLocks(traits, seed, hair)}
           ${accessorySvg.afterMouth}
         `)}
       </svg>
     `;
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  }
+
+  // Freely-placed decorative hair locks (the studio Lock Designer writes traits.hairLocks). Each is
+  // themed to the hair colour and drawn on top of the hair, in array order = z-order (last = front).
+  function renderHairLocks(traits, seed, hair) {
+    const locks = traits.hairLocks;
+    if (!Array.isArray(locks) || !locks.length) return "";
+    if (!(typeof window !== "undefined" && window.facesHair && window.facesHair.renderLock)) return "";
+    return locks
+      .map((inst, i) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink, seed: `${seed}-l${i}` }))
+      .join("");
   }
 
   // Scales/moves the whole head (skin, ears, hair, brows, eyes, nose, mouth, accessories) as one
@@ -852,13 +975,47 @@
   function renderClothing(outfit, traits, seed) {
     const c = traits.shirt;
     const lo = shadeColor(c, 0.84);
-    // Soft shoulder silhouette + a gentle chest-shadow arc near the neck for depth (replaces the
+    const sh = Number(traits.build) || 82;
+    // Per-character shoulders + a gentle chest-shadow arc near the neck for depth (replaces the
     // old hard accent stroke). Anchored at the bottom edge (y=256) so it stays full-bleed.
+    const arc = `M${128 - sh * 0.62} 250C${128 - sh * 0.42} 226 ${128 - sh * 0.18} 215 128 215C${128 + sh * 0.18} 215 ${128 + sh * 0.42} 226 ${128 + sh * 0.62} 250`;
+    // Arm/torso seam creases: a curve dropping from each armpit down to the bottom edge separates the
+    // upper arm from the chest, so the body reads as shoulders+arms rather than a limbless triangle.
+    const f = (n) => n.toFixed(1);
+    const seam = (s) => `M${f(128 + s * sh * 0.5)} 224 C ${f(128 + s * sh * 0.62)} 236 ${f(128 + s * sh * 0.66)} 246 ${f(128 + s * sh * 0.66)} 256`;
     const body = `
-      <path d='${outfit.body}' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
-      <path d='M58 250C68 224 95 213 128 213C161 213 188 224 198 250' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.45'/>
+      <path d='${shoulderPath(traits)}' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.45'/>
+      <path d='${seam(-1)}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
+      <path d='${seam(1)}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
     `;
     return `<g transform='translate(0 256) scale(1 1.13) translate(0 -256)'>${body}</g>`;
+  }
+
+  // Generates the shoulder/torso silhouette as smooth curves (no straight "arm" segments, which
+  // read as boxy/lego). `build` drives width; `slope` drives the droop - slim builds get sloped,
+  // contoured shoulders, bulky builds get broad, squarer (but still rounded) ones. Each side is two
+  // smoothly-joined cubics: neck -> rounded deltoid -> arm, so the shoulder is a curve, not a corner.
+  function shoulderPath(traits) {
+    const sh = Math.max(60, Math.min(104, Number(traits.build) || 82)); // shoulder half-width
+    const slope = traits.shoulderSlope != null
+      ? Math.max(0, Math.min(1, Number(traits.shoulderSlope)))
+      : Math.max(0.18, Math.min(0.9, 0.92 - (sh - 68) / 42));           // slim->sloped, bulky->squarer
+    const neckHalf = sh < 76 ? 22 : 24;
+    const neckY = 200;
+    const tipY = 211 + slope * 20;          // how far the shoulder drops
+    const botHalf = sh - 2;                 // torso slightly tucked from the shoulder
+    const r = 7 + slope * 4;                // shoulder rounding radius
+    const nl = 128 - neckHalf, nr = 128 + neckHalf;
+    const tl = 128 - sh, tr = 128 + sh;
+    const bl = 128 - botHalf, br = 128 + botHalf;
+    const dropY = neckY + 4 + slope * 7;
+    return `M${nl} ${neckY}`
+      + ` C ${nl - 7} ${dropY} ${(tl + r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${tl} ${tipY.toFixed(1)}`
+      + ` C ${(tl - r + 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${bl - 1} ${(tipY + 13).toFixed(1)} ${bl} 256`
+      + ` L ${br} 256`
+      + ` C ${br + 1} ${(tipY + 13).toFixed(1)} ${(tr + r - 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${tr} ${tipY.toFixed(1)}`
+      + ` C ${(tr - r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${nr + 7} ${dropY} ${nr} ${neckY} Z`;
   }
 
   // Neckline geometry shared by the skin column and the collar so they always meet on the same
@@ -1031,6 +1188,69 @@
     `;
   }
 
+  // Per-character, opt-in chin. chinShape: none|round|square|dimple|pointed. Tonal (crease above +
+  // a highlight + an underside form-shadow arc) so it reads as a half-sphere/jaw mass without a hard
+  // pasted-on outline. Movable (chinY) and resizable (chinWidth/chinScale).
+  function renderChin(traits, skin) {
+    const shape = traits.chinShape;
+    if (!shape || shape === "none") return "";
+    const cy = 198 + (Number(traits.chinY) || 0) + jawDrop(getProfile(traits).jawLength, 198);
+    const hw = 22 * (Number(traits.chinWidth) || 1);
+    const hh = 14 * (Number(traits.chinScale) || 1);
+    const sh = shadeColor(skin, 0.84);
+    const sh2 = shadeColor(skin, 0.9);
+    const hi = shadeColor(skin, 1.1);
+    const f = (n) => n.toFixed(1);
+    let bottom;
+    if (shape === "square") {
+      bottom = `M${f(128 - hw)} ${f(cy)}C${f(128 - hw)} ${f(cy + hh * 1.2)} ${f(128 - hw * 0.55)} ${f(cy + hh * 1.5)} ${f(128)} ${f(cy + hh * 1.5)}C${f(128 + hw * 0.55)} ${f(cy + hh * 1.5)} ${f(128 + hw)} ${f(cy + hh * 1.2)} ${f(128 + hw)} ${f(cy)}`;
+    } else if (shape === "pointed") {
+      bottom = `M${f(128 - hw)} ${f(cy)}C${f(128 - hw * 0.85)} ${f(cy + hh * 1.4)} ${f(128 - hw * 0.2)} ${f(cy + hh * 1.95)} ${f(128)} ${f(cy + hh * 1.95)}C${f(128 + hw * 0.2)} ${f(cy + hh * 1.95)} ${f(128 + hw * 0.85)} ${f(cy + hh * 1.4)} ${f(128 + hw)} ${f(cy)}`;
+    } else {
+      bottom = `M${f(128 - hw)} ${f(cy)}C${f(128 - hw)} ${f(cy + hh * 1.5)} ${f(128 + hw)} ${f(cy + hh * 1.5)} ${f(128 + hw)} ${f(cy)}`;
+    }
+    const crease = `M${f(128 - hw * 0.82)} ${f(cy - hh * 0.45)}Q128 ${f(cy - hh)} ${f(128 + hw * 0.82)} ${f(cy - hh * 0.45)}`;
+    const dimple = shape === "dimple"
+      ? `<path d='M128 ${f(cy - hh * 0.1)}l0 ${f(hh * 0.8)}' fill='none' stroke='${sh}' stroke-width='2.2' stroke-linecap='round' opacity='0.5'/>`
+      : "";
+    return `
+      <ellipse cx='128' cy='${f(cy + hh * 0.15)}' rx='${f(hw * 0.55)}' ry='${f(hh * 0.5)}' fill='${hi}' opacity='0.3'/>
+      <path d='${bottom}' fill='none' stroke='${sh}' stroke-width='3.6' stroke-linecap='round' opacity='0.5'/>
+      <path d='${crease}' fill='none' stroke='${sh2}' stroke-width='2.4' stroke-linecap='round' opacity='0.45'/>
+      ${dimple}
+    `;
+  }
+
+  // Per-character, opt-in "blob" beard. traits.beardBlobs = [{ dx, y, r }] (dx = distance from the
+  // x=128 centreline; each blob is auto-mirrored to both sides, dx~0 = a single centre blob). The
+  // blobs carry NO individual outlines: an ink-filled DILATED copy of every blob is drawn first, then
+  // the beard-colour fills on top cover all the interior ink - so the ink shows only as a single rim
+  // around the merged silhouette (interior seams vanish). A clipped lowlight adds a little depth.
+  function renderBeardBlobs(traits, seed) {
+    const blobs = traits.beardBlobs;
+    if (!Array.isArray(blobs) || !blobs.length) return "";
+    const hairHex = hairColors[traits.hairColor] || "#3a2418";
+    const beard = shadeColor(hairHex, 0.8);
+    const lo = shadeColor(hairHex, 0.62);
+    const ow = 3.4; // outline thickness (the dilation amount)
+    const circles = [];
+    blobs.forEach((b) => {
+      const dx = Math.abs(Number(b.dx) || 0);
+      const y = Number(b.y) || 196;
+      const r = Math.max(4, Number(b.r) || 16);
+      if (dx < 2) circles.push([128, y, r]);
+      else { circles.push([128 - dx, y, r]); circles.push([128 + dx, y, r]); }
+    });
+    const c = (cx, cy, r, fill) => `<circle cx='${cx.toFixed(1)}' cy='${cy.toFixed(1)}' r='${r.toFixed(1)}' fill='${fill}'/>`;
+    const outline = circles.map(([x, y, r]) => c(x, y, r + ow, ink)).join("");
+    const fill = circles.map(([x, y, r]) => c(x, y, r, beard)).join("");
+    // lowlight: a darker fill on the lower portion of each blob, clipped to the union so it stays inside
+    const clipId = `beardblob-${seed}`;
+    const clip = circles.map(([x, y, r]) => `<circle cx='${x.toFixed(1)}' cy='${y.toFixed(1)}' r='${r.toFixed(1)}'/>`).join("");
+    const low = circles.map(([x, y, r]) => c(x, y + r * 0.55, r * 0.7, lo)).join("");
+    return `${outline}${fill}<defs><clipPath id='${clipId}'>${clip}</clipPath></defs><g clip-path='url(#${clipId})' opacity='0.5'>${low}</g>`;
+  }
+
   function renderFaceModeling(seed, skin, traits) {
     const profile = getProfile(traits);
     const cheekY = 150 + (profile.cheekY || 0);
@@ -1053,7 +1273,7 @@
       ${cheek}
       ${naso}
       <path d='M84 ${134 + (profile.eyeSocketY || 0)}c6-4 16-6 27-3M145 ${131 + (profile.eyeSocketY || 0)}c12-3 22-1 28 4' fill='none' stroke='rgba(255,255,255,.09)' stroke-width='2' stroke-linecap='round'/>
-      <path d='M104 ${201 + (profile.jawShadowY || 0)}c10 6 38 6 48 0' fill='none' stroke='rgba(24,21,18,.05)' stroke-width='3' stroke-linecap='round'/>
+      <path d='M104 ${201 + (profile.jawShadowY || 0) + jawDrop(profile.jawLength, 201)}c10 6 38 6 48 0' fill='none' stroke='rgba(24,21,18,.05)' stroke-width='3' stroke-linecap='round'/>
     `;
   }
 
@@ -1377,7 +1597,9 @@
   }
 
   function renderEye(cx, shape, eyeColor, skin, profile) {
-    const y = shape.y;
+    // eyeY shifts the whole eye up/down. (Previously this offset was only baked into eyeLayout's y,
+    // which renderEye ignored - so the Eye Height control did nothing.)
+    const y = shape.y + (profile.eyeY || 0);
     const w = 14.2 * (profile.eyeScale || 1);
     const open = profile.eyeOpen || 1;
     const up = shape.up * open;
@@ -1431,7 +1653,7 @@
 
   function renderNose(seed, traits) {
     const profile = getProfile(traits);
-    const y = profile.noseY || 0;
+    const y = (profile.noseY || 0) + jawDrop(profile.jawLength, 155);
     const scale = profile.noseScale || 1;
     const cx = 128;
     const f = (n) => n.toFixed(1);
@@ -1472,7 +1694,7 @@
   }
 
   function transformMouth(svg, traits, anchorY) {
-    const y = Number(traits.mouthY) || 0;
+    const y = (Number(traits.mouthY) || 0) + jawDrop(getProfile(traits).jawLength, anchorY);
     const scale = Number(traits.mouthScale) || 1;
     if (!y && scale === 1) return svg;
     return `<g class='fixed-stroke' transform='translate(0 ${y}) translate(128 ${anchorY}) scale(${scale}) translate(-128 -${anchorY})'>${svg}</g>`;
@@ -1552,7 +1774,10 @@
   function renderLips(expression, traits) {
     const style = traits.lips || "line";
     const mw = expression.mouthWidth || 3.2;
-    if (style === "line" || expression.eyes !== "calm") {
+    // Lips are independent of emotion: a soft/full lip shows on any closed-mouth expression (angry,
+    // sad, neutral) - the mood is carried by the brows/eyes, not by collapsing the mouth to a line.
+    // Only "line" (or an expression with no closed mouth path) falls back to the stroked line.
+    if (style === "line" || !expression.mouth) {
       return `<path d='${expression.mouth}' fill='none' stroke='${ink}' stroke-width='${mw}' stroke-linecap='round'/>`;
     }
     const skin = skinTones[traits.skin] || "#c89070";
@@ -1642,7 +1867,7 @@
 
   function transformBeardBase(svg, traits) {
     const x = Number(traits.beardX) || 0;
-    const y = Number(traits.beardY) || 0;
+    const y = (Number(traits.beardY) || 0) + jawDrop(getProfile(traits).jawLength, 196);
     const scale = Number(traits.beardScale) || 1;
     if (!x && !y && scale === 1) return svg;
     return `<g class='fixed-stroke' transform='translate(${x} ${y}) translate(128 184) scale(${scale}) translate(-128 -184)'>${svg}</g>`;
@@ -1650,7 +1875,7 @@
 
   function transformMoustache(svg, traits) {
     const x = Number(traits.moustacheX) || 0;
-    const y = Number(traits.moustacheY) || 0;
+    const y = (Number(traits.moustacheY) || 0) + jawDrop(getProfile(traits).jawLength, 160);
     const scale = Number(traits.moustacheScale) || 1;
     if (!x && !y && scale === 1) return svg;
     return `<g class='fixed-stroke' transform='translate(${x} ${y}) translate(128 160) scale(${scale}) translate(-128 -160)'>${svg}</g>`;
@@ -1696,7 +1921,7 @@
   function beardProfileFor(id, accessory) {
     if (!["beard", "moustache"].includes(accessory)) return "default";
     const custom = {
-      diego: "boxedFull",
+      diego: "roundedFull",
       gianni: "trimShort",
       bruno: "boxedFull",
       javier: "pencil"
@@ -1718,13 +1943,14 @@
       cheekY: 0,
       cheekOpacity: 0.09,
       eyeSocketY: 0,
-      jawShadowY: 0
+      jawShadowY: 0,
+      jawLength: 0
     };
   }
 
   const profileOverrideKeys = [
     "eyeScale", "eyeOpen", "irisScale", "eyeY", "browY", "browScaleX",
-    "noseY", "noseScale", "cheekY", "cheekOpacity", "eyeSocketY", "jawShadowY"
+    "noseY", "noseScale", "cheekY", "cheekOpacity", "eyeSocketY", "jawShadowY", "jawLength"
   ];
 
   // Lets flat trait corrections (eg from the studio editor) override the per-character
@@ -1839,6 +2065,28 @@
     return [0, 2, 4, 1, 3, 0][index % 6];
   }
 
+  // Shoulder half-width: women slimmer than men, deterministic per-character variance, plus a
+  // nudge from the role so physical jobs read bulky and sedentary ones slighter - the cast shows
+  // a real range of builds instead of one uniform broad frame.
+  function buildFor(id, index, pronouns, role) {
+    const base = pronouns === "she" ? 72 : pronouns === "they" ? 80 : 86;
+    const jitter = [0, 6, -4, 3, -6, 8, -2, 5, -7, 2, -3, 7][index % 12];
+    let b = base + jitter;
+    const r = (role || "").toLowerCase();
+    if (/trainer|security|guard|bouncer|firefighter|athlete|construction|mover|wrestler|farmer|chef/.test(r)) b += 9;
+    else if (/dancer|yoga|librarian|student|barista|writer|poet|accountant/.test(r)) b -= 4;
+    return Math.max(62, Math.min(100, b));
+  }
+
+  // Shoulder droop: slim builds get sloped/contoured shoulders, bulky builds squarer (but still
+  // rounded) ones; women a touch more sloped. Mirrors the fallback formula in shoulderPath so the
+  // stored value matches the rendered shape - it just lets the studio show/edit a real default.
+  function slopeFor(build, pronouns) {
+    let s = 0.92 - (build - 68) / 42;
+    if (pronouns === "she") s += 0.06;
+    return Math.round(Math.max(0.18, Math.min(0.9, s)) * 100) / 100;
+  }
+
   function secretForExpression(expression) {
     const secrets = {
       neutral: "keeps a careful face",
@@ -1884,8 +2132,10 @@
       browShapes: Object.keys(browShapes),
       teethStyles: ["even", "perfect", "gappy", "bucky", "spaced"],
       lipStyles: ["line", "soft", "full"],
+      chinShapes: ["none", "round", "square", "dimple", "pointed"],
       skinTones: Object.keys(skinTones),
-      hairColors: Object.keys(hairColors)
+      hairColors: Object.keys(hairColors),
+      hairColorHex: hairColors
     }
   };
 })();

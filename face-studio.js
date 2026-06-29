@@ -50,9 +50,17 @@ const editorFields = [
   { group: "Teeth", key: "teethY", label: "Teeth Y", min: -14, max: 14, step: 1, fallback: 0 },
   { group: "Teeth", key: "teethScale", label: "Teeth Size", min: 0.62, max: 1.38, step: 0.02, fallback: 1 },
   // Jaw
+  { group: "Jaw", key: "jawLength", label: "Jaw Length", min: -0.25, max: 0.4, step: 0.01, fallback: 0 },
   { group: "Jaw", key: "jawShadowY", label: "Jaw Shadow", min: -6, max: 6, step: 0.5, fallback: 0 },
+  // Chin (per-character, opt-in)
+  { group: "Chin", key: "chinShape", label: "Chin Shape", type: "select", options: () => selectOptions(traitBook.chinShapes), fallback: "none" },
+  { group: "Chin", key: "chinY", label: "Chin Height", min: -16, max: 18, step: 1, fallback: 0 },
+  { group: "Chin", key: "chinWidth", label: "Chin Width", min: 0.6, max: 1.7, step: 0.02, fallback: 1 },
+  { group: "Chin", key: "chinScale", label: "Chin Size", min: 0.5, max: 2, step: 0.02, fallback: 1 },
   // Clothing
   { group: "Clothing", key: "clothing", label: "Outfit", type: "select", options: () => selectOptions(traitBook.clothing), fallback: "tee" },
+  { group: "Clothing", key: "build", label: "Build (shoulder width)", min: 60, max: 100, step: 1, fallback: 82 },
+  { group: "Clothing", key: "shoulderSlope", label: "Shoulder Slope", min: 0, max: 1, step: 0.02, fallback: 0.5 },
   // Accessory
   { group: "Accessory", key: "accessory", label: "Accessory", type: "select", options: () => selectOptions(accessoryChoices), fallback: "none" },
   { group: "Accessory", key: "accessoryX", label: "Accessory X", min: -24, max: 24, step: 1, fallback: 0 },
@@ -112,6 +120,8 @@ const els = {
   selectedMeta: document.querySelector("#selectedMeta"),
   variantStrip: document.querySelector("#variantStrip"),
   portraitHotspots: document.querySelector("#portraitHotspots"),
+  lockOverlay: document.querySelector("#lockOverlay"),
+  hotspotHint: document.querySelector("#hotspotHint"),
   editorControls: document.querySelector("#editorControls"),
   correctionExport: document.querySelector("#correctionExport"),
   resetCorrectionButton: document.querySelector("#resetCorrectionButton")
@@ -152,6 +162,7 @@ function init() {
   els.resetCorrectionButton.addEventListener("click", clearSelectedCorrection);
 
   renderHotspots();
+  wireLockStageOnce();
   render();
 }
 
@@ -237,6 +248,7 @@ function renderSelected() {
   const displayTraits = traitsFor(character, expression);
   const editCount = Object.keys(correction).length;
   els.selectedPortrait.innerHTML = `<img src="${portraitFor(character, index, expression)}" alt="${escapeHtml(character.name)}">`;
+  renderLockOverlay(character);
   els.selectedMeta.innerHTML = `
     <div>
       <p class="meta-label">Selected</p>
@@ -389,11 +401,16 @@ function renderEditor(character) {
       </div>
     `;
   });
-  els.editorControls.innerHTML = nav + `<div class="editor-active-group">${rows.join("")}</div>`;
+  const designer = state.activeGroup === "Hair" ? lockDesignerMarkup(character)
+    : state.activeGroup === "Beard" ? beardDesignerMarkup(character) : "";
+  els.editorControls.innerHTML = nav + `<div class="editor-active-group">${rows.join("")}${designer}</div>`;
+  if (state.activeGroup === "Hair") wireLockDesigner(character);
+  if (state.activeGroup === "Beard") wireBeardDesigner(character);
   els.editorControls.querySelectorAll(".editor-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       state.activeGroup = tab.dataset.group;
       renderEditor(character);
+      renderLockOverlay(character);
     });
   });
   els.editorControls.querySelectorAll("[data-kind='range']").forEach((input) => {
@@ -469,7 +486,7 @@ function jumpToGroup(group) {
   if (!editorGroups.includes(group)) return;
   state.activeGroup = group;
   const character = characters.find((item) => item.id === state.selectedId) || characters[0];
-  if (character) renderEditor(character);
+  if (character) { renderEditor(character); renderLockOverlay(character); }
   els.editorControls.scrollIntoView({ behavior: "smooth", block: "nearest" });
   els.editorControls.querySelectorAll(".editor-control").forEach((control) => flash(control));
 }
@@ -529,4 +546,457 @@ function numbersEqual(a, b) {
 
 function formatNumber(value) {
   return Number.isInteger(Number(value)) ? String(value) : Number(value).toFixed(2);
+}
+
+/* ===================== Hair Lock Designer ===================== *
+ * Locks are stored per character as corrections[id].hairLocks - an ordered array (array order =
+ * z-order, last = front). Each entry: { lock, x, y, scale, rot, lines, fill?, dark?, shine?, line? }
+ * with x/y as 0-100 (% of the 256 portrait box) for the lock's centre. The generator reads this
+ * trait and composites the locks on top of the hair, so edits persist + show in the export JSON. */
+const LOCK_CATALOG = (window.facesHair && window.facesHair.lockCatalog) || [];
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function currentCharacter() { return characters.find((c) => c.id === state.selectedId) || characters[0]; }
+function lockLabel(key) { return (LOCK_CATALOG.find((c) => c.key === key) || {}).label || titleCase(key); }
+
+function shadeHex(hex, factor) {
+  const n = parseInt(String(hex).replace("#", ""), 16);
+  if (Number.isNaN(n)) return "#6b4a2f";
+  const ch = (shift) => Math.max(0, Math.min(255, Math.round(((n >> shift) & 255) * factor)));
+  const hp = (v) => v.toString(16).padStart(2, "0");
+  return `#${hp(ch(16))}${hp(ch(8))}${hp(ch(0))}`;
+}
+
+function hairHexFor(character) {
+  const name = correctionFor(character.id).hairColor || character.traits.hairColor;
+  return (traitBook.hairColorHex && traitBook.hairColorHex[name]) || "#6b4a2f";
+}
+
+// Read-only effective locks: a hairLocks correction wins, otherwise fall back to the character's
+// baked-in base locks (so a baked character like Aaron shows its locks in the designer).
+function getLocks(id) {
+  const corr = correctionFor(id).hairLocks;
+  if (Array.isArray(corr)) return corr;
+  const ch = characters.find((c) => c.id === id);
+  const base = ch && ch.traits && ch.traits.hairLocks;
+  return Array.isArray(base) ? base : [];
+}
+
+// For in-place mutation: ensure there's a hairLocks correction (deep-copied from the base on first
+// touch) so editing a baked character never mutates the shared base array.
+function editableLocks(id) {
+  if (!Array.isArray(correctionFor(id).hairLocks)) {
+    setLocks(id, getLocks(id).map((o) => ({ ...o })));
+  }
+  return correctionFor(id).hairLocks;
+}
+
+function setLocks(id, arr) {
+  const next = { ...correctionFor(id) };
+  if (arr && arr.length) next.hairLocks = arr;
+  else delete next.hairLocks;
+  setCorrection(id, next);
+}
+
+function lockThumb(key) {
+  if (!window.facesHair || !window.facesHair.renderLock) return "";
+  const g = window.facesHair.renderLock({ lock: key, x: 50, y: 50, scale: 1.02, rot: 0, lines: true }, { hair: "#6b4a2f", ink: "#1f2330" });
+  return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+
+function lockDesignerMarkup(character) {
+  const locks = getLocks(character.id);
+  const hairHex = hairHexFor(character);
+  const palette = LOCK_CATALOG
+    .map(({ key, label }) => `
+      <button type="button" class="lock-chip" draggable="true" data-lock="${escapeHtml(key)}" title="Add ${escapeHtml(label)}">
+        <span class="lock-chip-art">${lockThumb(key)}</span>
+        <span class="lock-chip-label">${escapeHtml(label)}</span>
+      </button>`)
+    .join("");
+  const stack = locks.length
+    ? locks.map((inst, i) => lockRowMarkup(inst, i, locks.length, hairHex)).join("")
+    : `<p class="lock-empty">No locks yet — click a style above, or drag one onto the hair.</p>`;
+  return `
+    <div class="lock-designer">
+      <div class="lock-designer-head">
+        <p class="meta-label">Lock Designer</p>
+        ${locks.length ? `<button type="button" class="mini-button" data-lock-clear>Clear locks</button>` : ""}
+      </div>
+      <div class="lock-palette">${palette}</div>
+      <div class="lock-stack">${stack}</div>
+    </div>`;
+}
+
+const LOCK_INK = "#1f2330";
+function lockRowMarkup(inst, i, n, hairHex) {
+  // defHex = the auto colour shown when this part isn't overridden. 'outline' is special: its auto is
+  // the global ink, and it has an on/off state (outline === 'none').
+  const colorField = (part, defHex, label) => {
+    const off = part === "outline" && inst.outline === "none";
+    const set = inst[part] != null && inst[part] !== "none";
+    const value = set ? inst[part] : defHex;
+    return `
+      <label class="lock-color ${set ? "is-set" : ""} ${off ? "is-off" : ""}">
+        <input type="color" value="${escapeHtml(value)}" data-lock-color="${part}">
+        <span>${label}</span>
+        ${set ? `<button type="button" class="lock-color-reset" data-lock-reset="${part}" title="Auto colour">×</button>` : ""}
+      </label>`;
+  };
+  const swap = `<select class="lock-swap" data-lock-swap>${LOCK_CATALOG.map((c) => `<option value="${escapeHtml(c.key)}" ${c.key === inst.lock ? "selected" : ""}>${escapeHtml(c.label)}</option>`).join("")}</select>`;
+  return `
+    <div class="lock-row" data-index="${i}" data-lock-droprow>
+      <div class="lock-row-head">
+        <span class="lock-grip" draggable="true" title="Drag to reorder">⠿</span>
+        <span class="lock-row-num">${i + 1}</span>
+        ${swap}
+        <button type="button" class="mini-button lock-del" data-lock-act="remove" title="Delete">✕</button>
+      </div>
+      <div class="lock-row-controls">
+        <label class="lock-num">Size <input type="range" min="0.3" max="2" step="0.02" value="${inst.scale ?? 1}" data-lock-num="scale"><span class="editor-value">${formatNumber(inst.scale ?? 1)}</span></label>
+        <label class="lock-num">Rotate <input type="range" min="-180" max="180" step="1" value="${inst.rot ?? 0}" data-lock-num="rot"><span class="editor-value">${formatNumber(inst.rot ?? 0)}</span></label>
+      </div>
+      <div class="lock-row-toggles">
+        <label class="lock-toggle"><input type="checkbox" data-lock-lines ${inst.lines === false ? "" : "checked"}> Lines</label>
+        <label class="lock-toggle"><input type="checkbox" data-lock-mirror ${inst.mirror ? "checked" : ""}> Mirror</label>
+        <label class="lock-toggle"><input type="checkbox" data-lock-outline ${inst.outline === "none" ? "" : "checked"}> Outline</label>
+      </div>
+      <div class="lock-row-colors">
+        ${colorField("fill", shadeHex(hairHex, 1), "Hair")}
+        ${colorField("dark", shadeHex(hairHex, 0.5), "Shadow")}
+        ${colorField("shine", shadeHex(hairHex, 1.3), "Shine")}
+        ${colorField("line", shadeHex(hairHex, 0.62), "Lines")}
+        ${colorField("outline", LOCK_INK, "Outline")}
+      </div>
+    </div>`;
+}
+
+function wireLockDesigner(character) {
+  const root = els.editorControls.querySelector(".lock-designer");
+  if (!root) return;
+  root.querySelectorAll(".lock-chip").forEach((chip) => {
+    chip.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/lock", chip.dataset.lock));
+    chip.addEventListener("click", () => addLock(character, chip.dataset.lock));
+  });
+  const clear = root.querySelector("[data-lock-clear]");
+  if (clear) clear.addEventListener("click", () => { setLocks(character.id, []); render(); });
+  root.querySelectorAll(".lock-row").forEach((row) => {
+    const idx = Number(row.dataset.index);
+    row.querySelectorAll("[data-lock-act]").forEach((btn) => {
+      btn.addEventListener("click", () => lockAction(character, idx, btn.dataset.lockAct));
+    });
+    row.querySelectorAll("[data-lock-num]").forEach((inp) => {
+      inp.addEventListener("input", () => updateLockField(character, idx, inp.dataset.lockNum, Number(inp.value), inp));
+    });
+    const lines = row.querySelector("[data-lock-lines]");
+    if (lines) lines.addEventListener("change", () => { setLockProp(character, idx, "lines", lines.checked); render(); });
+    const mirror = row.querySelector("[data-lock-mirror]");
+    if (mirror) mirror.addEventListener("change", () => { setLockProp(character, idx, "mirror", mirror.checked || undefined); render(); });
+    const outline = row.querySelector("[data-lock-outline]");
+    if (outline) outline.addEventListener("change", () => { setLockProp(character, idx, "outline", outline.checked ? undefined : "none"); render(); });
+    const swap = row.querySelector("[data-lock-swap]");
+    if (swap) swap.addEventListener("change", () => { setLockProp(character, idx, "lock", swap.value); render(); });
+    row.querySelectorAll("[data-lock-color]").forEach((inp) => {
+      inp.addEventListener("input", () => setLockColor(character, idx, inp.dataset.lockColor, inp.value, false));
+    });
+    row.querySelectorAll("[data-lock-reset]").forEach((btn) => {
+      btn.addEventListener("click", () => setLockColor(character, idx, btn.dataset.lockReset, null, true));
+    });
+    // Drag-to-reorder: the grip starts a drag, any row is a drop target.
+    const grip = row.querySelector(".lock-grip");
+    if (grip) {
+      grip.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/lockidx", String(idx)); e.dataTransfer.effectAllowed = "move"; row.classList.add("is-dragging"); });
+      grip.addEventListener("dragend", () => row.classList.remove("is-dragging"));
+    }
+    row.addEventListener("dragover", (e) => {
+      if (![...e.dataTransfer.types].includes("text/lockidx")) return;
+      e.preventDefault();
+      row.classList.add("is-drop");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("is-drop"));
+    row.addEventListener("drop", (e) => {
+      const from = e.dataTransfer.getData("text/lockidx");
+      if (from === "") return;
+      e.preventDefault();
+      row.classList.remove("is-drop");
+      reorderLock(character, Number(from), idx);
+    });
+  });
+}
+
+function reorderLock(character, from, to) {
+  if (from === to || Number.isNaN(from)) return;
+  const locks = getLocks(character.id).slice();
+  if (!locks[from]) return;
+  const [item] = locks.splice(from, 1);
+  locks.splice(to, 0, item);
+  setLocks(character.id, locks);
+  render();
+}
+
+function addLock(character, key, x, y) {
+  const locks = getLocks(character.id).slice();
+  locks.push({ lock: key, x: x == null ? 50 : Math.round(x), y: y == null ? 30 : Math.round(y), scale: 1, rot: 0, lines: true });
+  setLocks(character.id, locks);
+  render();
+}
+
+function lockAction(character, idx, act) {
+  const locks = getLocks(character.id).slice();
+  if (!locks[idx]) return;
+  if (act === "remove") locks.splice(idx, 1);
+  else if (act === "up" && idx < locks.length - 1) [locks[idx], locks[idx + 1]] = [locks[idx + 1], locks[idx]];
+  else if (act === "down" && idx > 0) [locks[idx], locks[idx - 1]] = [locks[idx - 1], locks[idx]];
+  else return;
+  setLocks(character.id, locks);
+  render();
+}
+
+function setLockProp(character, idx, prop, value) {
+  const locks = editableLocks(character.id);
+  if (!locks[idx]) return;
+  if (value === undefined) delete locks[idx][prop];
+  else locks[idx][prop] = value;
+  saveCorrections();
+}
+
+function updateLockField(character, idx, field, value, inp) {
+  const locks = editableLocks(character.id);
+  if (!locks[idx]) return;
+  locks[idx][field] = value;
+  const span = inp.parentElement.querySelector(".editor-value");
+  if (span) span.textContent = formatNumber(value);
+  saveCorrections();
+  refreshPortrait(character);
+}
+
+function setLockColor(character, idx, part, value, isReset) {
+  const locks = editableLocks(character.id);
+  if (!locks[idx]) return;
+  if (value == null) delete locks[idx][part];
+  else locks[idx][part] = value;
+  saveCorrections();
+  if (isReset) render();
+  else refreshPortrait(character);
+}
+
+// Lightweight: re-render only the selected portrait + lock markers + export (no grid/editor rebuild),
+// so dragging a marker or a colour slider stays smooth.
+function refreshPortrait(character) {
+  const index = characters.indexOf(character);
+  const expression = selectedExpressionFor(character);
+  const src = portraitFor(character, index, expression);
+  const img = els.selectedPortrait.querySelector("img");
+  if (img) img.src = src;
+  else els.selectedPortrait.innerHTML = `<img src="${src}" alt="${escapeHtml(character.name)}">`;
+  positionLockMarkers(character);
+  renderCorrectionExport();
+}
+
+function renderLockOverlay(character) {
+  if (!els.lockOverlay) return;
+  const hairMode = state.activeGroup === "Hair";
+  const beardMode = state.activeGroup === "Beard";
+  const overlayMode = hairMode || beardMode;
+  els.lockOverlay.hidden = !overlayMode;
+  if (els.portraitHotspots) els.portraitHotspots.style.display = overlayMode ? "none" : "";
+  if (els.hotspotHint) {
+    els.hotspotHint.textContent = hairMode
+      ? "Drag a lock from the palette onto the hair · drag a marker to reposition"
+      : beardMode
+        ? "Drag the beard blobs on the face · they mirror automatically"
+        : "Click a region on the face to jump to its controls";
+  }
+  if (!overlayMode) { els.lockOverlay.innerHTML = ""; return; }
+  if (beardMode) {
+    const blobs = getBeardBlobs(character.id);
+    els.lockOverlay.innerHTML = blobs
+      .map((b, i) => `<button type="button" class="lock-marker beard-marker" data-bindex="${i}" style="left:${((128 + Math.abs(Number(b.dx) || 0)) / 256 * 100).toFixed(1)}%; top:${((Number(b.y) || 196) / 256 * 100).toFixed(1)}%;" title="Beard blob — drag to move (mirrors)">${i + 1}</button>`)
+      .join("");
+    els.lockOverlay.querySelectorAll(".beard-marker").forEach((marker) => wireBeardMarker(marker, character));
+    return;
+  }
+  const locks = getLocks(character.id);
+  els.lockOverlay.innerHTML = locks
+    .map((inst, i) => `<button type="button" class="lock-marker" data-index="${i}" style="left:${inst.x}%; top:${inst.y == null ? 32 : inst.y}%;" title="${escapeHtml(lockLabel(inst.lock))} — drag to move">${i + 1}</button>`)
+    .join("");
+  els.lockOverlay.querySelectorAll(".lock-marker").forEach((marker) => wireLockMarker(marker, character));
+}
+
+function positionLockMarkers(character) {
+  const locks = getLocks(character.id);
+  els.lockOverlay.querySelectorAll(".lock-marker").forEach((marker) => {
+    const inst = locks[Number(marker.dataset.index)];
+    if (!inst) return;
+    marker.style.left = `${inst.x}%`;
+    marker.style.top = `${inst.y == null ? 32 : inst.y}%`;
+  });
+}
+
+function wireLockMarker(marker, character) {
+  marker.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    const idx = Number(marker.dataset.index);
+    const inst = editableLocks(character.id)[idx];
+    if (!inst) return;
+    const rect = els.lockOverlay.getBoundingClientRect();
+    marker.setPointerCapture(e.pointerId);
+    marker.classList.add("is-dragging");
+    const move = (ev) => {
+      inst.x = Math.round(clamp(((ev.clientX - rect.left) / rect.width) * 100, 0, 100));
+      inst.y = Math.round(clamp(((ev.clientY - rect.top) / rect.height) * 100, 0, 100));
+      marker.style.left = `${inst.x}%`;
+      marker.style.top = `${inst.y}%`;
+      refreshPortrait(character);
+    };
+    const up = () => {
+      marker.releasePointerCapture(e.pointerId);
+      marker.classList.remove("is-dragging");
+      marker.removeEventListener("pointermove", move);
+      marker.removeEventListener("pointerup", up);
+      saveCorrections();
+      render();
+    };
+    marker.addEventListener("pointermove", move);
+    marker.addEventListener("pointerup", up);
+  });
+}
+
+// Drop target wiring is attached once (the overlay element persists across renders).
+function wireLockStageOnce() {
+  if (!els.lockOverlay) return;
+  els.lockOverlay.addEventListener("dragover", (e) => { e.preventDefault(); els.lockOverlay.classList.add("is-drop"); });
+  els.lockOverlay.addEventListener("dragleave", () => els.lockOverlay.classList.remove("is-drop"));
+  els.lockOverlay.addEventListener("drop", (e) => {
+    e.preventDefault();
+    els.lockOverlay.classList.remove("is-drop");
+    const key = e.dataTransfer.getData("text/lock");
+    if (!key) return;
+    const rect = els.lockOverlay.getBoundingClientRect();
+    const x = clamp(((e.clientX - rect.left) / rect.width) * 100, 0, 100);
+    const y = clamp(((e.clientY - rect.top) / rect.height) * 100, 0, 100);
+    addLock(currentCharacter(), key, x, y);
+  });
+}
+
+/* ===================== Beard Blob Designer ===================== *
+ * Per-character mirrored "blob" beard. Stored as corrections[id].beardBlobs = [{ dx, y, r }] in head
+ * pixels (dx = distance from the x=128 centreline, auto-mirrored). The generator draws the union
+ * outline (renderBeardBlobs). Markers show on the right side; dragging sets dx/y, the twin mirrors. */
+function getBeardBlobs(id) {
+  const corr = correctionFor(id).beardBlobs;
+  if (Array.isArray(corr)) return corr;
+  const ch = characters.find((c) => c.id === id);
+  const base = ch && ch.traits && ch.traits.beardBlobs;
+  return Array.isArray(base) ? base : [];
+}
+function editableBeardBlobs(id) {
+  if (!Array.isArray(correctionFor(id).beardBlobs)) {
+    setBeardBlobs(id, getBeardBlobs(id).map((b) => ({ ...b })));
+  }
+  return correctionFor(id).beardBlobs;
+}
+function setBeardBlobs(id, arr) {
+  const next = { ...correctionFor(id) };
+  if (arr && arr.length) next.beardBlobs = arr;
+  else delete next.beardBlobs;
+  setCorrection(id, next);
+}
+
+function beardDesignerMarkup(character) {
+  const blobs = getBeardBlobs(character.id);
+  const rows = blobs.length
+    ? blobs.map((b, i) => `
+        <div class="lock-row" data-bindex="${i}">
+          <div class="lock-row-head">
+            <span class="lock-row-num">${i + 1}</span>
+            <label class="lock-num">Size <input type="range" min="6" max="48" step="1" value="${b.r ?? 16}" data-beard-r><span class="editor-value">${formatNumber(b.r ?? 16)}</span></label>
+            <label class="lock-num">Spread <input type="range" min="0" max="90" step="1" value="${Math.abs(b.dx ?? 30)}" data-beard-dx><span class="editor-value">${formatNumber(Math.abs(b.dx ?? 30))}</span></label>
+            <button type="button" class="mini-button lock-del" data-beard-del title="Delete">✕</button>
+          </div>
+        </div>`).join("")
+    : `<p class="lock-empty">No beard blobs — click "+ Blob", then drag them on the face (they mirror automatically).</p>`;
+  return `
+    <div class="lock-designer">
+      <div class="lock-designer-head">
+        <p class="meta-label">Beard Blobs</p>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="mini-button" data-beard-add>+ Blob</button>
+          ${blobs.length ? `<button type="button" class="mini-button" data-beard-clear>Clear</button>` : ""}
+        </div>
+      </div>
+      <div class="lock-stack">${rows}</div>
+    </div>`;
+}
+
+function wireBeardDesigner(character) {
+  const root = els.editorControls.querySelector(".lock-designer");
+  if (!root) return;
+  const add = root.querySelector("[data-beard-add]");
+  if (add) add.addEventListener("click", () => addBeardBlob(character));
+  const clear = root.querySelector("[data-beard-clear]");
+  if (clear) clear.addEventListener("click", () => { setBeardBlobs(character.id, []); render(); });
+  root.querySelectorAll(".lock-row").forEach((row) => {
+    const idx = Number(row.dataset.bindex);
+    const r = row.querySelector("[data-beard-r]");
+    if (r) r.addEventListener("input", () => updateBeardField(character, idx, "r", Number(r.value), r));
+    const dx = row.querySelector("[data-beard-dx]");
+    if (dx) dx.addEventListener("input", () => updateBeardField(character, idx, "dx", Number(dx.value), dx));
+    const del = row.querySelector("[data-beard-del]");
+    if (del) del.addEventListener("click", () => removeBeardBlob(character, idx));
+  });
+}
+
+function addBeardBlob(character) {
+  const blobs = getBeardBlobs(character.id).slice();
+  blobs.push({ dx: 30, y: 198, r: 16 });
+  setBeardBlobs(character.id, blobs);
+  render();
+}
+function removeBeardBlob(character, idx) {
+  const blobs = getBeardBlobs(character.id).slice();
+  if (!blobs[idx]) return;
+  blobs.splice(idx, 1);
+  setBeardBlobs(character.id, blobs);
+  render();
+}
+function updateBeardField(character, idx, field, value, inp) {
+  const blobs = editableBeardBlobs(character.id);
+  if (!blobs[idx]) return;
+  blobs[idx][field] = value;
+  const span = inp.parentElement.querySelector(".editor-value");
+  if (span) span.textContent = formatNumber(value);
+  saveCorrections();
+  refreshPortrait(character);
+}
+
+function wireBeardMarker(marker, character) {
+  marker.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    const idx = Number(marker.dataset.bindex);
+    const blob = editableBeardBlobs(character.id)[idx];
+    if (!blob) return;
+    const rect = els.lockOverlay.getBoundingClientRect();
+    marker.setPointerCapture(e.pointerId);
+    marker.classList.add("is-dragging");
+    const move = (ev) => {
+      const hx = ((ev.clientX - rect.left) / rect.width) * 256;
+      const hy = ((ev.clientY - rect.top) / rect.height) * 256;
+      blob.dx = Math.round(clamp(Math.abs(hx - 128), 0, 100));
+      blob.y = Math.round(clamp(hy, 110, 250));
+      marker.style.left = `${((128 + blob.dx) / 256 * 100).toFixed(1)}%`;
+      marker.style.top = `${(blob.y / 256 * 100).toFixed(1)}%`;
+      refreshPortrait(character);
+    };
+    const up = () => {
+      marker.releasePointerCapture(e.pointerId);
+      marker.classList.remove("is-dragging");
+      marker.removeEventListener("pointermove", move);
+      marker.removeEventListener("pointerup", up);
+      saveCorrections();
+      render();
+    };
+    marker.addEventListener("pointermove", move);
+    marker.addEventListener("pointerup", up);
+  });
 }

@@ -35,8 +35,8 @@
     </div>
     <div id="grid" class="grid"></div>
 
-    <script src="faces-hair.js?v=50"></script>
-    <script src="face-generator.js?v=50"></script>
+    <script src="faces-hair.js?v=53"></script>
+    <script src="face-generator.js?v=53"></script>
     <script>
       // Trait approximations of each gold-standard reference (some accessories — bowties, fedoras,
       // straw hats, necklaces, scarves — aren't modelled yet, so those are left out or approximated).
@@ -73,9 +73,16 @@
         xena:   { skin:"tan", hairColor:"silver", hair:"longWaves", accessory:"bucketHat", expression:"happy", mouthStyle:"wideSmile", clothing:"tee", shirt:"#3a6ea8", background:"#e8836f", lips:"soft" }
       };
 
+      // Shoulder half-width per reference, eyeballed from each gold-standard body: bulky/muscular
+      // men (oscar, will, kevin, carlos) run wide; slim women (nina, luna, hannah) run narrow.
+      const builds = {
+        alex: 82, bella: 72, carlos: 92, diana: 72, ethan: 90, fiona: 74, george: 88, hannah: 70,
+        ivan: 86, jade: 74, kevin: 92, luna: 70, marco: 73, nina: 70, oscar: 100, penny: 74,
+        quinn: 84, rosa: 75, sam: 87, tara: 71, umar: 86, violet: 74, will: 96, xena: 75
+      };
       const grid = document.getElementById("grid");
       Object.keys(targets).forEach((name, i) => {
-        const traits = { ...base, ...targets[name] };
+        const traits = { ...base, ...targets[name], build: builds[name] || 82 };
         const ours = window.faceGenerator.renderPortrait(i + 1, traits);
         const cell = document.createElement("div");
         cell.className = "cell";

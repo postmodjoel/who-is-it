@@ -614,3 +614,141 @@ textarea {
     font-size: 2.2rem;
   }
 }
+
+/* ===================== Hair Lock Designer ===================== */
+.lock-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+}
+.lock-overlay.is-drop {
+  outline: 3px dashed var(--blue);
+  outline-offset: -3px;
+  background: rgba(74, 123, 217, 0.1);
+}
+.lock-marker {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--ink);
+  font: 700 12px/1 system-ui, sans-serif;
+  cursor: grab;
+  box-shadow: 2px 2px 0 var(--line);
+  touch-action: none;
+}
+.lock-marker.is-dragging { cursor: grabbing; background: var(--blue); color: #fff; }
+
+.lock-designer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px solid var(--line);
+}
+.lock-designer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.lock-palette {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.lock-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 3px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  box-shadow: 2px 2px 0 var(--line);
+  cursor: grab;
+}
+.lock-chip:hover { background: #fff7e0; }
+.lock-chip:active { cursor: grabbing; }
+.lock-chip-art {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: block;
+  background: #eef1ed;
+  border-radius: 4px;
+}
+.lock-chip-art svg { width: 100%; height: 100%; display: block; }
+.lock-chip-label { font-size: 0.62rem; color: var(--muted); text-align: center; line-height: 1.1; }
+
+.lock-stack { display: flex; flex-direction: column; gap: 8px; }
+.lock-empty { font-size: 0.8rem; color: var(--muted); margin: 0; }
+.lock-row {
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--panel);
+  box-shadow: 2px 2px 0 var(--line);
+}
+.lock-row-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.lock-row-num {
+  flex: none;
+  width: 20px; height: 20px;
+  display: grid; place-items: center;
+  border: 2px solid var(--line); border-radius: 50%;
+  font: 700 11px/1 system-ui; background: var(--yellow);
+}
+.lock-swap { flex: 1; min-width: 0; }
+.lock-row-z { display: flex; gap: 4px; }
+.lock-row-z .mini-button { padding: 2px 6px; }
+.lock-row-z .lock-del { color: var(--rose); }
+.lock-row-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.lock-num { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--muted); }
+.lock-num input[type="range"] { flex: 1; min-width: 0; }
+.lock-num .editor-value { min-width: 30px; text-align: right; }
+.lock-toggle { display: flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--muted); }
+.lock-row-colors { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.lock-row-toggles { display: flex; gap: 12px; margin-bottom: 6px; }
+.lock-grip { cursor: grab; font-size: 14px; color: var(--muted); padding: 0 2px; user-select: none; }
+.lock-grip:active { cursor: grabbing; }
+.lock-row.is-dragging { opacity: 0.4; }
+.lock-row.is-drop { outline: 2px dashed var(--blue); outline-offset: 1px; }
+.lock-color.is-off input[type="color"] { opacity: 0.35; }
+.lock-color {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+.lock-color input[type="color"] {
+  width: 100%;
+  height: 22px;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+.lock-color.is-set { color: var(--ink); font-weight: 700; }
+.lock-color-reset {
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 16px; height: 16px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--panel); color: var(--ink);
+  font-size: 10px; line-height: 1; cursor: pointer;
+}
+
+.beard-marker { background: var(--green); color: #fff; }

@@ -12,6 +12,18 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4188"],
       "port": 4188
+    },
+    {
+      "name": "who-is-that-3",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4199"],
+      "port": 4199
+    },
+    {
+      "name": "who-is-that-4",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4210"],
+      "port": 4210
     }
   ]
 }

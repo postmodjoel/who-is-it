@@ -912,6 +912,7 @@
         ${renderNeckBase(traits, skin)}
         ${renderCollar(traits)}
         ${headGroup(traits, `
+          ${renderHairLocks(traits, seed, hair, true)}
           ${useFacesHair ? "" : renderBackHair(hairStyle, `url(#hair-${seed})`, traits)}
           ${renderEars(traits, skin)}
           <path d='${faceShape}' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
@@ -929,7 +930,7 @@
           ${/* faces.js hair sits ON TOP of the face features (like the reference art) so swept hair
                overlaps the brow/cheek/temple instead of the brow & blush poking through it */ ""}
           ${useFacesHair ? facesHairSvg : ""}
-          ${renderHairLocks(traits, seed, hair)}
+          ${renderHairLocks(traits, seed, hair, false)}
           ${accessorySvg.afterMouth}
         `)}
       </svg>
@@ -939,12 +940,17 @@
 
   // Freely-placed decorative hair locks (the studio Lock Designer writes traits.hairLocks). Each is
   // themed to the hair colour and drawn on top of the hair, in array order = z-order (last = front).
-  function renderHairLocks(traits, seed, hair) {
+  // behind=true renders the locks flagged `behind` (drawn at the very back of the head group, behind
+  // the face + ears for depth); behind=false renders the rest on top of the hair. Index stays stable
+  // across both passes so each lock keeps a unique gradient/clip seed.
+  function renderHairLocks(traits, seed, hair, behind) {
     const locks = traits.hairLocks;
     if (!Array.isArray(locks) || !locks.length) return "";
     if (!(typeof window !== "undefined" && window.facesHair && window.facesHair.renderLock)) return "";
     return locks
-      .map((inst, i) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink, seed: `${seed}-l${i}` }))
+      .map((inst, i) => ({ inst, i }))
+      .filter(({ inst }) => Boolean(inst.behind) === Boolean(behind))
+      .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink, seed: `${seed}-l${i}` }))
       .join("");
   }
 

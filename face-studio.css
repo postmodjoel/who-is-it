@@ -752,3 +752,5 @@ textarea {
 }
 
 .beard-marker { background: var(--green); color: #fff; }
+
+.lock-marker.is-behind { background: var(--panel); border-style: dashed; color: var(--muted); }

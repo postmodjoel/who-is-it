@@ -660,6 +660,7 @@ function lockRowMarkup(inst, i, n, hairHex) {
         <label class="lock-toggle"><input type="checkbox" data-lock-lines ${inst.lines === false ? "" : "checked"}> Lines</label>
         <label class="lock-toggle"><input type="checkbox" data-lock-mirror ${inst.mirror ? "checked" : ""}> Mirror</label>
         <label class="lock-toggle"><input type="checkbox" data-lock-outline ${inst.outline === "none" ? "" : "checked"}> Outline</label>
+        <label class="lock-toggle"><input type="checkbox" data-lock-behind ${inst.behind ? "checked" : ""}> Behind</label>
       </div>
       <div class="lock-row-colors">
         ${colorField("fill", shadeHex(hairHex, 1), "Hair")}
@@ -692,6 +693,8 @@ function wireLockDesigner(character) {
     if (lines) lines.addEventListener("change", () => { setLockProp(character, idx, "lines", lines.checked); render(); });
     const mirror = row.querySelector("[data-lock-mirror]");
     if (mirror) mirror.addEventListener("change", () => { setLockProp(character, idx, "mirror", mirror.checked || undefined); render(); });
+    const behind = row.querySelector("[data-lock-behind]");
+    if (behind) behind.addEventListener("change", () => { setLockProp(character, idx, "behind", behind.checked || undefined); render(); });
     const outline = row.querySelector("[data-lock-outline]");
     if (outline) outline.addEventListener("change", () => { setLockProp(character, idx, "outline", outline.checked ? undefined : "none"); render(); });
     const swap = row.querySelector("[data-lock-swap]");
@@ -818,7 +821,7 @@ function renderLockOverlay(character) {
   }
   const locks = getLocks(character.id);
   els.lockOverlay.innerHTML = locks
-    .map((inst, i) => `<button type="button" class="lock-marker" data-index="${i}" style="left:${inst.x}%; top:${inst.y == null ? 32 : inst.y}%;" title="${escapeHtml(lockLabel(inst.lock))} — drag to move">${i + 1}</button>`)
+    .map((inst, i) => `<button type="button" class="lock-marker ${inst.behind ? "is-behind" : ""}" data-index="${i}" style="left:${inst.x}%; top:${inst.y == null ? 32 : inst.y}%;" title="${escapeHtml(lockLabel(inst.lock))}${inst.behind ? " (behind)" : ""} — drag to move">${i + 1}</button>`)
     .join("");
   els.lockOverlay.querySelectorAll(".lock-marker").forEach((marker) => wireLockMarker(marker, character));
 }

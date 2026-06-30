@@ -14,10 +14,13 @@
   const skinTones = {
     porcelain: "#f4c9a6",
     fair: "#efbd94",
+    olive: "#c39b6a",
     tan: "#c88968",
+    fakeTan: "#cf8038",   // saturated orange spray-tan look
     amber: "#ad704e",
     brown: "#865335",
-    deep: "#5b341f"
+    deep: "#5b341f",
+    ebony: "#3f2417"
   };
 
   const hairColors = {
@@ -299,6 +302,14 @@
     bare: { collar: "none", bare: true, nude: true } // no shirt - skin shoulders/chest
   };
 
+  // Preset metals for metal jewellery (chain, etc.).
+  const metalHex = {
+    silver: "#cdd2d6",
+    gold: "#e2b84f",
+    black: "#2c2c30",
+    roseGold: "#d79e8c"
+  };
+
   const accessories = {
     none: () => "",
     glasses: (traits) => {
@@ -499,13 +510,24 @@
       <circle cx='128' cy='228' r='5.5' fill='#f6bd2f' stroke='#171512' stroke-width='2'/>
       <path d='M126 226c2-2 4-2 6 0' fill='none' stroke='rgba(255,255,255,.58)' stroke-width='1.4' stroke-linecap='round'/>
     `,
-    chain: () => `
-      <ellipse cx='102' cy='215' rx='6.5' ry='4.2' fill='none' stroke='#e2b84f' stroke-width='2.2'/>
-      <ellipse cx='115' cy='222' rx='6.5' ry='4.2' fill='none' stroke='#e2b84f' stroke-width='2.2'/>
-      <ellipse cx='128' cy='225' rx='6.5' ry='4.2' fill='none' stroke='#e2b84f' stroke-width='2.2'/>
-      <ellipse cx='141' cy='222' rx='6.5' ry='4.2' fill='none' stroke='#e2b84f' stroke-width='2.2'/>
-      <ellipse cx='154' cy='215' rx='6.5' ry='4.2' fill='none' stroke='#e2b84f' stroke-width='2.2'/>
-    `,
+    chain: (traits) => {
+      // Metal preset (silver/gold/black/roseGold) wins; else an explicit accessoryColor; else gold.
+      const metal = metalHex[traits.accessoryMetal] || traits.accessoryColor || "#e2b84f";
+      const hi = shadeColor(metal, 1.22);
+      const sz = Math.max(0.5, Math.min(2.2, Number(traits.chainLink) || 1)); // link-size multiplier
+      const rx = (6.5 * sz).toFixed(1), ry = (4.2 * sz).toFixed(1), sw = (2.2 * Math.sqrt(sz)).toFixed(1);
+      const step = 13 * sz;                       // spacing follows link size = dynamic link count
+      const n = Math.max(1, Math.round(28 / step));
+      let s = "";
+      for (let i = -n; i <= n; i++) {
+        const x = 128 + i * step;
+        const t = Math.abs(i) / (n || 1);
+        const y = 225 - t * t * 10;               // centre hangs lowest, ends ride up (a drape)
+        const col = i % 2 ? hi : metal;
+        s += `<ellipse cx='${x.toFixed(1)}' cy='${y.toFixed(1)}' rx='${rx}' ry='${ry}' fill='none' stroke='${col}' stroke-width='${sw}'/>`;
+      }
+      return s;
+    },
     choker: () => `
       <path d='M97 211c11 4 51 4 62 0v10c-13 5-49 5-62 0Z' fill='#1d1a21' stroke='#171512' stroke-width='2.1' stroke-linejoin='round'/>
       <circle cx='128' cy='221' r='4.5' fill='#ff89ab' stroke='#171512' stroke-width='2'/>
@@ -869,17 +891,47 @@
         { dx: 40, y: 187, r: 16 }
       ]
     },
-    // Flat values from the gen-ryan studio export. NOTE: the export's hairLocks coordinates were
-    // lost when the conversation was compacted, so the hair here falls back to ryan's base softCrop.
-    // Re-paste the gen-ryan JSON to bake the exact lock layout.
     ryan: {
       clothing: "tee", shirt: "#3a8866",
-      eyeOpen: 1.2, irisScale: 0.82, pupilY: -1, lazyEye: -0.5,
-      smileLips: "off", teethScale: 0.76,
+      eyeScale: 0.96, eyeOpen: 1.2, irisScale: 0.82, pupilY: -1, lazyEye: -0.5,
+      noseY: 2.5, cheekOpacity: 0.02, earScale: 0.88, earY: -3, earVariant: "lobe",
+      smileLips: "off", mouthY: -1, teethScale: 0.76,
       jawLength: -0.02, jawShadowY: 2, chinY: -3,
       beardLength: 0.22, accessoryY: -8, accessoryScale: 0.8,
       animMode: "calm", shoulderSlope: 0.76, build: 64, bodyWidth: 1.06,
-      tattooFont: "display", tattooRot: 20, tattooSkewX: -30, tattooScale: 0.6, tattooX: -34, tattooY: 8
+      tattooFont: "display", tattooRot: 20, tattooSkewX: -30, tattooScale: 0.6, tattooX: -34, tattooY: 8,
+      hairLocks: [
+        { lock: "curtainBangs", x: 65, y: 40, scale: 0.3, rot: -16, lines: false },
+        { lock: "curtainBangs", x: 50, y: 40, scale: 0.4, rot: -7, lines: false, mirror: true, outline: "none" },
+        { lock: "longCapLocks", x: 35, y: 40, scale: 0.3, rot: -20, lines: false, mirror: true, outline: "none" },
+        { lock: "shortCrop", x: 48, y: 38, scale: 0.7, rot: 4, lines: false, outline: "none" }
+      ]
+    },
+    meilin: {
+      hair: "bald", hairColor: "auburn", skin: "tan", background: "#d6dbe0", shirt: "#e17fba",
+      animMode: "serious", blinkRate: 5.5,
+      earScale: 0.88, earVariant: "narrow", earY: 2,
+      pupilX: 1, pupilY: -3.5, lazyEye: -2, irisScale: 0.8, eyeScale: 0.84, eyeOpen: 0.9,
+      accessoryScale: 0.98, chinY: -4, chinWidth: 0.92,
+      mouthStyle: "wideSmile", mouthScale: 0.72, lips: "soft", mouthY: 2,
+      noseY: 3, build: 76, shoulderSlope: 0.98, bodyWidth: 0.94, bust: 0.05,
+      hairLocks: [
+        { lock: "curtainBangs", x: 39, y: 40, scale: 0.32, rot: 0, lines: false, outline: "none" },
+        { lock: "curtainBangs", x: 51, y: 37, scale: 0.36, rot: 0, lines: false, outline: "none" },
+        { lock: "splitSideLocks", x: 50, y: 45, scale: 0.78, rot: -9, lines: false, outline: "none" },
+        { lock: "longCapLocks", x: 50, y: 55, scale: 1.02, rot: -17, lines: false, behind: true, mirror: true },
+        { lock: "longSideLock", x: 61, y: 54, scale: 0.86, rot: 0, lines: true, behind: true },
+        { lock: "longSideLock", x: 52, y: 83, scale: 0.82, rot: 13, lines: true, behind: true }
+      ]
+    },
+    zeke: {
+      frontHairY: -6, accessoryScale: 0.84, accessoryColor: "#bfbfa6",
+      eyeScale: 0.72, eyeOpen: 1, eyeY: -2.5, pupilY: -2, lazyEye: -1, irisScale: 0.86,
+      moustacheX: -2, mouthScale: 1.08, lips: "full", mouthY: -5,
+      jawLength: 0.17, jawShadowY: -6,
+      chinShape: "dimple", chinY: -16, chinWidth: 0.72, chinScale: 0.78,
+      cheekOpacity: 0.05, cheekY: 3.5, earVariant: "attached", earY: -5,
+      animMode: "serious", blinkRate: 1.5
     },
     // --- A few exploratory quirky looks on un-baked base characters (mostly beard-blob driven) ---
     bruno: {
@@ -1152,13 +1204,15 @@
     const dart = cfg.dart;
     const sway = cfg.sway;
     const ph = (Math.sin((seed + 1) * 12.9898) * 43758.5453) % 1; // deterministic 0..1 phase
+    const ph2 = (Math.sin((seed + 7) * 78.233) * 12543.6789) % 1;  // a 2nd independent 0..1 value
     const d = (period) => (-(Math.abs(ph) * period)).toFixed(2);
     // A blink/wink should take a fixed amount of TIME no matter the interval, so its keyframe width is
-    // (duration / interval); short intervals don't make a frantic blink.
-    const BLINK_DUR = 0.18, WINK_DUR = 0.32;
+    // (duration / interval); short intervals don't make a frantic blink. Blink duration gets a
+    // per-character ±20% jitter so the roster doesn't blink in lockstep.
+    const BLINK_DUR = 0.18 * (1 + 0.2 * (Math.abs(ph2) * 2 - 1)), WINK_DUR = 0.34;
     const widthPct = (dur, period) => Math.max(1, Math.min(26, (dur / period) * 100));
     const kf = [];
-    const rules = ["g.fa-eye,g.fa-wink,g.fa-iris{transform-box:fill-box;transform-origin:center}"];
+    const rules = ["g.fa-eye,g.fa-iris{transform-box:fill-box;transform-origin:center}"];
     if (blink > 0) {
       const bw = widthPct(BLINK_DUR, blink);
       const bs = (100 - bw).toFixed(2);          // blink begins
@@ -1174,10 +1228,12 @@
       rules.push(`g.fa-iris{animation:faDart ${dart}s infinite;animation-delay:${d(dart)}s}`);
     }
     if (wink > 0) {
+      // A wink is the SAME skin-lid sweep as the blink, but on the right eye only (.fa-winklid), so it
+      // reads as a clean lid closing - not the old scaleY squish that folded the eye in on itself.
       const ww = widthPct(WINK_DUR, wink);
       const a = (50 - ww / 2).toFixed(2), b = (50 + ww / 2).toFixed(2);
-      kf.push(`@keyframes faWink{0%,${a}%,${b}%,100%{transform:scaleY(1)}50%{transform:scaleY(.12)}}`);
-      rules.push(`g.fa-wink{animation:faWink ${wink}s infinite;animation-delay:${d(wink)}s}`);
+      kf.push(`@keyframes faWinkLid{0%,${a}%,${b}%,100%{transform:translateY(-30px)}50%{transform:translateY(0)}}`);
+      rules.push(`g.fa-winklid{animation:faWinkLid ${wink}s infinite;animation-delay:${d(wink)}s}`);
     }
     if (sway > 0) {
       kf.push("@keyframes faSway{0%,100%{transform:rotate(-1.1deg)}50%{transform:rotate(1.1deg)}}");
@@ -1222,8 +1278,18 @@
     const font = tattooFonts[traits.tattooFont] || tattooFonts.bold;
     const color = traits.tattooColor || "#23232b";
     const esc = String(text).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-    return `<g transform='translate(${x} ${y}) rotate(${rot}) skewX(${skew}) scale(${scale})'>`
-      + `<text x='0' y='0' text-anchor='middle' font-family="${font}" font-size='17' font-weight='700' fill='${color}' opacity='0.9'>${esc}</text></g>`;
+    // Warp: a turbulence displacement filter that smears/distorts the lettering beyond a flat skew.
+    const warp = Math.max(0, Number(traits.tattooWarp) || 0);
+    const fid = `twarp-${place}`;
+    const filt = warp > 0
+      ? `<defs><filter id='${fid}' x='-40%' y='-60%' width='180%' height='220%'>`
+        + `<feTurbulence type='turbulence' baseFrequency='0.035 0.08' numOctaves='2' seed='6' result='n'/>`
+        + `<feDisplacementMap in='SourceGraphic' in2='n' scale='${(warp * 16).toFixed(1)}' xChannelSelector='R' yChannelSelector='G'/>`
+        + `</filter></defs>`
+      : "";
+    const filterAttr = warp > 0 ? ` filter='url(#${fid})'` : "";
+    return `<g transform='translate(${x} ${y}) rotate(${rot}) skewX(${skew}) scale(${scale})'>${filt}`
+      + `<text x='0' y='0'${filterAttr} text-anchor='middle' font-family="${font}" font-size='17' font-weight='700' fill='${color}' opacity='0.9'>${esc}</text></g>`;
   }
 
   function renderClothing(outfit, traits, seed) {
@@ -1975,13 +2041,18 @@
           <path d='${lens}' fill='${skin}'/>
           <path d='M${f(cx - w * 0.9)} ${f(y)}Q${f(cx)} ${f(y + 1.3)} ${f(cx + w * 0.9)} ${f(y)}' fill='none' stroke='${ink}' stroke-width='1.9' stroke-linecap='round' opacity='.65'/>
         </g>
+        ${/* Wink lid: right eye only. A second skin cover the wink sweeps down (faWinkLid), giving a
+             clean lid-close wink independent of the blink lid. */ ""}
+        ${side === "r" ? `<g class='fa-winklid' transform='translate(0 -30)'>
+          <path d='${lens}' fill='${skin}'/>
+          <path d='M${f(cx - w * 0.9)} ${f(y)}Q${f(cx)} ${f(y + 1.3)} ${f(cx + w * 0.9)} ${f(y)}' fill='none' stroke='${ink}' stroke-width='1.9' stroke-linecap='round' opacity='.65'/>
+        </g>` : ""}
       </g>
       <path d='${bottomArc}' fill='none' stroke='${lowerLid}' stroke-width='1.9' stroke-linecap='round'/>
       <path d='${topArc}' fill='none' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linecap='round' stroke-linejoin='round'/>
       <path d='${crease}' fill='none' stroke='${softInk}' stroke-width='1.4' stroke-linecap='round'/>
     `;
-    const inner = side === "r" ? `<g class='fa-wink'>${eye}</g>` : eye;
-    return `<g class='fa-eye fa-eye-${side || "l"}'>${inner}</g>`;
+    return `<g class='fa-eye fa-eye-${side || "l"}'>${eye}</g>`;
   }
 
   function renderNose(seed, traits) {
@@ -2551,6 +2622,7 @@
       animModes: ["still", "calm", "curious", "serious", "shifty", "alert"],
       tattooFonts: Object.keys(tattooFonts),
       tattooPlaces: ["body", "face"],
+      accessoryMetals: ["", "silver", "gold", "black", "roseGold"],
       skinTones: Object.keys(skinTones),
       hairColors: Object.keys(hairColors),
       hairColorHex: hairColors,

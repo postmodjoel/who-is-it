@@ -31,6 +31,7 @@ const editorFields = [
   { group: "Eyes", key: "eyeScale", label: "Eye Size", min: 0.7, max: 1.25, step: 0.02, fallback: 0.94 },
   { group: "Eyes", key: "eyeOpen", label: "Eye Openness", min: 0.5, max: 1.2, step: 0.02, fallback: 0.95 },
   { group: "Eyes", key: "irisScale", label: "Iris Size", min: 0.7, max: 1.2, step: 0.02, fallback: 0.92 },
+  { group: "Eyes", key: "eyeColor", label: "Iris Colour", type: "color", fallback: "" },
   { group: "Eyes", key: "eyeY", label: "Eye Height", min: -8, max: 8, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "pupilX", label: "Pupil X", min: -5, max: 5, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "pupilY", label: "Pupil Y", min: -5, max: 5, step: 0.5, fallback: 0 },
@@ -77,6 +78,8 @@ const editorFields = [
   // Accessory
   { group: "Accessory", key: "accessory", label: "Accessory", type: "select", options: () => selectOptions(accessoryChoices), fallback: "none" },
   { group: "Accessory", key: "accessoryColor", label: "Accessory Colour", type: "color", fallback: "" },
+  { group: "Accessory", key: "accessoryMetal", label: "Chain Metal", type: "select", options: () => [["", "Auto"], ["silver", "Silver"], ["gold", "Gold"], ["black", "Black"], ["roseGold", "Rose Gold"]], fallback: "" },
+  { group: "Accessory", key: "chainLink", label: "Chain Link Size", min: 0.5, max: 2.2, step: 0.05, fallback: 1 },
   { group: "Accessory", key: "accessoryX", label: "Accessory X", min: -24, max: 24, step: 1, fallback: 0 },
   { group: "Accessory", key: "accessoryY", label: "Accessory Y", min: -24, max: 24, step: 1, fallback: 0 },
   { group: "Accessory", key: "accessoryScale", label: "Accessory Size", min: 0.68, max: 1.36, step: 0.02, fallback: 1 },
@@ -104,7 +107,8 @@ const editorFields = [
   { group: "Tattoo", key: "tattooY", label: "Y", min: -40, max: 20, step: 1, fallback: 0 },
   { group: "Tattoo", key: "tattooScale", label: "Size", min: 0.4, max: 3, step: 0.05, fallback: 1 },
   { group: "Tattoo", key: "tattooRot", label: "Rotate", min: -60, max: 60, step: 1, fallback: 0 },
-  { group: "Tattoo", key: "tattooSkewX", label: "Skew", min: -45, max: 45, step: 1, fallback: 0 }
+  { group: "Tattoo", key: "tattooSkewX", label: "Skew", min: -45, max: 45, step: 1, fallback: 0 },
+  { group: "Tattoo", key: "tattooWarp", label: "Warp", min: 0, max: 1, step: 0.02, fallback: 0 }
 ];
 
 const hotspots = [
@@ -500,6 +504,7 @@ function colorAutoFor(character, field) {
   if (field.key === "background") return character.traits.background || "#a9c4e0";
   if (field.key === "tattooColor") return character.traits.tattooColor || "#23232b";
   if (field.key === "accessoryColor") return character.traits.accessoryColor || character.traits.accent || "#171512";
+  if (field.key === "eyeColor") return character.traits.eyeColor || "#5a3d28";
   return "#000000";
 }
 

@@ -771,6 +771,9 @@ textarea {
   touch-action: none;
   z-index: 5;
 }
+/* The [hidden] attribute alone doesn't reliably hide an inline SVG (a type-selector display rule can
+   beat it), which left the pen surface on top of the portrait blocking the beard/lock markers. */
+.pen-overlay[hidden] { display: none !important; }
 .pen-designer { margin-top: 10px; }
 .pen-hint, .pen-saved .lock-empty {
   font-size: 12px;

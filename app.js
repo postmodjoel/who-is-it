@@ -879,17 +879,25 @@ function renderSecret() {
     setButtonIcon(els.revealSecretButton, "eye", "Show face");
     return;
   }
-  els.secretCard.className = "secret-card";
+  // Mirror whatever the active special mode shows on this character's board card, so the secret card
+  // carries the exact same dossier (orgy stats, Yu-Gi-Oh card info, badges, etc.).
+  const m = state.global.mystery ? getMysteryCardData(secret) : {};
+  els.secretCard.className = `secret-card ${m.cardClass || ""}`.trim();
   // The card takes the character's own portrait background colour, so the portrait sits directly in
   // it (no card-in-a-card) and the colours don't double up.
-  els.secretCard.style.setProperty("--secret-bg", secret.traits?.background || "#cdd6e0");
+  const bg = secret.traits?.background || "#cdd6e0";
+  els.secretCard.setAttribute("style", `--secret-bg:${bg};${m.style || ""}`);
   const gayFroggedAssignment = state.global.mystery?.id === "gay-frogged" ? state.global.mystery.assignments?.[secret.id] : null;
   els.secretCard.innerHTML = `
-    <img src="${gayFroggedAssignment?.image || secret.image}" alt="${escapeHtml(secret.name)}">
-    <div>
+    <div class="secret-portrait">
+      <img src="${m.image || gayFroggedAssignment?.image || secret.image}" alt="${escapeHtml(secret.name)}">
+      ${m.cornerHtml || ""}
+    </div>
+    <div class="secret-info">
       <p class="secret-name">${displayName(secret)}</p>
       ${gayFroggedAssignment ? `<p class="secret-meta secret-pronouns">${escapeHtml(gayFroggedAssignment.pronoun || "they/them")}</p>` : ""}
       ${state.global.mystery?.id === "role-reveal" ? `<p class="secret-meta">${escapeHtml(roleFor(secret.id))}</p>` : ""}
+      ${m.html ? `<div class="secret-mode-meta">${m.html}</div>` : ""}
     </div>
   `;
   setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");

@@ -543,7 +543,7 @@ button:disabled {
 
 .secret-card {
   display: grid;
-  grid-template-columns: 76px 1fr;
+  grid-template-columns: 90px 1fr;
   gap: 12px;
   align-items: center;
   flex: 0 0 auto;
@@ -555,6 +555,25 @@ button:disabled {
   color: #14110d;
   background: var(--secret-bg, var(--surface));
 }
+
+.secret-portrait {
+  position: relative;
+  align-self: stretch;
+  min-height: 90px;
+}
+.secret-portrait img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-right: 2px solid rgba(0, 0, 0, 0.18);
+}
+.secret-info { padding: 8px 0; min-width: 0; }
+/* The active mode's dossier (orgy stat bars, Yu-Gi-Oh type line / ATK-DEF, badges) inside the card. */
+.secret-mode-meta { margin-top: 5px; max-width: 320px; }
+.secret-card.orgy { color: #ffe3ef; background: linear-gradient(180deg, #2a0e1c, #1c0712); border-color: #7a1c3e; }
+.secret-card.orgy .secret-name { color: #ffd9e8; }
+.secret-card.ygo { color: #f5e9c8; }
 
 .secret-card.is-hidden {
   grid-template-columns: 1fr;
@@ -570,18 +589,11 @@ button:disabled {
   text-transform: uppercase;
 }
 
-.secret-card img,
 .character-card img {
   display: block;
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-}
-
-.secret-card img {
-  border: none;
-  border-radius: 0;
-  border-right: 2px solid rgba(0, 0, 0, 0.18);
 }
 
 .secret-name {
@@ -2541,20 +2553,28 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   flex-direction: column;
   gap: 3px;
   aspect-ratio: 59 / 86;
-  padding: 5px 5px 6px;
-  border: 2px solid #6b4f12;
-  border-radius: 7px;
-  background: #c7a149;                 /* default frame = Normal monster */
-  box-shadow: 0 0 0 2px #e7c869, 0 5px 13px rgba(0, 0, 0, 0.5);
+  padding: 6px 6px 7px;
+  border: none;
+  border-radius: 6px;
+  /* Default = Normal monster: a brushed-gold frame with a soft top sheen. */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(0, 0, 0, 0.12) 42%, rgba(0, 0, 0, 0.22)),
+    #c7a149;
+  /* Layered gold border: dark line / bright gold / dark line, like a real card edge. */
+  box-shadow:
+    0 0 0 1px #2a2008,
+    0 0 0 3px #e9cb6e,
+    0 0 0 4px #2a2008,
+    0 5px 14px rgba(0, 0, 0, 0.55);
   overflow: hidden;
   transform-style: preserve-3d;
   transition: transform 0.5s ease, box-shadow 130ms ease;
 }
-.character-card.ygo.ygo-effect  { background: #b1592a; }
-.character-card.ygo.ygo-spell   { background: #1c9d84; }
-.character-card.ygo.ygo-trap    { background: #9d2e62; }
-.character-card.ygo.ygo-fusion  { background: #7a49a6; }
-.character-card.ygo.ygo-ritual  { background: #3a62a8; }
+.character-card.ygo.ygo-effect  { background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(0,0,0,.12) 42%, rgba(0,0,0,.24)), #a9531f; }
+.character-card.ygo.ygo-spell   { background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(0,0,0,.12) 42%, rgba(0,0,0,.24)), #1a9e84; }
+.character-card.ygo.ygo-trap    { background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(0,0,0,.12) 42%, rgba(0,0,0,.24)), #a32766; }
+.character-card.ygo.ygo-fusion  { background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(0,0,0,.12) 42%, rgba(0,0,0,.24)), #7a49a6; }
+.character-card.ygo.ygo-ritual  { background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(0,0,0,.12) 42%, rgba(0,0,0,.24)), #3a62a8; }
 .character-card.ygo:hover { transform: translateY(-3px) scale(1.02); z-index: 3; }
 
 
@@ -2580,17 +2600,17 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 .character-card.ygo h3 {
   order: 1;
   margin: 0;
-  padding: 2px 6px;
+  padding: 2px 7px;
   font-family: "Times New Roman", Georgia, serif;
   font-weight: 700;
   font-size: clamp(0.58rem, 1.5vw, 0.82rem);
-  line-height: 1.15;
-  color: #241a12;
+  line-height: 1.2;
+  color: #1c1209;
   text-align: left;
   letter-spacing: 0.01em;
-  background: linear-gradient(180deg, #fbf3dc, #ecdcb4);
-  border: 1px solid #b59a5e;
+  background: linear-gradient(180deg, #fff6e1 0%, #f0e1ba 55%, #e4d09e 100%);
   border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.45);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2600,10 +2620,10 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   flex: 1 1 auto;
   position: relative;
   min-height: 0;
-  border: 2px solid #241b12;
+  border: 2px solid #1c150c;
   border-radius: 1px;
-  border-bottom: 2px solid #241b12;
   background: #0c0c12;
+  box-shadow: 0 0 0 1px rgba(201, 168, 106, 0.85), inset 0 0 6px rgba(0, 0, 0, 0.6);
 }
 .character-card.ygo > .portrait-wrap img {
   width: 100%;
@@ -2611,26 +2631,28 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   object-fit: cover;
   filter: saturate(1.28) contrast(1.08);
 }
+/* Bottom text box - one beige panel holding the type line, a divider, and ATK/DEF (dark, like print). */
 .character-card.ygo .card-meta {
   order: 3;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 2px 5px 3px;
+  background: linear-gradient(180deg, #f6ecce, #ecddb6);
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.4);
 }
 .character-card.ygo .card-pronouns,
 .character-card.ygo .card-grindr-tags { display: none; }
 
 .ygo-typeline {
   display: block;
-  padding: 1px 5px;
   font-family: "Times New Roman", Georgia, serif;
   font-weight: 700;
-  font-size: clamp(0.42rem, 1.05vw, 0.6rem);
+  font-style: italic;
+  font-size: clamp(0.42rem, 1.05vw, 0.58rem);
   color: #1a130d;
   text-align: left;
-  background: #efe2c2;
-  border: 1px solid #b59a5e;
-  border-radius: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2638,16 +2660,17 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 .ygo-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 9px;
-  padding: 0 5px;
+  gap: 10px;
+  margin-top: 1px;
+  padding-top: 2px;
+  border-top: 1px solid rgba(0, 0, 0, 0.32);
 }
 .ygo-stat {
   font-family: "Times New Roman", Georgia, serif;
   font-weight: 700;
-  font-size: clamp(0.46rem, 1.1vw, 0.64rem);
-  color: #f7eecb;
+  font-size: clamp(0.46rem, 1.1vw, 0.62rem);
+  color: #1a130d;
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.65);
 }
 
 .ygo-orb {
@@ -2680,17 +2703,21 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 .ygo-toprow {
   position: absolute;
   top: 4px;
-  left: 5px;
+  left: 4px;
   z-index: 3;
-  max-width: 64%;
+  max-width: 62%;
 }
 .ygo-stars {
-  color: #ffc94e;
-  font-size: clamp(0.42rem, 1vw, 0.58rem);
-  letter-spacing: -1px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  display: inline-block;
+  padding: 1px 5px;
+  color: #ffce4a;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.18));
+  border-radius: 3px;
+  font-size: clamp(0.42rem, 1vw, 0.56rem);
+  letter-spacing: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
   word-break: break-all;
-  line-height: 1;
+  line-height: 1.25;
 }
 .ygo-kind {
   display: inline-block;

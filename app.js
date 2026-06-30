@@ -843,27 +843,34 @@ function createCharacterCard(character, player) {
   const prop = mystery.propEmoji ? `<span class="prop-overlay" aria-label="${escapeHtml(mystery.primaryText)}">${mystery.propEmoji}</span>` : "";
   // Roles are hidden by default - they are not known initially and only surface once the
   // Role Reveal mystery effect is triggered (which renders them via mystery.html below).
-  const portraitSrc = mystery.image || character.image;
-  // Fireworks Mode kill: a detached "head" (top slice of the portrait) flies up out of the frame and
-  // bursts into fireworks. The base portrait is clipped to the body so the head looks separated.
+  let portraitSrc = mystery.image || character.image;
+  // Fireworks Mode kill: the isolated head flies up out of the frame and bursts into fireworks while
+  // blood spurts from the cut neck. The base portrait is swapped for a HEADLESS body (proper neck
+  // stump, no white "chopped" rectangle); the flying head is a transparent head-only render.
   let fireworks = "";
-  if (popping) {
+  if (popping && character.traits && window.faceGenerator) {
+    const render = (extra) => window.faceGenerator.renderPortrait(character.seed, { ...character.traits, ...extra });
+    portraitSrc = render({ noHead: true });           // headless body + neck stump becomes the card art
+    const headSrc = render({ headOnly: true });        // the head that flies off
+
     const cols = ["#ff4d6d", "#ffd24d", "#5dff8f", "#4dd2ff", "#c46bff", "#ff8a4d", "#fff27a"];
     let parts = "";
-    const N = 16;
-    for (let i = 0; i < N; i++) {
-      const ang = (i / N) * Math.PI * 2 + (i % 2 ? 0.2 : 0);
+    for (let i = 0; i < 16; i++) {
+      const ang = (i / 16) * Math.PI * 2 + (i % 2 ? 0.2 : 0);
       const dist = 46 + (i % 4) * 14;
-      const tx = Math.round(Math.cos(ang) * dist);
-      const ty = Math.round(Math.sin(ang) * dist);
-      parts += `<i style="--tx:${tx}px;--ty:${ty}px;background:${cols[i % cols.length]}"></i>`;
+      parts += `<i style="--tx:${Math.round(Math.cos(ang) * dist)}px;--ty:${Math.round(Math.sin(ang) * dist)}px;background:${cols[i % cols.length]}"></i>`;
     }
-    // Use an isolated head render (transparent background, no body) so the actual head flies off.
-    const headSrc = (character.traits && window.faceGenerator)
-      ? window.faceGenerator.renderPortrait(character.seed, { ...character.traits, headOnly: true })
-      : portraitSrc;
+    // Blood: particles spraying up/out from the neck (around 59% down the portrait, centred).
+    let blood = "";
+    for (let i = 0; i < 14; i++) {
+      const ang = -Math.PI / 2 + (i / 14 - 0.5) * 2.2;     // fan upward
+      const dist = 26 + (i % 5) * 12;
+      const dly = (i % 6) * 0.07;
+      blood += `<b style="--bx:${Math.round(Math.cos(ang) * dist)}px;--by:${Math.round(Math.sin(ang) * dist)}px;--bd:${dly.toFixed(2)}s"></b>`;
+    }
     fireworks = `<div class="fw" aria-hidden="true">`
       + `<img class="fw-head" src="${headSrc}" alt="">`
+      + `<div class="fw-blood">${blood}</div>`
       + `<div class="fw-burst">${parts}</div><div class="fw-flash"></div></div>`;
   }
   card.innerHTML = `

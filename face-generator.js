@@ -959,9 +959,34 @@
       ]
     },
     sophia: {
-      faceShape: "round", hair: "locs", frontHairY: -4, accessory: "none", beardX: -1,
+      faceShape: "long", hair: "bob", frontHairY: -7, clothing: "collared", shirt: "#dd2727",
+      skin: "tan", background: "#d9d9d9", eyeColor: "#3b6842",
+      browShape: "arched", browThick: 1.75, browScaleX: 0.9, browY: 2.5,
+      headScaleX: 0.98, headScaleY: 0.93, headY: -10, eyeGap: 45,
+      irisScale: 0.7, eyeOpen: 0.88, eyeScale: 0.86, eyeY: 3, lazyEye: -2.5, pupilY: -3, pupilX: 0.5,
+      teethStyle: "bucky", teethOverhang: 0.5, mouthStyle: "wideSmile", teethGap: 9.5, teethX: -7, teethScale: 0.72,
+      earScale: 0.84, earY: -5, chinY: -8, chinWidth: 0.82, chinScale: 0.74,
+      accessory: "studs", accessoryScale: 0.84, accessoryColor: "#1a4c6b",
+      bust: 0.5, bodyWidth: 1.08, shoulderSlope: 0.7, build: 73, beardX: -1,
+      animMode: "alert", blinkRate: 11,
       beardBlobs: [
-        { dx: 17, y: 198, r: 11 }, { dx: 30, y: 198, r: 16 }
+        { dx: 19, y: 205, r: 7 }, { dx: 12, y: 203, r: 11 }, { dx: 2, y: 210, r: 8 }
+      ]
+    },
+    niko: {
+      faceShape: "long", chainLink: 0.85, accessoryY: 5, accessory: "squareGlasses", accessoryScale: 1.22,
+      eyeScale: 0.98, eyeOpen: 1.02, eyeColor: "#283158", lips: "soft", mouthScale: 0.88, lipColor: "#d27f6a",
+      earScale: 0.9, earVariant: "lobe", earY: 3, animMode: "serious", winkRate: 8, blinkRate: 10.5,
+      headY: -6, headScaleY: 1.03, headScaleX: 0.97, eyeGap: 47,
+      browScaleX: 0.92, browThick: 0.85, browShape: "arched",
+      noseY: 4, noseTip: "button", noseWidth: 0.63, noseScale: 1.26,
+      jawLength: -0.07, jawShadowY: -1, chinShape: "round", chinY: -1, chinWidth: 0.8, chinScale: 0.64,
+      hairLocks: [
+        { lock: "rightCascade", x: 42, y: 40, scale: 0.5, rot: -132, lines: true, outline: "none" },
+        { lock: "rightCascade", x: 57, y: 39, scale: 0.58, rot: -75, lines: true, outline: "none" },
+        { lock: "rightCascade", x: 44, y: 34, scale: 0.46, rot: -106, lines: false, outline: "none" },
+        { lock: "longSStrand", x: 70, y: 47, scale: 0.42, rot: 0, lines: true, mirror: true, outline: "none", behind: true },
+        { lock: "ribbonWaveLeft", x: 40, y: 51, scale: 0.46, rot: 5, lines: false, behind: true }
       ]
     },
     javier: {
@@ -1106,7 +1131,8 @@
         ${traits.headOnly ? "" : renderNeckBase(traits, skin)}
         ${traits.headOnly ? "" : renderCollar(traits)}
         ${traits.headOnly ? "" : renderTattoo(traits, "body")}
-        ${headGroup(traits, `
+        ${traits.noHead ? renderNeckStump(traits, skin) : ""}
+        ${traits.noHead ? "" : headGroup(traits, `
           ${renderHairLocks(traits, seed, hair, true)}
           ${useFacesHair ? "" : renderBackHair(hairStyle, `url(#hair-${seed})`, traits)}
           ${renderEars(traits, skin)}
@@ -1438,6 +1464,22 @@
     }
     const d = `M106 ${top} L106 ${y} Q128 ${y + 14} 150 ${y} L150 ${top} Z`;
     return `<path d='${d}' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}'/>`;
+  }
+
+  // The cut neck left behind in Fireworks Mode (when the head has popped off). A skin-rimmed wound
+  // at the top of the neck column with a ragged red interior - no "white chopped-off" rectangle.
+  function renderNeckStump(traits, skin) {
+    const cx = 128, y = 150;
+    const rim = shadeColor(skin, 0.82);
+    // ragged top edge of the neck stump
+    const ragged = `M106 ${y} C112 ${y - 6} 118 ${y + 3} 124 ${y - 4} C128 ${y - 8} 132 ${y + 2} 138 ${y - 4} C144 ${y + 3} 150 ${y - 5} 150 ${y} Z`;
+    return `<g>`
+      + `<path d='${ragged}' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>`
+      + `<ellipse cx='${cx}' cy='${y - 1}' rx='20' ry='7' fill='${rim}'/>`
+      + `<ellipse cx='${cx}' cy='${y - 1}' rx='15' ry='5' fill='#8a1018'/>`          // muscle ring
+      + `<ellipse cx='${cx}' cy='${y - 1}' rx='8' ry='3' fill='#5a0a10'/>`            // trachea/centre
+      + `<ellipse cx='${cx}' cy='${y - 1.5}' rx='3.4' ry='1.6' fill='#c98'/>`         // bone glint
+      + `</g>`;
   }
 
   // Per-garment collar, drawn ON TOP of the skin neck so its curved opening shapes the neckline.
@@ -2336,19 +2378,27 @@
     const my = 171;                 // the mouth line (where the lips meet - shared, so no open gap)
     const L = full ? 106 : 109;
     const R = full ? 150 : 147;
-    const upH = full ? 7 : 5;       // upper-lip height
-    const loH = full ? 13 : 9;      // lower-lip drop
+    // Independent upper/lower sizing, plus distinct shape designs so faces don't all read the same.
+    const upSize = Math.max(0.3, Number(traits.lipUpperSize) || 1);
+    const loSize = Math.max(0.3, Number(traits.lipLowerSize) || 1);
+    const upH = (full ? 7 : 5) * upSize;   // upper-lip height
+    const loH = (full ? 13 : 9) * loSize;  // lower-lip drop
+    // Upper shape = cupid's-bow character; lower shape = fullness/width.
+    const bow = ({ cupid: 1, soft: 0.62, flat: 0.28, peaked: 1.75, heavy: 1.15 }[traits.lipUpper] ?? 0.62);
+    const loW = ({ round: 11, pillow: 14.5, wide: 16, flat: 8 }[traits.lipLower] ?? 11);
+    const dip = 2.5 * bow;          // centre dip of the upper lip
+    const peak = 4 * bow;           // cupid peaks
     const seamTo = (x2) => `Q${cx} ${f(my + 1.4)} ${f(x2)} ${f(my)}`;
     // Upper lip: cupid's-bow top edge, bottom edge = the mouth line.
     const upper = `M${f(L)} ${f(my)}`
-      + `C${f(L + 5)} ${f(my - upH)} ${f(cx - 11)} ${f(my - upH + 1)} ${f(cx - 5)} ${f(my - 2.5)}`
-      + `C${f(cx - 2)} ${f(my - 4)} ${f(cx + 2)} ${f(my - 4)} ${f(cx + 5)} ${f(my - 2.5)}`
+      + `C${f(L + 5)} ${f(my - upH)} ${f(cx - 11)} ${f(my - upH + 1)} ${f(cx - 5)} ${f(my - dip)}`
+      + `C${f(cx - 2)} ${f(my - peak)} ${f(cx + 2)} ${f(my - peak)} ${f(cx + 5)} ${f(my - dip)}`
       + `C${f(cx + 11)} ${f(my - upH + 1)} ${f(R - 5)} ${f(my - upH)} ${f(R)} ${f(my)}`
       + seamTo(L) + "Z";
-    // Lower lip: top edge = the mouth line, fuller curve below.
+    // Lower lip: top edge = the mouth line, fuller curve below (width set by the lower-lip design).
     const lower = `M${f(L)} ${f(my)}` + seamTo(R)
-      + `C${f(R - 5)} ${f(my + loH - 2)} ${f(cx + 11)} ${f(my + loH)} ${f(cx)} ${f(my + loH)}`
-      + `C${f(cx - 11)} ${f(my + loH)} ${f(L + 5)} ${f(my + loH - 2)} ${f(L)} ${f(my)}Z`;
+      + `C${f(R - 5)} ${f(my + loH - 2)} ${f(cx + loW)} ${f(my + loH)} ${f(cx)} ${f(my + loH)}`
+      + `C${f(cx - loW)} ${f(my + loH)} ${f(L + 5)} ${f(my + loH - 2)} ${f(L)} ${f(my)}Z`;
     const seam = `M${f(L)} ${f(my)}${seamTo(R)}`;
     return `
       <path d='${lower}' fill='${lip}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
@@ -2714,6 +2764,8 @@
       browShapes: Object.keys(browShapes),
       teethStyles: ["even", "perfect", "gappy", "bucky", "spaced"],
       lipStyles: ["line", "soft", "full"],
+      lipUppers: ["soft", "cupid", "flat", "peaked", "heavy"],
+      lipLowers: ["round", "pillow", "wide", "flat"],
       chinShapes: ["none", "round", "square", "dimple", "pointed"],
       animModes: ["still", "calm", "curious", "serious", "shifty", "alert", "smug", "sleepy"],
       tattooFonts: Object.keys(tattooFonts),

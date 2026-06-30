@@ -2784,10 +2784,29 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 .character-card.is-fireworks-pop .portrait-wrap { overflow: visible; }
 .character-card.is-fireworks-pop.is-down { filter: none; }
 .character-card.is-fireworks-pop.is-down::after { display: none; }
-/* The body keeps the bottom of the portrait; the head slice is clipped away (it's flying off). */
-.character-card.is-fireworks-pop .portrait-wrap > img { clip-path: inset(58% 0 0 0); }
+/* The base portrait is already a headless body (noHead render) - no clip / no white chop needed. */
 
 .fw { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+/* Blood spray from the cut neck (~59% down the portrait). */
+.fw-blood { position: absolute; left: 50%; top: 59%; z-index: 8; }
+.fw-blood b {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #e23, #8a0a12);
+  opacity: 0;
+  animation: fwBlood 0.9s var(--bd, 0s) ease-out forwards;
+}
+@keyframes fwBlood {
+  0%   { transform: translate(0, 0) scale(0.4); opacity: 0; }
+  10%  { opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translate(var(--bx), calc(var(--by) + 26px)) scale(0.7); opacity: 0; }
+}
 /* Detached head = the top slice of the portrait, flung up and out of the card, spinning. */
 .fw-head {
   position: absolute;

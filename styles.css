@@ -2501,17 +2501,11 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   margin: 0;
 }
 .game-stage .character-board {
-  margin: 124px 12px 12px;
+  margin: 12px;
   border-color: rgba(23, 21, 18, 0.55);
-  /* The banner sits across the TOP (full width, most of it visible), then fades down into a colour
-     sampled from the banner's own bottom edge (--board-fade) so the board melts into the artwork. */
+  /* The banner now lives in the top bar, so the board just tints to the sampled banner colour. */
   background:
-    linear-gradient(to bottom,
-      transparent 0%, transparent 30%,
-      color-mix(in srgb, var(--board-fade, #15140f) 55%, transparent) 44%,
-      var(--board-fade, #15140f) 72%),
-    var(--board-art, none) top center / 100% auto no-repeat,
-    var(--board-fade, #16140f);
+    linear-gradient(180deg, color-mix(in srgb, var(--board-fade, #16140f) 70%, #000 0%), var(--board-fade, #16140f));
   backdrop-filter: none;
 }
 /* Yu-Gi-Oh mode keeps its own themed backdrop, not the location banner. */
@@ -2526,8 +2520,42 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 @media (max-width: 860px) {
   .game-layout { grid-template-columns: 1fr; }
   .game-side { position: static; }
-  .game-stage .character-board { margin-top: 92px; }
+  .game-stage .character-board { margin-top: 12px; }
+  .topbar { flex-wrap: wrap; }
+  .topbar .location-band { order: 3; flex-basis: 100%; }
 }
+
+/* Location banner now lives in the top bar, between the title and the action buttons. */
+.topbar .location-band {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 76px;
+  margin: 0;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.topbar .location-band.is-off { display: none; }
+.topbar .location-band .location-photo { position: absolute; inset: 0; background-size: cover; background-position: center 38%; }
+.topbar .location-band .location-scrim,
+.topbar .location-band .location-rainbow { position: absolute; inset: 0; }
+.topbar .location-band .location-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 14px;
+}
+.topbar .location-band .location-copy { min-width: 0; }
+.topbar .location-band .location-copy .eyebrow { font-size: 0.58rem; margin: 0; opacity: 0.85; }
+.topbar .location-band .location-copy h2 { margin: 1px 0; font-size: clamp(0.95rem, 1.7vw, 1.35rem); line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .location-band .location-copy p { display: none; }   /* the long prompt stays in the side cue card */
+.topbar .location-band .location-stamp { flex: 0 0 auto; }
 
 /* ===================== Yu-Gi-Oh! mode ===================== */
 .character-board.ygo-board {
@@ -3139,3 +3167,36 @@ body.mode-pixall .secret-card img {
 .dg-row b { font-weight: 800; color: #ffcf9c; }
 .dg-row i { font-style: normal; color: #d8c2a8; }
 .dg-daily { margin-top: 2px; font-size: 0.52rem; font-weight: 700; color: #e6a06a; text-align: right; }
+
+/* ===================== Fertility Mode ===================== */
+.character-board.fertility-board {
+  border-color: #6a3a52 !important;
+  background:
+    radial-gradient(circle at 20% 16%, rgba(255, 130, 180, 0.22), transparent 44%),
+    radial-gradient(circle at 82% 84%, rgba(120, 180, 255, 0.2), transparent 46%),
+    linear-gradient(160deg, #221019, #100a12) !important;
+  backdrop-filter: none !important;
+}
+.character-card.fertility {
+  background: linear-gradient(180deg, #241019, #120a10);
+  border: 1px solid #6a3a52;
+  color: #ffe1ee;
+}
+.character-card.fertility .portrait-wrap { border-bottom: 1px solid #6a3a52; }
+.character-card.fertility .card-plate { background: none; padding: 5px 7px 7px; gap: 3px; }
+.character-card.fertility h3 { color: #ffd6e6; font-size: 0.82rem; }
+.ft-timer {
+  position: absolute; top: 5px; right: 6px; z-index: 3;
+  padding: 1px 6px; font-size: 0.52rem; font-weight: 800; color: #fff;
+  background: rgba(0, 0, 0, 0.6); border-radius: 4px;
+}
+.ft-sheet { display: flex; flex-direction: column; gap: 2px; }
+.ft-row { display: flex; justify-content: space-between; gap: 6px; font-size: 0.6rem; }
+.ft-row b { font-weight: 800; color: #ff9ec4; }
+.ft-row i { font-style: normal; font-weight: 700; color: #ffe6f0; }
+.ft-barren { color: #c0c6cf; font-weight: 800; letter-spacing: 0.06em; }
+.ft-defect {
+  margin-top: 2px; padding: 1px 5px; font-size: 0.5rem; font-weight: 800; letter-spacing: 0.03em;
+  color: #1a0e06; background: #f0b53c; border-radius: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}

@@ -142,6 +142,31 @@ window.GameData = {
     "Would your person huff it?",
     "Does your person swallow theirs?",
     "Is your person clean? (they are not)"
+  ],
+  fertility: [
+    "Is your person barren?",
+    "Does your person's count run into the billions?",
+    "Does your person have a product defect?",
+    "Is your person's next emptying within the hour?",
+    "Does your person have more than 100 eggs?",
+    "Are your person's swimmers slow?",
+    "Is your person a battery farm?",
+    "Would you breed your person?"
+  ],
+  disguise: [
+    "Can you even tell who your person is?",
+    "Are your person's eyes giving anything away?",
+    "Would you recognise your person at the shops?",
+    "Is your person hiding a smile under there?",
+    "Could your person rob a bank like this?"
+  ],
+  work: [
+    "Is your person ready for the 9am stand-up?",
+    "Does your person look like they slept?",
+    "Has your person had any sun this year?",
+    "Would your person reply-all by mistake?",
+    "Is your person dead behind the eyes?",
+    "Does your person have any eyebrows left?"
   ]
 },
 

@@ -471,6 +471,24 @@ const mysteryEffects = [
     name: "Drug Addict Mode",
     apply: applyDrugs,
     exampleQuestion: "Does your person inject?"
+  },
+  {
+    id: "fertility",
+    name: "Fertility Mode",
+    apply: applyFertility,
+    exampleQuestion: "Is your person barren?"
+  },
+  {
+    id: "disguise",
+    name: "Special Disguise",
+    apply: applyDisguise,
+    exampleQuestion: "Can you even tell who your person is?"
+  },
+  {
+    id: "work",
+    name: "Work Mode",
+    apply: applyWork,
+    exampleQuestion: "Is your person ready for the meeting?"
   }
 ];
 
@@ -641,6 +659,7 @@ function renderBoard() {
   els.characterBoard.classList.toggle("pixall-board", modeId === "pixall");
   els.characterBoard.classList.toggle("disease-board", modeId === "disease");
   els.characterBoard.classList.toggle("drugs-board", modeId === "drugs");
+  els.characterBoard.classList.toggle("fertility-board", modeId === "fertility");
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
   state.board.forEach((character) => {
@@ -828,7 +847,7 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -1252,6 +1271,24 @@ function getMysteryCardData(character) {
       html: ""
     };
   }
+  if (mystery.id === "disguise" || mystery.id === "work") {
+    return { effectName: mystery.name, image: assignment.image || undefined, html: "" };
+  }
+  if (mystery.id === "fertility") {
+    const a = assignment;
+    const eggsTxt = a.barren ? `<span class="ft-barren">BARREN</span>` : `${a.eggs} eggs`;
+    const defect = a.defect ? `<div class="ft-defect">⚠ ${escapeHtml(a.defect)}</div>` : "";
+    return {
+      effectName: mystery.name,
+      cardClass: "fertility",
+      cornerHtml: `<span class="ft-timer" title="next emptying">⏳ ${a.hrs}h ${a.mins}m</span>`,
+      html: `<div class="ft-sheet">
+        <div class="ft-row"><b>💦 Count</b><i>${escapeHtml(a.cum)}</i></div>
+        <div class="ft-row"><b>🥚 Eggs</b><i>${eggsTxt}</i></div>
+        ${defect}
+      </div>`
+    };
+  }
   if (mystery.id === "disease") {
     const a = assignment;
     const tierCls = { MINOR: "dz-minor", MAJOR: "dz-major", MEGA: "dz-mega" };
@@ -1361,6 +1398,58 @@ function applyYugioh(effect) {
       a.typeLine = `[${a.mtype}/${tag}]`;
     }
     assignments[ch.id] = a;
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// Fertility Mode: a reproductive readout - cum count (millions/billions), egg count (10s-100s, some
+// barren), a countdown to next "emptying", and a product-defect warning. Comedy stats on avatars.
+function applyFertility(effect) {
+  const defects = ["CHROMOSOMAL SURPLUS", "BATTERY FARM EGGS", "SLOW SWIMMERS", "CRACK BABIES IMMINENT",
+    "TADPOLE QUALITY: POOR", "EXPIRED STOCK", "TWO-HEADED RISK", "GENETIC LUCKY DIP",
+    "RECALLED BATCH", "SUSPICIOUSLY KEEN", "ALL DUDS", "PREMIUM GRADE (allegedly)"];
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:fert:${ch.id}`);
+    const billions = (h >>> 2) % 4 === 0;
+    const cum = billions
+      ? (1 + ((h >>> 4) % 40) / 10).toFixed(1) + "B"
+      : (50 + ((h >>> 4) % 900)) + "M";
+    const barren = (h >>> 9) % 6 === 0;
+    const eggs = barren ? 0 : 8 + ((h >>> 6) % 320);
+    const hrs = (h >>> 11) % 72;
+    const mins = (h >>> 13) % 60;
+    const defect = ((h >>> 15) % 3 === 0)
+      ? defects[stableHash(`${state.gameSalt}:fdef:${ch.id}`) % defects.length]
+      : null;
+    assignments[ch.id] = { cum, eggs, barren, hrs, mins, defect };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// Special Disguise: re-render everyone with a neutral full-face covering (only the eyes show).
+function applyDisguise(effect) {
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const image = ch.traits && window.faceGenerator
+      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true })
+      : null;
+    assignments[ch.id] = { image };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// Work Mode: everyone bald, no eyebrows, and pasty white (corporate husk energy).
+function applyWork(effect) {
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const image = ch.traits && window.faceGenerator
+      ? window.faceGenerator.renderPortrait(ch.seed, {
+        ...ch.traits, hair: "bald", hairLocks: [], noBrows: true,
+        skinHex: "#efe3da", cheekOpacity: 0, beardLength: 0
+      })
+      : null;
+    assignments[ch.id] = { image };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

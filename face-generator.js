@@ -1144,7 +1144,7 @@
           ${renderBeardBlobs(traits, seed)}
           ${accessorySvg.behindHair || ""}
           ${useFacesHair ? "" : renderFrontHair(hairStyle, `url(#hair-${seed})`, traits) + renderHairHighlights(hairStyle, hair, traits, seed)}
-          <g class='fa-brow'>${renderBrows(expression, traits)}</g>
+          ${traits.noBrows ? "" : `<g class='fa-brow'>${renderBrows(expression, traits)}</g>`}
           ${renderEyes(expression, traits)}
           ${renderNose(seed, traits)}
           ${accessorySvg.beforeMouth}
@@ -1158,6 +1158,7 @@
           ${useFacesHair ? facesHairSvg : ""}
           ${renderHairLocks(traits, seed, hair, false)}
           ${accessorySvg.afterMouth}
+          ${traits.disguise ? renderDisguise(traits) : ""}
         `)}
         ${traits.headOnly ? "" : renderDrawnLocks(traits, seed, hair)}
       </svg>
@@ -1481,6 +1482,26 @@
       + `<ellipse cx='${cx}' cy='${y - 1}' rx='8' ry='3' fill='#5a0a10'/>`            // trachea/centre
       + `<ellipse cx='${cx}' cy='${y - 1.5}' rx='3.4' ry='1.6' fill='#c98'/>`         // bone glint
       + `</g>`;
+  }
+
+  // A neutral full-face covering (Special Disguise mode): a hood/wrap over the whole head with a
+  // single horizontal slot left for the eyes, so everyone is anonymised the same way. Not tied to any
+  // group - it's a generic "only the eyes show" disguise. Drawn last in the head group, over the hair.
+  function renderDisguise(traits) {
+    const cloth = traits.disguiseColor || "#33343c";
+    const dk = shadeColor(cloth, 0.78);
+    const hi = shadeColor(cloth, 1.16);
+    // Head + shoulders covering with an eye opening punched out (evenodd).
+    const outer = "M42 118C42 56 86 34 128 34C170 34 214 56 214 118L214 256L42 256Z";
+    const eyeSlot = "M94 124C112 119 144 119 162 124C166 134 166 140 162 150C144 155 112 155 94 150C90 140 90 134 94 124Z";
+    return `<g>
+      <path d='${outer} ${eyeSlot}' fill='${cloth}' fill-rule='evenodd' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+      <path d='${eyeSlot}' fill='none' stroke='${ink}' stroke-width='2.6' stroke-linejoin='round'/>
+      <path d='M128 154C124 184 124 214 128 246' fill='none' stroke='${dk}' stroke-width='2' stroke-linecap='round' opacity='0.5'/>
+      <path d='M68 86C62 130 66 188 80 236' fill='none' stroke='${dk}' stroke-width='2' stroke-linecap='round' opacity='0.45'/>
+      <path d='M188 86C194 130 190 188 176 236' fill='none' stroke='${dk}' stroke-width='2' stroke-linecap='round' opacity='0.45'/>
+      <path d='M128 36C150 38 168 50 178 74' fill='none' stroke='${hi}' stroke-width='2' stroke-linecap='round' opacity='0.4'/>
+    </g>`;
   }
 
   // Per-garment collar, drawn ON TOP of the skin neck so its curved opening shapes the neckline.

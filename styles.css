@@ -542,6 +542,7 @@ button:disabled {
 }
 
 .secret-card {
+  position: relative;
   display: grid;
   grid-template-columns: 90px 1fr;
   gap: 12px;
@@ -569,6 +570,12 @@ button:disabled {
   border-right: 2px solid rgba(0, 0, 0, 0.18);
 }
 .secret-info { padding: 8px 0; min-width: 0; }
+/* Mode badges (position / body-count / attribute orb) pinned to the card corners, like the board card:
+   position + level on the left, eggplant / orb on the right - never cramped over the small portrait. */
+.secret-corner > .ygo-orb { position: absolute; top: 8px; right: 8px; left: auto; width: 30px; }
+.secret-corner > .orgy-bodycount { position: absolute; top: 8px; right: 10px; left: auto; font-size: 0.7rem; }
+.secret-corner > .orgy-pos { position: absolute; top: 8px; left: 10px; font-size: 0.62rem; }
+.secret-corner > .ygo-toprow { position: absolute; top: 8px; left: 10px; }
 /* The active mode's dossier (orgy stat bars, Yu-Gi-Oh type line / ATK-DEF, badges) inside the card. */
 .secret-mode-meta { margin-top: 5px; max-width: 320px; }
 .secret-card.orgy { color: #ffe3ef; background: linear-gradient(180deg, #2a0e1c, #1c0712); border-color: #7a1c3e; }
@@ -2496,12 +2503,15 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 .game-stage .character-board {
   margin: 124px 12px 12px;
   border-color: rgba(23, 21, 18, 0.55);
-  /* The board shows the location banner art directly behind the cards (no cream panel), with a soft
-     dark wash so the light cards stay legible. */
+  /* The banner sits across the TOP (full width, most of it visible), then fades down into a colour
+     sampled from the banner's own bottom edge (--board-fade) so the board melts into the artwork. */
   background:
-    linear-gradient(180deg, rgba(18, 16, 14, 0.42), rgba(18, 16, 14, 0.52)),
-    var(--board-art, linear-gradient(180deg, rgba(255, 253, 247, 0.85), rgba(255, 253, 247, 0.9)))
-      center / cover no-repeat;
+    linear-gradient(to bottom,
+      transparent 0%, transparent 30%,
+      color-mix(in srgb, var(--board-fade, #15140f) 55%, transparent) 44%,
+      var(--board-fade, #15140f) 72%),
+    var(--board-art, none) top center / 100% auto no-repeat,
+    var(--board-fade, #16140f);
   backdrop-filter: none;
 }
 /* Yu-Gi-Oh mode keeps its own themed backdrop, not the location banner. */
@@ -2758,6 +2768,12 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   transform: rotateY(180deg);
 }
 .character-card.ygo.is-down:hover { transform: rotateY(180deg) translateY(-3px); }
+/* The board rebuilds the card already flipped, so a transition can't fire - play a keyframe instead. */
+.character-card.ygo.ygo-flip.is-down { animation: ygoFlip 0.6s ease forwards; }
+@keyframes ygoFlip {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(180deg); }
+}
 
 /* ===================== Fireworks Mode (head pops out + explodes) ===================== */
 .character-card.is-fireworks-pop {
@@ -2778,8 +2794,7 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  clip-path: inset(0 0 42% 0);     /* show only the head (top 58%) of the portrait */
+  object-fit: cover;               /* head-only render: transparent bg, just the head */
   transform-origin: 50% 45%;
   animation: fwHead 1s cubic-bezier(0.25, 0, 0.45, 1) forwards;
   z-index: 7;
@@ -2929,3 +2944,87 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   text-overflow: ellipsis;
 }
 .orgy-upnext b { color: #ff8fbb; }
+
+/* ===================== Yu-Gi-Oh font takeover ===================== */
+body.mode-yugioh,
+body.mode-yugioh button,
+body.mode-yugioh input,
+body.mode-yugioh select,
+body.mode-yugioh textarea,
+body.mode-yugioh .question-prompt,
+body.mode-yugioh h1,
+body.mode-yugioh h2,
+body.mode-yugioh h3,
+body.mode-yugioh .label,
+body.mode-yugioh .eyebrow {
+  font-family: "Cinzel", "Times New Roman", Georgia, serif !important;
+}
+body.mode-yugioh h1,
+body.mode-yugioh h2 { letter-spacing: 0.02em; }
+/* the card frames keep their own print serif */
+body.mode-yugioh .character-card.ygo h3,
+body.mode-yugioh .ygo-typeline,
+body.mode-yugioh .ygo-stat { font-family: "Times New Roman", Georgia, serif !important; }
+
+/* ===================== PIXALL (8-bit mode) ===================== */
+body.mode-pixall,
+body.mode-pixall button,
+body.mode-pixall input,
+body.mode-pixall select,
+body.mode-pixall .question-prompt,
+body.mode-pixall h1,
+body.mode-pixall h2,
+body.mode-pixall h3,
+body.mode-pixall .label,
+body.mode-pixall .eyebrow,
+body.mode-pixall .card-plate h3,
+body.mode-pixall .secret-name {
+  font-family: "Press Start 2P", monospace !important;
+  letter-spacing: 0;
+}
+body.mode-pixall { font-size: 0.8rem; }
+body.mode-pixall h1 { font-size: 1rem; line-height: 1.5; }
+body.mode-pixall h2 { font-size: 0.86rem; line-height: 1.5; }
+body.mode-pixall .question-prompt { font-size: 0.74rem; line-height: 1.7; }
+body.mode-pixall .label,
+body.mode-pixall .eyebrow { font-size: 0.5rem; line-height: 1.6; }
+body.mode-pixall .secret-name { font-size: 0.66rem; line-height: 1.5; }
+
+.character-board.pixall-board {
+  position: relative;
+  border-color: #2b3550 !important;
+  background: #0e1018 !important;
+  backdrop-filter: none !important;
+}
+.character-board.pixall-board img,
+body.mode-pixall .secret-card img {
+  image-rendering: pixelated;
+}
+.character-board.pixall-board .character-card,
+.character-board.pixall-board .character-card .portrait-wrap {
+  border-radius: 0 !important;
+}
+.character-board.pixall-board .character-card {
+  border: 2px solid #0a0c12;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  background: #1a2030;
+}
+.character-board.pixall-board .card-plate h3 {
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.46rem;
+  line-height: 1.5;
+  color: #e8f0ff;
+}
+.character-board.pixall-board .card-plate {
+  background: #11141f;
+  padding: 6px 4px;
+}
+/* CRT scanlines over the whole 8-bit board */
+.character-board.pixall-board::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0 2px, transparent 2px 4px);
+}

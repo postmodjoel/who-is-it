@@ -1094,12 +1094,12 @@
             <stop offset='1' stop-color='${shadeColor(hair, 0.86)}'/>
           </linearGradient>
         </defs>
-        <rect width='256' height='256' fill='${traits.background}'/>
+        ${traits.headOnly ? "" : `<rect width='256' height='256' fill='${traits.background}'/>`}
         ${animCSS(traits, seed)}
-        ${renderClothing(outfit, traits, seed)}
-        ${renderNeckBase(traits, skin)}
-        ${renderCollar(traits)}
-        ${renderTattoo(traits, "body")}
+        ${traits.headOnly ? "" : renderClothing(outfit, traits, seed)}
+        ${traits.headOnly ? "" : renderNeckBase(traits, skin)}
+        ${traits.headOnly ? "" : renderCollar(traits)}
+        ${traits.headOnly ? "" : renderTattoo(traits, "body")}
         ${headGroup(traits, `
           ${renderHairLocks(traits, seed, hair, true)}
           ${useFacesHair ? "" : renderBackHair(hairStyle, `url(#hair-${seed})`, traits)}
@@ -1126,7 +1126,7 @@
           ${renderHairLocks(traits, seed, hair, false)}
           ${accessorySvg.afterMouth}
         `)}
-        ${renderDrawnLocks(traits, seed, hair)}
+        ${traits.headOnly ? "" : renderDrawnLocks(traits, seed, hair)}
       </svg>
     `;
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;

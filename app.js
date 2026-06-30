@@ -761,6 +761,12 @@ const mysteryEffects = [
     name: "Fireworks Mode",
     apply: applyFireworks,
     exampleQuestion: "Ready to make someone's head pop?"
+  },
+  {
+    id: "pixall",
+    name: "PIXALL",
+    apply: applyPixall,
+    exampleQuestion: "Is your person made of more than 8 pixels?"
   }
 ];
 
@@ -829,8 +835,11 @@ function renderLocation() {
   const artSrc = state.location.art[variant];
   // Bleed the location's colours into the page background behind everything.
   if (backdrop) backdrop.style.backgroundImage = `url('${encodeURI(artSrc)}')`;
-  // The board sits directly on the location banner art (no cream panel).
-  if (els.characterBoard) els.characterBoard.style.setProperty("--board-art", `url('${encodeURI(artSrc)}')`);
+  // The board shows the banner at the top and fades into a colour sampled from the banner's bottom.
+  if (els.characterBoard) {
+    els.characterBoard.style.setProperty("--board-art", `url('${encodeURI(artSrc)}')`);
+    sampleBottomColor(artSrc, (col) => els.characterBoard.style.setProperty("--board-fade", col));
+  }
   const isGayFrogged = state.global.mystery?.id === "gay-frogged";
   const isYugioh = state.global.mystery?.id === "yugioh";
   const ygo = isYugioh ? yugiohLocationFlavor(state.location) : null;
@@ -897,7 +906,6 @@ function renderSecret() {
   els.secretCard.innerHTML = `
     <div class="secret-portrait">
       <img src="${m.image || gayFroggedAssignment?.image || secret.image}" alt="${escapeHtml(secret.name)}">
-      ${m.cornerHtml || ""}
     </div>
     <div class="secret-info">
       <p class="secret-name">${displayName(secret)}</p>
@@ -905,6 +913,7 @@ function renderSecret() {
       ${state.global.mystery?.id === "role-reveal" ? `<p class="secret-meta">${escapeHtml(roleFor(secret.id))}</p>` : ""}
       ${m.html ? `<div class="secret-mode-meta">${m.html}</div>` : ""}
     </div>
+    ${m.cornerHtml ? `<div class="secret-corner">${m.cornerHtml}</div>` : ""}
   `;
   setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
 }
@@ -922,11 +931,16 @@ function renderBoard() {
     renderKnockoffManorBoard(player);
     return;
   }
-  els.characterBoard.classList.toggle("ygo-board", state.global.mystery?.id === "yugioh");
-  els.characterBoard.classList.toggle("orgy-board", state.global.mystery?.id === "orgy");
+  const modeId = state.global.mystery?.id;
+  els.characterBoard.classList.toggle("ygo-board", modeId === "yugioh");
+  els.characterBoard.classList.toggle("orgy-board", modeId === "orgy");
+  els.characterBoard.classList.toggle("pixall-board", modeId === "pixall");
+  document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
+  document.body.classList.toggle("mode-pixall", modeId === "pixall");
   state.board.forEach((character) => {
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
+  if (modeId === "pixall") pixelateBoard();
 }
 
 function renderHints() {
@@ -1012,8 +1026,9 @@ function toggleEliminated(id) {
     state.justEliminated = null;
   } else {
     player.eliminated.add(id);
-    // Fireworks Mode: mark the just-killed card so its head-pop + fireworks plays once.
-    state.justEliminated = state.global.mystery?.id === "fireworks" ? id : null;
+    // Mark the just-eliminated card so a one-shot animation can play on it (fireworks head-pop, or
+    // the Yu-Gi-Oh flip-to-back) - the board re-renders, so the effect runs from a fresh keyframe.
+    state.justEliminated = id;
   }
   renderBoard();
   state.justEliminated = null;
@@ -1169,7 +1184,8 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board");
+  document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
 }
@@ -1181,9 +1197,13 @@ function createCharacterCard(character, player) {
   card.id = `card-${character.id}`;
   card.className = `character-card ${character.variant || ""} ${mystery.cardClass || ""}`.trim();
   card.classList.toggle("is-down", player.eliminated.has(character.id));
-  // One-shot head-pop + fireworks when this card was just eliminated in Fireworks Mode.
-  const popping = state.justEliminated === character.id;
+  const justKilled = state.justEliminated === character.id;
+  const modeId = state.global.mystery?.id;
+  // One-shot head-pop + fireworks when just eliminated in Fireworks Mode.
+  const popping = justKilled && modeId === "fireworks";
   if (popping) card.classList.add("is-fireworks-pop");
+  // One-shot flip-to-back animation when just eliminated in Yu-Gi-Oh mode.
+  if (justKilled && modeId === "yugioh") card.classList.add("ygo-flip");
   card.dataset.id = character.id;
   if (mystery.effectName) card.dataset.mysteryEffect = mystery.effectName;
   if (mystery.style) card.setAttribute("style", mystery.style);
@@ -1208,8 +1228,12 @@ function createCharacterCard(character, player) {
       const ty = Math.round(Math.sin(ang) * dist);
       parts += `<i style="--tx:${tx}px;--ty:${ty}px;background:${cols[i % cols.length]}"></i>`;
     }
+    // Use an isolated head render (transparent background, no body) so the actual head flies off.
+    const headSrc = (character.traits && window.faceGenerator)
+      ? window.faceGenerator.renderPortrait(character.seed, { ...character.traits, headOnly: true })
+      : portraitSrc;
     fireworks = `<div class="fw" aria-hidden="true">`
-      + `<img class="fw-head" src="${portraitSrc}" alt="">`
+      + `<img class="fw-head" src="${headSrc}" alt="">`
       + `<div class="fw-burst">${parts}</div><div class="fw-flash"></div></div>`;
   }
   card.innerHTML = `
@@ -1650,6 +1674,73 @@ function applyYugioh(effect) {
     assignments[ch.id] = a;
   });
   return { id: effect.id, name: effect.name, assignments };
+}
+
+// PIXALL: 8-bit pixel-art mode. No per-character data - the look comes from the pixel font (CSS) and
+// a canvas pass that downscales + colour-quantises each portrait into chunky pixels.
+function applyPixall(effect) {
+  return { id: effect.id, name: effect.name, assignments: {} };
+}
+
+// Rasterise an SVG portrait down to `size` px and quantise its colours for a real 8-bit look.
+const pixelCache = new Map();
+function pixelateSrc(src, size, done) {
+  if (pixelCache.has(src)) { done(pixelCache.get(src)); return; }
+  const im = new Image();
+  im.onload = () => {
+    const c = document.createElement("canvas");
+    c.width = size; c.height = size;
+    const x = c.getContext("2d");
+    x.imageSmoothingEnabled = false;
+    x.drawImage(im, 0, 0, size, size);
+    try {
+      const d = x.getImageData(0, 0, size, size);
+      const a = d.data;
+      for (let i = 0; i < a.length; i += 4) {
+        a[i] = Math.round(a[i] / 51) * 51;
+        a[i + 1] = Math.round(a[i + 1] / 51) * 51;
+        a[i + 2] = Math.round(a[i + 2] / 51) * 51;
+      }
+      x.putImageData(d, 0, 0);
+    } catch (e) { /* tainted canvas - skip quantise */ }
+    const url = c.toDataURL();
+    pixelCache.set(src, url);
+    done(url);
+  };
+  im.onerror = () => done(src);
+  im.src = src;
+}
+function pixelateBoard() {
+  els.characterBoard.querySelectorAll(".portrait-wrap > img").forEach((img) => {
+    const src = img.getAttribute("src");
+    if (!src || src.startsWith("data:image/png")) return;
+    pixelateSrc(src, 46, (url) => { if (img.isConnected) img.src = url; });
+  });
+}
+
+// Average colour of the bottom strip of the location banner, for the board's fade-to-bottom gradient.
+const fadeCache = new Map();
+function sampleBottomColor(src, done) {
+  if (fadeCache.has(src)) { done(fadeCache.get(src)); return; }
+  const im = new Image();
+  im.crossOrigin = "anonymous";
+  im.onload = () => {
+    const w = 24, h = 24;
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const x = c.getContext("2d");
+    x.drawImage(im, 0, 0, w, h);
+    try {
+      const d = x.getImageData(0, Math.floor(h * 0.72), w, Math.ceil(h * 0.28)).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+      const col = `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
+      fadeCache.set(src, col);
+      done(col);
+    } catch (e) { done("#15140f"); }
+  };
+  im.onerror = () => done("#15140f");
+  im.src = src;
 }
 
 // Fireworks Mode: no per-character data - it's a visual mode where eliminating a character pops their

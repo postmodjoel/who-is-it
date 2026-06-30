@@ -83,42 +83,34 @@ button:disabled {
   padding: 18px;
 }
 
-.topbar {
+/* Title now lives at the top of the left sidebar, as part of the same column. */
+.side-head {
   display: flex;
-  align-items: stretch;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 18px;
-  padding: 12px 0 18px;
-  min-height: 132px;
+  gap: 10px;
+  padding: 2px 4px 8px;
 }
-.topbar > .topbar-title { align-items: center; }
-
-.topbar-title {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-
-.topbar-title .room-code {
-  font-size: 0.78rem;
-  opacity: 0.55;
-  border-color: transparent;
-  background: none;
-}
-
-.topbar h1,
+.side-head h1,
 .setup-form h2 {
   margin: 0;
   letter-spacing: 0;
 }
-
-.topbar h1 {
-  font-size: clamp(2rem, 5vw, 4.6rem);
-  line-height: 0.88;
+.side-head h1 {
+  font-size: clamp(1.5rem, 3.4vw, 2.3rem);
+  line-height: 0.9;
   color: var(--ink);
   text-transform: uppercase;
   overflow-wrap: anywhere;
+}
+.side-head .room-code {
+  font-size: 0.72rem;
+  opacity: 0.55;
+  border: none;
+  background: none;
+  padding: 0;
+  box-shadow: none;
+  min-height: 0;
 }
 
 .eyebrow,
@@ -149,17 +141,34 @@ button:disabled {
   align-items: center;
   gap: 10px;
 }
-/* Settings/effect/new-game buttons stacked vertically to the right, freeing width for the banner. */
-.topbar-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  flex: 0 0 auto;
-  width: 168px;
+/* The location banner sits across the top of the stage (half height); the action buttons nest into
+   its right-hand side so the whole top strip reads as one piece. */
+.stage-top { position: relative; margin: 12px 12px 0; }
+.stage-top .location-band {
+  position: relative;
+  height: 66px;
+  margin: 0;
+  border: 2px solid var(--line);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  box-shadow: var(--shadow);
 }
-.topbar-actions .button { min-height: 34px; }
-.topbar-actions #debugEffectPicker { width: 100%; }
+.stage-top .location-band.is-off { display: none; }
+.topbar-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 66px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  z-index: 5;
+}
+.topbar-actions .button { min-height: 36px; }
+.topbar-actions #debugEffectPicker { max-width: 122px; }
 
 .button,
 .segment,
@@ -2474,38 +2483,13 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 }
 .game-side .seat-roster { flex-wrap: wrap; }
 
-/* The stage: the location image is the backdrop, the people grid sits over it. */
+/* The stage holds the top banner strip + the board; the panels supply their own framing now. */
 .game-stage {
   position: relative;
-  overflow: hidden;
-  border: 2px solid var(--line);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
   min-height: 64vh;
 }
 
-.game-stage .location-band {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  margin: 0;
-  min-height: 0;
-  border: none;
-  border-radius: 0;
-}
-.game-stage .location-photo { background-position: center 34%; }
-.game-stage .location-overlay {
-  position: absolute;
-  inset: 0 0 auto 0;
-  z-index: 2;
-  min-height: 0;
-  align-items: flex-start;
-  padding: 16px 18px 22px;
-}
-.game-stage .location-copy h2 { margin: 3px 0 6px; font-size: clamp(1.3rem, 2.3vw, 2.1rem); }
-.game-stage .location-copy p { max-width: 54ch; font-size: clamp(0.86rem, 1.4vw, 1rem); }
-
-/* People grid overlaid on the location (pushed below the caption, faintly translucent). */
+/* (The location band moved to .stage-top - its old full-stage backdrop styles are removed.) */
 .game-stage .board-wrap {
   position: relative;
   z-index: 1;
@@ -2513,9 +2497,10 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   margin: 0;
 }
 .game-stage .character-board {
-  margin: 12px;
+  margin: 0 12px 12px;
+  border-radius: 0 0 12px 12px;
   border-color: rgba(23, 21, 18, 0.55);
-  /* The banner now lives in the top bar, so the board just tints to the sampled banner colour. */
+  /* The banner sits in the strip above; the board tints to the sampled banner colour and joins it. */
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--board-fade, #16140f) 70%, #000 0%), var(--board-fade, #16140f));
   backdrop-filter: none;
@@ -2532,27 +2517,13 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 @media (max-width: 860px) {
   .game-layout { grid-template-columns: 1fr; }
   .game-side { position: static; }
-  .game-stage .character-board { margin-top: 12px; }
-  .topbar { flex-wrap: wrap; }
-  .topbar .location-band { order: 3; flex-basis: 100%; }
 }
 
-/* Location banner now lives in the top bar, between the title and the action buttons. */
-.topbar .location-band {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  border: 2px solid var(--line);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-}
-.topbar .location-band.is-off { display: none; }
-.topbar .location-band .location-photo { position: absolute; inset: 0; background-size: cover; background-position: center 38%; }
-.topbar .location-band .location-scrim,
-.topbar .location-band .location-rainbow { position: absolute; inset: 0; }
-.topbar .location-band .location-overlay {
+/* Banner content inside the half-height stage-top strip. */
+.stage-top .location-band .location-photo { position: absolute; inset: 0; background-size: cover; background-position: center 38%; }
+.stage-top .location-band .location-scrim,
+.stage-top .location-band .location-rainbow { position: absolute; inset: 0; }
+.stage-top .location-band .location-overlay {
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -2562,11 +2533,12 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   gap: 10px;
   padding: 0 14px;
 }
-.topbar .location-band .location-copy { min-width: 0; }
-.topbar .location-band .location-copy .eyebrow { font-size: 0.58rem; margin: 0; opacity: 0.85; }
-.topbar .location-band .location-copy h2 { margin: 1px 0; font-size: clamp(0.95rem, 1.7vw, 1.35rem); line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topbar .location-band .location-copy p { display: none; }   /* the long prompt stays in the side cue card */
-.topbar .location-band .location-stamp { flex: 0 0 auto; }
+.stage-top .location-band .location-copy { min-width: 0; }
+.stage-top .location-band .location-copy .eyebrow { font-size: 0.58rem; margin: 0; opacity: 0.85; }
+.stage-top .location-band .location-copy h2 { margin: 1px 0; font-size: clamp(0.95rem, 1.7vw, 1.35rem); line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage-top .location-band .location-copy p { display: none; }   /* the long prompt stays in the side cue card */
+.stage-top .location-band .location-overlay { padding-right: 200px; }  /* leave room for the nested buttons */
+.stage-top .location-band .location-stamp { display: none; }          /* buttons take the right side */
 
 /* ===================== Yu-Gi-Oh! mode ===================== */
 .character-board.ygo-board {

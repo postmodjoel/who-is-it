@@ -8,29 +8,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Press+Start+2P&family=Cinzel:wght@500;600;700;800;900&family=MedievalSharp&display=swap">
-    <link rel="stylesheet" href="styles.css?v=26">
+    <link rel="stylesheet" href="styles.css?v=27">
   </head>
   <body>
     <div id="locationBackdrop" class="location-backdrop" aria-hidden="true"></div>
     <div id="app">
-      <header class="topbar">
-        <div class="topbar-title">
-          <h1>WHO? IS IT?</h1>
-          <span id="roomCode" class="room-code"></span>
-        </div>
-        <section id="locationBand" class="location-band" aria-live="polite"></section>
-        <div class="topbar-actions">
-          <select id="debugEffectPicker" class="button ghost" title="Debug: trigger a mystery effect" aria-label="Debug effect">
-            <option value="">Effect…</option>
-          </select>
-          <button id="themeButton" class="button ghost icon-only" type="button" aria-label="Light mode" title="Light mode"></button>
-          <button id="setupButton" class="button ghost icon-only" type="button" aria-label="Setup" title="Setup"></button>
-          <button id="newGameButton" class="button primary icon-only" type="button" aria-label="New game" title="New game"></button>
-        </div>
-      </header>
-
       <div class="game-layout">
         <aside class="game-side">
+          <div class="side-head">
+            <h1>WHO? IS IT?</h1>
+            <span id="roomCode" class="room-code"></span>
+          </div>
+
           <div class="side-block side-you">
             <p class="label">You are</p>
             <div id="secretCard" class="secret-card is-hidden"></div>
@@ -51,11 +40,24 @@
             </div>
           </div>
 
+          <div id="opponentPanel" class="opponent-panel"></div>
+
           <div id="seatRoster" class="seat-roster" aria-label="Room seats"></div>
           <span id="roomStatus" class="room-status"></span>
         </aside>
 
         <main class="game-stage">
+          <div class="stage-top">
+            <section id="locationBand" class="location-band" aria-live="polite"></section>
+            <div class="topbar-actions">
+              <select id="debugEffectPicker" class="button ghost" title="Debug: trigger a mystery effect" aria-label="Debug effect">
+                <option value="">Effect…</option>
+              </select>
+              <button id="themeButton" class="button ghost icon-only" type="button" aria-label="Light mode" title="Light mode"></button>
+              <button id="setupButton" class="button ghost icon-only" type="button" aria-label="Setup" title="Setup"></button>
+              <button id="newGameButton" class="button primary icon-only" type="button" aria-label="New game" title="New game"></button>
+            </div>
+          </div>
           <div class="board-wrap">
             <div id="hintShelf" class="hint-shelf"></div>
             <div id="characterBoard" class="character-board" aria-label="Character board"></div>
@@ -126,9 +128,9 @@
       </form>
     </dialog>
 
-    <script src="game-data.js?v=26"></script>
-    <script src="faces-hair.js?v=26"></script>
-    <script src="face-generator.js?v=26"></script>
-    <script src="app.js?v=26"></script>
+    <script src="game-data.js?v=27"></script>
+    <script src="faces-hair.js?v=27"></script>
+    <script src="face-generator.js?v=27"></script>
+    <script src="app.js?v=27"></script>
   </body>
 </html>

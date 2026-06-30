@@ -294,7 +294,9 @@
   const clothing = {
     hoodie: { collar: "hood" },
     tee: { collar: "crew" },
+    vneck: { collar: "vneck" },
     collared: { collar: "shirt" },
+    blazer: { collar: "blazer" },
     jacket: { collar: "zip" },
     turtleneck: { collar: "turtle" },
     overalls: { collar: "overall" },
@@ -1302,10 +1304,18 @@
     // A single soft chest-shadow arc near the neck for depth (no hard arm/torso seam lines - those
     // created a visible kink/"join" on the shoulder).
     const arc = `M${128 - sh * 0.5} 248C${128 - sh * 0.3} 228 ${128 - sh * 0.14} 220 128 220C${128 + sh * 0.14} 220 ${128 + sh * 0.3} 228 ${128 + sh * 0.5} 248`;
+    // Sleeve seams: a curved stitch where each sleeve meets the torso, so a clothed body reads as an
+    // actual garment with shoulders/arms instead of a single flat colour wedge. Skipped when bare.
+    const seam = (s) => {
+      const x0 = 128 + s * (sh * 0.62), x1 = 128 + s * (sh * 0.98);
+      return `<path d='M${(x0).toFixed(1)} 214 C ${(x0 + s * 8).toFixed(1)} 226 ${(x1 - s * 4).toFixed(1)} 234 ${(x1).toFixed(1)} 252' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>`;
+    };
+    const sleeves = garment.bare ? "" : seam(-1) + seam(1);
     const body = `
       <path d='${shoulderPath(traits)}' fill='${fill}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
       ${renderBust(traits, sh, shadeColor(fill, 0.78))}
       <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.38'/>
+      ${sleeves}
       ${traits.clothing === "singlet" ? renderSinglet(traits, c, sh) : ""}
     `;
     return `<g transform='translate(0 256) scale(1 1.13) translate(0 -256)'>${body}</g>`;
@@ -1406,30 +1416,66 @@
   function renderCollar(traits) {
     if ((clothing[traits.clothing] || {}).collar === "none") return ""; // bare / singlet
     const c = traits.shirt;
-    const lo = shadeColor(c, 0.82);
-    const hi = shadeColor(c, 1.12);
-    const rib = shadeColor(c, 0.68);
+    const lo = shadeColor(c, 0.8);
+    const hi = shadeColor(c, 1.14);
+    const rib = shadeColor(c, 0.66);
+    const dk = shadeColor(c, 0.6);
     const y = necklineY(traits);
     const cy = y + 7; // centre of the neckline dip
     const style = traits.clothing;
+    const SC = stroke.contour, SF = stroke.feature, SD = stroke.detail;
+    // Mirror a left-side path group around the x=128 centreline (for symmetric lapels/hoods).
+    const mirror = (markup) => `<g transform='matrix(-1 0 0 1 256 0)'>${markup}</g>`;
 
     if (style === "turtleneck") {
-      // a tall folded tube hugging the neck with one soft horizontal fold
+      // a tall folded tube hugging the neck with vertical ribbing + a soft horizontal fold
+      let ribs = "";
+      for (let x = 110; x <= 146; x += 6) ribs += `<path d='M${x} ${y - 24} L${x} ${y - 2}'/>`;
       return `
-        <path d='M104 ${y} Q128 ${cy} 152 ${y} L152 ${y - 22} Q128 ${y - 33} 104 ${y - 22} Z' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
-        <path d='M107 ${y - 13} Q128 ${y - 5} 149 ${y - 13}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.6'/>
+        <path d='M104 ${y} Q128 ${cy} 152 ${y} L152 ${y - 24} Q128 ${y - 35} 104 ${y - 24} Z' fill='${c}' stroke='${ink}' stroke-width='${SC}' stroke-linejoin='round'/>
+        <g stroke='${rib}' stroke-width='1.2' opacity='.5'>${ribs}</g>
+        <path d='M107 ${y - 13} Q128 ${y - 5} 149 ${y - 13}' fill='none' stroke='${dk}' stroke-width='${SF}' stroke-linecap='round' opacity='.7'/>
+      `;
+    }
+    if (style === "vneck") {
+      // a V-neck knit: a chunky ribbed V-trim, with the shirt body filling the V.
+      const trim = `M104 ${y - 2} L128 ${y + 34} L152 ${y - 2}`;
+      let ribs = "";
+      for (let x = 110; x <= 146; x += 6) { const t = Math.abs(x - 128) / 24; ribs += `<path d='M${x} ${(y + 2).toFixed(0)} L${x} ${(y + 2 + (1 - t) * 22).toFixed(0)}'/>`; }
+      return `
+        <path d='${trim}' fill='none' stroke='${ink}' stroke-width='5.5' stroke-linejoin='round'/>
+        <path d='${trim}' fill='none' stroke='${c}' stroke-width='3' stroke-linejoin='round'/>
+        <path d='M110 ${y} L128 ${y + 27} L146 ${y}' fill='none' stroke='${lo}' stroke-width='${SD}' opacity='.55'/>
+        <g stroke='${rib}' stroke-width='1' opacity='.4'>${ribs}</g>
       `;
     }
     if (style === "collared") {
-      // folded collar band around the neckline + two pointed front collar tips making a clean V
-      const band = `M150 ${y} Q128 ${cy} 106 ${y} L100 ${y + 10} Q128 ${cy + 13} 156 ${y + 10} Z`;
-      const tipL = `M104 ${y + 2} L126 ${y + 18} L128 ${y + 5} Z`;
-      const tipR = `M152 ${y + 2} L130 ${y + 18} L128 ${y + 5} Z`;
+      // an open button-up shirt: two pointed collar flaps + a button placket down the chest
+      const flapL = `M127 ${y + 4} L104 ${y + 1} L99 ${y + 16} L126 ${y + 22} Z`;
+      let buttons = "";
+      for (let i = 0; i < 3; i++) buttons += `<circle cx='128' cy='${y + 26 + i * 13}' r='2.1' fill='${hi}' stroke='${ink}' stroke-width='1.2'/>`;
       return `
-        <path d='${band}' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
-        <path d='${tipL}' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
-        <path d='${tipR}' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
-        <path d='M128 ${y + 18} V ${y + 46}' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
+        <path d='M128 ${y + 5} L150 ${cy} 156 ${y + 12}' fill='none' stroke='none'/>
+        <path d='M128 ${y + 22} L128 256' stroke='${dk}' stroke-width='2.4' opacity='.55'/>
+        <path d='${flapL}' fill='${c}' stroke='${ink}' stroke-width='${SF}' stroke-linejoin='round'/>
+        ${mirror(`<path d='${flapL}' fill='${c}' stroke='${ink}' stroke-width='${SF}' stroke-linejoin='round'/>`)}
+        ${buttons}
+      `;
+    }
+    if (style === "blazer") {
+      // a tailored blazer: peaked lapels over a lighter inner shirt-V and a knotted tie.
+      const shirtV = `M115 ${y + 1} L128 ${y + 40} L141 ${y + 1} Z`;
+      const lapelL = `M104 ${y - 1} L128 ${y + 6} L124 ${y + 44} L98 ${y + 18} Z`;
+      const tie = `M128 ${y + 6} L122 ${y + 13} L126 ${y + 50} L130 ${y + 50} L134 ${y + 13} Z`;
+      const knot = `M124 ${y + 5} L132 ${y + 5} L130 ${y + 12} L126 ${y + 12} Z`;
+      return `
+        <path d='${shirtV}' fill='${shadeColor(c, 1.5)}' stroke='${ink}' stroke-width='${SD}' stroke-linejoin='round'/>
+        <path d='${tie}' fill='${dk}' stroke='${ink}' stroke-width='${SD}' stroke-linejoin='round'/>
+        <path d='${knot}' fill='${shadeColor(dk, 1.15)}' stroke='${ink}' stroke-width='${SD}' stroke-linejoin='round'/>
+        <path d='${lapelL}' fill='${c}' stroke='${ink}' stroke-width='${SF}' stroke-linejoin='round'/>
+        ${mirror(`<path d='${lapelL}' fill='${c}' stroke='${ink}' stroke-width='${SF}' stroke-linejoin='round'/>`)}
+        <path d='M104 ${y - 1} L116 ${y + 9}' fill='none' stroke='${dk}' stroke-width='${SD}' opacity='.6'/>
+        ${mirror(`<path d='M104 ${y - 1} L116 ${y + 9}' fill='none' stroke='${dk}' stroke-width='${SD}' opacity='.6'/>`)}
       `;
     }
     if (style === "jacket") {
@@ -1438,12 +1484,28 @@
       let teeth = "";
       for (let ty = y + 16; ty <= y + 50; ty += 4) teeth += `<path d='M125 ${ty} L131 ${ty}'/>`;
       return `
-        <path d='${band}' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
-        <path d='M110 ${y + 11} C 112 ${y + 28} 116 ${y + 40} 120 ${y + 52}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
-        <path d='M146 ${y + 11} C 144 ${y + 28} 140 ${y + 40} 136 ${y + 52}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>
+        <path d='${band}' fill='${c}' stroke='${ink}' stroke-width='${SF}' stroke-linejoin='round'/>
+        <path d='M110 ${y + 11} C 112 ${y + 28} 116 ${y + 40} 120 ${y + 52}' fill='none' stroke='${lo}' stroke-width='${SD}' stroke-linecap='round' opacity='.5'/>
+        <path d='M146 ${y + 11} C 144 ${y + 28} 140 ${y + 40} 136 ${y + 52}' fill='none' stroke='${lo}' stroke-width='${SD}' stroke-linecap='round' opacity='.5'/>
         <path d='M128 ${y + 6} V ${y + 52}' stroke='${ink}' stroke-width='2.6' stroke-linecap='round'/>
         <g stroke='${rib}' stroke-width='1.1' opacity='.55'>${teeth}</g>
         <circle cx='128' cy='${y + 13}' r='2.3' fill='${hi}' stroke='${ink}' stroke-width='1.4'/>
+      `;
+    }
+    if (style === "hoodie") {
+      // a pullover hoodie: two bunched hood rolls flanking the neck, a kangaroo pocket + drawstrings.
+      const hoodL = `M101 ${y + 16} C 88 ${y - 4} 93 ${y - 30} 113 ${y - 26} C 122 ${y - 8} 118 ${y + 8} 112 ${y + 18} Z`;
+      const band = `M150 ${y} Q128 ${cy} 106 ${y} L102 ${y + 6} Q128 ${cy + 8} 154 ${y + 6} Z`;
+      const pocket = `M104 244 Q128 250 152 244 L152 256 L104 256 Z`;
+      return `
+        <path d='${hoodL}' fill='${lo}' stroke='${ink}' stroke-width='${SF}' stroke-linejoin='round'/>
+        ${mirror(`<path d='${hoodL}' fill='${lo}' stroke='${ink}' stroke-width='${SF}' stroke-linejoin='round'/>`)}
+        <path d='${band}' fill='${c}' stroke='${ink}' stroke-width='${SF}' stroke-linejoin='round'/>
+        <path d='${pocket}' fill='${lo}' stroke='${dk}' stroke-width='${SD}' stroke-linejoin='round' opacity='.85'/>
+        <path d='M118 246 L116 256 M138 246 L140 256' stroke='${dk}' stroke-width='1.8' stroke-linecap='round' opacity='.7'/>
+        <path d='M120 ${y + 6} L116 ${y + 32}M136 ${y + 6} L140 ${y + 32}' stroke='${dk}' stroke-width='2.6' stroke-linecap='round'/>
+        <circle cx='116' cy='${y + 34}' r='2.4' fill='${hi}' stroke='${ink}' stroke-width='1.3'/>
+        <circle cx='140' cy='${y + 34}' r='2.4' fill='${hi}' stroke='${ink}' stroke-width='1.3'/>
       `;
     }
     if (style === "overalls") {
@@ -1459,7 +1521,7 @@
       `;
     }
 
-    // default: crew / hoodie ribbed collar band hugging the neckline curve
+    // default: crew tee — a ribbed collar band hugging the neckline curve
     const band = `M150 ${y} Q128 ${cy} 106 ${y} L102 ${y + 6} Q128 ${cy + 8} 154 ${y + 6} Z`;
     let ribs = "";
     for (let x = 108; x <= 148; x += 5) {
@@ -1467,19 +1529,8 @@
       const ry = y + 7 * (1 - t * t);
       ribs += `<path d='M${x} ${ry + 1} L${x} ${ry + 5}'/>`;
     }
-    let extra = "";
-    if (style === "hoodie") {
-      // a hood seam behind the neck + two drawstrings
-      extra = `
-        <path d='M158 ${y - 1} Q128 ${y - 18} 98 ${y - 1}' fill='none' stroke='${lo}' stroke-width='${stroke.feature}' stroke-linecap='round' opacity='.7'/>
-        <path d='M120 ${y + 6} L117 ${y + 30}M136 ${y + 6} L139 ${y + 30}' stroke='${lo}' stroke-width='2.6' stroke-linecap='round'/>
-        <circle cx='117' cy='${y + 32}' r='2.4' fill='${hi}' stroke='${ink}' stroke-width='1.3'/>
-        <circle cx='139' cy='${y + 32}' r='2.4' fill='${hi}' stroke='${ink}' stroke-width='1.3'/>
-      `;
-    }
     return `
-      ${extra}
-      <path d='${band}' fill='${lo}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
+      <path d='${band}' fill='${lo}' stroke='${ink}' stroke-width='${SF}' stroke-linejoin='round'/>
       <g stroke='${rib}' stroke-width='1' stroke-linecap='round' opacity='.5'>${ribs}</g>
     `;
   }
@@ -2064,13 +2115,27 @@
     // faces.js keeps the nose to a soft underside curve close under the eyes rather than a long
     // shaded bridge - the long bridge stretched the midface and made faces look gaunt.
     const baseY = 155 + y;
-    const w = 9 * scale;
+    // noseWidth narrows/widens independently of the overall scale (a skinny vs broad nose).
+    const w = 9 * scale * (profile.noseWidth || 1);
+    // Tip shape: how curved/pointed the underside is. spread = how far the lower control points sit
+    // out toward the wings (small = pointier/narrower tip); drop = how far the tip hangs below the
+    // wings (small = flatter, less curved underside).
+    const tipCfg = {
+      round:    { spread: 0.45, drop: 2 },    // soft rounded tip (default)
+      narrow:   { spread: 0.22, drop: 2 },    // skinny pointed tip
+      pointed:  { spread: 0.16, drop: 2.6 },  // sharp, less curved
+      straight: { spread: 0.5,  drop: 0.6 },  // flat underside, barely curved
+      button:   { spread: 0.62, drop: 2.6 },  // rounder, fuller tip
+      upturned: { spread: 0.3,  drop: -0.4 }  // tip lifts above the wings
+    };
+    const tc = tipCfg[traits.noseTip] || tipCfg.round;
+    const sp = tc.spread, dr = tc.drop;
     const bridge = `M${cx} ${f(139 + y)}c-1.4 ${f(6 * scale)} -1.8 ${f(11 * scale)} -3.2 ${f(15 * scale)}`;
-    // rounded underside: down to the centre then mirrored up to the right wing
+    // underside: from the left wing down to the centre tip, then mirrored up to the right wing
     const base =
       `M${f(cx - w)} ${f(baseY - 4)}` +
-      `C${f(cx - w)} ${f(baseY)} ${f(cx - w * 0.45)} ${f(baseY + 2)} ${f(cx)} ${f(baseY + 2)}` +
-      `C${f(cx + w * 0.45)} ${f(baseY + 2)} ${f(cx + w)} ${f(baseY)} ${f(cx + w)} ${f(baseY - 4)}`;
+      `C${f(cx - w)} ${f(baseY)} ${f(cx - w * sp)} ${f(baseY + dr)} ${f(cx)} ${f(baseY + dr)}` +
+      `C${f(cx + w * sp)} ${f(baseY + dr)} ${f(cx + w)} ${f(baseY)} ${f(cx + w)} ${f(baseY - 4)}`;
     const nostrils =
       `M${f(cx - w + 0.5)} ${f(baseY + 0.5)}c-1.6 1 -2.6 0.3 -3 -1.6` +
       `M${f(cx + w - 0.5)} ${f(baseY + 0.5)}c1.6 1 2.6 0.3 3 -1.6`;
@@ -2078,7 +2143,7 @@
       <path d='${bridge}' fill='none' stroke='rgba(24,21,18,.16)' stroke-width='1.7' stroke-linecap='round'/>
       <path d='${base}' fill='rgba(24,21,18,.05)' stroke='${ink}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
       <path d='${nostrils}' fill='none' stroke='rgba(24,21,18,.4)' stroke-width='1.3' stroke-linecap='round'/>
-      <ellipse cx='${cx}' cy='${f(baseY - 3)}' rx='${f(4 * scale)}' ry='2.2' fill='rgba(255,255,255,.26)'/>
+      <ellipse cx='${cx}' cy='${f(baseY - 3)}' rx='${f(4 * scale * (profile.noseWidth || 1))}' ry='2.2' fill='rgba(255,255,255,.26)'/>
     `;
   }
 
@@ -2421,6 +2486,7 @@
       browScaleX: 1,
       noseY: 0,
       noseScale: 1,
+      noseWidth: 1,
       mouthY: 0,
       cheekY: 0,
       cheekOpacity: 0.09,
@@ -2435,7 +2501,7 @@
 
   const profileOverrideKeys = [
     "eyeScale", "eyeOpen", "irisScale", "eyeY", "browY", "browScaleX",
-    "noseY", "noseScale", "cheekY", "cheekOpacity", "eyeSocketY", "jawShadowY", "jawLength",
+    "noseY", "noseScale", "noseWidth", "cheekY", "cheekOpacity", "eyeSocketY", "jawShadowY", "jawLength",
     "pupilX", "pupilY", "browThick"
   ];
 
@@ -2623,6 +2689,7 @@
       tattooFonts: Object.keys(tattooFonts),
       tattooPlaces: ["body", "face"],
       accessoryMetals: ["", "silver", "gold", "black", "roseGold"],
+      noseTips: ["round", "narrow", "pointed", "straight", "button", "upturned"],
       skinTones: Object.keys(skinTones),
       hairColors: Object.keys(hairColors),
       hairColorHex: hairColors,

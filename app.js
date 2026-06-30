@@ -633,7 +633,7 @@ function installStaticIcons() {
   setButtonIcon(els.setupButton, "settings", "Setup");
   setButtonIcon(els.newGameButton, "refresh", "New game");
   setButtonIcon(els.swapSeatButton, "swap", "Swap seat");
-  setButtonIcon(els.drawPromptButton, "prompt", "Draw prompt");
+  if (els.drawPromptButton) setButtonIcon(els.drawPromptButton, "prompt", "Draw prompt");
 }
 
 function currentTheme() {
@@ -982,19 +982,26 @@ function drawPrompt() {
   els.questionPrompt.textContent = pick(deck);
 }
 
-let cueCardTimer = null;
-
-function startCueCardRotation() {
-  if (cueCardTimer) clearInterval(cueCardTimer);
-  cueCardTimer = setInterval(() => {
-    const cueCard = document.querySelector(".cue-card");
-    if (!cueCard) return;
+// The question rerolls when you click the cue card itself (no auto-rotation, no separate button).
+function wireCueCardClick() {
+  const cueCard = document.querySelector(".cue-card");
+  if (!cueCard || cueCard.dataset.wired) return;
+  cueCard.dataset.wired = "1";
+  cueCard.classList.add("is-clickable");
+  cueCard.setAttribute("role", "button");
+  cueCard.setAttribute("tabindex", "0");
+  cueCard.title = "Click for a new question";
+  const reroll = () => {
     cueCard.classList.add("is-fading");
     setTimeout(() => {
       drawPrompt();
       cueCard.classList.remove("is-fading");
-    }, 400);
-  }, 10000);
+    }, 220);
+  };
+  cueCard.addEventListener("click", reroll);
+  cueCard.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); reroll(); }
+  });
 }
 
 function activateMystery() {
@@ -2097,7 +2104,7 @@ els.swapSeatButton.addEventListener("click", () => {
   render();
 });
 
-els.drawPromptButton.addEventListener("click", drawPrompt);
+if (els.drawPromptButton) els.drawPromptButton.addEventListener("click", drawPrompt);
 els.mysteryButton.addEventListener("click", activateMystery);
 els.newGameButton.addEventListener("click", newGame);
 els.themeButton.addEventListener("click", toggleTheme);
@@ -2150,7 +2157,7 @@ function syncSettingsToForm() {
 loadTheme();
 installStaticIcons();
 newGame();
-startCueCardRotation();
+wireCueCardClick();
 (function () {
   const boardSelector = "#characterBoard";
   const cardSelector = ".character-card";

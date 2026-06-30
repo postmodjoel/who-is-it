@@ -39,6 +39,8 @@ const editorFields = [
   // Nose
   { group: "Nose", key: "noseY", label: "Nose Height", min: -8, max: 10, step: 0.5, fallback: 0 },
   { group: "Nose", key: "noseScale", label: "Nose Size", min: 0.6, max: 1.5, step: 0.02, fallback: 1 },
+  { group: "Nose", key: "noseWidth", label: "Nose Width (skinny ↔ broad)", min: 0.55, max: 1.5, step: 0.02, fallback: 1 },
+  { group: "Nose", key: "noseTip", label: "Tip Shape", type: "select", options: () => selectOptions(traitBook.noseTips), fallback: "round" },
   // Cheeks
   { group: "Cheeks", key: "cheekY", label: "Cheek Height", min: -8, max: 8, step: 0.5, fallback: 0 },
   { group: "Cheeks", key: "cheekOpacity", label: "Blush", min: 0, max: 0.3, step: 0.01, fallback: 0.09 },

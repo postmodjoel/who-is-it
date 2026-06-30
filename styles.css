@@ -2784,6 +2784,10 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 .character-card.is-fireworks-pop .portrait-wrap { overflow: visible; }
 .character-card.is-fireworks-pop.is-down { filter: none; }
 .character-card.is-fireworks-pop.is-down::after { display: none; }
+/* A headless (Fireworks-killed) card stays in full colour - the missing head IS the "eliminated"
+   marker, so don't also grey it out / draw the face-down overlay. */
+.character-card.fw-headless.is-down { filter: none; }
+.character-card.fw-headless.is-down::after { display: none; }
 /* The base portrait is already a headless body (noHead render) - no clip / no white chop needed. */
 
 .fw { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
@@ -2814,21 +2818,24 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   width: 100%;
   height: 100%;
   object-fit: cover;               /* head-only render: transparent bg, just the head */
-  transform-origin: 50% 45%;
-  animation: fwHead 1s cubic-bezier(0.25, 0, 0.45, 1) forwards;
+  transform-origin: 50% 50%;
+  /* ease-out launch so it shoots up and DECELERATES into the apex (weighted, not a floaty linear
+     fly-away), then drops with gravity as it bursts. */
+  animation: fwHead 0.92s cubic-bezier(0.12, 0.7, 0.35, 1) forwards;
   z-index: 7;
 }
 @keyframes fwHead {
-  0%   { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
-  45%  { transform: translateY(-160%) rotate(170deg) scale(0.92); opacity: 1; }
-  64%  { transform: translateY(-225%) rotate(250deg) scale(0.66); opacity: 1; }
-  100% { transform: translateY(-250%) rotate(330deg) scale(0.12); opacity: 0; }
+  0%   { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+  40%  { transform: translate(-7%, -150%) rotate(150deg) scale(0.9); opacity: 1; }   /* launch, slowing */
+  55%  { transform: translate(-10%, -176%) rotate(215deg) scale(0.78); opacity: 1; } /* apex - explodes here */
+  78%  { transform: translate(-13%, -120%) rotate(300deg) scale(0.4); opacity: 0.7; }/* falling back (gravity) */
+  100% { transform: translate(-16%, -40%) rotate(380deg) scale(0.12); opacity: 0; }  /* drops out of frame */
 }
 /* The explosion at the apex. */
 .fw-flash {
   position: absolute;
   left: 50%;
-  top: -135%;
+  top: -150%;
   width: 12px;
   height: 12px;
   transform: translate(-50%, -50%);
@@ -2842,7 +2849,7 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   22%  { opacity: 1; transform: translate(-50%, -50%) scale(3.2); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(6); }
 }
-.fw-burst { position: absolute; left: 50%; top: -135%; z-index: 9; }
+.fw-burst { position: absolute; left: 50%; top: -150%; z-index: 9; }
 .fw-burst i {
   position: absolute;
   left: 0;
@@ -3047,3 +3054,74 @@ body.mode-pixall .secret-card img {
   pointer-events: none;
   background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.22) 0 2px, transparent 2px 4px);
 }
+
+/* ===================== Disease Mode ===================== */
+.character-board.disease-board {
+  border-color: #2f4a32 !important;
+  background:
+    radial-gradient(circle at 20% 16%, rgba(120, 200, 80, 0.22), transparent 44%),
+    radial-gradient(circle at 82% 84%, rgba(150, 120, 30, 0.22), transparent 46%),
+    linear-gradient(160deg, #16210f, #0c130a) !important;
+  backdrop-filter: none !important;
+}
+.character-card.disease {
+  background: linear-gradient(180deg, #16210f, #0d140a);
+  border: 1px solid #3a5a36;
+  color: #e6f3df;
+}
+.character-card.disease .portrait-wrap { border-bottom: 1px solid #3a5a36; }
+.character-card.disease .card-plate { background: none; padding: 5px 7px 7px; gap: 3px; }
+.character-card.disease h3 { color: #dcefd0; font-size: 0.82rem; }
+.character-card.disease[data-dz-pregnant="true"] { box-shadow: inset 0 0 0 2px #c86bb0; }
+
+.dz-pain {
+  position: absolute; top: 5px; right: 6px; z-index: 3;
+  padding: 1px 6px; font-weight: 800; font-size: 0.72rem;
+  color: #fff; background: rgba(0, 0, 0, 0.55); border-radius: 4px;
+  font-family: "Courier New", monospace;
+}
+.dz-sheet { display: flex; flex-direction: column; gap: 3px; }
+.dz-pills { display: flex; flex-wrap: wrap; gap: 3px; }
+.dz-pill {
+  padding: 1px 5px; font-size: 0.5rem; font-weight: 800; letter-spacing: 0.02em;
+  border-radius: 3px; color: #1a130a; white-space: nowrap;
+}
+.dz-minor { background: #d7e36a; }
+.dz-major { background: #f0a93e; }
+.dz-mega  { background: #e1453c; color: #fff; }
+.dz-bar { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 5px; }
+.dz-bar b { font-size: 0.5rem; font-weight: 800; color: #bfe3a8; }
+.dz-bar i { display: block; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.dz-bar s { display: block; width: var(--n, 50%); height: 100%; background: linear-gradient(90deg, #7fd96a, #3fae3f); }
+.dz-bar u { font-size: 0.5rem; font-weight: 700; color: #cfeac0; text-decoration: none; }
+.dz-cancers, .dz-meds { font-size: 0.54rem; color: #d6e8cc; line-height: 1.3; }
+.dz-cancers b, .dz-meds b { color: #f0a93e; }
+.dz-cancers i { font-style: italic; color: #f0c98e; }
+
+/* ===================== Drug Addict Mode ===================== */
+.character-board.drugs-board {
+  border-color: #4a2f1c !important;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(200, 120, 40, 0.24), transparent 44%),
+    radial-gradient(circle at 84% 80%, rgba(90, 40, 120, 0.28), transparent 46%),
+    linear-gradient(160deg, #1c1208, #0e0a12) !important;
+  backdrop-filter: none !important;
+}
+.character-card.drugs {
+  background: linear-gradient(180deg, #201409, #100a10);
+  border: 1px solid #5a3a22;
+  color: #f1e2cf;
+}
+.character-card.drugs .portrait-wrap { border-bottom: 1px solid #5a3a22; }
+.character-card.drugs .card-plate { background: none; padding: 5px 7px 7px; gap: 3px; }
+.character-card.drugs h3 { color: #f3dcbf; font-size: 0.82rem; }
+.dg-count {
+  position: absolute; top: 5px; right: 6px; z-index: 3;
+  padding: 1px 6px; font-size: 0.5rem; font-weight: 800; color: #fff;
+  background: linear-gradient(180deg, #c8632a, #8a3f16); border-radius: 4px;
+}
+.dg-sheet { display: flex; flex-direction: column; gap: 2px; }
+.dg-row { display: flex; justify-content: space-between; gap: 6px; font-size: 0.56rem; }
+.dg-row b { font-weight: 800; color: #ffcf9c; }
+.dg-row i { font-style: normal; color: #d8c2a8; }
+.dg-daily { margin-top: 2px; font-size: 0.52rem; font-weight: 700; color: #e6a06a; text-align: right; }

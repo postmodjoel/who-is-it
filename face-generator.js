@@ -895,7 +895,7 @@
       ]
     },
     ryan: {
-      clothing: "tee", shirt: "#3a8866",
+      clothing: "tee", shirt: "#3a8866", eyeColor: "#466756",
       eyeScale: 0.96, eyeOpen: 1.2, irisScale: 0.82, pupilY: -1, lazyEye: -0.5,
       noseY: 2.5, cheekOpacity: 0.02, earScale: 0.88, earY: -3, earVariant: "lobe",
       smileLips: "off", mouthY: -1, teethScale: 0.76,

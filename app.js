@@ -459,6 +459,18 @@ const mysteryEffects = [
     name: "PIXALL",
     apply: applyPixall,
     exampleQuestion: "Is your person made of more than 8 pixels?"
+  },
+  {
+    id: "disease",
+    name: "Disease Mode",
+    apply: applyDisease,
+    exampleQuestion: "Is your person's condition MEGA?"
+  },
+  {
+    id: "drugs",
+    name: "Drug Addict Mode",
+    apply: applyDrugs,
+    exampleQuestion: "Does your person inject?"
   }
 ];
 
@@ -627,6 +639,8 @@ function renderBoard() {
   els.characterBoard.classList.toggle("ygo-board", modeId === "yugioh");
   els.characterBoard.classList.toggle("orgy-board", modeId === "orgy");
   els.characterBoard.classList.toggle("pixall-board", modeId === "pixall");
+  els.characterBoard.classList.toggle("disease-board", modeId === "disease");
+  els.characterBoard.classList.toggle("drugs-board", modeId === "drugs");
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
   state.board.forEach((character) => {
@@ -814,7 +828,7 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -844,13 +858,19 @@ function createCharacterCard(character, player) {
   // Roles are hidden by default - they are not known initially and only surface once the
   // Role Reveal mystery effect is triggered (which renders them via mystery.html below).
   let portraitSrc = mystery.image || character.image;
-  // Fireworks Mode kill: the isolated head flies up out of the frame and bursts into fireworks while
-  // blood spurts from the cut neck. The base portrait is swapped for a HEADLESS body (proper neck
-  // stump, no white "chopped" rectangle); the flying head is a transparent head-only render.
+  // Fireworks Mode: an eliminated character stays HEADLESS (head removed, neck stump) for the rest of
+  // the round - not just during the pop. The base portrait is the noHead render; the one-shot pop
+  // animation (flying head + blood + burst) only plays on the card that was just killed.
+  const fwHeadless = modeId === "fireworks" && player.eliminated.has(character.id)
+    && character.traits && window.faceGenerator;
   let fireworks = "";
+  if (fwHeadless) {
+    const render = (extra) => window.faceGenerator.renderPortrait(character.seed, { ...character.traits, ...extra });
+    portraitSrc = render({ noHead: true });           // headless body + neck stump stays as the card art
+    card.classList.add("fw-headless");
+  }
   if (popping && character.traits && window.faceGenerator) {
     const render = (extra) => window.faceGenerator.renderPortrait(character.seed, { ...character.traits, ...extra });
-    portraitSrc = render({ noHead: true });           // headless body + neck stump becomes the card art
     const headSrc = render({ headOnly: true });        // the head that flies off
 
     const cols = ["#ff4d6d", "#ffd24d", "#5dff8f", "#4dd2ff", "#c46bff", "#ff8a4d", "#fff27a"];
@@ -1232,6 +1252,38 @@ function getMysteryCardData(character) {
       html: ""
     };
   }
+  if (mystery.id === "disease") {
+    const a = assignment;
+    const tierCls = { MINOR: "dz-minor", MAJOR: "dz-major", MEGA: "dz-mega" };
+    const face = window.GameData.painFaces[a.pain];
+    const pills = a.diseases.map((d) => `<span class="dz-pill ${tierCls[d.tier]}">${escapeHtml(d.tier)} · ${escapeHtml(d.name)}</span>`).join("");
+    const cancers = a.cancers.length
+      ? `<div class="dz-cancers"><b>🎗 Cancers:</b> ${a.cancers.map((c) => `${escapeHtml(c.type)} <i>(${escapeHtml(c.eta)})</i>`).join(", ")}</div>`
+      : "";
+    const meds = `<div class="dz-meds"><b>💊 Meds:</b> ${a.meds.map(escapeHtml).join(", ")}</div>`;
+    return {
+      effectName: mystery.name,
+      cardClass: "disease",
+      dataset: { dzPregnant: String(a.pregnant) },
+      cornerHtml: `<span class="dz-pain" title="pain level">${face}</span>`,
+      html: `<div class="dz-sheet">
+        <div class="dz-pills">${pills}</div>
+        <div class="dz-bar"><b>AUTISM</b><i><s style="--n:${Math.round(a.autism * 100)}%"></s></i><u>${Math.round(a.autism * 100)}%</u></div>
+        ${cancers}${meds}
+      </div>`
+    };
+  }
+  if (mystery.id === "drugs") {
+    const a = assignment;
+    const M = window.GameData.drugMethods;
+    const rows = a.habits.map((d) => `<span class="dg-row"><b>${escapeHtml(d.name)}</b><i>${M[d.method] || d.method}</i></span>`).join("");
+    return {
+      effectName: mystery.name,
+      cardClass: "drugs",
+      cornerHtml: `<span class="dg-count" title="habits">${a.habits.length}× hooked</span>`,
+      html: `<div class="dg-sheet">${rows}<div class="dg-daily">~${a.daily}/day</div></div>`
+    };
+  }
   if (mystery.id === "orgy") {
     const a = assignment;
     const bar = (label, n) => `<span class="orgy-bar"><b>${label}</b><i><s style="--n:${n * 10}%"></s></i></span>`;
@@ -1309,6 +1361,60 @@ function applyYugioh(effect) {
       a.typeLine = `[${a.mtype}/${tag}]`;
     }
     assignments[ch.id] = a;
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// Disease Mode: every character gets a sheet of (deliberately outdated) diagnoses with MINOR/MAJOR/
+// MEGA severity, a sliding autism scale, possible cancers with an estimated arrival, a meds list, a
+// pain face, and a chance of pregnancy (filed as a MAJOR disease).
+function applyDisease(effect) {
+  const D = window.GameData;
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:dz:${salt}`) % arr.length];
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:disease:${ch.id}`);
+    const diseases = [];
+    const n = 1 + (h % 3);
+    for (let k = 0; k < n; k++) {
+      const d = pick(D.diseases, `${ch.id}:d${k}`);
+      if (!diseases.some((x) => x.name === d[0])) diseases.push({ name: d[0], tier: d[1] });
+    }
+    const pregnant = (h >>> 7) % 5 === 0;
+    if (pregnant) diseases.unshift({ name: "Pregnancy", tier: "MAJOR" });
+    const cancers = [];
+    const cn = (h >>> 9) % 3;
+    for (let k = 0; k < cn; k++) {
+      cancers.push({ type: pick(D.cancerTypes, `${ch.id}:c${k}`), eta: pick(D.cancerEtas, `${ch.id}:e${k}`) });
+    }
+    const meds = [];
+    const mn = 1 + ((h >>> 13) % 3);
+    for (let k = 0; k < mn; k++) {
+      const m = pick(D.medications, `${ch.id}:m${k}`);
+      if (!meds.includes(m)) meds.push(m);
+    }
+    assignments[ch.id] = {
+      diseases, cancers, meds, pregnant,
+      autism: ((h >>> 3) % 101) / 100,
+      pain: (h >>> 11) % D.painFaces.length
+    };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// Drug Addict Mode: random street-name addictions (some have several) + how they take each one.
+function applyDrugs(effect) {
+  const D = window.GameData;
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:drugs:${ch.id}`);
+    const n = 1 + (h % 4);
+    const habits = [];
+    for (let k = 0; k < n; k++) {
+      const d = D.drugs[stableHash(`${state.gameSalt}:dg:${ch.id}:${k}`) % D.drugs.length];
+      if (!habits.some((x) => x.name === d[0])) habits.push({ name: d[0], method: d[1] });
+    }
+    assignments[ch.id] = { habits, daily: 1 + ((h >>> 5) % 40) };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

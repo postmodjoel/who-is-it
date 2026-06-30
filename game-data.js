@@ -118,6 +118,30 @@ window.GameData = {
     "Does your person top from the bottom?",
     "Is your person a POC icon?",
     "Would your person host the function?"
+  ],
+  disease: [
+    "Is your person's worst condition MEGA?",
+    "Does your person have cancer?",
+    "Is your person pregnant?",
+    "Is your person's autism above 50%?",
+    "Is your person in serious pain (>:( )?",
+    "Has your person been diagnosed with Hysteria?",
+    "Is your person on more than one medication?",
+    "Does your person have a terminal estimated arrival?",
+    "Is one of your person's conditions on the old DSM?",
+    "Would your person survive to next Tuesday?",
+    "Is your person prescribed leeches?"
+  ],
+  drugs: [
+    "Does your person inject?",
+    "Does your person have more than one habit?",
+    "Does your person smoke their drug of choice?",
+    "Is your person hooked on something you snort?",
+    "Does your person take more than 10 a day?",
+    "Is your person on the gear?",
+    "Would your person huff it?",
+    "Does your person swallow theirs?",
+    "Is your person clean? (they are not)"
   ]
 },
 
@@ -396,5 +420,44 @@ window.GameData = {
     "It's your move. The shadows lengthen, the crowd holds its breath, and someone is bluffing.",
     "This card cannot be destroyed by social niceties. Believe in the heart of the cards.",
     "Send one assumption to the graveyard, then Special Summon a brand-new suspicion in its place."]
+  },
+
+  // Disease Mode data ----------------------------------------------------------------------------
+  // Deliberately outdated / un-medical "diagnoses" (old DSM-style) plus a couple of real heavy ones.
+  // tier: MINOR | MAJOR | MEGA
+  diseases: [
+    ["Homosexuality", "MAJOR"], ["Hysteria", "MINOR"], ["Drapetomania", "MAJOR"],
+    ["Moral Insanity", "MAJOR"], ["Inadequate Personality", "MINOR"], ["Neurasthenia", "MINOR"],
+    ["Melancholia", "MINOR"], ["The Vapours", "MINOR"], ["Wandering Womb", "MAJOR"],
+    ["Affluenza", "MINOR"], ["Gout", "MINOR"], ["Consumption", "MAJOR"], ["Brain Fever", "MAJOR"],
+    ["Lovesickness", "MINOR"], ["Ennui", "MINOR"], ["Scurvy", "MINOR"], ["Bad Humours", "MINOR"],
+    ["HIV", "MEGA"], ["Bubonic Plague", "MEGA"], ["Consumption of the Soul", "MEGA"],
+    ["Nervous Exhaustion", "MINOR"], ["Excess of Bile", "MINOR"], ["Female Hysteria", "MAJOR"]
+  ],
+  cancerTypes: ["Lung", "Pancreatic", "Skin", "Bone", "Brain", "Liver", "Stomach", "Throat",
+    "Blood", "Colon", "Eyeball", "Elbow", "Vibe", "Wallet", "Spleen"],
+  cancerEtas: ["3 weeks", "6 months", "18 months", "by 2030", "imminent", "Q3", "next Tuesday",
+    "any day now", "already here", "5–7 business days"],
+  medications: ["Mercury Tonic", "Heroic Cough Syrup", "Radium Water", "Cocaine Drops",
+    "Leeches (3x daily)", "Laudanum", "Arsenic Wafers", "Lithium Soda", "Snake Oil", "Bloodletting",
+    "Tobacco Smoke Enema", "Morphine Lozenge", "Electroshock (PRN)", "Lobotomy (pending)",
+    "Strychnine Pick-Me-Up", "Cod Liver Oil", "Opium Tincture", "Vibes (untested)"],
+  // Pain faces from worst (left) to best (right).
+  painFaces: [">:(", ">:|", ":|", ":)", ":D"],
+
+  // Drug Addict Mode data ------------------------------------------------------------------------
+  // Street names only, paired with how they take it.
+  drugs: [
+    ["Smack", "inject"], ["Gear", "inject"], ["Crank", "inject"], ["Tina", "inject"],
+    ["Charlie", "snort"], ["Bugle", "snort"], ["Ket", "snort"], ["Special K", "snort"],
+    ["Crack", "smoke"], ["Rock", "smoke"], ["Brown", "smoke"], ["Spice", "smoke"], ["Reefer", "smoke"],
+    ["Molly", "swallow"], ["Mandy", "swallow"], ["Tabs", "swallow"], ["Beans", "swallow"],
+    ["Vallies", "swallow"], ["Benzos", "swallow"], ["Oxys", "swallow"], ["Lean", "drink"],
+    ["Poppers", "huff"], ["Glue", "huff"], ["Gas", "huff"], ["Whippits", "huff"], ["Meow Meow", "snort"],
+    ["Bath Salts", "snort"], ["Devil's Lettuce", "smoke"], ["Jenkem", "huff"]
+  ],
+  drugMethods: {
+    inject: "💉 inject", snort: "👃 snort", smoke: "🚬 smoke",
+    swallow: "💊 swallow", drink: "🥤 drink", huff: "🫁 huff"
   }
 };

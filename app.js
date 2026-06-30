@@ -1602,7 +1602,7 @@ function applyDisguise(effect) {
         ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true })
         : window.faceGenerator.renderPortrait(ch.seed, {
           ...ch.traits, hair: "bald", hairLocks: [], beardLength: 0,
-          accessory: "cap", accessoryColor: "#e9e9ea", accessoryY: 0, accessoryScale: 1,
+          accessory: "turban", accessoryColor: "#ededee", accessoryY: 0, accessoryScale: 1,
           clothing: (ch.traits.clothing === "bare" || ch.traits.clothing === "singlet") ? "tee" : ch.traits.clothing,
           shirt: "#f2f2f2"
         });

@@ -545,6 +545,25 @@
       <path d='M82 84c27-9 69-9 92 0' fill='none' stroke='rgba(255,255,255,.3)' stroke-width='3.6' stroke-linecap='round'/>
       <circle cx='128' cy='74' r='3.5' fill='rgba(255,255,255,.34)'/>
     `,
+    // A towel/turban: a rounded cloth dome wound around the head - no brim, with stacked wrap-bands and
+    // one diagonal fold tucked over itself.
+    turban: (traits) => {
+      const c = traits.accessoryColor || traits.accent;
+      const dk = shadeColor(c, 0.8);
+      const hi = shadeColor(c, 1.14);
+      const f = `none' stroke='${dk}' stroke-width='3' stroke-linecap='round`;
+      return `
+        <path d='M66 106C60 60 96 44 128 44C160 44 196 60 190 106C160 118 96 118 66 106Z' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+        <path d='M68 100C100 88 156 88 188 100' fill='${f}' opacity='0.5'/>
+        <path d='M69 90C100 78 156 78 187 90' fill='${f}' opacity='0.45'/>
+        <path d='M75 80C102 70 154 70 181 80' fill='${f}' opacity='0.4'/>
+        <path d='M84 70C104 62 150 62 170 70' fill='none' stroke='${dk}' stroke-width='2.6' stroke-linecap='round' opacity='0.35'/>
+        ${/* the wound end folding over itself, front-left */ ""}
+        <path d='M92 110C82 96 86 70 110 56C120 51 132 54 133 63C123 69 114 88 114 108Z' fill='${hi}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
+        <path d='M98 104C92 92 96 74 112 64' fill='none' stroke='${dk}' stroke-width='2.2' stroke-linecap='round' opacity='0.5'/>
+        <path d='M108 54C122 49 140 51 152 60' fill='none' stroke='rgba(255,255,255,.32)' stroke-width='3' stroke-linecap='round'/>
+      `;
+    },
     beanie: (traits) => `
       <path d='M72 91c12-34 100-34 112 0v26H72V91Z' fill='${traits.accent}' stroke='${ink}' stroke-width='${stroke.contour}'/>
       <path d='M73 109h110' stroke='${ink}' stroke-width='2.7'/>
@@ -783,6 +802,7 @@
     scarf: "knit scarf",
     bow: "bow tie",
     cap: "cap",
+    turban: "turban/towel wrap",
     capBack: "backwards cap",
     beanie: "beanie",
     beret: "beret",
@@ -2640,6 +2660,7 @@
       scarf: { x: 128, y: 224 },
       bow: { x: 128, y: 214 },
       cap: { x: 128, y: 95 },
+      turban: { x: 128, y: 80 },
       capBack: { x: 128, y: 88 },
       beanie: { x: 128, y: 96 },
       beret: { x: 128, y: 86 },

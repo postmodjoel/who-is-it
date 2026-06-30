@@ -1139,6 +1139,7 @@
           <path d='${faceShape}' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
           ${renderFaceShading(seed, skin, faceShape)}
           ${renderFaceModeling(seed, skin, traits)}
+          ${renderFaceLines(seed, skin, traits)}
           ${renderChin(traits, skin)}
           ${renderBeardBlobs(traits, seed)}
           ${accessorySvg.behindHair || ""}
@@ -1758,19 +1759,51 @@
     // The reference art (penny/jade/kevin) always carries this faint pair on a smile - its absence is
     // the #1 "flat/AI" tell. Gated to smiling expressions and kept very soft (skin-shadow tone, low
     // opacity, round caps) so it reads as cheek form, not a drawn line. Sits under the nose/mouth.
-    const expr = expressions[traits.expression];
-    const smiling = expr && (expr.teeth || expr.openMouth);
-    const naso = smiling
-      ? `<path d='M119 ${150 + (profile.nasoY || 0)}C114 157 110 162 106 167M137 ${150 + (profile.nasoY || 0)}C142 157 146 162 150 167' fill='none' stroke='${shadeColor(skin, 0.82)}' stroke-width='1.8' stroke-linecap='round' opacity='0.55'/>`
-      : "";
-    // One very-soft jaw shade (kept faint so it reads as form, not a floating line). The old
-    // below-mouth crease + a second arc looked like stray marks across the chin, so they're gone.
+    // Nasolabial folds + all other face creases now live in renderFaceLines (fully controllable).
     return `
       ${cheek}
-      ${naso}
       <path d='M84 ${134 + (profile.eyeSocketY || 0)}c6-4 16-6 27-3M145 ${131 + (profile.eyeSocketY || 0)}c12-3 22-1 28 4' fill='none' stroke='rgba(255,255,255,.09)' stroke-width='2' stroke-linecap='round'/>
       <path d='M104 ${201 + (profile.jawShadowY || 0) + jawDrop(profile.jawLength, 201)}c10 6 38 6 48 0' fill='none' stroke='rgba(24,21,18,.05)' stroke-width='3' stroke-linecap='round'/>
     `;
+  }
+
+  // Customisable face lines/creases. Every line type has its own 0..1 opacity (faceLineOpacity scales
+  // them all). Nasolabial folds default on for smiles (as before); the rest default off so existing
+  // characters are unchanged until the controls are dialled up.
+  function renderFaceLines(seed, skin, traits) {
+    const profile = getProfile(traits);
+    const expr = expressions[traits.expression];
+    const smiling = expr && (expr.teeth || expr.openMouth);
+    const dk = shadeColor(skin, 0.8);
+    const mult = (traits.faceLineOpacity != null && traits.faceLineOpacity !== "") ? Number(traits.faceLineOpacity) : 1;
+    const op = (key, def) => {
+      const v = (traits[key] != null && traits[key] !== "") ? Number(traits[key]) : def;
+      return Math.max(0, Math.min(1, v * mult));
+    };
+    const line = (d, o, w) => o > 0 ? `<path d='${d}' fill='none' stroke='${dk}' stroke-width='${w || 1.6}' stroke-linecap='round' opacity='${o.toFixed(2)}'/>` : "";
+    let out = "";
+    // Nasolabial folds (nostril wing -> outside mouth corner)
+    const ny = 150 + (profile.nasoY || 0);
+    out += line(`M119 ${ny}C114 157 110 162 106 167M137 ${ny}C142 157 146 162 150 167`, op("nasoOpacity", smiling ? 0.55 : 0), 1.8);
+    // Forehead horizontal wrinkles
+    const fo = op("foreheadLineOpacity", 0);
+    out += line("M99 105q29 -6 58 0", fo) + line("M97 112q31 -7 62 0", fo) + line("M100 119q28 -5 56 0", fo);
+    // Frown lines (glabella, between the brows)
+    const fr = op("frownLineOpacity", 0);
+    out += line("M124 117q-1 6 0 11", fr, 1.4) + line("M132 117q1 6 0 11", fr, 1.4);
+    // Under-eye lines / eye bags
+    const ue = op("underEyeOpacity", 0);
+    out += line("M99 145q10 4 22 1", ue, 1.3) + line("M135 146q12 3 22 -1", ue, 1.3);
+    // Crow's feet (outer eye corners)
+    const cf = op("crowsFeetOpacity", 0);
+    out += line("M92 133l-7 -4M92 137l-8 1M93 141l-6 4", cf, 1.2) + line("M164 133l7 -4M164 137l8 1M163 141l6 4", cf, 1.2);
+    // Marionette lines (mouth corners curving down)
+    const mo = op("marionetteOpacity", 0);
+    out += line("M106 169c-3 8 -3 14 -1 21", mo, 1.4) + line("M150 169c3 8 3 14 1 21", mo, 1.4);
+    // Cheek hollows (a soft curve under each cheekbone)
+    const ch = op("cheekLineOpacity", 0);
+    out += line("M90 150c2 9 7 15 14 18", ch, 1.4) + line("M166 150c-2 9 -7 15 -14 18", ch, 1.4);
+    return out;
   }
 
   // Fine hair-toned strand lines sweeping from the crown down to the hairline - the defining detail
@@ -2277,8 +2310,12 @@
     const clipExtId = `mouthx-${seed}`;
     const teeth = transformTeeth(teethBand(teethStyle, p, traits), traits, 128, p.y + 8);
     const incisors = transformTeeth(teethIncisors(teethStyle, p, traits), traits, 128, p.y + 8);
-    const lowerLip = showLips ? `<path d='${arc(p.botDip - 4, p.botDip + 12)}' fill='${lipC}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
-    const upperLip = showLips ? `<path d='${arc(p.topDip - 8, p.topDip)}' fill='${shadeColor(lipC, 0.9)}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
+    // Upper/lower lip sizes carry over from the closed-mouth lip controls so a person's lips look
+    // consistent whether they're smiling or not.
+    const upSize = Math.max(0.3, Number(traits.lipUpperSize) || 1);
+    const loSize = Math.max(0.3, Number(traits.lipLowerSize) || 1);
+    const lowerLip = showLips ? `<path d='${arc(p.botDip - 4, p.botDip + 12 * loSize)}' fill='${lipC}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
+    const upperLip = showLips ? `<path d='${arc(p.topDip - 8 * upSize, p.topDip)}' fill='${shadeColor(lipC, 0.9)}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
     // A small highlight on the LOWER LIP only (the old sheen arced across the whole mouth, reading as
     // a stray pink curve over the teeth).
     const sheen = showLips ? `<path d='M${f(128 - 9)} ${f(p.y + p.botDip + 5)}q9 2 18 0' fill='none' stroke='${shadeColor(lipC, 1.14)}' stroke-width='1.6' stroke-linecap='round' opacity='.4'/>` : "";

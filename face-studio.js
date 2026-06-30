@@ -43,6 +43,15 @@ const editorFields = [
   { group: "Nose", key: "noseScale", label: "Nose Size", min: 0.6, max: 1.5, step: 0.02, fallback: 1 },
   { group: "Nose", key: "noseWidth", label: "Nose Width (skinny ↔ broad)", min: 0.55, max: 1.5, step: 0.02, fallback: 1 },
   { group: "Nose", key: "noseTip", label: "Tip Shape", type: "select", options: () => selectOptions(traitBook.noseTips), fallback: "round" },
+  // Face Lines (creases/wrinkles - each 0..1 opacity; faceLineOpacity scales them all)
+  { group: "Face Lines", key: "faceLineOpacity", label: "All Lines (master)", min: 0, max: 1, step: 0.05, fallback: 1 },
+  { group: "Face Lines", key: "nasoOpacity", label: "Nasolabial Folds", min: 0, max: 1, step: 0.05, fallback: 0.55 },
+  { group: "Face Lines", key: "foreheadLineOpacity", label: "Forehead Wrinkles", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Face Lines", key: "frownLineOpacity", label: "Frown Lines (glabella)", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Face Lines", key: "underEyeOpacity", label: "Under-Eye Bags", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Face Lines", key: "crowsFeetOpacity", label: "Crow's Feet", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Face Lines", key: "marionetteOpacity", label: "Marionette Lines", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Face Lines", key: "cheekLineOpacity", label: "Cheek Hollows", min: 0, max: 1, step: 0.05, fallback: 0 },
   // Cheeks
   { group: "Cheeks", key: "cheekY", label: "Cheek Height", min: -8, max: 8, step: 0.5, fallback: 0 },
   { group: "Cheeks", key: "cheekOpacity", label: "Blush", min: 0, max: 0.3, step: 0.01, fallback: 0.09 },

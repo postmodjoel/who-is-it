@@ -2597,34 +2597,42 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   pointer-events: none;
   backface-visibility: hidden;
   border-radius: 7px;
-  background: linear-gradient(125deg,
-    rgba(255, 255, 255, 0.32) 0%, transparent 26%,
-    transparent 58%, rgba(150, 210, 255, 0.26) 78%, transparent 100%);
+  background:
+    linear-gradient(118deg,
+      rgba(255, 90, 90, 0.18) 4%, rgba(255, 220, 90, 0.16) 16%, rgba(90, 255, 160, 0.16) 30%,
+      transparent 42%, transparent 58%,
+      rgba(90, 190, 255, 0.18) 72%, rgba(200, 120, 255, 0.18) 86%, transparent 96%),
+    linear-gradient(125deg, rgba(255, 255, 255, 0.4) 0%, transparent 24%, transparent 100%);
   mix-blend-mode: screen;
-  opacity: 0.65;
+  opacity: 0.7;
 }
 
 .character-card.ygo .card-plate {
   display: contents;
 }
+/* Name sits directly on the frame at the top (like a real card), not in a beige bar; the attribute
+   orb tucks into the top-right corner so the name + orb share the header row. */
 .character-card.ygo h3 {
   order: 1;
   margin: 0;
-  padding: 2px 7px;
+  padding: 1px 26px 1px 4px;
   font-family: "Times New Roman", Georgia, serif;
   font-weight: 700;
-  font-size: clamp(0.58rem, 1.5vw, 0.82rem);
-  line-height: 1.2;
-  color: #1c1209;
+  font-size: clamp(0.62rem, 1.65vw, 0.9rem);
+  line-height: 1.25;
+  color: #160f07;
   text-align: left;
   letter-spacing: 0.01em;
-  background: linear-gradient(180deg, #fff6e1 0%, #f0e1ba 55%, #e4d09e 100%);
-  border-radius: 2px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.character-card.ygo.ygo-effect h3,
+.character-card.ygo.ygo-trap h3,
+.character-card.ygo.ygo-fusion h3,
+.character-card.ygo.ygo-ritual h3 { color: #faf2e0; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6); }
 .character-card.ygo > .portrait-wrap {
   order: 2;
   flex: 1 1 auto;
@@ -2683,21 +2691,22 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   letter-spacing: 0.02em;
 }
 
+/* Orb tucks up into the header row (top-right corner of the card, beside the name). */
+.character-card.ygo > .portrait-wrap { overflow: visible; }
 .ygo-orb {
   position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 24%;
-  max-width: 27px;
-  aspect-ratio: 1;
+  top: -19px;
+  right: 1px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  z-index: 3;
-  font-size: clamp(0.55rem, 1.5vw, 0.8rem);
+  z-index: 5;
+  font-size: 0.62rem;
   color: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 0 5px rgba(255, 255, 255, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.45);
   background: radial-gradient(circle at 35% 30%, #fff8, #0006), #555;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
@@ -2710,24 +2719,29 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 .ygo-orb[data-attr="SPELL"] { background: radial-gradient(circle at 35% 30%, #b9efe2, #137a64); }
 .ygo-orb[data-attr="TRAP"]  { background: radial-gradient(circle at 35% 30%, #f3c0da, #872a55); }
 
+/* Level pips: a right-aligned row of orange star gems just above the art (like a real monster card). */
 .ygo-toprow {
   position: absolute;
-  top: 4px;
+  top: -14px;
+  right: 20px;
   left: 4px;
-  z-index: 3;
-  max-width: 62%;
+  z-index: 4;
+  text-align: right;
 }
 .ygo-stars {
-  display: inline-block;
-  padding: 1px 5px;
-  color: #ffce4a;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.18));
-  border-radius: 3px;
-  font-size: clamp(0.42rem, 1vw, 0.56rem);
-  letter-spacing: 0;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-  word-break: break-all;
-  line-height: 1.25;
+  display: inline-flex;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-end;
+  gap: 0;
+  line-height: 1;
+  max-width: 100%;
+}
+.ygo-star {
+  font-style: normal;
+  font-size: 0.62rem;
+  color: #ffae12;
+  text-shadow: 0 0 2px #c96e00, 0 1px 1px rgba(0, 0, 0, 0.7);
+  margin: 0 -0.5px;
 }
 .ygo-kind {
   display: inline-block;

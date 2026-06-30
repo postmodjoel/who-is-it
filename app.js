@@ -1307,7 +1307,7 @@ function getMysteryCardData(character) {
     const orbKey = isMonster ? a.attr : (a.frame === "spell" ? "SPELL" : "TRAP");
     const orbGlyph = { DARK: "🌙", LIGHT: "☀", FIRE: "🔥", WATER: "💧", EARTH: "⛰", WIND: "🌪", SPELL: "✦", TRAP: "⊘" }[orbKey] || "★";
     const stars = isMonster
-      ? `<span class="ygo-stars" aria-label="Level ${a.level}">${"◆".repeat(a.level)}</span>`
+      ? `<span class="ygo-stars" aria-label="Level ${a.level}">${'<i class="ygo-star">★</i>'.repeat(a.level)}</span>`
       : `<span class="ygo-kind">${escapeHtml(a.kind)}</span>`;
     const cornerHtml = `<span class="ygo-orb" data-attr="${orbKey}" title="${escapeHtml(orbKey)}">${orbGlyph}</span>`;
     const footer = isMonster

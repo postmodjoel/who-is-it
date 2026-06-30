@@ -192,6 +192,9 @@
   // mirror flips it horizontally; outline = 'none' (no outline), a hex (custom), or unset (= ink).
   const LOCK_BASE_K = 0.42; // scale=1 -> a roughly head-sized lock
   function renderLock(inst, ctx) {
+    // Pen-tool / freehand lock: inst.d is a raw path string authored in portrait (256x256) space.
+    // inst.strokes (optional) are interior strand lines. dx/dy nudge it; no lock-box transform.
+    if (inst && inst.d) return renderDrawnLock(inst, ctx);
     const lock = inst && LOCKS[inst.lock];
     if (!lock) return "";
     const hair = (ctx && ctx.hair) || "#3a2418";
@@ -214,6 +217,30 @@
     if (inst.lines !== false) (lock.lines || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`; });
     return `<g transform='translate(${hx} ${hy}) scale(${sx} ${sy}) rotate(${rot}) translate(-256 -256)'>${body}</g>`;
   }
+  // Renders a hand-drawn (pen-tool) lock: its `d` is already in portrait coordinates, so we just
+  // fill + outline it and lay optional interior strand lines (`strokes`) on top.
+  function renderDrawnLock(inst, ctx) {
+    const hair = (ctx && ctx.hair) || "#3a2418";
+    const fill = inst.fill || (ctx && ctx.fill) || hair;
+    const ink = (ctx && ctx.ink) || "#1f2330";
+    const outline = inst.outline === "none" ? "none" : (inst.outline || ink);
+    const dx = Number(inst.dx) || 0;
+    const dy = Number(inst.dy) || 0;
+    const lineC = inst.line || lockShade(hair, 0.62);
+    const darkC = inst.dark || lockShade(hair, 0.5);
+    let body = `<path d='${inst.d}' fill='${fill}' stroke='${outline}' stroke-width='3.2' stroke-linejoin='round' stroke-linecap='round'/>`;
+    if (inst.shade) body += `<path d='${inst.d}' fill='${darkC}' opacity='0.16'/>`;
+    if (inst.lines !== false && Array.isArray(inst.strokes) && inst.strokes.length) {
+      // Clip the interior strand lines to the drawn shape so they never spill past its outline.
+      const clipId = `dlock-${(ctx && ctx.seed) || "0"}`;
+      const strands = inst.strokes
+        .map((d) => `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`)
+        .join("");
+      body += `<clipPath id='${clipId}'><path d='${inst.d}'/></clipPath><g clip-path='url(#${clipId})'>${strands}</g>`;
+    }
+    return dx || dy ? `<g transform='translate(${dx} ${dy})'>${body}</g>` : body;
+  }
+
   function overlayLock(key, opts) {
     const lock = LOCKS[LOCK_FOR[key]];
     const silhouette = HAIR[key];

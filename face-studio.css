@@ -760,3 +760,69 @@ textarea {
 .beard-marker { background: var(--green); color: #fff; }
 
 .lock-marker.is-behind { background: var(--panel); border-style: dashed; color: var(--muted); }
+
+/* ===================== Pen Tool (draw custom hair) ===================== */
+.pen-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  touch-action: none;
+  z-index: 5;
+}
+.pen-designer { margin-top: 10px; }
+.pen-hint, .pen-saved .lock-empty {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 0;
+}
+.pen-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 6px 0;
+}
+.pen-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.pen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.mini-button.is-active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+.pen-saved {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.pen-saved-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.pen-saved-del {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.lock-drawn-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  flex: 1;
+}

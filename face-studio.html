@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Face Studio</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23f4c84e'/%3E%3Ccircle cx='32' cy='26' r='15' fill='%23fffdf7' stroke='%23171512' stroke-width='4'/%3E%3Cpath d='M16 62c3-17 29-17 32 0' fill='%234a7bd9' stroke='%23171512' stroke-width='4'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="face-studio.css?v=135">
+    <link rel="stylesheet" href="face-studio.css?v=137">
   </head>
   <body>
     <main class="studio-shell">
@@ -50,6 +50,7 @@
               <div id="selectedPortrait" class="selected-portrait"></div>
               <div id="portraitHotspots" class="portrait-hotspots"></div>
               <div id="lockOverlay" class="lock-overlay" hidden></div>
+              <svg id="penOverlay" class="pen-overlay" viewBox="0 0 256 256" preserveAspectRatio="none" hidden></svg>
             </div>
             <p id="hotspotHint" class="hotspot-hint">Click a region on the face to jump to its controls</p>
             <div id="selectedMeta" class="selected-meta"></div>
@@ -87,8 +88,8 @@
       </section>
     </main>
 
-    <script src="faces-hair.js?v=135"></script>
-    <script src="face-generator.js?v=135"></script>
-    <script src="face-studio.js?v=135"></script>
+    <script src="faces-hair.js?v=137"></script>
+    <script src="face-generator.js?v=137"></script>
+    <script src="face-studio.js?v=137"></script>
   </body>
 </html>

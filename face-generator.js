@@ -1071,6 +1071,7 @@
           ${renderHairLocks(traits, seed, hair, false)}
           ${accessorySvg.afterMouth}
         `)}
+        ${renderDrawnLocks(traits, seed, hair)}
       </svg>
     `;
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
@@ -1087,8 +1088,23 @@
     if (!(typeof window !== "undefined" && window.facesHair && window.facesHair.renderLock)) return "";
     return locks
       .map((inst, i) => ({ inst, i }))
-      .filter(({ inst }) => Boolean(inst.behind) === Boolean(behind))
+      // Drawn (pen-tool) locks carry a raw `d` in portrait space and are rendered at top level by
+      // renderDrawnLocks (outside the head group), so they're skipped in these in-head passes.
+      .filter(({ inst }) => !inst.d && Boolean(inst.behind) === Boolean(behind))
       .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink, seed: `${seed}-l${i}` }))
+      .join("");
+  }
+
+  // Pen-tool hair: locks whose `d` is a raw path drawn in portrait (256x256) coordinates. Rendered at
+  // the top of the portrait (not inside the head group) so the studio's screen->256 mapping is exact.
+  function renderDrawnLocks(traits, seed, hair) {
+    const locks = traits.hairLocks;
+    if (!Array.isArray(locks) || !locks.length) return "";
+    if (!(typeof window !== "undefined" && window.facesHair && window.facesHair.renderLock)) return "";
+    return locks
+      .map((inst, i) => ({ inst, i }))
+      .filter(({ inst }) => Boolean(inst.d))
+      .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink, seed: `${seed}-d${i}` }))
       .join("");
   }
 

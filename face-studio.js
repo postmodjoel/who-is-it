@@ -131,8 +131,16 @@ const state = {
   selectedId: characters[0]?.id || "",
   selectedExpression: "assigned",
   activeGroup: "Face",
-  corrections: readCorrections()
+  corrections: readCorrections(),
+  // Pen tool (draw custom hair). pts: anchors {x,y,hx,hy} in 256-space; hx/hy = outgoing handle.
+  pen: { mode: false, pts: [], dragging: -1, color: "", outline: true, lines: true, closed: false }
 };
+
+const PEN_LOCK_KEY = "who-is-that-pen-locks";
+function readPenLocks() {
+  try { return JSON.parse(localStorage.getItem(PEN_LOCK_KEY)) || []; } catch (e) { return []; }
+}
+function savePenLocks(list) { localStorage.setItem(PEN_LOCK_KEY, JSON.stringify(list)); }
 
 const editorGroups = [...new Set(editorFields.map((field) => field.group))];
 
@@ -151,6 +159,7 @@ const els = {
   variantStrip: document.querySelector("#variantStrip"),
   portraitHotspots: document.querySelector("#portraitHotspots"),
   lockOverlay: document.querySelector("#lockOverlay"),
+  penOverlay: document.querySelector("#penOverlay"),
   hotspotHint: document.querySelector("#hotspotHint"),
   editorControls: document.querySelector("#editorControls"),
   correctionExport: document.querySelector("#correctionExport"),
@@ -193,6 +202,7 @@ function init() {
 
   renderHotspots();
   wireLockStageOnce();
+  wirePenStageOnce();
   render();
 }
 
@@ -700,11 +710,48 @@ function lockDesignerMarkup(character) {
       </div>
       <div class="lock-palette">${palette}</div>
       <div class="lock-stack">${stack}</div>
+    </div>
+    ${penDesignerMarkup()}`;
+}
+
+// Pen-tool panel: toggle drawing mode, set the drawn-hair style, and re-apply saved custom shapes.
+function penDesignerMarkup() {
+  const p = state.pen;
+  const saved = readPenLocks();
+  const savedRow = saved.length
+    ? saved.map((s, i) => `
+        <span class="pen-saved-chip">
+          <button type="button" class="mini-button" data-pen-apply="${i}" title="Add to this character">${escapeHtml(s.name)}</button>
+          <button type="button" class="pen-saved-del" data-pen-del="${i}" title="Delete saved shape">×</button>
+        </span>`).join("")
+    : `<span class="lock-empty">No saved shapes yet.</span>`;
+  return `
+    <div class="lock-designer pen-designer">
+      <div class="lock-designer-head">
+        <p class="meta-label">Pen Tool — Draw Hair</p>
+        <button type="button" class="mini-button ${p.mode ? "is-active" : ""}" data-pen-toggle>${p.mode ? "Drawing…" : "✏️ Draw"}</button>
+      </div>
+      ${p.mode ? `
+        <p class="pen-hint">Click to drop points · drag a point to curve it · click the first point (or Finish) to close.</p>
+        <div class="pen-controls">
+          <label class="pen-opt"><span>Colour</span><input type="color" data-pen-color value="${p.color || "#3a2418"}"></label>
+          <label class="pen-opt"><input type="checkbox" data-pen-outline ${p.outline ? "checked" : ""}> Outline</label>
+          <label class="pen-opt"><input type="checkbox" data-pen-lines ${p.lines ? "checked" : ""}> Strand lines</label>
+        </div>
+        <div class="pen-actions">
+          <button type="button" class="mini-button" data-pen-finish>Finish &amp; apply</button>
+          <button type="button" class="mini-button" data-pen-undo>Undo point</button>
+          <button type="button" class="mini-button" data-pen-cancel>Cancel</button>
+          <button type="button" class="mini-button" data-pen-save>Save as shape…</button>
+        </div>` : ""}
+      <div class="pen-saved">${savedRow}</div>
     </div>`;
 }
 
 const LOCK_INK = "#1f2330";
 function lockRowMarkup(inst, i, n, hairHex) {
+  // Drawn (pen-tool) locks have no catalog key/transform — show a slimmed row.
+  if (inst.d) return drawnRowMarkup(inst, i, hairHex);
   // defHex = the auto colour shown when this part isn't overridden. 'outline' is special: its auto is
   // the global ink, and it has an on/off state (outline === 'none').
   const colorField = (part, defHex, label) => {
@@ -743,6 +790,32 @@ function lockRowMarkup(inst, i, n, hairHex) {
         ${colorField("shine", shadeHex(hairHex, 1.3), "Shine")}
         ${colorField("line", shadeHex(hairHex, 0.62), "Lines")}
         ${colorField("outline", LOCK_INK, "Outline")}
+      </div>
+    </div>`;
+}
+
+// Slim editor row for a hand-drawn lock: reorder, delete, lines/outline toggles, and a fill swatch.
+function drawnRowMarkup(inst, i, hairHex) {
+  const fill = inst.fill || shadeHex(hairHex, 1);
+  return `
+    <div class="lock-row" data-index="${i}" data-lock-droprow>
+      <div class="lock-row-head">
+        <span class="lock-grip" draggable="true" title="Drag to reorder">⠿</span>
+        <span class="lock-row-num">${i + 1}</span>
+        <span class="lock-drawn-tag">✏️ Drawn shape</span>
+        <button type="button" class="mini-button lock-del" data-lock-act="remove" title="Delete">✕</button>
+      </div>
+      <div class="lock-row-toggles">
+        <label class="lock-toggle"><input type="checkbox" data-lock-lines ${inst.lines === false ? "" : "checked"}> Lines</label>
+        <label class="lock-toggle"><input type="checkbox" data-lock-outline ${inst.outline === "none" ? "" : "checked"}> Outline</label>
+      </div>
+      <div class="lock-row-colors">
+        <label class="lock-color is-set">
+          <input type="color" value="${escapeHtml(fill)}" data-lock-color="fill"><span>Colour</span>
+        </label>
+        <label class="lock-color ${inst.line ? "is-set" : ""}">
+          <input type="color" value="${escapeHtml(inst.line || shadeHex(hairHex, 0.62))}" data-lock-color="line"><span>Lines</span>
+        </label>
       </div>
     </div>`;
 }
@@ -800,6 +873,164 @@ function wireLockDesigner(character) {
       reorderLock(character, Number(from), idx);
     });
   });
+  wirePenDesigner(character);
+}
+
+/* ===================== Pen Tool (draw custom hair) ===================== */
+
+function wirePenDesigner(character) {
+  const root = els.editorControls.querySelector(".pen-designer");
+  if (!root) return;
+  const on = (sel, ev, fn) => { const el = root.querySelector(sel); if (el) el.addEventListener(ev, fn); };
+  on("[data-pen-toggle]", "click", () => {
+    state.pen.mode = !state.pen.mode;
+    if (!state.pen.mode) resetPenPath();
+    renderEditor(character);
+    renderLockOverlay(character);
+  });
+  on("[data-pen-color]", "input", (e) => { state.pen.color = e.target.value; });
+  on("[data-pen-outline]", "change", (e) => { state.pen.outline = e.target.checked; });
+  on("[data-pen-lines]", "change", (e) => { state.pen.lines = e.target.checked; });
+  on("[data-pen-finish]", "click", () => finishPenPath(character, false));
+  on("[data-pen-save]", "click", () => finishPenPath(character, true));
+  on("[data-pen-undo]", "click", () => { state.pen.pts.pop(); renderPenOverlay(); });
+  on("[data-pen-cancel]", "click", () => { resetPenPath(); renderPenOverlay(); });
+  root.querySelectorAll("[data-pen-apply]").forEach((b) => b.addEventListener("click", () => {
+    const saved = readPenLocks()[Number(b.dataset.penApply)];
+    if (saved) applyDrawnLock(character, { ...saved.inst });
+  }));
+  root.querySelectorAll("[data-pen-del]").forEach((b) => b.addEventListener("click", () => {
+    const list = readPenLocks(); list.splice(Number(b.dataset.penDel), 1); savePenLocks(list);
+    renderEditor(character);
+  }));
+}
+
+function resetPenPath() { state.pen.pts = []; state.pen.dragging = -1; }
+
+// Map a pointer event to 256-space portrait coordinates.
+function penPoint(e) {
+  const rect = els.penOverlay.getBoundingClientRect();
+  return {
+    x: clamp(((e.clientX - rect.left) / rect.width) * 256, 0, 256),
+    y: clamp(((e.clientY - rect.top) / rect.height) * 256, 0, 256)
+  };
+}
+
+// Build a smooth closed path from anchors. Each anchor's outgoing handle is (hx,hy); the incoming
+// handle is its mirror. Segments with no handles fall back to straight lines.
+function penPathData(pts, close) {
+  if (pts.length < 2) return "";
+  const n = pts.length;
+  let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  const last = close ? n : n - 1;
+  for (let i = 0; i < last; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % n];
+    const c1x = a.x + (a.hx || 0), c1y = a.y + (a.hy || 0);
+    const c2x = b.x - (b.hx || 0), c2y = b.y - (b.hy || 0);
+    d += `C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+  }
+  if (close) d += "Z";
+  return d;
+}
+
+// A few interior strand lines spanning the shape's bounding box (clipped to the shape at render).
+function penStrokes(pts) {
+  if (pts.length < 3) return [];
+  const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const out = [];
+  const N = Math.max(3, Math.min(6, Math.round((maxX - minX) / 14)));
+  for (let i = 1; i <= N; i++) {
+    const x = minX + ((maxX - minX) * i) / (N + 1);
+    const bow = (maxX - minX) * 0.06 * (i % 2 ? 1 : -1);
+    out.push(`M${x.toFixed(1)} ${(minY - 4).toFixed(1)}Q${(x + bow).toFixed(1)} ${((minY + maxY) / 2).toFixed(1)} ${x.toFixed(1)} ${(maxY + 4).toFixed(1)}`);
+  }
+  return out;
+}
+
+function currentPenInst() {
+  const p = state.pen;
+  const inst = { d: penPathData(p.pts, true), lines: p.lines };
+  if (p.color) inst.fill = p.color;
+  if (!p.outline) inst.outline = "none";
+  if (p.lines) inst.strokes = penStrokes(p.pts);
+  return inst;
+}
+
+function finishPenPath(character, asSaved) {
+  if (state.pen.pts.length < 3) { resetPenPath(); renderPenOverlay(); return; }
+  const inst = currentPenInst();
+  if (asSaved) {
+    const name = (prompt("Name this hair shape:", "My Lock") || "").trim();
+    if (name) { const list = readPenLocks(); list.push({ name, inst }); savePenLocks(list); }
+  }
+  applyDrawnLock(character, inst);
+  resetPenPath();
+}
+
+function applyDrawnLock(character, inst) {
+  const arr = editableLocks(character.id);
+  arr.push(inst);
+  saveCorrections();
+  state.pen.mode = false;
+  render();
+}
+
+// Draw the in-progress path + its anchor/handle dots into the SVG overlay (256-space).
+function renderPenOverlay() {
+  if (!els.penOverlay) return;
+  const p = state.pen;
+  const col = p.color || "#3a2418";
+  const preview = penPathData(p.pts, p.pts.length >= 3);
+  const dots = p.pts.map((pt, i) => {
+    const hx = pt.x + (pt.hx || 0), hy = pt.y + (pt.hy || 0);
+    const handle = (pt.hx || pt.hy)
+      ? `<line x1="${pt.x}" y1="${pt.y}" x2="${hx}" y2="${hy}" stroke="#3a86ff" stroke-width="1"/><circle cx="${hx}" cy="${hy}" r="2.6" fill="#3a86ff"/>`
+      : "";
+    const first = i === 0 ? ' stroke="#ffbe0b" stroke-width="2"' : ' stroke="#171512" stroke-width="1"';
+    return `${handle}<circle cx="${pt.x}" cy="${pt.y}" r="3.2" fill="#fff"${first}/>`;
+  }).join("");
+  els.penOverlay.innerHTML = `
+    ${preview ? `<path d="${preview}" fill="${col}55" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>` : ""}
+    ${dots}`;
+}
+
+// One-time pointer wiring on the persistent overlay. Click drops an anchor; dragging the just-placed
+// anchor pulls a symmetric bezier handle (Photoshop pen behaviour); clicking the first anchor closes.
+function wirePenStageOnce() {
+  if (!els.penOverlay) return;
+  let active = -1;
+  els.penOverlay.addEventListener("pointerdown", (e) => {
+    if (!state.pen.mode) return;
+    e.preventDefault();
+    const pt = penPoint(e);
+    const pts = state.pen.pts;
+    // Close if clicking near the first anchor.
+    if (pts.length >= 3) {
+      const f = pts[0];
+      if (Math.hypot(f.x - pt.x, f.y - pt.y) < 9) { finishPenPath(currentCharacter(), false); return; }
+    }
+    pts.push({ x: pt.x, y: pt.y, hx: 0, hy: 0 });
+    active = pts.length - 1;
+    els.penOverlay.setPointerCapture(e.pointerId);
+    renderPenOverlay();
+  });
+  els.penOverlay.addEventListener("pointermove", (e) => {
+    if (!state.pen.mode || active < 0) return;
+    const pt = penPoint(e);
+    const a = state.pen.pts[active];
+    a.hx = pt.x - a.x;
+    a.hy = pt.y - a.y;
+    renderPenOverlay();
+  });
+  const end = (e) => {
+    if (active < 0) return;
+    try { els.penOverlay.releasePointerCapture(e.pointerId); } catch (_) {}
+    active = -1;
+  };
+  els.penOverlay.addEventListener("pointerup", end);
+  els.penOverlay.addEventListener("pointercancel", end);
 }
 
 function reorderLock(character, from, to) {
@@ -875,6 +1106,20 @@ function renderLockOverlay(character) {
   if (!els.lockOverlay) return;
   const hairMode = state.activeGroup === "Hair";
   const beardMode = state.activeGroup === "Beard";
+  const penMode = hairMode && state.pen.mode;
+  // Pen mode owns the portrait surface: hide lock markers + hotspots, show the drawing overlay.
+  if (els.penOverlay) {
+    els.penOverlay.hidden = !penMode;
+    els.penOverlay.style.cursor = penMode ? "crosshair" : "";
+  }
+  if (penMode) {
+    els.lockOverlay.hidden = true;
+    els.lockOverlay.innerHTML = "";
+    if (els.portraitHotspots) els.portraitHotspots.style.display = "none";
+    if (els.hotspotHint) els.hotspotHint.textContent = "Pen tool active — draw the hair shape on the portrait.";
+    renderPenOverlay();
+    return;
+  }
   const overlayMode = hairMode || beardMode;
   els.lockOverlay.hidden = !overlayMode;
   if (els.portraitHotspots) els.portraitHotspots.style.display = overlayMode ? "none" : "";
@@ -896,7 +1141,10 @@ function renderLockOverlay(character) {
   }
   const locks = getLocks(character.id);
   els.lockOverlay.innerHTML = locks
-    .map((inst, i) => `<button type="button" class="lock-marker ${inst.behind ? "is-behind" : ""}" data-index="${i}" style="left:${inst.x}%; top:${inst.y == null ? 32 : inst.y}%;" title="${escapeHtml(lockLabel(inst.lock))}${inst.behind ? " (behind)" : ""} — drag to move">${i + 1}</button>`)
+    .map((inst, i) => ({ inst, i }))
+    // Drawn (pen) locks have no x/y anchor — they're edited from the stack, not via a marker.
+    .filter(({ inst }) => !inst.d)
+    .map(({ inst, i }) => `<button type="button" class="lock-marker ${inst.behind ? "is-behind" : ""}" data-index="${i}" style="left:${inst.x}%; top:${inst.y == null ? 32 : inst.y}%;" title="${escapeHtml(lockLabel(inst.lock))}${inst.behind ? " (behind)" : ""} — drag to move">${i + 1}</button>`)
     .join("");
   els.lockOverlay.querySelectorAll(".lock-marker").forEach((marker) => wireLockMarker(marker, character));
 }

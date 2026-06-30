@@ -749,6 +749,12 @@ const mysteryEffects = [
     name: "Yu-Gi-Oh!",
     apply: applyYugioh,
     exampleQuestion: "Is your person a Trap Card?"
+  },
+  {
+    id: "orgy",
+    name: "Orgy Mode",
+    apply: applyOrgy,
+    exampleQuestion: "Is your person a bottom?"
   }
 ];
 
@@ -820,18 +826,22 @@ function renderLocation() {
   // The board sits directly on the location banner art (no cream panel).
   if (els.characterBoard) els.characterBoard.style.setProperty("--board-art", `url('${encodeURI(artSrc)}')`);
   const isGayFrogged = state.global.mystery?.id === "gay-frogged";
-  els.locationBand.className = `location-band is-${variant}${isGayFrogged ? " is-gay-frogged" : ""}`;
+  const isYugioh = state.global.mystery?.id === "yugioh";
+  const ygo = isYugioh ? yugiohLocationFlavor(state.location) : null;
+  const locName = ygo ? `${state.location.name} ${ygo.suffix}` : state.location.name;
+  const locDesc = ygo ? ygo.text : (isGayFrogged && state.location.gayPrompt ? state.location.gayPrompt : state.location.prompt);
+  els.locationBand.className = `location-band is-${variant}${isGayFrogged ? " is-gay-frogged" : ""}${isYugioh ? " is-yugioh" : ""}`;
   els.locationBand.innerHTML = `
     <div class="location-photo" style="background-image:url('${encodeURI(artSrc)}')" role="img" aria-label="${escapeHtml(state.location.name)}, ${variant}"></div>
     <div class="location-scrim"></div>
     ${isGayFrogged ? '<div class="location-rainbow" aria-hidden="true"></div>' : ""}
     <div class="location-overlay">
       <div class="location-copy">
-        <p class="eyebrow">Location · ${variant === "night" ? "Night" : "Day"}</p>
-        <h2>${isGayFrogged ? '<span class="gay-frogged-label">GAY</span> ' : ""}${escapeHtml(state.location.name)}</h2>
-        <p>${escapeHtml(isGayFrogged && state.location.gayPrompt ? state.location.gayPrompt : state.location.prompt)}</p>
+        <p class="eyebrow">${isYugioh ? "Field Spell · Activated" : `Location · ${variant === "night" ? "Night" : "Day"}`}</p>
+        <h2>${isGayFrogged ? '<span class="gay-frogged-label">GAY</span> ' : ""}${escapeHtml(locName)}</h2>
+        <p>${escapeHtml(locDesc)}</p>
       </div>
-      <div class="location-stamp">${escapeHtml(state.location.stamp)}</div>
+      <div class="location-stamp">${escapeHtml(isYugioh ? "FIELD" : state.location.stamp)}</div>
     </div>
   `;
 }
@@ -870,6 +880,9 @@ function renderSecret() {
     return;
   }
   els.secretCard.className = "secret-card";
+  // The card takes the character's own portrait background colour, so the portrait sits directly in
+  // it (no card-in-a-card) and the colours don't double up.
+  els.secretCard.style.setProperty("--secret-bg", secret.traits?.background || "#cdd6e0");
   const gayFroggedAssignment = state.global.mystery?.id === "gay-frogged" ? state.global.mystery.assignments?.[secret.id] : null;
   els.secretCard.innerHTML = `
     <img src="${gayFroggedAssignment?.image || secret.image}" alt="${escapeHtml(secret.name)}">
@@ -896,6 +909,7 @@ function renderBoard() {
     return;
   }
   els.characterBoard.classList.toggle("ygo-board", state.global.mystery?.id === "yugioh");
+  els.characterBoard.classList.toggle("orgy-board", state.global.mystery?.id === "orgy");
   state.board.forEach((character) => {
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
@@ -981,10 +995,14 @@ function toggleEliminated(id) {
   // Clicking a downed tile flips it back up, so the toggle is its own undo.
   if (player.eliminated.has(id)) {
     player.eliminated.delete(id);
+    state.justEliminated = null;
   } else {
     player.eliminated.add(id);
+    // Mark the just-killed card so its decapitation animation plays once (regular card board only).
+    state.justEliminated = state.global.mystery?.id === "yugioh" ? null : id;
   }
   renderBoard();
+  state.justEliminated = null;
 }
 
 function drawPrompt() {
@@ -1069,7 +1087,7 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
 }
@@ -1081,6 +1099,8 @@ function createCharacterCard(character, player) {
   card.id = `card-${character.id}`;
   card.className = `character-card ${character.variant || ""} ${mystery.cardClass || ""}`.trim();
   card.classList.toggle("is-down", player.eliminated.has(character.id));
+  // One-shot gory decapitation when this card was just eliminated in the regular board.
+  if (state.justEliminated === character.id) card.classList.add("is-decapitating");
   card.dataset.id = character.id;
   if (mystery.effectName) card.dataset.mysteryEffect = mystery.effectName;
   if (mystery.style) card.setAttribute("style", mystery.style);
@@ -1090,9 +1110,13 @@ function createCharacterCard(character, player) {
   const prop = mystery.propEmoji ? `<span class="prop-overlay" aria-label="${escapeHtml(mystery.primaryText)}">${mystery.propEmoji}</span>` : "";
   // Roles are hidden by default - they are not known initially and only surface once the
   // Role Reveal mystery effect is triggered (which renders them via mystery.html below).
+  const gore = state.justEliminated === character.id
+    ? '<div class="gore" aria-hidden="true"><i class="gore-stump"></i><i class="gore-jet"></i><i class="gore-drop"></i><i class="gore-drop"></i><i class="gore-drop"></i><i class="gore-pool"></i></div>'
+    : "";
   card.innerHTML = `
     <div class="portrait-wrap">
       <img src="${mystery.image || character.image}" alt="${escapeHtml(character.name)}">
+      ${gore}
       ${prop}
       ${mystery.cornerHtml || ""}
     </div>
@@ -1448,6 +1472,23 @@ function getMysteryCardData(character) {
       html: ""
     };
   }
+  if (mystery.id === "orgy") {
+    const a = assignment;
+    const bar = (label, n) => `<span class="orgy-bar"><b>${label}</b><i><s style="--n:${n * 10}%"></s></i></span>`;
+    return {
+      effectName: mystery.name,
+      cardClass: "orgy",
+      image: a.image,
+      dataset: { orgyPos: a.pos },
+      cornerHtml: `<span class="orgy-pos">${escapeHtml(a.pos)}</span><span class="orgy-bodycount" title="body count">🍆 ${a.bodyCount}</span>`,
+      html: `<div class="orgy-stats">
+        <div class="orgy-cum"><span>💦 ${a.cumToday} today</span><span>${a.cumLifetime.toLocaleString()} life</span></div>
+        ${bar("STAMINA", a.stamina)}${bar("HORNY", a.horniness)}${bar("LIFESPAN", a.lifespan)}${bar("SECRETS", a.secrets)}
+        <div class="orgy-links">🔗 ${escapeHtml(a.partners.join(", ") || "untouched")}</div>
+        <div class="orgy-upnext"><b>UP NEXT:</b> ${escapeHtml(a.upNext)}</div>
+      </div>`
+    };
+  }
   if (mystery.id === "yugioh") {
     const a = assignment;
     const isMonster = a.frame !== "spell" && a.frame !== "trap";
@@ -1510,6 +1551,58 @@ function applyYugioh(effect) {
     assignments[ch.id] = a;
   });
   return { id: effect.id, name: effect.name, assignments };
+}
+
+// Orgy Mode: everyone's stripped to bare cartoon shoulders and given a dossier of (entirely fictional,
+// comedic) bedroom stats - position, body count, cum count today/lifetime, stat bars, who they're
+// linked to, and who's UP NEXT. Pure text/number gags on cartoon avatars, in the spirit of gay-frogged.
+function applyOrgy(effect) {
+  const positions = ["TOP", "BOTTOM", "SIDE", "GAGGED", "CHOKING", "VERS", "POWER BOTTOM", "STARFISH"];
+  const board = state.board;
+  const assignments = {};
+  board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:orgy:${ch.id}`);
+    const stat = (salt, max) => 1 + (stableHash(`${state.gameSalt}:orgy:${ch.id}:${salt}`) % max);
+    const partnerCount = 1 + ((h >>> 9) % 3);
+    const partners = [];
+    for (let k = 0; k < partnerCount && partners.length < board.length - 1; k++) {
+      let idx = stableHash(`${state.gameSalt}:orgy:${ch.id}:p${k}`) % board.length;
+      let n = board[idx].name;
+      let guard = 0;
+      while ((n === ch.name || partners.includes(n)) && guard++ < board.length) { idx = (idx + 1) % board.length; n = board[idx].name; }
+      if (n !== ch.name && !partners.includes(n)) partners.push(n);
+    }
+    let upNext = board[(h >>> 11) % board.length].name;
+    if (upNext === ch.name) upNext = board[((h >>> 11) + 1) % board.length].name;
+    const image = (ch.traits && window.faceGenerator)
+      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, clothing: "bare", accessory: "none" })
+      : ch.image;
+    assignments[ch.id] = {
+      pos: positions[h % positions.length],
+      bodyCount: 2 + ((h >>> 3) % 187),
+      cumToday: (h >>> 5) % 14,
+      cumLifetime: 150 + ((h >>> 7) % 9850),
+      stamina: stat("sta", 10), horniness: stat("hor", 10), lifespan: stat("life", 10), secrets: stat("sec", 10),
+      partners, upNext, image
+    };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// Re-skins the location as a Yu-Gi-Oh "Field Spell" - a grandiose suffix + over-dramatic flavour text.
+function yugiohLocationFlavor(location) {
+  const suffixes = ["of the Forbidden Memory", "of Eternal Duels", "of the Shadow Realm", "of Ascended Destiny",
+    "of the Sacred Beasts", "of Infinite Tribute", "of the Millennium Gate", "of Roaring Fate"];
+  const lines = [
+    "Once per turn, the duelist who controls this field may banish all hesitation from their hand.",
+    "While this card remains face-up, every glance counts as a Tribute. Destiny is not negotiable.",
+    "A field where the heart of the cards beats loudest — and secrets are paid as a cost.",
+    "Activate this Field Spell to draw one truth. Your opponent cannot respond to the awkwardness.",
+    "It's your move. The shadows lengthen, the crowd holds its breath, and someone is bluffing.",
+    "This card cannot be destroyed by social niceties. Believe in the heart of the cards.",
+    "Send one assumption to the graveyard, then Special Summon a brand-new suspicion in its place."];
+  const h = stableHash(`${state.gameSalt}:ygofield:${location.name}`);
+  return { suffix: suffixes[h % suffixes.length], text: lines[(h >>> 4) % lines.length] };
 }
 
 function applyPropPanic(effect) {

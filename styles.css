@@ -543,16 +543,17 @@ button:disabled {
 
 .secret-card {
   display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 9px;
+  grid-template-columns: 76px 1fr;
+  gap: 12px;
   align-items: center;
   flex: 0 0 auto;
   min-height: 0;
-  padding: 6px 12px 6px 6px;
+  padding: 0 16px 0 0;
+  overflow: hidden;
   border: 2px solid var(--line);
-  border-radius: 8px;
-  color: var(--card-ink);
-  background: var(--surface);
+  border-radius: 10px;
+  color: #14110d;
+  background: var(--secret-bg, var(--surface));
 }
 
 .secret-card.is-hidden {
@@ -578,8 +579,9 @@ button:disabled {
 }
 
 .secret-card img {
-  border: 2px solid var(--line);
-  border-radius: 4px;
+  border: none;
+  border-radius: 0;
+  border-right: 2px solid rgba(0, 0, 0, 0.18);
 }
 
 .secret-name {
@@ -2729,3 +2731,150 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
     linear-gradient(160deg, #4a2f7e, #2c1a55);
   box-shadow: inset 0 0 0 4px #5a3f96, inset 0 0 0 6px #2a1a4e;
 }
+
+/* ===================== Decapitation elimination (regular board) ===================== */
+.character-card.is-decapitating { filter: none; z-index: 4; }
+.character-card.is-decapitating.is-down::after { display: none; }       /* show gore in full colour */
+.character-card.is-decapitating .portrait-wrap img {
+  position: relative;
+  z-index: 4;
+  transform-origin: 50% 72%;
+  animation: ygHeadPop 0.95s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+}
+@keyframes ygHeadPop {
+  0%   { transform: translateY(0) rotate(0); }
+  16%  { transform: translateY(-24px) rotate(7deg); }
+  45%  { transform: translateY(-6px) rotate(-40deg); }
+  100% { transform: translateY(78px) rotate(-168deg); opacity: 0; }
+}
+.gore { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.gore i { position: absolute; display: block; }
+.gore-stump {
+  left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 46%; height: 18%;
+  background: radial-gradient(ellipse at 50% 0, #7c0a14 42%, #470610 70%, transparent 72%);
+}
+.gore-jet {
+  left: 50%; bottom: 13%; transform: translateX(-50%);
+  width: 28%; height: 0;
+  background: linear-gradient(#e7122a, #930b1a);
+  border-radius: 0 0 45% 45%;
+  animation: ygJet 0.95s ease-out forwards;
+}
+@keyframes ygJet { 0% { height: 0; opacity: 0; } 12% { opacity: 1; } 45% { height: 54%; } 100% { height: 62%; opacity: 0.92; } }
+.gore-drop { bottom: 30%; left: 50%; width: 9%; aspect-ratio: 1; border-radius: 50%; background: #cd1124; opacity: 0; }
+.gore-drop:nth-of-type(3) { animation: ygDropA 0.95s ease-out forwards; }
+.gore-drop:nth-of-type(4) { animation: ygDropB 0.95s 0.05s ease-out forwards; }
+.gore-drop:nth-of-type(5) { animation: ygDropC 0.95s 0.1s ease-out forwards; }
+@keyframes ygDropA { 0% { transform: translate(-50%, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(-280%, -30%); opacity: 0; } }
+@keyframes ygDropB { 0% { transform: translate(-50%, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(190%, -55%); opacity: 0; } }
+@keyframes ygDropC { 0% { transform: translate(-50%, 0); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(30%, -95%); opacity: 0; } }
+.gore-pool {
+  left: 50%; bottom: 0; transform: translateX(-50%) scaleX(0.1);
+  transform-origin: bottom center; width: 84%; height: 15%;
+  background: radial-gradient(ellipse at 50% 100%, #9a0c1a, #570710 68%, transparent 72%);
+  animation: ygPool 0.95s ease-out forwards;
+}
+@keyframes ygPool { 0% { transform: translateX(-50%) scaleX(0.1); } 100% { transform: translateX(-50%) scaleX(1); } }
+
+/* ===================== Orgy Mode ===================== */
+.character-board.orgy-board {
+  border-color: #6a1330 !important;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 60, 120, 0.34), transparent 44%),
+    radial-gradient(circle at 80% 82%, rgba(180, 30, 110, 0.34), transparent 46%),
+    linear-gradient(160deg, #2a0a18, #160610) !important;
+  backdrop-filter: none !important;
+}
+.character-card.orgy {
+  background: linear-gradient(180deg, #2a0e1c, #1c0712);
+  border: 1px solid #7a1c3e;
+  color: #ffe3ef;
+}
+.character-card.orgy .portrait-wrap { border-bottom: 1px solid #7a1c3e; }
+.character-card.orgy .card-plate { padding: 5px 7px 7px; gap: 3px; background: none; }
+.character-card.orgy h3 { color: #ffd9e8; font-size: 0.82rem; }
+
+.orgy-pos {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  z-index: 3;
+  padding: 2px 6px;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: linear-gradient(180deg, #ff3d7f, #c01055);
+  border: 1px solid #ffffff66;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+.orgy-bodycount {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 3;
+  padding: 2px 6px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+}
+.orgy-stats { display: flex; flex-direction: column; gap: 3px; }
+.orgy-cum {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #ff9ec4;
+}
+.orgy-bar {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  align-items: center;
+  gap: 5px;
+}
+.orgy-bar b {
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #ffb3d2;
+}
+.orgy-bar i {
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.orgy-bar s {
+  display: block;
+  width: var(--n, 50%);
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ff5e9c, #ff2d6e);
+}
+.orgy-links {
+  font-size: 0.54rem;
+  font-weight: 600;
+  color: #f3c4d8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.orgy-upnext {
+  margin-top: 1px;
+  padding: 2px 5px;
+  font-size: 0.54rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, rgba(255, 61, 127, 0.35), rgba(255, 61, 127, 0.05));
+  border-left: 2px solid #ff3d7f;
+  border-radius: 0 4px 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.orgy-upnext b { color: #ff8fbb; }

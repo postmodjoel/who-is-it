@@ -2566,9 +2566,9 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
     0 0 0 3px #e9cb6e,
     0 0 0 4px #2a2008,
     0 5px 14px rgba(0, 0, 0, 0.55);
-  overflow: hidden;
+  overflow: visible;          /* keep a real 3D context so the flip isn't flattened */
   transform-style: preserve-3d;
-  transition: transform 0.5s ease, box-shadow 130ms ease;
+  transition: transform 0.55s ease, box-shadow 130ms ease;
 }
 .character-card.ygo.ygo-effect  { background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(0,0,0,.12) 42%, rgba(0,0,0,.24)), #a9531f; }
 .character-card.ygo.ygo-spell   { background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(0,0,0,.12) 42%, rgba(0,0,0,.24)), #1a9e84; }
@@ -2730,79 +2730,103 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   border-radius: 3px;
 }
 
-/* "No" flips the card over to its back (Konami-esque purple, not the trademark art). The whole card
-   does a Y-flip for motion, the front faces fade out, and the opaque back face covers everything.
-   (overflow:hidden flattens the 3D context, so we hide the front by opacity rather than backface.) */
-.character-card.ygo.is-down {
-  filter: none;
-  transform: rotateY(180deg);
-}
-.character-card.ygo.is-down:hover { transform: rotateY(180deg) translateY(-3px); }
-.character-card.ygo.is-down > *,
-.character-card.ygo.is-down .card-plate > *,
-.character-card.ygo.is-down::before { opacity: 0; }
-.character-card.ygo.is-down::after {
+/* "No" flips the card over to its back with a real 3D Y-flip. Front faces are backface-culled; the
+   back (::after, rotated 180deg) shows once the card passes 90deg. Needs a non-clipped 3D context. */
+.character-board.ygo-board { perspective: 1200px; }
+.character-card.ygo > *,
+.character-card.ygo .card-plate > *,
+.character-card.ygo::before,
+.character-card.ygo::after { backface-visibility: hidden; }
+.character-card.ygo::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 6;
-  opacity: 1;
   pointer-events: none;
-  border: 2px solid #20143e;
-  border-radius: 7px;
+  transform: rotateY(180deg);
+  border-radius: 6px;
   background:
     radial-gradient(circle at 50% 41%, #f0cf68 0 4.5%, transparent 5%),
     radial-gradient(circle at 50% 41%, transparent 0 10%, #caa84a 10% 12%, transparent 12.5%),
     radial-gradient(circle at 50% 41%, transparent 0 17%, #8a6bc4 17% 19%, transparent 19.5%),
     repeating-conic-gradient(from 0deg at 50% 41%, #2a1a4e 0 11deg, #3a2566 11deg 22deg),
     linear-gradient(160deg, #4a2f7e, #2c1a55);
-  box-shadow: inset 0 0 0 4px #5a3f96, inset 0 0 0 6px #2a1a4e;
+  box-shadow: inset 0 0 0 4px #5a3f96, inset 0 0 0 6px #2a1a4e, 0 0 0 1px #2a2008, 0 0 0 3px #e9cb6e, 0 0 0 4px #2a2008;
 }
+.character-card.ygo.is-down {
+  filter: none;
+  transform: rotateY(180deg);
+}
+.character-card.ygo.is-down:hover { transform: rotateY(180deg) translateY(-3px); }
 
-/* ===================== Decapitation elimination (regular board) ===================== */
-.character-card.is-decapitating { filter: none; z-index: 4; }
-.character-card.is-decapitating.is-down::after { display: none; }       /* show gore in full colour */
-.character-card.is-decapitating .portrait-wrap img {
-  position: relative;
-  z-index: 4;
-  transform-origin: 50% 72%;
-  animation: ygHeadPop 0.95s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+/* ===================== Fireworks Mode (head pops out + explodes) ===================== */
+.character-card.is-fireworks-pop {
+  overflow: visible;          /* let the head leave the frame */
+  z-index: 30;
+  filter: none;
 }
-@keyframes ygHeadPop {
-  0%   { transform: translateY(0) rotate(0); }
-  16%  { transform: translateY(-24px) rotate(7deg); }
-  45%  { transform: translateY(-6px) rotate(-40deg); }
-  100% { transform: translateY(78px) rotate(-168deg); opacity: 0; }
+.character-card.is-fireworks-pop .portrait-wrap { overflow: visible; }
+.character-card.is-fireworks-pop.is-down { filter: none; }
+.character-card.is-fireworks-pop.is-down::after { display: none; }
+/* The body keeps the bottom of the portrait; the head slice is clipped away (it's flying off). */
+.character-card.is-fireworks-pop .portrait-wrap > img { clip-path: inset(58% 0 0 0); }
+
+.fw { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+/* Detached head = the top slice of the portrait, flung up and out of the card, spinning. */
+.fw-head {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  clip-path: inset(0 0 42% 0);     /* show only the head (top 58%) of the portrait */
+  transform-origin: 50% 45%;
+  animation: fwHead 1s cubic-bezier(0.25, 0, 0.45, 1) forwards;
+  z-index: 7;
 }
-.gore { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
-.gore i { position: absolute; display: block; }
-.gore-stump {
-  left: 50%; bottom: 0; transform: translateX(-50%);
-  width: 46%; height: 18%;
-  background: radial-gradient(ellipse at 50% 0, #7c0a14 42%, #470610 70%, transparent 72%);
+@keyframes fwHead {
+  0%   { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+  45%  { transform: translateY(-160%) rotate(170deg) scale(0.92); opacity: 1; }
+  64%  { transform: translateY(-225%) rotate(250deg) scale(0.66); opacity: 1; }
+  100% { transform: translateY(-250%) rotate(330deg) scale(0.12); opacity: 0; }
 }
-.gore-jet {
-  left: 50%; bottom: 13%; transform: translateX(-50%);
-  width: 28%; height: 0;
-  background: linear-gradient(#e7122a, #930b1a);
-  border-radius: 0 0 45% 45%;
-  animation: ygJet 0.95s ease-out forwards;
+/* The explosion at the apex. */
+.fw-flash {
+  position: absolute;
+  left: 50%;
+  top: -135%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, rgba(255, 240, 170, 0.7) 40%, transparent 72%);
+  opacity: 0;
+  animation: fwFlash 0.55s 0.52s ease-out forwards;
 }
-@keyframes ygJet { 0% { height: 0; opacity: 0; } 12% { opacity: 1; } 45% { height: 54%; } 100% { height: 62%; opacity: 0.92; } }
-.gore-drop { bottom: 30%; left: 50%; width: 9%; aspect-ratio: 1; border-radius: 50%; background: #cd1124; opacity: 0; }
-.gore-drop:nth-of-type(3) { animation: ygDropA 0.95s ease-out forwards; }
-.gore-drop:nth-of-type(4) { animation: ygDropB 0.95s 0.05s ease-out forwards; }
-.gore-drop:nth-of-type(5) { animation: ygDropC 0.95s 0.1s ease-out forwards; }
-@keyframes ygDropA { 0% { transform: translate(-50%, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(-280%, -30%); opacity: 0; } }
-@keyframes ygDropB { 0% { transform: translate(-50%, 0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(190%, -55%); opacity: 0; } }
-@keyframes ygDropC { 0% { transform: translate(-50%, 0); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(30%, -95%); opacity: 0; } }
-.gore-pool {
-  left: 50%; bottom: 0; transform: translateX(-50%) scaleX(0.1);
-  transform-origin: bottom center; width: 84%; height: 15%;
-  background: radial-gradient(ellipse at 50% 100%, #9a0c1a, #570710 68%, transparent 72%);
-  animation: ygPool 0.95s ease-out forwards;
+@keyframes fwFlash {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  22%  { opacity: 1; transform: translate(-50%, -50%) scale(3.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(6); }
 }
-@keyframes ygPool { 0% { transform: translateX(-50%) scaleX(0.1); } 100% { transform: translateX(-50%) scaleX(1); } }
+.fw-burst { position: absolute; left: 50%; top: -135%; z-index: 9; }
+.fw-burst i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 50%;
+  opacity: 0;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.75);
+  animation: fwBurst 0.85s 0.52s ease-out forwards;
+}
+@keyframes fwBurst {
+  0%   { transform: translate(0, 0) scale(0.3); opacity: 0; }
+  15%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.9); opacity: 0; }
+}
 
 /* ===================== Orgy Mode ===================== */
 .character-board.orgy-board {

@@ -755,6 +755,12 @@ const mysteryEffects = [
     name: "Orgy Mode",
     apply: applyOrgy,
     exampleQuestion: "Is your person a bottom?"
+  },
+  {
+    id: "fireworks",
+    name: "Fireworks Mode",
+    apply: applyFireworks,
+    exampleQuestion: "Ready to make someone's head pop?"
   }
 ];
 
@@ -1006,15 +1012,83 @@ function toggleEliminated(id) {
     state.justEliminated = null;
   } else {
     player.eliminated.add(id);
-    // Mark the just-killed card so its decapitation animation plays once (regular card board only).
-    state.justEliminated = state.global.mystery?.id === "yugioh" ? null : id;
+    // Fireworks Mode: mark the just-killed card so its head-pop + fireworks plays once.
+    state.justEliminated = state.global.mystery?.id === "fireworks" ? id : null;
   }
   renderBoard();
   state.justEliminated = null;
 }
 
+// Per-mode question decks - when a special mode is active, every drawn question matches its flavour.
+const modePrompts = {
+  yugioh: [
+    "Is your person a Monster card?",
+    "Is your person a Spell or Trap?",
+    "Does your person have more than 2000 ATK?",
+    "Is your person's DEF higher than their ATK?",
+    "Is your person a DARK attribute?",
+    "Is your person Level 5 or higher (would need a Tribute)?",
+    "Is your person an Effect Monster?",
+    "Could your person be Special Summoned?",
+    "Is your person a Normal Monster (no effect)?",
+    "Would you set your person face-down?",
+    "Is your person a Continuous card?",
+    "Does your person belong in the Graveyard already?",
+    "Is your person your opening hand?",
+    "Is your person a Dragon-type?",
+    "Would your person survive Mirror Force?"
+  ],
+  orgy: [
+    "Is your person a top?",
+    "Is your person a bottom?",
+    "Is your person choking someone tonight?",
+    "Is your person getting gagged?",
+    "Is your person's body count over 100?",
+    "Is your person's cum count today above 5?",
+    "Has your person slept with someone else on this board?",
+    "Is your person's horniness maxed out?",
+    "Does your person have low stamina?",
+    "Is someone specific UP NEXT for your person?",
+    "Is your person a power bottom?",
+    "Is your person a starfish?",
+    "Is your person keeping a lot of secrets?",
+    "Would your person survive the night?",
+    "Is your person linked to more than one other player?"
+  ],
+  fireworks: [
+    "Is your person about to lose their head?",
+    "Would your person go out with a bang?",
+    "Is your person next on the chopping block?",
+    "Does your person deserve to explode?",
+    "Would your person make a pretty firework?",
+    "Is your person keeping their head down?",
+    "Should your person's head pop first?",
+    "Is your person a dud or a showstopper?"
+  ],
+  "knockoff-manor": [
+    "Is your person in the BATHS ROOM?",
+    "Did your person do it?",
+    "Is your person in the same room as the body?",
+    "Is your person holding the weapon?",
+    "Is your person upstairs?",
+    "Does your person have an alibi (they don't)?",
+    "Is your person sweating right now?",
+    "Would your person flee the manor?"
+  ],
+  "gay-frogged": [
+    "Is your person glowing the same colour as yours?",
+    "Is your person serving cunt?",
+    "Does your person top from the bottom?",
+    "Is your person a POC icon?",
+    "Would your person host the function?"
+  ]
+};
+
 function drawPrompt() {
-  const deck = state.settings.prompts ? absurdPrompts : classicPrompts;
+  const modeDeck = state.global.mystery ? modePrompts[state.global.mystery.id] : null;
+  const deck = modeDeck && modeDeck.length
+    ? modeDeck
+    : (state.settings.prompts ? absurdPrompts : classicPrompts);
   els.questionPrompt.textContent = pick(deck);
 }
 
@@ -1107,8 +1181,9 @@ function createCharacterCard(character, player) {
   card.id = `card-${character.id}`;
   card.className = `character-card ${character.variant || ""} ${mystery.cardClass || ""}`.trim();
   card.classList.toggle("is-down", player.eliminated.has(character.id));
-  // One-shot gory decapitation when this card was just eliminated in the regular board.
-  if (state.justEliminated === character.id) card.classList.add("is-decapitating");
+  // One-shot head-pop + fireworks when this card was just eliminated in Fireworks Mode.
+  const popping = state.justEliminated === character.id;
+  if (popping) card.classList.add("is-fireworks-pop");
   card.dataset.id = character.id;
   if (mystery.effectName) card.dataset.mysteryEffect = mystery.effectName;
   if (mystery.style) card.setAttribute("style", mystery.style);
@@ -1118,13 +1193,29 @@ function createCharacterCard(character, player) {
   const prop = mystery.propEmoji ? `<span class="prop-overlay" aria-label="${escapeHtml(mystery.primaryText)}">${mystery.propEmoji}</span>` : "";
   // Roles are hidden by default - they are not known initially and only surface once the
   // Role Reveal mystery effect is triggered (which renders them via mystery.html below).
-  const gore = state.justEliminated === character.id
-    ? '<div class="gore" aria-hidden="true"><i class="gore-stump"></i><i class="gore-jet"></i><i class="gore-drop"></i><i class="gore-drop"></i><i class="gore-drop"></i><i class="gore-pool"></i></div>'
-    : "";
+  const portraitSrc = mystery.image || character.image;
+  // Fireworks Mode kill: a detached "head" (top slice of the portrait) flies up out of the frame and
+  // bursts into fireworks. The base portrait is clipped to the body so the head looks separated.
+  let fireworks = "";
+  if (popping) {
+    const cols = ["#ff4d6d", "#ffd24d", "#5dff8f", "#4dd2ff", "#c46bff", "#ff8a4d", "#fff27a"];
+    let parts = "";
+    const N = 16;
+    for (let i = 0; i < N; i++) {
+      const ang = (i / N) * Math.PI * 2 + (i % 2 ? 0.2 : 0);
+      const dist = 46 + (i % 4) * 14;
+      const tx = Math.round(Math.cos(ang) * dist);
+      const ty = Math.round(Math.sin(ang) * dist);
+      parts += `<i style="--tx:${tx}px;--ty:${ty}px;background:${cols[i % cols.length]}"></i>`;
+    }
+    fireworks = `<div class="fw" aria-hidden="true">`
+      + `<img class="fw-head" src="${portraitSrc}" alt="">`
+      + `<div class="fw-burst">${parts}</div><div class="fw-flash"></div></div>`;
+  }
   card.innerHTML = `
     <div class="portrait-wrap">
-      <img src="${mystery.image || character.image}" alt="${escapeHtml(character.name)}">
-      ${gore}
+      <img src="${portraitSrc}" alt="${escapeHtml(character.name)}">
+      ${fireworks}
       ${prop}
       ${mystery.cornerHtml || ""}
     </div>
@@ -1559,6 +1650,12 @@ function applyYugioh(effect) {
     assignments[ch.id] = a;
   });
   return { id: effect.id, name: effect.name, assignments };
+}
+
+// Fireworks Mode: no per-character data - it's a visual mode where eliminating a character pops their
+// head out of the card frame and explodes it into fireworks (handled in createCharacterCard + CSS).
+function applyFireworks(effect) {
+  return { id: effect.id, name: effect.name, assignments: {} };
 }
 
 // Orgy Mode: everyone's stripped to bare cartoon shoulders and given a dossier of (entirely fictional,
@@ -2069,8 +2166,10 @@ function playEffectAnnouncement(name) {
   window.setTimeout(() => overlay.remove(), 1900);
 }
 
-function showMysteryAnnouncement(_effectName, exampleQuestion) {
-  els.mysteryResult.textContent = exampleQuestion;
+function showMysteryAnnouncement(_effectName, _exampleQuestion) {
+  // No static example line any more - instead the live question switches into the mode's own deck.
+  els.mysteryResult.textContent = "";
+  drawPrompt();
 }
 
 function assignEvenCategories(characters, values, salt) {

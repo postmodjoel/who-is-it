@@ -1276,17 +1276,14 @@ function getMysteryCardData(character) {
   }
   if (mystery.id === "fertility") {
     const a = assignment;
-    const eggsTxt = a.barren ? `<span class="ft-barren">BARREN</span>` : `${a.eggs} eggs`;
     const defect = a.defect ? `<div class="ft-defect">⚠ ${escapeHtml(a.defect)}</div>` : "";
+    const countRow = a.hasCount ? `<div class="ft-row"><b>💦</b><i>${escapeHtml(a.cum)}</i></div>` : "";
+    const eggsRow = a.hasEggs ? `<div class="ft-row"><b>🥚</b><i>${a.barren ? '<span class="ft-barren">BARREN</span>' : a.eggs}</i></div>` : "";
     return {
       effectName: mystery.name,
       cardClass: "fertility",
       cornerHtml: `<span class="ft-timer" title="next emptying">⏳ ${a.hrs}h ${a.mins}m</span>`,
-      html: `<div class="ft-sheet">
-        <div class="ft-row"><b>💦 Count</b><i>${escapeHtml(a.cum)}</i></div>
-        <div class="ft-row"><b>🥚 Eggs</b><i>${eggsTxt}</i></div>
-        ${defect}
-      </div>`
+      html: `<div class="ft-sheet">${countRow}${eggsRow}${defect}</div>`
     };
   }
   if (mystery.id === "disease") {
@@ -1411,27 +1408,34 @@ function applyFertility(effect) {
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:fert:${ch.id}`);
+    // Each person produces eggs OR cummies; a rare few make both.
+    const r = (h >>> 17) % 100;
+    const hasBoth = r < 8;
+    const hasCount = hasBoth || r < 54;
+    const hasEggs = hasBoth || r >= 54;
     const billions = (h >>> 2) % 4 === 0;
     const cum = billions
       ? (1 + ((h >>> 4) % 40) / 10).toFixed(1) + "B"
       : (50 + ((h >>> 4) % 900)) + "M";
-    const barren = (h >>> 9) % 6 === 0;
+    const barren = hasEggs && (h >>> 9) % 6 === 0;
     const eggs = barren ? 0 : 8 + ((h >>> 6) % 320);
     const hrs = (h >>> 11) % 72;
     const mins = (h >>> 13) % 60;
     const defect = ((h >>> 15) % 3 === 0)
       ? defects[stableHash(`${state.gameSalt}:fdef:${ch.id}`) % defects.length]
       : null;
-    assignments[ch.id] = { cum, eggs, barren, hrs, mins, defect };
+    assignments[ch.id] = { cum, eggs, barren, hrs, mins, defect, hasCount, hasEggs };
   });
   return { id: effect.id, name: effect.name, assignments };
 }
 
-// Special Disguise: re-render everyone with a neutral full-face covering (only the eyes show).
+// Special Disguise: re-render the WOMEN with a neutral full-face covering (a single eye slit). Men
+// are left as-is. Not a religious garment - a generic concealing wrap, applied by gender as asked.
 function applyDisguise(effect) {
   const assignments = {};
   state.board.forEach((ch) => {
-    const image = ch.traits && window.faceGenerator
+    const woman = ch.pronouns === "she";
+    const image = woman && ch.traits && window.faceGenerator
       ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true })
       : null;
     assignments[ch.id] = { image };

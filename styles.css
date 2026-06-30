@@ -85,11 +85,13 @@ button:disabled {
 
 .topbar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 18px;
   padding: 12px 0 18px;
+  min-height: 132px;
 }
+.topbar > .topbar-title { align-items: center; }
 
 .topbar-title {
   display: flex;
@@ -141,13 +143,23 @@ button:disabled {
   border: 0;
 }
 
-.topbar-actions,
 .dialog-head,
 .dialog-actions {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+/* Settings/effect/new-game buttons stacked vertically to the right, freeing width for the banner. */
+.topbar-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  flex: 0 0 auto;
+  width: 168px;
+}
+.topbar-actions .button { min-height: 34px; }
+.topbar-actions #debugEffectPicker { width: 100%; }
 
 .button,
 .segment,
@@ -2530,7 +2542,6 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
-  height: 76px;
   margin: 0;
   border: 2px solid var(--line);
   border-radius: 12px;
@@ -3126,7 +3137,8 @@ body.mode-pixall .secret-card img {
 .dz-pills { display: flex; flex-wrap: wrap; gap: 3px; }
 .dz-pill {
   padding: 1px 5px; font-size: 0.5rem; font-weight: 800; letter-spacing: 0.02em;
-  border-radius: 3px; color: #1a130a; white-space: nowrap;
+  border-radius: 3px; color: #1a130a;
+  white-space: normal; word-break: break-word; max-width: 100%; line-height: 1.25;
 }
 .dz-minor { background: #d7e36a; }
 .dz-major { background: #f0a93e; }
@@ -3191,9 +3203,13 @@ body.mode-pixall .secret-card img {
   background: rgba(0, 0, 0, 0.6); border-radius: 4px;
 }
 .ft-sheet { display: flex; flex-direction: column; gap: 2px; }
-.ft-row { display: flex; justify-content: space-between; gap: 6px; font-size: 0.6rem; }
-.ft-row b { font-weight: 800; color: #ff9ec4; }
-.ft-row i { font-style: normal; font-weight: 700; color: #ffe6f0; }
+.ft-row { display: flex; align-items: baseline; justify-content: space-between; gap: 4px; }
+.ft-row b { flex: 0 0 auto; font-size: 0.72rem; }
+.ft-row i {
+  flex: 1 1 auto; min-width: 0; font-style: normal; font-weight: 800;
+  font-size: clamp(0.6rem, 1.5vw, 0.84rem); color: #ffe6f0; text-align: right;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .ft-barren { color: #c0c6cf; font-weight: 800; letter-spacing: 0.06em; }
 .ft-defect {
   margin-top: 2px; padding: 1px 5px; font-size: 0.5rem; font-weight: 800; letter-spacing: 0.03em;

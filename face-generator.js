@@ -1493,7 +1493,8 @@
     const hi = shadeColor(cloth, 1.16);
     // Head + shoulders covering with an eye opening punched out (evenodd).
     const outer = "M42 118C42 56 86 34 128 34C170 34 214 56 214 118L214 256L42 256Z";
-    const eyeSlot = "M94 124C112 119 144 119 162 124C166 134 166 140 162 150C144 155 112 155 94 150C90 140 90 134 94 124Z";
+    // A thin horizontal eye slit (the only opening), so just the eyes read through the covering.
+    const eyeSlot = "M95 131C112 127 144 127 161 131C163 134 163 138 161 142C144 146 112 146 95 142C93 138 93 134 95 131Z";
     return `<g>
       <path d='${outer} ${eyeSlot}' fill='${cloth}' fill-rule='evenodd' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
       <path d='${eyeSlot}' fill='none' stroke='${ink}' stroke-width='2.6' stroke-linejoin='round'/>

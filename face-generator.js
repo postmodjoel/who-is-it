@@ -869,6 +869,18 @@
         { dx: 40, y: 187, r: 16 }
       ]
     },
+    // Flat values from the gen-ryan studio export. NOTE: the export's hairLocks coordinates were
+    // lost when the conversation was compacted, so the hair here falls back to ryan's base softCrop.
+    // Re-paste the gen-ryan JSON to bake the exact lock layout.
+    ryan: {
+      clothing: "tee", shirt: "#3a8866",
+      eyeOpen: 1.2, irisScale: 0.82, pupilY: -1, lazyEye: -0.5,
+      smileLips: "off", teethScale: 0.76,
+      jawLength: -0.02, jawShadowY: 2, chinY: -3,
+      beardLength: 0.22, accessoryY: -8, accessoryScale: 0.8,
+      animMode: "calm", shoulderSlope: 0.76, build: 64, bodyWidth: 1.06,
+      tattooFont: "display", tattooRot: 20, tattooSkewX: -30, tattooScale: 0.6, tattooX: -34, tattooY: 8
+    },
     // --- A few exploratory quirky looks on un-baked base characters (mostly beard-blob driven) ---
     bruno: {
       accessory: "none", browShape: "thick", browThick: 1.35, browY: 1,
@@ -1032,7 +1044,7 @@
         ${renderClothing(outfit, traits, seed)}
         ${renderNeckBase(traits, skin)}
         ${renderCollar(traits)}
-        ${renderTattoo(traits)}
+        ${renderTattoo(traits, "body")}
         ${headGroup(traits, `
           ${renderHairLocks(traits, seed, hair, true)}
           ${useFacesHair ? "" : renderBackHair(hairStyle, `url(#hair-${seed})`, traits)}
@@ -1049,6 +1061,7 @@
           ${renderNose(seed, traits)}
           ${accessorySvg.beforeMouth}
           ${renderExpressionMouth(expression, traits, seed)}
+          ${renderTattoo(traits, "face")}
           ${/* Blush comes solely from renderFaceModeling's cheekOpacity (the studio Blush control).
                The old expression-based renderCheeks() blush was a second layer that doubled up on
                happy/surprised faces, so it's no longer drawn. */ ""}
@@ -1164,13 +1177,29 @@
     serif: "Georgia, 'Times New Roman', serif",
     script: "'Brush Script MT', 'Segoe Script', cursive",
     mono: "'Courier New', ui-monospace, monospace",
-    display: "'Press Start 2P', Impact, fantasy"
+    display: "'Press Start 2P', Impact, fantasy",
+    gothic: "'Trattatello', 'Papyrus', 'Luminari', fantasy",
+    slab: "'Rockwell', 'Roboto Slab', Georgia, serif",
+    impact: "Impact, 'Haettenschweiler', 'Arial Narrow Bold', sans-serif",
+    rounded: "'Arial Rounded MT Bold', 'Quicksand', system-ui, sans-serif",
+    comic: "'Comic Sans MS', 'Chalkboard SE', cursive",
+    typewriter: "'American Typewriter', 'Courier New', monospace",
+    condensed: "'Arial Narrow', 'Roboto Condensed', sans-serif",
+    elegant: "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+    hand: "'Bradley Hand', 'Segoe Print', 'Marker Felt', cursive",
+    stencil: "'Stencil', 'Allerta Stencil', Impact, sans-serif"
   };
-  function renderTattoo(traits) {
+  // place: "body" anchors on the chest (drawn in the torso layer); "face" anchors on the cheek
+  // (drawn inside the head group so it moves/scales with the head).
+  function renderTattoo(traits, place) {
     const text = traits.tattooText;
     if (!text) return "";
-    const x = 128 + (Number(traits.tattooX) || 0);
-    const y = 236 + (Number(traits.tattooY) || 0);
+    const where = traits.tattooPlace || "body";
+    if (where !== place) return "";
+    const baseX = 128;
+    const baseY = place === "face" ? 178 : 236;
+    const x = baseX + (Number(traits.tattooX) || 0);
+    const y = baseY + (Number(traits.tattooY) || 0);
     const scale = Number(traits.tattooScale) || 1;
     const rot = Number(traits.tattooRot) || 0;
     const skew = Number(traits.tattooSkewX) || 0;
@@ -1564,6 +1593,9 @@
   }
 
   function renderHairHighlights(style, hair, traits, seed) {
+    // Base-hair strand lines disabled by request - they read as stringy on the base silhouette. The
+    // per-lock line texture (renderLock) is kept. Early return leaves the smooth shape only.
+    return "";
     if (!style.front || style.covered) return "";
     // Internal strand lines are the defining feature of the reference hair (penny/kevin/jade): a
     // mostly-smooth shape carried by many fine flowing lines in tones of the hair colour.
@@ -2014,7 +2046,7 @@
     const f = (n) => n.toFixed(1);
     const arc = (cTop, cBot) => `M${p.L} ${p.y}Q128 ${f(p.y + cBot)} ${p.R} ${p.y}Q128 ${f(p.y + cTop)} ${p.L} ${p.y}Z`;
     const opening = arc(p.topDip, p.botDip);
-    const overhang = Math.max(0, Number(traits.teethOverhang) || 0);
+    const overhang = effectiveOverhang(teethStyle, traits);
     // The opening extended downward so overhanging incisors can pass below the mouth and over the lip.
     const openingExt = arc(p.topDip, p.botDip + overhang + 2);
     const clipId = `mouth-${seed}`;
@@ -2039,6 +2071,14 @@
       ${sheen}
       <path d='${opening}' fill='none' stroke='${ink}' stroke-width='3' stroke-linejoin='round'/>
     `;
+  }
+
+  // How far the central incisors hang below the tooth row. Bucky teeth get a built-in overhang so
+  // they rest over the lower lip by default, without the user needing to crank the Overhang slider.
+  function effectiveOverhang(teethStyle, traits) {
+    const manual = Math.max(0, Number(traits.teethOverhang) || 0);
+    if (manual > 0) return manual;
+    return teethStyle === "bucky" ? 7 : 0;
   }
 
   // Does this mouth draw distinct central incisors (vs. just a flat tooth row)?
@@ -2083,7 +2123,7 @@
     const top = p.y - 3;
     const h = p.topDip + 9;
     const gap = Math.max(0, Number(traits.teethGap) || 0);
-    const overhang = Math.max(0, Number(traits.teethOverhang) || 0);
+    const overhang = effectiveOverhang(teethStyle, traits);
     const iw = 6.6;
     const inTop = top + 1;
     const inH = h - 2 + overhang;
@@ -2149,9 +2189,22 @@
     return "<ellipse cx='88' cy='152' rx='14' ry='7' fill='#f49a92' opacity='.34'/><ellipse cx='168' cy='152' rx='14' ry='7' fill='#f49a92' opacity='.34'/>";
   }
 
+  // Recolour an accessory to traits.accessoryColor. For glasses the frame IS the dark stroke, so we
+  // retint that; for everything else we retint the themeable fills (metal gold + the accent colour)
+  // while leaving the dark ink outline intact so the piece keeps its drawn edge.
+  function tintAccessory(svg, traits) {
+    const c = traits.accessoryColor;
+    if (!svg || !c) return svg;
+    const glasses = ["glasses", "roundGlasses", "squareGlasses", "catEyeGlasses"].includes(traits.accessory);
+    if (glasses) return svg.split("#171512").join(c);
+    let out = svg.split("#f6bd2f").join(c).split("#ffd569").join(shadeColor(c, 1.18));
+    if (traits.accent) out = out.split(traits.accent).join(c);
+    return out;
+  }
+
   function renderAccessory(traits, faceShape) {
     const render = accessories[traits.accessory] || accessories.none;
-    const output = render(traits, faceShape);
+    const output = tintAccessory(render(traits, faceShape), traits);
     const transformed = transformAccessory(output, traits);
     const headwear = ["cap", "beanie", "beret", "headband", "flowerClip", "bucketHat", "sunHat"].includes(traits.accessory);
     const facial = ["beard", "moustache"].includes(traits.accessory);
@@ -2480,7 +2533,8 @@
       lipStyles: ["line", "soft", "full"],
       chinShapes: ["none", "round", "square", "dimple", "pointed"],
       animModes: ["still", "calm", "curious", "serious", "shifty", "alert"],
-      tattooFonts: ["bold", "serif", "script", "mono", "display"],
+      tattooFonts: Object.keys(tattooFonts),
+      tattooPlaces: ["body", "face"],
       skinTones: Object.keys(skinTones),
       hairColors: Object.keys(hairColors),
       hairColorHex: hairColors,

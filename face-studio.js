@@ -76,6 +76,7 @@ const editorFields = [
   { group: "Clothing", key: "bust", label: "Bust", min: 0, max: 1.5, step: 0.05, fallback: 0 },
   // Accessory
   { group: "Accessory", key: "accessory", label: "Accessory", type: "select", options: () => selectOptions(accessoryChoices), fallback: "none" },
+  { group: "Accessory", key: "accessoryColor", label: "Accessory Colour", type: "color", fallback: "" },
   { group: "Accessory", key: "accessoryX", label: "Accessory X", min: -24, max: 24, step: 1, fallback: 0 },
   { group: "Accessory", key: "accessoryY", label: "Accessory Y", min: -24, max: 24, step: 1, fallback: 0 },
   { group: "Accessory", key: "accessoryScale", label: "Accessory Size", min: 0.68, max: 1.36, step: 0.02, fallback: 1 },
@@ -96,6 +97,7 @@ const editorFields = [
   { group: "Moustache", key: "moustacheScale", label: "Moustache Size", min: 0.62, max: 1.5, step: 0.02, fallback: 1 },
   // Tattoo (custom text on the chest/neck)
   { group: "Tattoo", key: "tattooText", label: "Text", type: "text", fallback: "" },
+  { group: "Tattoo", key: "tattooPlace", label: "Placement", type: "select", options: () => selectOptions(traitBook.tattooPlaces), fallback: "body" },
   { group: "Tattoo", key: "tattooFont", label: "Font", type: "select", options: () => selectOptions(traitBook.tattooFonts), fallback: "bold" },
   { group: "Tattoo", key: "tattooColor", label: "Colour", type: "color", fallback: "" },
   { group: "Tattoo", key: "tattooX", label: "X", min: -70, max: 70, step: 1, fallback: 0 },
@@ -487,6 +489,7 @@ function colorAutoFor(character, field) {
   if (field.key === "shirt") return character.traits.shirt || "#4a7bd9";
   if (field.key === "background") return character.traits.background || "#a9c4e0";
   if (field.key === "tattooColor") return character.traits.tattooColor || "#23232b";
+  if (field.key === "accessoryColor") return character.traits.accessoryColor || character.traits.accent || "#171512";
   return "#000000";
 }
 

@@ -300,9 +300,10 @@
       if (p.m === "f") return `<path d='${p.d}' fill='${fill}'/>`;
       return `<path d='${p.d}' fill='none' stroke='${ink}' stroke-width='${STROKE}' stroke-linecap='round' stroke-linejoin='round'/>`;
     }).join("");
-    const strands = opts && opts.low ? strandPaths(key, opts.low, opts.hi, opts.seed || 0) : "";
+    // Base silhouette only - the internal strand lines (strandPaths) read as stringy/messy on the
+    // smooth base hair, so they're omitted here. Per-lock line texture still lives in renderLock.
     const overlay = overlayLock(key, opts);
-    return `<g transform='${FACES_HAIR_TRANSFORM}'>${body}${strands}</g>${overlay}`;
+    return `<g transform='${FACES_HAIR_TRANSFORM}'>${body}</g>${overlay}`;
   }
 
   // longWaves now renders from a purpose-built procedural silhouette in face-generator.js (Luna's

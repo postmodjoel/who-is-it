@@ -161,12 +161,15 @@ window.GameData = {
     "Could your person rob a bank like this?"
   ],
   work: [
-    "Is your person ready for the 9am stand-up?",
-    "Does your person look like they slept?",
-    "Has your person had any sun this year?",
-    "Would your person reply-all by mistake?",
-    "Is your person dead behind the eyes?",
-    "Does your person have any eyebrows left?"
+    "Does your person have more than 1000 days left?",
+    "Is your person hiding a shiv?",
+    "Would your person survive the winter?",
+    "Has your person had any sun this decade?",
+    "Is your person planning a tunnel?",
+    "Does your person have any eyebrows left?",
+    "Is your person an informant?",
+    "Would your person trade their bread ration?",
+    "Is your person getting out this year?"
   ]
 },
 
@@ -484,5 +487,11 @@ window.GameData = {
   drugMethods: {
     inject: "💉 inject", snort: "👃 snort", smoke: "🚬 smoke",
     swallow: "💊 swallow", drink: "🥤 drink", huff: "🫁 huff"
-  }
+  },
+
+  // Work Mode (gulag) contraband stash items ------------------------------------------------------
+  workInventory: ["Sharpened spoon", "Shiv", "Toothbrush shank", "Loose cigarettes", "Homemade hooch",
+    "Smuggled letter", "Bent nail", "Soap-on-a-rope (weapon)", "Stale bread crust", "Stolen lighter",
+    "Map fragment", "Razor blade", "Salt ration", "Tunnel spoon", "Photo of the outside",
+    "Filed-down rebar", "Extra blanket (illegal)", "Pet rat", "Whittled chess set", "Hidden potato"]
 };

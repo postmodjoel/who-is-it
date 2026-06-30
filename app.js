@@ -523,6 +523,20 @@ function newGame() {
   drawPrompt();
   addLog("New game dealt. Nobody looks trustworthy.");
   render();
+  // The Wheel of Fate spins at the start of the round to pick the chaos mode for everyone.
+  if (state.settings.mystery) {
+    spinModeRoulette((id) => {
+      if (!id) { drawPrompt(); return; }
+      const eff = mysteryEffects.find((e) => e.id === id);
+      applyMysteryEffect(id);
+      if (eff) {
+        if (typeof playEffectAnnouncement === "function") playEffectAnnouncement(eff.name);
+        showMysteryAnnouncement(eff.name, eff.exampleQuestion);
+        addLog(`Wheel of Fate landed on "${eff.name}".`);
+      }
+      render();
+    });
+  }
 }
 
 function makePlayer(index) {
@@ -660,6 +674,7 @@ function renderBoard() {
   els.characterBoard.classList.toggle("disease-board", modeId === "disease");
   els.characterBoard.classList.toggle("drugs-board", modeId === "drugs");
   els.characterBoard.classList.toggle("fertility-board", modeId === "fertility");
+  els.characterBoard.classList.toggle("work-board", modeId === "work");
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
   state.board.forEach((character) => {
@@ -838,6 +853,54 @@ function triggerGayFroggedTest() {
   render();
 }
 
+// Abstract glyphs for the roulette - deliberately give nothing away about the mode.
+const MODE_GLYPHS = ["☣", "◉", "✦", "⚛", "☠", "⬢", "✶", "❂", "⟁", "◈", "⌖", "☯", "⚙", "♆", "⚕", "✺", "⊛", "❖", "⌬", "☄"];
+
+// Spin a slot-machine of abstract symbols at the start of a round; it decelerates onto a random mode,
+// flashes chaotically, then reveals + applies it. done(id) fires with the chosen mode id (or null).
+function spinModeRoulette(done) {
+  const modes = mysteryEffects.map((e, i) => ({ id: e.id, name: e.name, glyph: MODE_GLYPHS[i % MODE_GLYPHS.length], hue: (i * 47) % 360 }));
+  modes.push({ id: null, name: "No Effect", glyph: "∅", hue: 210 });
+  const target = pick(modes);
+  const targetPos = modes.indexOf(target);
+  const CELL = 112, REPS = 9;
+  let cells = [];
+  for (let r = 0; r < REPS; r++) cells = cells.concat(modes);
+  const landIndex = (REPS - 1) * modes.length + targetPos;
+
+  const overlay = document.createElement("div");
+  overlay.className = "roulette-overlay";
+  overlay.innerHTML = `
+    <div class="roulette-box">
+      <p class="roulette-title">Spinning the Wheel of Fate…</p>
+      <div class="roulette-window">
+        <div class="roulette-marker"></div>
+        <div class="roulette-strip">${cells.map((m) => `<div class="roulette-cell" style="--hue:${m.hue}">${m.glyph}</div>`).join("")}</div>
+      </div>
+      <p class="roulette-reveal" aria-live="polite"></p>
+    </div>`;
+  document.body.appendChild(overlay);
+  const strip = overlay.querySelector(".roulette-strip");
+  const win = overlay.querySelector(".roulette-window");
+  const center = win.clientWidth / 2;
+  const jitter = (Math.random() - 0.5) * (CELL * 0.5);
+  const finalX = -(landIndex * CELL + CELL / 2 - center + jitter);
+  strip.style.transform = "translateX(0)";
+  requestAnimationFrame(() => {
+    strip.style.transition = "transform 3.4s cubic-bezier(.1,.62,.2,1)";
+    strip.style.transform = `translateX(${finalX}px)`;
+  });
+  const finish = () => {
+    strip.removeEventListener("transitionend", finish);
+    const rev = overlay.querySelector(".roulette-reveal");
+    rev.textContent = target.id ? target.name : "NO EFFECT — clean round";
+    rev.style.setProperty("--hue", target.hue);
+    overlay.classList.add("is-landed", "is-flash");
+    setTimeout(() => { overlay.remove(); done(target.id); }, 1400);
+  };
+  strip.addEventListener("transitionend", finish);
+}
+
 function applyMysteryEffect(effectId) {
   clearMysteryEffectUI();
   const effect = mysteryEffects.find((item) => item.id === effectId);
@@ -847,7 +910,7 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -1271,8 +1334,21 @@ function getMysteryCardData(character) {
       html: ""
     };
   }
-  if (mystery.id === "disguise" || mystery.id === "work") {
+  if (mystery.id === "disguise") {
     return { effectName: mystery.name, image: assignment.image || undefined, html: "" };
+  }
+  if (mystery.id === "work") {
+    const a = assignment;
+    return {
+      effectName: mystery.name,
+      cardClass: "work",
+      image: a.image || undefined,
+      cornerHtml: `<span class="wk-days" title="days remaining">${a.days}d</span>`,
+      html: `<div class="wk-sheet">
+        <div class="wk-sentence">⛏ ${a.days} DAYS REMAINING</div>
+        <div class="wk-stash"><b>STASH:</b> ${a.items.map(escapeHtml).join(", ")}</div>
+      </div>`
+    };
   }
   if (mystery.id === "fertility") {
     const a = assignment;
@@ -1429,31 +1505,48 @@ function applyFertility(effect) {
   return { id: effect.id, name: effect.name, assignments };
 }
 
-// Special Disguise: re-render the WOMEN with a neutral full-face covering (a single eye slit). Men
-// are left as-is. Not a religious garment - a generic concealing wrap, applied by gender as asked.
+// Special Disguise: the WOMEN get a neutral full-face covering (a single eye slit); everyone else is
+// stripped to a bald head + hat + plain white top instead. A generic concealing wrap, not religious.
 function applyDisguise(effect) {
   const assignments = {};
   state.board.forEach((ch) => {
-    const woman = ch.pronouns === "she";
-    const image = woman && ch.traits && window.faceGenerator
-      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true })
-      : null;
+    let image = null;
+    if (ch.traits && window.faceGenerator) {
+      image = ch.pronouns === "she"
+        ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true })
+        : window.faceGenerator.renderPortrait(ch.seed, {
+          ...ch.traits, hair: "bald", hairLocks: [], beardLength: 0,
+          accessory: "cap", accessoryColor: "#e9e9ea", accessoryY: 0, accessoryScale: 1,
+          clothing: (ch.traits.clothing === "bare" || ch.traits.clothing === "singlet") ? "tee" : ch.traits.clothing,
+          shirt: "#f2f2f2"
+        });
+    }
     assignments[ch.id] = { image };
   });
   return { id: effect.id, name: effect.name, assignments };
 }
 
-// Work Mode: everyone bald, no eyebrows, and pasty white (corporate husk energy).
+// Work Mode: a Soviet-labour-camp readout. Everyone's a bald, browless, pasty husk; each gets a days-
+// remaining sentence and a secret stash of contraband (shivs etc.). Gulag energy.
 function applyWork(effect) {
+  const stash = (window.GameData && window.GameData.workInventory) || ["Shiv"];
   const assignments = {};
   state.board.forEach((ch) => {
     const image = ch.traits && window.faceGenerator
       ? window.faceGenerator.renderPortrait(ch.seed, {
         ...ch.traits, hair: "bald", hairLocks: [], noBrows: true,
-        skinHex: "#efe3da", cheekOpacity: 0, beardLength: 0
+        skinHex: "#e9ddd2", cheekOpacity: 0, beardLength: 0
       })
       : null;
-    assignments[ch.id] = { image };
+    const h = stableHash(`${state.gameSalt}:work:${ch.id}`);
+    const days = 1 + (h % 9000);
+    const n = 1 + ((h >>> 4) % 3);
+    const items = [];
+    for (let k = 0; k < n; k++) {
+      const it = stash[stableHash(`${state.gameSalt}:wk:${ch.id}:${k}`) % stash.length];
+      if (!items.includes(it)) items.push(it);
+    }
+    assignments[ch.id] = { image, days, items };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

@@ -271,6 +271,7 @@ const els = {
   hintShelf: document.querySelector("#hintShelf"),
   characterBoard: document.querySelector("#characterBoard"),
   opponentPanel: document.querySelector("#opponentPanel"),
+  floatingSecret: document.querySelector("#floatingSecret"),
   themeButton: document.querySelector("#themeButton"),
   setupButton: document.querySelector("#setupButton"),
   newGameButton: document.querySelector("#newGameButton"),
@@ -678,8 +679,10 @@ function renderSecret() {
     els.secretCard.className = "secret-card is-hidden";
     els.secretCard.textContent = "Face hidden";
     setButtonIcon(els.revealSecretButton, "eye", "Show face");
+    updateFloatingSecret(secret, false);
     return;
   }
+  updateFloatingSecret(secret, true);
   // Mirror whatever the active special mode shows on this character's board card, so the secret card
   // carries the exact same dossier (orgy stats, Yu-Gi-Oh card info, badges, etc.).
   const m = state.global.mystery ? getMysteryCardData(secret) : {};
@@ -702,6 +705,37 @@ function renderSecret() {
     ${m.cornerHtml ? `<div class="secret-corner">${m.cornerHtml}</div>` : ""}
   `;
   setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
+}
+
+// A compact "you are" reminder (head + name) that pins to the top on mobile once the real secret card
+// scrolls out of view, so you never lose track of your own character mid-game.
+function updateFloatingSecret(secret, visible) {
+  const fs = els.floatingSecret;
+  if (!fs || !secret) return;
+  const img = fs.querySelector("img");
+  const name = fs.querySelector(".fs-name");
+  const m = state.global.mystery ? getMysteryCardData(secret) : {};
+  if (visible) {
+    img.src = m.image || secret.image;
+    img.style.visibility = "visible";
+    name.textContent = displayName(secret);
+    fs.style.setProperty("--secret-bg", secret.traits?.background || "#cdd6e0");
+  } else {
+    img.style.visibility = "hidden";
+    name.textContent = "Face hidden";
+    fs.style.removeProperty("--secret-bg");
+  }
+}
+
+// Pin the floating secret once the sidebar's "You are" block scrolls past the top (mobile only via CSS).
+function wireFloatingSecret() {
+  const anchor = document.querySelector(".side-you");
+  if (!anchor || !els.floatingSecret || !("IntersectionObserver" in window)) return;
+  const obs = new IntersectionObserver(
+    ([entry]) => { els.floatingSecret.classList.toggle("is-stuck", !entry.isIntersecting); },
+    { threshold: 0, rootMargin: "0px 0px 0px 0px" }
+  );
+  obs.observe(anchor);
 }
 
 function renderBoard() {
@@ -2491,6 +2525,7 @@ loadTheme();
 installStaticIcons();
 newGame();
 wireCueCardClick();
+wireFloatingSecret();
 (function () {
   const boardSelector = "#characterBoard";
   const cardSelector = ".character-card";

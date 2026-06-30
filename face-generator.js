@@ -1003,6 +1003,106 @@
         { lock: "curlyForelock", x: 76, y: 30, scale: 0.66, rot: 0, lines: true },
         { lock: "softWaveCap", x: 50, y: 32, scale: 0.8, rot: 0, lines: true }
       ]
+    },
+    // --- Refinement pass on the previously-untouched roster: animations on, quirkier faces, and a
+    // --- bit more hair character. Inspired by the baked cast without copying their exact looks.
+    maya: {
+      animMode: "curious", blinkRate: 4, winkRate: 12, browShape: "arched", browY: -1, browThick: 1.05,
+      eyeScale: 1.06, irisScale: 0.96, eyeColor: "#5a3d28", cheekOpacity: 0.13, lipColor: "#a14d5a",
+      lips: "full", lipUpper: "cupid", noseTip: "narrow", noseWidth: 0.9, frontHairY: -3, eyeDart: 0.8
+    },
+    leon: {
+      animMode: "serious", blinkRate: 6.5, browThick: 1.25, browY: 0.5, eyeOpen: 0.84, eyeScale: 0.95,
+      jawShadowY: -2.5, mouthScale: 1.05, noseScale: 1.04, chinShape: "square", chinWidth: 1.05, beardLength: 0.1
+    },
+    naomi: {
+      animMode: "shifty", blinkRate: 3.5, winkRate: 18, browShape: "thin", browY: 1, browScaleX: 1.05,
+      eyeScale: 0.94, lazyEye: 2, pupilX: -1, irisScale: 0.84, lipColor: "#3a2f3a", lips: "soft",
+      noseTip: "narrow", noseWidth: 0.78, eyeDart: 0.95, frontHairY: -2
+    },
+    lucas: {
+      animMode: "calm", blinkRate: 5.5, eyeOpen: 0.9, browThick: 1.1, noseTip: "button", noseWidth: 1.05,
+      chinShape: "round", cheekOpacity: 0.05, mouthScale: 0.98, hairColor: "darkBrown"
+    },
+    stella: {
+      animMode: "alert", blinkRate: 3, browShape: "arched", browY: 0.5, browThick: 1.05, eyeScale: 1.06,
+      eyeOpen: 1.04, lipColor: "#7a3b46", lips: "full", lipLower: "pillow", cheekOpacity: 0.1, frontHairY: -4
+    },
+    jamal: {
+      animMode: "sleepy", blinkRate: 2.2, eyeOpen: 0.7, browY: 1.5, browThick: 1.1, jawShadowY: -2,
+      noseScale: 1.05, mouthScale: 1.02, underEyeOpacity: 0.4
+    },
+    arjun: {
+      animMode: "serious", blinkRate: 7, browThick: 1.2, browY: 0.5, eyeScale: 0.96, eyeOpen: 0.9,
+      noseScale: 1.05, noseTip: "straight", chinShape: "square", chinWidth: 1.08, frownLineOpacity: 0.35
+    },
+    matilda: {
+      animMode: "shifty", blinkRate: 4, winkRate: 16, browShape: "thick", browY: 1, browThick: 1.2,
+      eyeScale: 1.0, cheekOpacity: 0.16, noseTip: "button", noseWidth: 1.12, lipColor: "#9a5048", frontHairY: -2
+    },
+    celeste: {
+      animMode: "smug", blinkRate: 4.5, winkRate: 9, eyeScale: 1.08, irisScale: 0.95, lipColor: "#b85d68",
+      lips: "full", lipUpper: "peaked", cheekOpacity: 0.13, browShape: "arched", browY: -0.5, noseTip: "narrow"
+    },
+    amira: {
+      animMode: "alert", blinkRate: 3.2, browShape: "arched", browThick: 1.12, browY: 0.5, eyeScale: 1.0,
+      lazyEye: -1, irisScale: 0.92, lipColor: "#8a4a55", lips: "full", noseTip: "pointed", frontHairY: -3
+    },
+    eli: {
+      animMode: "calm", blinkRate: 5, eyeOpen: 0.92, eyeScale: 0.98, browThick: 0.9, noseTip: "narrow",
+      noseWidth: 0.85, chinShape: "round", chinScale: 0.9, cheekOpacity: 0.05
+    },
+    lara: {
+      animMode: "serious", blinkRate: 6, browShape: "thin", browY: 0, eyeScale: 0.98, lazyEye: 1,
+      lipColor: "#7a4048", lips: "soft", noseTip: "pointed", noseWidth: 0.88, jawShadowY: -2, frontHairY: -3
+    },
+    yara: {
+      animMode: "sleepy", blinkRate: 2.4, eyeOpen: 0.74, browY: 1, browShape: "thin", cheekOpacity: 0.08,
+      lipColor: "#6a4a44", noseTip: "narrow", underEyeOpacity: 0.45
+    },
+    asher: {
+      animMode: "curious", blinkRate: 4.5, winkRate: 14, eyeScale: 1.02, browThick: 0.95, browY: -0.5,
+      noseTip: "button", cheekOpacity: 0.06, mouthScale: 1.02, hairColor: "copper", frontHairY: -6
+    },
+    elena: {
+      animMode: "smug", blinkRate: 4, winkRate: 10, eyeScale: 1.06, cheekOpacity: 0.14, lipColor: "#a8505a",
+      lips: "full", lipLower: "pillow", browShape: "arched", browY: -0.5, noseTip: "narrow", frontHairY: -3
+    },
+    kai: {
+      animMode: "alert", blinkRate: 2.8, browShape: "thick", browThick: 1.32, browY: 1, eyeOpen: 0.7,
+      eyeScale: 0.96, jawShadowY: -2.5, chinShape: "square", noseScale: 1.04, frownLineOpacity: 0.4
+    },
+    lucy: {
+      animMode: "sleepy", blinkRate: 2.6, eyeOpen: 0.78, browShape: "thin", browY: 0.5, lipColor: "#7a3f48",
+      lips: "soft", noseTip: "narrow", noseWidth: 0.82, cheekOpacity: 0.07, frontHairY: -4
+    },
+    romeo: {
+      animMode: "smug", blinkRate: 4.5, winkRate: 8, eyeScale: 1.0, browThick: 1.05, browY: -0.5,
+      noseTip: "pointed", lipColor: "#5a3a30", lips: "soft", chinShape: "dimple", chinY: -2
+    },
+    adeline: {
+      animMode: "calm", blinkRate: 5, eyeOpen: 0.9, browShape: "thin", browY: 0.5, cheekOpacity: 0.08,
+      noseTip: "button", noseWidth: 1.0, lipColor: "#9a5560", hairColor: "auburn"
+    },
+    felix: {
+      animMode: "curious", blinkRate: 4, winkRate: 11, eyeScale: 1.05, browThick: 0.95, cheekOpacity: 0.07,
+      noseTip: "button", noseWidth: 1.05, mouthScale: 1.04, frontHairY: -5, hairColor: "auburn"
+    },
+    ines: {
+      animMode: "shifty", blinkRate: 3.6, winkRate: 17, browShape: "arched", browY: 1, browThick: 1.08,
+      eyeScale: 0.98, lazyEye: 1, lipColor: "#7a3b46", lips: "full", noseTip: "narrow", frontHairY: -2
+    },
+    hugo: {
+      animMode: "sleepy", blinkRate: 2.4, eyeOpen: 0.72, browY: 1.5, noseScale: 1.06, jawShadowY: 2,
+      chinShape: "round", underEyeOpacity: 0.5, mouthScale: 0.98
+    },
+    noor: {
+      animMode: "serious", blinkRate: 6.5, browShape: "thin", browY: 0.5, eyeScale: 0.96, lazyEye: -1,
+      lipColor: "#5a4048", lips: "soft", noseTip: "narrow", cheekOpacity: 0.06
+    },
+    tyler: {
+      animMode: "calm", blinkRate: 5.5, eyeScale: 1.0, browThick: 1.0, noseTip: "straight", noseScale: 1.02,
+      chinShape: "square", chinWidth: 1.06, mouthScale: 1.02, hairColor: "darkBrown", frontHairY: -8
     }
   };
 

@@ -743,6 +743,12 @@ const mysteryEffects = [
     name: "PS1 Mode",
     apply: applyPs1Mode,
     exampleQuestion: ""
+  },
+  {
+    id: "yugioh",
+    name: "Yu-Gi-Oh!",
+    apply: applyYugioh,
+    exampleQuestion: "Is your person a Trap Card?"
   }
 ];
 
@@ -804,12 +810,15 @@ function renderLocation() {
   if (!state.location) {
     els.locationBand.className = "location-band is-off";
     if (backdrop) backdrop.style.backgroundImage = "";
+    if (els.characterBoard) els.characterBoard.style.removeProperty("--board-art");
     return;
   }
   const variant = state.locationVariant === "night" ? "night" : "day";
   const artSrc = state.location.art[variant];
   // Bleed the location's colours into the page background behind everything.
   if (backdrop) backdrop.style.backgroundImage = `url('${encodeURI(artSrc)}')`;
+  // The board sits directly on the location banner art (no cream panel).
+  if (els.characterBoard) els.characterBoard.style.setProperty("--board-art", `url('${encodeURI(artSrc)}')`);
   const isGayFrogged = state.global.mystery?.id === "gay-frogged";
   els.locationBand.className = `location-band is-${variant}${isGayFrogged ? " is-gay-frogged" : ""}`;
   els.locationBand.innerHTML = `
@@ -886,6 +895,7 @@ function renderBoard() {
     renderKnockoffManorBoard(player);
     return;
   }
+  els.characterBoard.classList.toggle("ygo-board", state.global.mystery?.id === "yugioh");
   state.board.forEach((character) => {
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
@@ -1059,7 +1069,7 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
 }
@@ -1438,11 +1448,68 @@ function getMysteryCardData(character) {
       html: ""
     };
   }
+  if (mystery.id === "yugioh") {
+    const a = assignment;
+    const isMonster = a.frame !== "spell" && a.frame !== "trap";
+    const orbKey = isMonster ? a.attr : (a.frame === "spell" ? "SPELL" : "TRAP");
+    const orbGlyph = { DARK: "🌙", LIGHT: "☀", FIRE: "🔥", WATER: "💧", EARTH: "⛰", WIND: "🌪", SPELL: "✦", TRAP: "⊘" }[orbKey] || "★";
+    const stars = isMonster
+      ? `<span class="ygo-stars" aria-label="Level ${a.level}">${"◆".repeat(a.level)}</span>`
+      : `<span class="ygo-kind">${escapeHtml(a.kind)}</span>`;
+    const cornerHtml = `<span class="ygo-orb" data-attr="${orbKey}" title="${escapeHtml(orbKey)}">${orbGlyph}</span>`;
+    const footer = isMonster
+      ? `<span class="ygo-stat">ATK/${a.atk}</span><span class="ygo-stat">DEF/${a.def}</span>`
+      : "";
+    return {
+      effectName: mystery.name,
+      cardClass: `ygo ygo-${a.frame}`,
+      dataset: { ygoAttr: orbKey },
+      cornerHtml: `${cornerHtml}<span class="ygo-toprow">${stars}</span>`,
+      html: `<span class="ygo-typeline">${escapeHtml(a.typeLine)}</span>${footer ? `<span class="ygo-footer">${footer}</span>` : ""}`
+    };
+  }
   return { html: "", dataset: {} };
 }
 
 function addMysteryBadge(text, type) {
   return `<span class="mystery-badge ${type}">${escapeHtml(text)}</span>`;
+}
+
+// Yu-Gi-Oh! mode: every character becomes a duel card - Normal/Effect monster, Spell or Trap, with
+// an attribute orb, level stars, type line and ATK/DEF. Deterministic per character + game salt.
+function applyYugioh(effect) {
+  const monsterTypes = ["Spellcaster", "Warrior", "Dragon", "Beast", "Fiend", "Fairy", "Machine", "Zombie", "Aqua", "Pyro", "Rock", "Insect", "Dinosaur", "Sea Serpent", "Psychic", "Beast-Warrior", "Winged Beast", "Reptile"];
+  const attrs = ["DARK", "LIGHT", "FIRE", "WATER", "EARTH", "WIND"];
+  const spellKinds = ["Normal", "Quick-Play", "Continuous", "Field", "Equip"];
+  const trapKinds = ["Normal", "Continuous", "Counter"];
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:ygo:${ch.id}`);
+    const roll = h % 100;
+    let frame;
+    if (roll < 30) frame = "normal";
+    else if (roll < 62) frame = "effect";
+    else if (roll < 80) frame = "spell";
+    else if (roll < 95) frame = "trap";
+    else if (roll < 98) frame = "fusion";
+    else frame = "ritual";
+    const a = { frame };
+    if (frame === "spell" || frame === "trap") {
+      a.kind = (frame === "spell" ? spellKinds : trapKinds)[(h >>> 3) % (frame === "spell" ? spellKinds.length : trapKinds.length)];
+      a.typeLine = frame === "spell" ? "[Spell Card]" : "[Trap Card]";
+    } else {
+      a.attr = attrs[(h >>> 5) % attrs.length];
+      a.level = 1 + ((h >>> 7) % 8);
+      a.mtype = monsterTypes[(h >>> 11) % monsterTypes.length];
+      const base = 300 + ((h >>> 9) % 10) * 200 + a.level * 200;
+      a.atk = Math.min(3000, Math.round(base / 50) * 50);
+      a.def = Math.min(3000, Math.round((base * 0.78 + ((h >>> 13) % 6) * 100) / 50) * 50);
+      const tag = frame === "fusion" ? "Fusion/Effect" : frame === "ritual" ? "Ritual/Effect" : frame === "effect" ? "Effect" : "Normal";
+      a.typeLine = `[${a.mtype}/${tag}]`;
+    }
+    assignments[ch.id] = a;
+  });
+  return { id: effect.id, name: effect.name, assignments };
 }
 
 function applyPropPanic(effect) {
@@ -1542,14 +1609,16 @@ const KNOCKOFF_ROOM_NAMES = [
   "MUD ROOM COURT"
 ];
 
+// A tight 3x3 of equal room blocks wrapping the central weapon pile (rows 4-6 / cols 4-6), so there's
+// no big empty moat around the middle - every cell of the 9x9 grid is filled.
 const KNOCKOFF_ROOM_LAYOUTS = [
-  { row: 1, col: 1, rowSpan: 2, colSpan: 3 },
-  { row: 1, col: 4, rowSpan: 2, colSpan: 3 },
-  { row: 1, col: 7, rowSpan: 2, colSpan: 3 },
-  { row: 3, col: 1, rowSpan: 4, colSpan: 2 },
-  { row: 3, col: 8, rowSpan: 4, colSpan: 2 },
+  { row: 1, col: 1, rowSpan: 3, colSpan: 3 },
+  { row: 1, col: 4, rowSpan: 3, colSpan: 3 },
+  { row: 1, col: 7, rowSpan: 3, colSpan: 3 },
+  { row: 4, col: 1, rowSpan: 3, colSpan: 3 },
+  { row: 4, col: 7, rowSpan: 3, colSpan: 3 },
   { row: 7, col: 1, rowSpan: 3, colSpan: 3 },
-  { row: 8, col: 4, rowSpan: 2, colSpan: 3 },
+  { row: 7, col: 4, rowSpan: 3, colSpan: 3 },
   { row: 7, col: 7, rowSpan: 3, colSpan: 3 }
 ];
 

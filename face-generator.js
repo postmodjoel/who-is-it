@@ -886,7 +886,7 @@
         { lock: "sideSwoop", x: 66, y: 29, scale: 0.3, rot: -86, lines: false, outline: "none", fill: "#030303" }
       ],
       beardBlobs: [
-        { dx: 44, y: 177, r: 14 },
+        { dx: 44, y: 177, r: 12 },
         { dx: 27, y: 183, r: 16 },
         { dx: 14, y: 198, r: 16 },
         { dx: 33, y: 195, r: 25 },
@@ -928,7 +928,7 @@
       ]
     },
     zeke: {
-      frontHairY: -6, accessoryScale: 0.84, accessoryColor: "#bfbfa6",
+      frontHairY: -6, accessoryScale: 0.84, accessoryMetal: "roseGold", chainLink: 0.5,
       eyeScale: 0.72, eyeOpen: 1, eyeY: -2.5, pupilY: -2, lazyEye: -1, irisScale: 0.86,
       moustacheX: -2, mouthScale: 1.08, lips: "full", mouthY: -5,
       jawLength: 0.17, jawShadowY: -6,
@@ -951,11 +951,17 @@
       ]
     },
     diego: {
-      accessory: "none", browShape: "bushy", browThick: 1.2, eyeOpen: 0.74,
+      accessory: "none", browShape: "bushy", browThick: 1.2, eyeOpen: 0.74, beardLength: 0.12,
       animMode: "curious", blinkRate: 5, winkRate: 12,
       beardBlobs: [
-        { dx: 40, y: 180, r: 15 }, { dx: 22, y: 188, r: 16 }, { dx: 10, y: 200, r: 17 },
+        { dx: 44, y: 190, r: 15 }, { dx: 22, y: 188, r: 16 }, { dx: 10, y: 200, r: 17 },
         { dx: 30, y: 198, r: 22 }, { dx: 6, y: 208, r: 24 }
+      ]
+    },
+    sophia: {
+      faceShape: "round", hair: "locs", frontHairY: -4, accessory: "none", beardX: -1,
+      beardBlobs: [
+        { dx: 17, y: 198, r: 11 }, { dx: 30, y: 198, r: 16 }
       ]
     },
     javier: {
@@ -1078,7 +1084,7 @@
     // this project's original back/front hair.
     const useFacesHair = typeof window !== "undefined" && window.facesHair && window.facesHair.has(traits.hair);
     const facesHairSvg = useFacesHair
-      ? `<g transform='translate(0 ${Number(traits.frontHairY) || 0})'>${window.facesHair.render(traits.hair, `url(#hair-${seed})`, ink, { ...hairStrandTones(hair), hairHex: hair, seed })}</g>`
+      ? `<g transform='translate(0 ${Number(traits.frontHairY) || 0})'>${window.facesHair.render(traits.hair, `url(#hair-${seed})`, traits.hairOutline || ink, { ...hairStrandTones(hair), hairHex: hair, seed })}</g>`
       : "";
     const svg = `
       <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>
@@ -1111,7 +1117,7 @@
           ${renderBeardBlobs(traits, seed)}
           ${accessorySvg.behindHair || ""}
           ${useFacesHair ? "" : renderFrontHair(hairStyle, `url(#hair-${seed})`, traits) + renderHairHighlights(hairStyle, hair, traits, seed)}
-          ${renderBrows(expression, traits)}
+          <g class='fa-brow'>${renderBrows(expression, traits)}</g>
           ${renderEyes(expression, traits)}
           ${renderNose(seed, traits)}
           ${accessorySvg.beforeMouth}
@@ -1195,19 +1201,27 @@
   function animCSS(traits, seed) {
     const mode = traits.animMode || "still";
     const cfg = {
-      calm:    { blink: 5,   dart: 0,   sway: 0, wink: 0 },
-      curious: { blink: 4,   dart: 6,   sway: 0, wink: 14 },
-      serious: { blink: 7,   dart: 0,   sway: 6, wink: 0 },
-      shifty:  { blink: 3,   dart: 3.5, sway: 0, wink: 0 },
-      alert:   { blink: 2.6, dart: 5,   sway: 0, wink: 0 }
+      calm:    { blink: 5,   dart: 0,   sway: 0,   wink: 0,  brow: 0,  breathe: 7 },
+      curious: { blink: 4,   dart: 6,   sway: 0,   wink: 14, brow: 9,  breathe: 0 },
+      serious: { blink: 7,   dart: 0,   sway: 6,   wink: 0,  brow: 0,  breathe: 0 },
+      shifty:  { blink: 3,   dart: 3.5, sway: 0,   wink: 0,  brow: 0,  breathe: 0 },
+      alert:   { blink: 2.6, dart: 5,   sway: 0,   wink: 0,  brow: 6,  breathe: 0 },
+      smug:    { blink: 4.5, dart: 0,   sway: 4.5, wink: 8,  brow: 7,  breathe: 0 },
+      sleepy:  { blink: 2.2, dart: 0,   sway: 9,   wink: 0,  brow: 0,  breathe: 0 }
     }[mode];
     if (!cfg) return ""; // still / unknown
     const blink = traits.blinkRate != null && traits.blinkRate !== "" ? Number(traits.blinkRate) : cfg.blink;
     const wink = traits.winkRate != null && traits.winkRate !== "" ? Number(traits.winkRate) : cfg.wink;
     const dart = cfg.dart;
     const sway = cfg.sway;
+    const brow = cfg.brow || 0;
+    const breathe = cfg.breathe || 0;
     const ph = (Math.sin((seed + 1) * 12.9898) * 43758.5453) % 1; // deterministic 0..1 phase
     const ph2 = (Math.sin((seed + 7) * 78.233) * 12543.6789) % 1;  // a 2nd independent 0..1 value
+    // Eye-dart travel: 0..1, normalised. Defaults to a per-character value so the roster varies.
+    const dartAmt = traits.eyeDart != null && traits.eyeDart !== ""
+      ? Math.max(0, Math.min(1, Number(traits.eyeDart)))
+      : 0.35 + 0.55 * Math.abs(ph2);
     const d = (period) => (-(Math.abs(ph) * period)).toFixed(2);
     // A blink/wink should take a fixed amount of TIME no matter the interval, so its keyframe width is
     // (duration / interval); short intervals don't make a frantic blink. Blink duration gets a
@@ -1227,7 +1241,10 @@
       rules.push(`g.fa-lid{animation:faLid ${blink}s infinite;animation-delay:${d(blink)}s}`);
     }
     if (dart > 0) {
-      kf.push("@keyframes faDart{0%,16%{translate:0 0}20%,38%{translate:2.2px -1px}42%,60%{translate:-2.4px .8px}64%,82%{translate:1px 1.4px}86%,100%{translate:0 0}}");
+      // Travel scaled by dartAmt (eyeDart). Base magnitudes are generous so eyeDart=1 reads as a big
+      // look-around and eyeDart≈0 barely moves.
+      const a = (n) => (n * dartAmt).toFixed(2);
+      kf.push(`@keyframes faDart{0%,16%{translate:0 0}20%,38%{translate:${a(3.8)}px ${a(-1.7)}px}42%,60%{translate:${a(-4.2)}px ${a(1.4)}px}64%,82%{translate:${a(1.7)}px ${a(2.4)}px}86%,100%{translate:0 0}}`);
       rules.push(`g.fa-iris{animation:faDart ${dart}s infinite;animation-delay:${d(dart)}s}`);
     }
     if (wink > 0) {
@@ -1241,6 +1258,16 @@
     if (sway > 0) {
       kf.push("@keyframes faSway{0%,100%{transform:rotate(-1.1deg)}50%{transform:rotate(1.1deg)}}");
       rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 205px;animation:faSway ${sway}s ease-in-out infinite;animation-delay:${d(sway)}s}`);
+    } else if (breathe > 0) {
+      // A gentle breathing bob (only when not swaying, since both ride the .fa-head group).
+      kf.push("@keyframes faBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(1.1px) scale(1.006)}}");
+      rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 210px;animation:faBreathe ${breathe}s ease-in-out infinite;animation-delay:${d(breathe)}s}`);
+    }
+    if (brow > 0) {
+      // An occasional eyebrow raise - a quick lift then settle, most of the cycle at rest.
+      const lift = (0.7 + 0.6 * Math.abs(ph)).toFixed(2);
+      kf.push(`@keyframes faBrow{0%,68%,100%{transform:translateY(0)}76%,88%{transform:translateY(-${lift}px)}}`);
+      rules.push(`g.fa-brow{animation:faBrow ${brow}s ease-in-out infinite;animation-delay:${d(brow)}s}`);
     }
     return `<style>${kf.join("")}${rules.join("")}</style>`;
   }
@@ -1815,16 +1842,18 @@
     const fill = style.covered ? traits.shirt : hair;
     const strokeWidth = style.sidePart ? 4 : 4.3;
     const y = Number(traits.backHairY) || 0;
-    return `<g transform='translate(0 ${y})'><path d='${style.back}' fill='${fill}' stroke='${ink}' stroke-width='${strokeWidth}' stroke-linejoin='round'/>${renderHairTexture(style, hair, traits)}</g>`;
+    const hi = traits.hairOutline || ink;
+    return `<g transform='translate(0 ${y})'><path d='${style.back}' fill='${fill}' stroke='${hi}' stroke-width='${strokeWidth}' stroke-linejoin='round'/>${renderHairTexture(style, hair, traits)}</g>`;
   }
 
   function renderFrontHair(style, hair, traits) {
     if (!style.front) return "";
+    const hi = traits.hairOutline || ink;
     const y = Number(traits.frontHairY) || 0;
     const wrap = (svg) => y ? `<g transform='translate(0 ${y})'>${svg}</g>` : svg;
     if (style.covered) {
       return wrap(`
-        <path d='M73 104c11-31 32-47 55-47s44 16 55 47v98' fill='none' stroke='${ink}' stroke-width='3.8' stroke-linecap='round' stroke-linejoin='round'/>
+        <path d='M73 104c11-31 32-47 55-47s44 16 55 47v98' fill='none' stroke='${hi}' stroke-width='3.8' stroke-linecap='round' stroke-linejoin='round'/>
         <path d='M76 132c-3 23-2 48 2 70M180 132c3 23 2 48-2 70' fill='none' stroke='rgba(24,21,18,.18)' stroke-width='2.2' stroke-linecap='round'/>
         <path d='M90 204c17 16 59 16 76 0' fill='none' stroke='rgba(255,255,255,.18)' stroke-width='4' stroke-linecap='round'/>
       `);
@@ -2686,7 +2715,7 @@
       teethStyles: ["even", "perfect", "gappy", "bucky", "spaced"],
       lipStyles: ["line", "soft", "full"],
       chinShapes: ["none", "round", "square", "dimple", "pointed"],
-      animModes: ["still", "calm", "curious", "serious", "shifty", "alert"],
+      animModes: ["still", "calm", "curious", "serious", "shifty", "alert", "smug", "sleepy"],
       tattooFonts: Object.keys(tattooFonts),
       tattooPlaces: ["body", "face"],
       accessoryMetals: ["", "silver", "gold", "black", "roseGold"],

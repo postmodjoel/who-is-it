@@ -20,6 +20,7 @@ const editorFields = [
   // Hair
   { group: "Hair", key: "hair", label: "Hair Style", type: "select", options: () => selectOptions(traitBook.hairStyles), fallback: "messy" },
   { group: "Hair", key: "hairColor", label: "Hair Color", type: "select", options: () => selectOptions(traitBook.hairColors), fallback: "brown" },
+  { group: "Hair", key: "hairOutline", label: "Hair Outline Colour", type: "color", fallback: "" },
   { group: "Hair", key: "frontHairY", label: "Front Hair Y", min: -18, max: 18, step: 1, fallback: 0 },
   { group: "Hair", key: "backHairY", label: "Back Hair Y", min: -14, max: 14, step: 1, fallback: 0 },
   // Brows
@@ -36,6 +37,7 @@ const editorFields = [
   { group: "Eyes", key: "pupilX", label: "Pupil X", min: -5, max: 5, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "pupilY", label: "Pupil Y", min: -5, max: 5, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "lazyEye", label: "Lazy Eye", min: -8, max: 8, step: 0.5, fallback: 0 },
+  { group: "Eyes", key: "eyeDart", label: "Eye Movement (dart range)", min: 0, max: 1, step: 0.02, fallback: 0.6 },
   // Nose
   { group: "Nose", key: "noseY", label: "Nose Height", min: -8, max: 10, step: 0.5, fallback: 0 },
   { group: "Nose", key: "noseScale", label: "Nose Size", min: 0.6, max: 1.5, step: 0.02, fallback: 1 },
@@ -507,6 +509,7 @@ function colorAutoFor(character, field) {
   if (field.key === "tattooColor") return character.traits.tattooColor || "#23232b";
   if (field.key === "accessoryColor") return character.traits.accessoryColor || character.traits.accent || "#171512";
   if (field.key === "eyeColor") return character.traits.eyeColor || "#5a3d28";
+  if (field.key === "hairOutline") return character.traits.hairOutline || "#1f2330";
   return "#000000";
 }
 

@@ -336,7 +336,147 @@ const locations = [
     prompt: "Low tide, a dying bonfire, and a long weekend with too many people and one locked beach house.",
     gayPrompt: "Fire Island energy: a locked beach house, a cooler full of seltzers, and someone already crying by 2pm.",
     stamp: "Low tide"
-  }
+  },
+  {
+    name: "Diner",
+    slug: "diner",
+    prompt: "Three a.m., bottomless coffee, and a confession that only makes sense under fluorescent light.",
+    gayPrompt: "Post-club fries, somebody's mascara is now a statement, and the waitress has emotionally adopted all of you.",
+    stamp: "Counter seat"
+  },
+  {
+    name: "Wine Cellar",
+    slug: "wine_cellar",
+    prompt: "Cool stone, a dusty vintage, and a toast to something neither of you can name yet.",
+    gayPrompt: "An unrequested sommelier monologue, a 'we should just split a bottle' that means everything, and one very load-bearing candle.",
+    stamp: "Reserve list"
+  },
+  {
+    name: "Bakery",
+    slug: "bakery",
+    prompt: "Warm glass, the last croissant, and two polite people each refusing to be the one who takes it.",
+    gayPrompt: "A sourdough situationship, a barista writing the wrong name on purpose, and someone openly weeping over a perfectly laminated pastry.",
+    stamp: "Fresh batch"
+  },
+  {
+    name: "Nightclub",
+    slug: "nightclub",
+    prompt: "Two a.m., a bassline you can feel in your teeth, and a glance held three seconds too long across the floor.",
+    gayPrompt: "The DJ dropped a remix nobody asked for, two exes are voguing competitively, and someone has lost a shoe to the fog machine.",
+    stamp: "Coat check"
+  },
+  {
+    name: "Karaoke",
+    slug: "karaoke",
+    prompt: "A private room, a sticky remote, and a duet that means far more than either of you will admit.",
+    gayPrompt: "Someone queued 'Defying Gravity' unironically and the room has gone silent with reverence. A tambourine has entered the chat.",
+    stamp: "Room 3"
+  },
+  {
+    name: "Casino",
+    slug: "casino",
+    prompt: "No clocks, no windows, and a bet placed on something far riskier than the table.",
+    gayPrompt: "Someone's playing blackjack in full sequins, blowing on the dice 'for luck,' and going all in over purely emotional stakes.",
+    stamp: "High roller"
+  },
+  {
+    name: "Record Store",
+    slug: "record_store",
+    prompt: "Crates to flip through, a song you both somehow know, and a hand brushing the same sleeve.",
+    gayPrompt: "Someone is gatekeeping a record they found yesterday, and the clerk just diagnosed your entire personality from one purchase.",
+    stamp: "New arrivals"
+  },
+  {
+    name: "Theater",
+    slug: "theater",
+    prompt: "House lights dimming, a held breath, and a seat squeeze right as the curtain lifts.",
+    gayPrompt: "It's a one-person show about grief and the lead is somebody's ex. Three rows are sobbing purely on principle.",
+    stamp: "Orchestra"
+  },
+  {
+    name: "Arcade",
+    slug: "arcade",
+    prompt: "Quarter-fed machines, a shared high score, and a rivalry that's clearly about something else.",
+    gayPrompt: "A duel for the Dance Dance Revolution crown while a third person narrates it like a championship final.",
+    stamp: "High score"
+  },
+  {
+    name: "Bowling Alley",
+    slug: "bowling_alley",
+    prompt: "Rented shoes, a gutter ball, and a high-five that lingers a beat too long.",
+    gayPrompt: "Bumper bowling, a team name change mid-game, and someone winning purely on the strength of the outfit.",
+    stamp: "Lane 7"
+  },
+  {
+    name: "Ferry",
+    slug: "ferry",
+    prompt: "Open water, a shared railing, and a wind that makes leaning in look accidental.",
+    gayPrompt: "Someone's doing the Titanic pose unprompted, the gulls have chosen violence, and a long-distance thing is being renegotiated over seltzer.",
+    stamp: "Upper deck"
+  },
+  {
+    name: "Pier",
+    slug: "pier",
+    prompt: "Carnival lights, a shared funnel cake, and a Ferris wheel that stalls at the very top.",
+    gayPrompt: "A rigged ring toss, a giant stuffed animal won out of spite, and a confession timed perfectly with the fireworks.",
+    stamp: "Boardwalk"
+  },
+  {
+    name: "Spa",
+    slug: "spa",
+    prompt: "Low light, eucalyptus, and a silence that says more than the small talk did.",
+    gayPrompt: "Cucumber water, a face-mask confession, and someone treating a wellness day like court-ordered couples therapy.",
+    stamp: "Quiet hour"
+  },
+  {
+    name: "Hair Salon",
+    slug: "hair_salon",
+    prompt: "Mirror talk, a transformation underway, and a confession that only happens mid-blowout.",
+    gayPrompt: "A breakup haircut in progress, the stylist is somehow also a licensed therapist, and everyone's getting bangs out of solidarity.",
+    stamp: "Chair 2"
+  },
+  {
+    name: "Tattoo Parlor",
+    slug: "tattoo_parlor",
+    prompt: "A buzzing needle, a permanent decision, and someone holding a hand 'for the pain.'",
+    gayPrompt: "A matching-tattoo idea on a three-week situationship, the artist quietly staging an intervention, and someone crying that it 'doesn't even hurt.'",
+    stamp: "Walk-in"
+  },
+  {
+    name: "Office",
+    slug: "office",
+    prompt: "After hours, monitors still glowing, and a deadline that's become an excuse to stay.",
+    gayPrompt: "An after-hours 'quick question,' a situationship conducted entirely in Slack, and HR is absolutely going to hear about this.",
+    stamp: "Late shift"
+  },
+  {
+    name: "Aquarium",
+    slug: "aquarium",
+    prompt: "Blue light, a slow drift of fish, and a hand that almost reaches for another in the dark.",
+    gayPrompt: "The jellyfish tank is serving ethereal, someone's crying at the sea turtles, and a first date is going suspiciously, alarmingly well.",
+    stamp: "Deep tank"
+  },
+  {
+    name: "Farmers Market",
+    slug: "farmers_market",
+    prompt: "Morning stalls, a sample offered, and a hand-off of fruit that lasts a second too long.",
+    gayPrompt: "An heirloom-tomato bidding war, a tote bag that says everything, and someone catching feelings for the man selling honey.",
+    stamp: "Stall 12"
+  },
+  {
+    name: "Ski Lodge",
+    slug: "ski_lodge",
+    prompt: "Snow on the glass, a crackling fire, and two people who got 'too tired' to ski.",
+    gayPrompt: "Nobody actually skied. There's mulled wine, a shared blanket, and a deeply intense group conversation about everyone's attachment style.",
+    stamp: "Fireside"
+  },
+  {
+    name: "Hot Spring",
+    slug: "hot_spring",
+    prompt: "Rising steam, a quiet soak, and a closeness the cold air outside can't explain.",
+    gayPrompt: "An accidental couples' soak, a conversation more honest than anyone will admit to later, and lanterns setting the mood unfairly.",
+    stamp: "The springs"
+  },
 ].map((loc) => ({
   ...loc,
   art: {
@@ -660,12 +800,16 @@ function render() {
 }
 
 function renderLocation() {
+  const backdrop = document.querySelector("#locationBackdrop");
   if (!state.location) {
     els.locationBand.className = "location-band is-off";
+    if (backdrop) backdrop.style.backgroundImage = "";
     return;
   }
   const variant = state.locationVariant === "night" ? "night" : "day";
   const artSrc = state.location.art[variant];
+  // Bleed the location's colours into the page background behind everything.
+  if (backdrop) backdrop.style.backgroundImage = `url('${encodeURI(artSrc)}')`;
   const isGayFrogged = state.global.mystery?.id === "gay-frogged";
   els.locationBand.className = `location-band is-${variant}${isGayFrogged ? " is-gay-frogged" : ""}`;
   els.locationBand.innerHTML = `

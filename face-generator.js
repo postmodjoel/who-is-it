@@ -781,6 +781,7 @@
       shoulderSlope: 0.76, build: 71, bodyWidth: 1.32, bust: 0.15,
       accessoryY: 21, accessoryScale: 0.94, beardLength: 0.42,
       animMode: "serious", blinkRate: 11.5,
+      tattooText: "MAGA", tattooFont: "script", tattooX: 53, tattooY: 15, tattooScale: 0.55, tattooRot: 2, tattooSkewX: 45,
       hairLocks: [
         { lock: "longSideLock", x: 56, y: 26, scale: 0.4, rot: -111, lines: false },
         { lock: "spikyFringe", x: 41, y: 41, scale: 0.72, rot: -20, lines: true },

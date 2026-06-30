@@ -2360,3 +2360,114 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
     animation: none;
   }
 }
+
+/* ===================== 25 / 75 game layout ===================== */
+/* A blurred copy of the location bleeds its colours across the whole page. */
+.location-backdrop {
+  position: fixed;
+  inset: -10%;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  filter: blur(48px) saturate(1.35) brightness(0.82);
+  opacity: 0.55;
+  transform: scale(1.12);
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+
+.game-layout {
+  display: grid;
+  grid-template-columns: minmax(232px, 25%) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.game-side {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  position: sticky;
+  top: 12px;
+}
+
+.side-block {
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  padding: 12px;
+}
+
+.side-block .label {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--muted, #676158);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.game-side .cue-card { min-width: 0; }
+.game-side .question-prompt { margin: 0; font-weight: 650; }
+.game-side .mystery-result { margin: 8px 0 0; }
+.game-side .game-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.game-side .seat-roster { flex-wrap: wrap; }
+
+/* The stage: the location image is the backdrop, the people grid sits over it. */
+.game-stage {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  min-height: 64vh;
+}
+
+.game-stage .location-band {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+.game-stage .location-photo { background-position: center 34%; }
+.game-stage .location-overlay {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 2;
+  min-height: 0;
+  align-items: flex-start;
+  padding: 16px 18px 22px;
+}
+.game-stage .location-copy h2 { margin: 3px 0 6px; font-size: clamp(1.3rem, 2.3vw, 2.1rem); }
+.game-stage .location-copy p { max-width: 54ch; font-size: clamp(0.86rem, 1.4vw, 1rem); }
+
+/* People grid overlaid on the location (pushed below the caption, faintly translucent). */
+.game-stage .board-wrap {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  margin: 0;
+}
+.game-stage .character-board {
+  margin: 124px 12px 12px;
+  border-color: rgba(23, 21, 18, 0.55);
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.82), rgba(255, 253, 247, 0.9));
+  backdrop-filter: blur(3px);
+}
+
+@media (max-width: 860px) {
+  .game-layout { grid-template-columns: 1fr; }
+  .game-side { position: static; }
+  .game-stage .character-board { margin-top: 92px; }
+}

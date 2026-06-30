@@ -3312,3 +3312,63 @@ body.mode-pixall .secret-card img {
   100% { background: rgba(6, 5, 10, 0.9); }
 }
 .roulette-overlay.is-flash { animation: rltFlash 0.85s ease-out; }
+
+/* ===================== Opponent view (simulated online) ===================== */
+.opponent-panel {
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel, #16181f);
+  box-shadow: var(--shadow);
+}
+.opponent-panel:empty { display: none; }
+.opponent-panel .label { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.opp-live {
+  font-size: 0.56rem;
+  font-weight: 800;
+  color: #ff5a5a;
+  letter-spacing: 0.04em;
+  animation: oppPulse 1.4s ease-in-out infinite;
+}
+@keyframes oppPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+.opp-mode { margin: 0 0 8px; font-size: 0.72rem; color: var(--muted); }
+.opp-mode b { color: #ffce3a; }
+.opp-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+.opp-empty { font-size: 0.72rem; color: var(--muted); font-style: italic; }
+.opp-card {
+  position: relative;
+  width: 52px;
+  text-align: center;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #0e0f14;
+}
+.opp-card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; filter: grayscale(0.9) brightness(0.55); }
+.opp-card::after {
+  content: "✕";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: rgba(255, 70, 70, 0.85);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+.opp-card span {
+  display: block;
+  padding: 2px 2px 3px;
+  font-size: 0.46rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+.opp-card.is-new { animation: oppDrop 0.45s cubic-bezier(0.2, 1.3, 0.4, 1); box-shadow: 0 0 0 2px #ff5a5a; }
+@keyframes oppDrop { 0% { transform: scale(0.4) translateY(-10px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }

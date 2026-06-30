@@ -270,6 +270,7 @@ const els = {
   mysteryUseCount: document.querySelector("#mysteryUseCount"),
   hintShelf: document.querySelector("#hintShelf"),
   characterBoard: document.querySelector("#characterBoard"),
+  opponentPanel: document.querySelector("#opponentPanel"),
   themeButton: document.querySelector("#themeButton"),
   setupButton: document.querySelector("#setupButton"),
   newGameButton: document.querySelector("#newGameButton"),
@@ -523,19 +524,26 @@ function newGame() {
   drawPrompt();
   addLog("New game dealt. Nobody looks trustworthy.");
   render();
-  // The Wheel of Fate spins at the start of the round to pick the chaos mode for everyone.
+  stopOpponentSim();
+  // The Wheel of Fate spins at the start of the round to pick the chaos mode BOTH seats will share.
   if (state.settings.mystery) {
     spinModeRoulette((id) => {
-      if (!id) { drawPrompt(); return; }
-      const eff = mysteryEffects.find((e) => e.id === id);
-      applyMysteryEffect(id);
-      if (eff) {
-        if (typeof playEffectAnnouncement === "function") playEffectAnnouncement(eff.name);
-        showMysteryAnnouncement(eff.name, eff.exampleQuestion);
-        addLog(`Wheel of Fate landed on "${eff.name}".`);
+      if (id) {
+        const eff = mysteryEffects.find((e) => e.id === id);
+        applyMysteryEffect(id);
+        if (eff) {
+          if (typeof playEffectAnnouncement === "function") playEffectAnnouncement(eff.name);
+          showMysteryAnnouncement(eff.name, eff.exampleQuestion);
+          addLog(`Wheel of Fate landed on "${eff.name}" - shared by both seats.`);
+        }
+      } else {
+        drawPrompt();
       }
       render();
+      startOpponentSim();
     });
+  } else {
+    startOpponentSim();
   }
 }
 
@@ -557,6 +565,48 @@ function render() {
   renderHouseMap();
   renderBoard();
   renderMystery();
+  renderOpponentPanel();
+}
+
+// ===================== Opponent view (simulated online play) =====================
+// Stand-in for the multiplayer backend: a pseudo-AI in the OTHER seat crosses characters off over
+// time, and the human seat sees each elimination pop in as a card - exactly what the real online
+// feature will show. Both seats also share the same round mode (the Wheel of Fate result).
+let opponentTimer = null;
+function stopOpponentSim() { if (opponentTimer) { clearInterval(opponentTimer); opponentTimer = null; } }
+function startOpponentSim() {
+  stopOpponentSim();
+  state.opponentLog = [];
+  renderOpponentPanel();
+  opponentTimer = setInterval(() => {
+    const ai = state.players[1];
+    if (!ai || !state.board.length) { stopOpponentSim(); return; }
+    const cands = state.board.filter((c) => !ai.eliminated.has(c.id) && c.id !== ai.secretId);
+    if (cands.length <= 1) { stopOpponentSim(); return; }
+    const victim = cands[Math.floor(Math.random() * cands.length)];
+    ai.eliminated.add(victim.id);
+    (state.opponentLog = state.opponentLog || []).unshift({ seat: 1, id: victim.id, t: Date.now() });
+    renderOpponentPanel();
+    if (state.currentPlayer === 1) renderBoard();
+  }, 2800);
+}
+
+function renderOpponentPanel() {
+  const el = els.opponentPanel;
+  if (!el) return;
+  const otherIdx = state.currentPlayer === 0 ? 1 : 0;
+  const log = (state.opponentLog || []).filter((e) => e.seat === otherIdx);
+  const mode = state.global.mystery;
+  const seatLabel = `Seat ${String.fromCharCode(65 + otherIdx)}`;
+  const cards = log.slice(0, 8).map((e, i) => {
+    const c = characterById(e.id);
+    if (!c) return "";
+    return `<div class="opp-card${i === 0 ? " is-new" : ""}"><img src="${c.image}" alt=""><span>${escapeHtml(c.name)}</span></div>`;
+  }).join("");
+  el.innerHTML = `
+    <p class="label">${escapeHtml(seatLabel)} crossing off <span class="opp-live">● live</span></p>
+    ${mode ? `<p class="opp-mode">Shared effect: <b>${escapeHtml(mode.name || "—")}</b></p>` : ""}
+    <div class="opp-cards">${cards || '<span class="opp-empty">waiting for their first move…</span>'}</div>`;
 }
 
 function renderLocation() {
@@ -868,6 +918,7 @@ function spinModeRoulette(done) {
   for (let r = 0; r < REPS; r++) cells = cells.concat(modes);
   const landIndex = (REPS - 1) * modes.length + targetPos;
 
+  document.querySelectorAll(".roulette-overlay").forEach((o) => o.remove());
   const overlay = document.createElement("div");
   overlay.className = "roulette-overlay";
   overlay.innerHTML = `
@@ -890,15 +941,16 @@ function spinModeRoulette(done) {
     strip.style.transition = "transform 3.4s cubic-bezier(.1,.62,.2,1)";
     strip.style.transform = `translateX(${finalX}px)`;
   });
-  const finish = () => {
-    strip.removeEventListener("transitionend", finish);
+  // Drive the reveal off a timer (matches the 3.4s spin) rather than transitionend, which can be
+  // dropped if the element is laid out late.
+  setTimeout(() => {
+    if (!overlay.isConnected) return;
     const rev = overlay.querySelector(".roulette-reveal");
     rev.textContent = target.id ? target.name : "NO EFFECT — clean round";
     rev.style.setProperty("--hue", target.hue);
     overlay.classList.add("is-landed", "is-flash");
     setTimeout(() => { overlay.remove(); done(target.id); }, 1400);
-  };
-  strip.addEventListener("transitionend", finish);
+  }, 3500);
 }
 
 function applyMysteryEffect(effectId) {

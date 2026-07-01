@@ -654,25 +654,59 @@ function babyName(a, b) {
   const n = (head + tail) || a;
   return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
 }
+// Random mutations so every baby is visibly its own person (different eyes/ears/nose/etc), not just an
+// average of the parents.
+function mutateBaby(traits) {
+  const T = window.faceGenerator?.traitBook || {};
+  const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const eyeCols = ["#5a3d28", "#3a5a8a", "#2e6b4e", "#7a5a2a", "#4a4a55", "#6a3a3a", "#8a6a2a", "#4a8a8a"];
+  if (Math.random() < 0.55) traits.eyeColor = rnd(eyeCols);
+  if (Math.random() < 0.6) traits.eyeScale = +(((traits.eyeScale || 1) * (0.88 + Math.random() * 0.28))).toFixed(2);
+  if (Math.random() < 0.5 && T.earVariants) traits.earVariant = rnd(T.earVariants);
+  if (Math.random() < 0.5) traits.earScale = +((0.85 + Math.random() * 0.4)).toFixed(2);
+  if (Math.random() < 0.5) traits.browThick = +(((traits.browThick || 1) * (0.82 + Math.random() * 0.4))).toFixed(2);
+  if (Math.random() < 0.5) traits.noseWidth = +(((traits.noseWidth || 1) * (0.85 + Math.random() * 0.3))).toFixed(2);
+  if (Math.random() < 0.35 && T.hairColors) traits.hairColor = rnd(T.hairColors);
+  if (Math.random() < 0.3 && T.noseTips) traits.noseTip = rnd(T.noseTips);
+  return traits;
+}
 let babyCounter = 0;
-function makeBaby(A, B) {
-  const traits = mergeTraits(A.traits || {}, B.traits || {});
+function makeBaby(A, B, gayby) {
+  const traits = mutateBaby(mergeTraits(A.traits || {}, B.traits || {}));
   const seed = 90001 + (babyCounter++);
   return {
     id: `baby-${seed}`,
     name: babyName(A.name, B.name),
     pronouns: Math.random() < 0.5 ? A.pronouns : B.pronouns,
-    feature: "a brand-new baby",
+    feature: gayby ? "a gayby" : "a brand-new baby",
     secret: A.secret,
     role: Math.random() < 0.5 ? A.role : B.role,
     image: window.faceGenerator.renderPortrait(seed, traits),
-    tags: [],
+    tags: gayby ? ["GAYBY"] : [],
     variant: "",
     traits,
     seed,
     isBaby: true,
+    isGayby: !!gayby,
     parents: [A.name, B.name]
   };
+}
+// A GAYBY comes from two men or two egg-producers; it gets a badge that PERSISTS across games via its
+// own localStorage list (merged into the pool on load, like custom characters).
+function sameSex(A, B) { return A.pronouns === B.pronouns && (A.pronouns === "he" || A.pronouns === "she"); }
+const GAYBY_KEY = "whoisit_gaybies_v1";
+function loadGaybies() { try { return JSON.parse(localStorage.getItem(GAYBY_KEY)) || []; } catch (e) { return []; } }
+function mergeGaybiesIntoPool() {
+  if (!window.faceGenerator) return;
+  [generatedCharacters, allCharacters].forEach((a) => { for (let i = a.length - 1; i >= 0; i--) if (a[i].persistedGayby) a.splice(i, 1); });
+  loadGaybies().forEach((d) => {
+    const ch = { id: d.id, name: d.name, pronouns: d.pronouns, feature: "a gayby", secret: "keeps to themselves", role: "local witness", image: window.faceGenerator.renderPortrait(d.seed, d.traits), tags: ["GAYBY"], variant: "", traits: d.traits, seed: d.seed, isGayby: true, persistedGayby: true };
+    generatedCharacters.push(ch); allCharacters.push(ch);
+  });
+}
+function persistGayby(baby) {
+  try { const l = loadGaybies(); l.push({ id: baby.id, name: baby.name, pronouns: baby.pronouns, traits: baby.traits, seed: baby.seed }); localStorage.setItem(GAYBY_KEY, JSON.stringify(l)); } catch (e) { /* storage off */ }
+  mergeGaybiesIntoPool();
 }
 // --- Fertility "balance" helpers (the cum count is a display string like "770M" / "2.0B") ---
 function parseCum(str) { const m = String(str).match(/([\d.]+)\s*([MB])/i); if (!m) return 0; return parseFloat(m[1]) * (m[2].toUpperCase() === "B" ? 1000 : 1); }
@@ -691,17 +725,21 @@ function breedCharacters(aId, bId) {
     if (!fa || !fb) { flashToast("These two can't breed."); return; }
     const eggOf = (f) => f.hasEggs && !f.barren && f.eggs > 0;
     const spermOf = (f) => f.hasCount && parseCum(f.cum) > 0;
-    let egg, sperm;
-    if (eggOf(fa) && spermOf(fb)) { egg = fa; sperm = fb; }
-    else if (eggOf(fb) && spermOf(fa)) { egg = fb; sperm = fa; }
-    else { flashToast("Need eggs 🥚 + sperm 💦 — no viable match!"); return; }
-    egg.eggs = Math.max(0, egg.eggs - 1);                     // deduct one egg
-    sperm.cum = formatCum(parseCum(sperm.cum) - (60 + Math.floor(Math.random() * 90))); // deduct some sperm
-    const baby = makeBaby(A, B);
+    const dropEgg = (f) => { f.eggs = Math.max(0, f.eggs - 1); };
+    const dropSperm = (f) => { f.cum = formatCum(parseCum(f.cum) - (60 + Math.floor(Math.random() * 90))); };
+    let gayby = false;
+    if (eggOf(fa) && spermOf(fb)) { dropEgg(fa); dropSperm(fb); }
+    else if (eggOf(fb) && spermOf(fa)) { dropEgg(fb); dropSperm(fa); }
+    else if (eggOf(fa) && eggOf(fb)) { dropEgg(fa); dropEgg(fb); gayby = true; }   // two eggs -> gayby
+    else if (spermOf(fa) && spermOf(fb)) { dropSperm(fa); dropSperm(fb); gayby = true; } // two sperm -> gayby
+    else { flashToast("Need eggs 🥚 + sperm 💦 — no viable gametes!"); return; }
+    if (sameSex(A, B)) gayby = true;
+    const baby = makeBaby(A, B, gayby);
     asg[baby.id] = { cum: `${1 + Math.floor(Math.random() * 8)}M`, eggs: 1 + Math.floor(Math.random() * 4), barren: false, hrs: 71, mins: 59, defect: null, hasCount: true, hasEggs: true };
     renderBoard();                                            // show the deducted balances immediately
     playBirthAnimation(A.image, B.image, baby, true, () => {
       state.board.push(baby);
+      if (baby.isGayby) persistGayby(baby);
       state.justBorn = baby.id;
       renderBoard();
       state.justBorn = null;
@@ -710,7 +748,8 @@ function breedCharacters(aId, bId) {
     return;
   }
 
-  const baby = makeBaby(A, B);
+  const gayby = sameSex(A, B);
+  const baby = makeBaby(A, B, gayby);
   playBirthAnimation(A.image, B.image, baby, false, () => {
     state.board.push(baby);
     // Regenerate the active mode's per-character data so the baby gets its own stats/card too.
@@ -718,6 +757,7 @@ function breedCharacters(aId, bId) {
       const eff = mysteryEffects.find((e) => e.id === state.global.mystery.id);
       if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (e) { /* mode has no per-baby data - fine */ } }
     }
+    if (baby.isGayby) persistGayby(baby);
     state.justBorn = baby.id;
     if (typeof addLog === "function") addLog(`${A.name} + ${B.name} made a baby: ${baby.name}!`);
     renderBoard();
@@ -736,7 +776,7 @@ function flashToast(msg) {
 // "IT'S A BOY/GIRL/THEM!" reveal with the baby's name, and finally the baby forms into a card that
 // flies down to the bottom of the stack. `done()` fires at the end (adds the baby to the board).
 function playBirthAnimation(imgA, imgB, baby, grind, done) {
-  const gender = baby.pronouns === "he" ? "IT'S A BOY!" : baby.pronouns === "she" ? "IT'S A GIRL!" : "IT'S A THEM!";
+  const gender = baby.isGayby ? "IT'S A GAYBY!!" : baby.pronouns === "he" ? "IT'S A BOY!" : baby.pronouns === "she" ? "IT'S A GIRL!" : "IT'S A THEM!";
   const cols = ["#ff4d6d", "#ffd24d", "#5dff8f", "#4dd2ff", "#c46bff", "#ff8a4d", "#fff27a"];
   let burst = "";
   for (let i = 0; i < 18; i++) {
@@ -750,8 +790,8 @@ function playBirthAnimation(imgA, imgB, baby, grind, done) {
       ${grind ? `<img class="breed-p breed-a" src="${imgA}" alt=""><img class="breed-p breed-b" src="${imgB}" alt="">` : ""}
       <div class="breed-flash"></div>
       <div class="breed-burst">${burst}</div>
-      <div class="birth-banner">${gender}</div>
-      <div class="birth-card"><img src="${baby.image}" alt=""><span class="birth-name">${escapeHtml(baby.name)}</span></div>
+      <div class="birth-banner ${baby.isGayby ? "gayby-banner" : ""}">${gender}</div>
+      <div class="birth-card ${baby.isGayby ? "gayby-card" : ""}"><img src="${baby.image}" alt=""><span class="birth-name">${escapeHtml(baby.name)}</span></div>
     </div>`;
   document.body.appendChild(ov);
   setTimeout(() => { ov.remove(); done(); }, grind ? 3200 : 2500);
@@ -1213,7 +1253,7 @@ let habboCtx = null;
 function resetHabbo() { habboPos = new Map(); habboSelected = null; habboCtx = null; }
 function habboIso(col, row) {
   const originX = HABBO_GH * HABBO_TW / 2 + 24;
-  const originY = 40;
+  const originY = 150;   // sits the room lower in the tall board area
   return { x: originX + (col - row) * HABBO_TW / 2, y: originY + (col + row) * HABBO_TH / 2 };
 }
 function selectHabbo(id) {
@@ -1617,10 +1657,13 @@ function createCharacterCard(character, player) {
       + `<div class="fw-blood">${blood}</div>`
       + `<div class="fw-burst">${parts}</div><div class="fw-flash"></div></div>`;
   }
-  // Freshly-bred babies get a badge + a one-shot "born" pop.
+  // Freshly-bred babies get a badge + a one-shot "born" pop; GAYBYs keep a permanent rainbow tag.
   if (character.isBaby) card.classList.add("is-baby");
+  if (character.isGayby) card.classList.add("is-gayby");
   if (state.justBorn === character.id) card.classList.add("just-born");
-  const babyBadge = character.isBaby ? `<span class="baby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">👶 NEW</span>` : "";
+  const babyBadge = character.isGayby
+    ? `<span class="gayby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">🏳️‍🌈 GAYBY</span>`
+    : character.isBaby ? `<span class="baby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">👶 NEW</span>` : "";
   card.innerHTML = `
     <div class="portrait-wrap">
       <img src="${portraitSrc}" alt="${escapeHtml(character.name)}">
@@ -3495,6 +3538,7 @@ function syncSettingsToForm() {
 loadTheme();
 installStaticIcons();
 mergeCustomIntoPool();                 // fold saved custom characters into the playable pool
+mergeGaybiesIntoPool();                // and the persistent GAYBYs
 if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
 newGame();
 wireCueCardClick();

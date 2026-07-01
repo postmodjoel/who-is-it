@@ -3717,7 +3717,7 @@ body.mode-pixall .secret-card img {
 .character-card.jd-purgatory h3 { color: #e6e6ee; }
 /* Realm atmospheres over the portrait. Kept at a low z-index so the verdict tag + halo/horns sit ON
    TOP of the person, not behind the flames/clouds. */
-.character-card.judgement .portrait-wrap { overflow: visible; }
+.character-card.judgement .portrait-wrap { overflow: hidden; }
 .character-card.judgement .portrait-wrap::after { z-index: 1; }
 /* HELL: tall, fast-flickering flames engulfing the person from below + a hot red wash. */
 .jd-hell .portrait-wrap::after {
@@ -3747,12 +3747,20 @@ body.mode-pixall .secret-card img {
   animation: jd-cloud-drift 9s ease-in-out infinite alternate;
 }
 @keyframes jd-cloud-drift { 0% { background-position: -6% 0, 0 0, 6% 0, -3% 0, 0 0; } 100% { background-position: 6% 0, 0 0, -6% 0, 3% 0, 0 0; } }
+/* God-rays live BEHIND the (transparent-bg) figure, masked to a soft disc so they radiate from behind
+   the head and fade out well before the card edge instead of hard-cropping at the frame. */
+.jd-heaven .portrait-wrap img { position: relative; z-index: 1; }
+.jd-heaven .portrait-wrap::before {
+  content: ""; position: absolute; inset: -25%; z-index: 0; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg at 50% 42%, rgba(255, 248, 214, 0.55) 0deg 5deg, transparent 5deg 17deg);
+  -webkit-mask: radial-gradient(circle at 50% 42%, #000 26%, transparent 62%);
+  mask: radial-gradient(circle at 50% 42%, #000 26%, transparent 62%);
+  mix-blend-mode: screen;
+  animation: jd-rays 20s linear infinite;
+}
 .jd-heaven .portrait-wrap::after {
-  background:
-    repeating-conic-gradient(from 0deg at 50% 28%, rgba(255, 248, 214, 0.32) 0deg 4deg, transparent 4deg 16deg),
-    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.55), transparent 48%);
-  mix-blend-mode: screen; opacity: 0.85;
-  animation: jd-rays 16s linear infinite;
+  background: radial-gradient(circle at 50% 32%, rgba(255, 255, 255, 0.45), transparent 46%);
+  mix-blend-mode: screen; opacity: 0.6;
 }
 @keyframes jd-rays { to { transform: rotate(360deg); } }
 .jd-purgatory .portrait-wrap img { filter: grayscale(0.78) contrast(0.92) brightness(0.96); }
@@ -4184,4 +4192,23 @@ body.mode-pixall .secret-card img {
   20% { transform: translate(-50%,-50%) scale(1) rotate(0deg); }
   62% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
   100% { opacity: 0; transform: translate(-50%, 320px) scale(0.3) rotate(0deg); }
+}
+
+/* ===================== GAYBY ===================== */
+.gayby-badge {
+  position: absolute; top: 5px; left: 5px; z-index: 6;
+  padding: 1px 6px; border-radius: 10px; font-size: 0.46rem; font-weight: 900; color: #14110d;
+  background: linear-gradient(90deg, #ff5a5a, #ffb14e, #ffe83a, #5dff8f, #4dd2ff, #c46bff);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); letter-spacing: 0.02em;
+}
+.character-card.is-gayby { box-shadow: 0 0 0 2px #ff7ac0, 0 0 16px -2px #c46bff; }
+.birth-banner.gayby-banner {
+  background: linear-gradient(90deg, #ff5a5a, #ffb14e, #ffe83a, #5dff8f, #4dd2ff, #c46bff);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-fill-color: transparent; text-shadow: 0 0 22px rgba(255, 120, 200, 0.7);
+}
+.birth-card.gayby-card { border-color: transparent; box-shadow: 0 0 0 3px #c46bff, 0 12px 34px rgba(0, 0, 0, 0.6); }
+.birth-card.gayby-card::before {
+  content: ""; position: absolute; inset: -3px; border-radius: 14px; z-index: -1;
+  background: linear-gradient(90deg, #ff5a5a, #ffb14e, #ffe83a, #5dff8f, #4dd2ff, #c46bff);
 }

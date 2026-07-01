@@ -1351,6 +1351,17 @@ function pathFromPoints(points) {
   return points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x} ${y}`).join(" ");
 }
 
+// A labelled pain scale from D:< (agony) to :D (fine), over a red-to-green track, with the person's
+// level (pain index 0-4, 0 = most pain) highlighted. Used by Disease mode and the woke disease module.
+const PAIN_SCALE_FACES = ["D:<", ">:(", ":|", ":)", ":D"];
+function renderPainScale(pain) {
+  const faces = PAIN_SCALE_FACES
+    .map((f, i) => `<span class="dz-face${i === pain ? " is-here" : ""}">${escapeHtml(f)}</span>`)
+    .join("");
+  return `<div class="dz-painscale"><span class="dz-painscale-label">PAIN SCALE</span>`
+    + `<div class="dz-painscale-faces">${faces}</div></div>`;
+}
+
 function getMysteryCardData(character) {
   const mystery = state.global.mystery;
   if (!mystery || !mystery.assignments) return { html: "", dataset: {} };
@@ -1469,7 +1480,6 @@ function getMysteryCardData(character) {
     const badges = [];
     if (has("orgy")) badges.push(`<span class="orgy-pos">${escapeHtml(a.orgy.pos)}</span>`);
     if (has("drugs")) badges.push(`<span class="dg-count">${a.drugs.habits.length}× hooked</span>`);
-    if (has("disease")) badges.push(`<span class="dz-pain">${window.GameData.painFaces[a.disease.pain]}</span>`);
     if (has("fertility")) badges.push(`<span class="ft-timer">⏳ ${a.fertility.hrs}h ${a.fertility.mins}m</span>`);
     if (has("work")) badges.push(`<span class="wk-days">${a.work.days}d</span>`);
     const cornerHtml = prideCorner + (badges.length ? `<div class="woke-badges">${badges.join("")}</div>` : "");
@@ -1501,7 +1511,7 @@ function getMysteryCardData(character) {
         ? `<div class="dz-cancers"><b>🎗 Cancers:</b> ${d.cancers.map((c) => `${escapeHtml(c.type)} <i>(${escapeHtml(c.eta)})</i>`).join(", ")}</div>`
         : "";
       const meds = `<div class="dz-meds"><b>💊 Meds:</b> ${d.meds.map(escapeHtml).join(", ")}</div>`;
-      blocks.push(`<div class="dz-sheet"><div class="dz-pills">${pills}</div>`
+      blocks.push(`<div class="dz-sheet">${renderPainScale(d.pain)}<div class="dz-pills">${pills}</div>`
         + `<div class="dz-bar"><b>AUTISM</b><i><s style="--n:${Math.round(d.autism * 100)}%"></s></i><u>${Math.round(d.autism * 100)}%</u></div>`
         + `${cancers}${meds}</div>`);
     }
@@ -1557,7 +1567,6 @@ function getMysteryCardData(character) {
   if (mystery.id === "disease") {
     const a = assignment;
     const tierCls = { MINOR: "dz-minor", MAJOR: "dz-major", MEGA: "dz-mega" };
-    const face = window.GameData.painFaces[a.pain];
     const pills = a.diseases.map((d) => `<span class="dz-pill ${tierCls[d.tier]}">${escapeHtml(d.tier)} · ${escapeHtml(d.name)}</span>`).join("");
     const cancers = a.cancers.length
       ? `<div class="dz-cancers"><b>🎗 Cancers:</b> ${a.cancers.map((c) => `${escapeHtml(c.type)} <i>(${escapeHtml(c.eta)})</i>`).join(", ")}</div>`
@@ -1567,8 +1576,8 @@ function getMysteryCardData(character) {
       effectName: mystery.name,
       cardClass: "disease",
       dataset: { dzPregnant: String(a.pregnant) },
-      cornerHtml: `<span class="dz-pain" title="pain level">${face}</span>`,
       html: `<div class="dz-sheet">
+        ${renderPainScale(a.pain)}
         <div class="dz-pills">${pills}</div>
         <div class="dz-bar"><b>AUTISM</b><i><s style="--n:${Math.round(a.autism * 100)}%"></s></i><u>${Math.round(a.autism * 100)}%</u></div>
         ${cancers}${meds}

@@ -4003,3 +4003,60 @@ body.mode-pixall .secret-card img {
   .editor-body { grid-template-columns: 1fr; }
   .editor-controls { grid-template-columns: 1fr 1fr; }
 }
+
+/* ===================== Habbo Hotel mode ===================== */
+.game-stage .character-board.habbo-board {
+  position: relative; display: block; min-height: 72vh; padding: 0; overflow: auto;
+  border-color: #20263e !important;
+  background:
+    linear-gradient(180deg, #3a4468 0 30%, #2b3350 30% 100%),
+    #2b3350 !important;
+}
+.habbo-room { position: relative; width: 100%; min-height: 72vh; }
+.habbo-floor, .habbo-figs { position: absolute; inset: 0; }
+.habbo-tile {
+  position: absolute; width: 60px; height: 30px; margin-left: -30px; margin-top: -15px;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: #d8c79a; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  cursor: pointer; transition: background 0.12s;
+}
+.habbo-tile.alt { background: #cbb888; }
+.habbo-tile:hover { background: #ffe58a; }
+.habbo-fig {
+  position: absolute; top: 0; left: 0; width: 46px; height: 66px;
+  margin-left: -23px; margin-top: -54px;
+  background: none; border: none; padding: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  transition: transform 0.55s cubic-bezier(.4,0,.2,1);
+}
+.habbo-fig.walking { transition: transform 0.7s linear; }
+.hb-head {
+  width: 36px; height: 36px; object-fit: contain; object-position: 50% 26%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); z-index: 2;
+}
+.hb-body {
+  width: 22px; height: 24px; margin-top: -7px;
+  border-radius: 9px 9px 5px 5px; background: var(--shirt, #4a90e2);
+  box-shadow: inset -3px -2px 0 rgba(0, 0, 0, 0.2), inset 3px 2px 0 rgba(255, 255, 255, 0.15);
+  z-index: 1;
+}
+.hb-shadow {
+  position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+  width: 30px; height: 12px; border-radius: 50%; background: rgba(0, 0, 0, 0.32); filter: blur(1.5px); z-index: 0;
+}
+.hb-name {
+  position: absolute; top: -13px; z-index: 4;
+  font-size: 0.52rem; font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000;
+  white-space: nowrap; background: rgba(0, 0, 0, 0.42); padding: 0 5px; border-radius: 7px;
+}
+.habbo-fig.selected .hb-head { outline: 2px solid #ffbe0b; border-radius: 50%; }
+.habbo-fig.selected .hb-body { box-shadow: 0 0 0 2px #ffbe0b, inset -3px -2px 0 rgba(0, 0, 0, 0.2); }
+.hb-kill {
+  display: none; position: absolute; top: -14px; right: 0; z-index: 6;
+  width: 16px; height: 16px; border-radius: 50%; background: #e0341a; color: #fff;
+  font-size: 0.56rem; font-weight: 900; align-items: center; justify-content: center;
+}
+.habbo-fig.selected .hb-kill { display: flex; }
+.habbo-fig.is-down { opacity: 0.32; filter: grayscale(1); }
+.habbo-fig.is-down .hb-name { text-decoration: line-through; }

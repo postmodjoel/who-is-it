@@ -523,6 +523,12 @@ const mysteryEffects = [
     name: "Heads Only",
     apply: applyHeadsOnly,
     exampleQuestion: "Is your person's head in the top half right now?"
+  },
+  {
+    id: "habbo",
+    name: "Habbo Hotel",
+    apply: applyHabbo,
+    exampleQuestion: "Is your person standing on the left side of the room?"
   }
 ];
 
@@ -1040,6 +1046,10 @@ function renderBoard() {
     renderHeadsOnlyBoard(player);
     return;
   }
+  if (state.global.mystery?.id === "habbo") {
+    renderHabboBoard(player);
+    return;
+  }
   if (state.global.mystery?.id === "knockoff-manor") {
     renderKnockoffManorBoard(player);
     return;
@@ -1127,6 +1137,93 @@ function renderHeadsOnlyBoard(player) {
     headsAnimRaf = requestAnimationFrame(step);
   };
   headsAnimRaf = requestAnimationFrame(step);
+}
+
+// ===================== Habbo Hotel mode =====================
+const HABBO_GW = 8, HABBO_GH = 8, HABBO_TW = 60, HABBO_TH = 30;
+let habboPos = new Map();     // char id -> {col,row}, persisted so walking survives re-renders
+let habboSelected = null;
+let habboCtx = null;
+function resetHabbo() { habboPos = new Map(); habboSelected = null; habboCtx = null; }
+function habboIso(col, row) {
+  const originX = HABBO_GH * HABBO_TW / 2 + 24;
+  const originY = 40;
+  return { x: originX + (col - row) * HABBO_TW / 2, y: originY + (col + row) * HABBO_TH / 2 };
+}
+function selectHabbo(id) {
+  habboSelected = id;
+  if (habboCtx) habboCtx.figEls.forEach((el, cid) => el.classList.toggle("selected", cid === id));
+}
+function habboMoveTo(col, row) {
+  if (!habboSelected || !habboCtx) return;
+  for (const [id, p] of habboPos) if (id !== habboSelected && p.col === col && p.row === row) return; // tile taken
+  habboPos.set(habboSelected, { col, row });
+  const el = habboCtx.figEls.get(habboSelected);
+  if (!el) return;
+  const p = habboIso(col, row);
+  el.classList.add("walking");
+  el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
+  el.style.zIndex = String(100 + col + row);
+}
+function renderHabboBoard(player) {
+  els.characterBoard.classList.add("habbo-board");
+  els.characterBoard.setAttribute("aria-label", "Habbo Hotel room");
+  const list = sortedBoard();
+  const room = document.createElement("div");
+  room.className = "habbo-room";
+  els.characterBoard.appendChild(room);
+  const floor = document.createElement("div");
+  floor.className = "habbo-floor";
+  room.appendChild(floor);
+  for (let r = 0; r < HABBO_GH; r++) for (let c = 0; c < HABBO_GW; c++) {
+    const p = habboIso(c, r);
+    const tile = document.createElement("div");
+    tile.className = `habbo-tile ${(c + r) % 2 ? "alt" : ""}`.trim();
+    tile.style.left = `${p.x}px`; tile.style.top = `${p.y}px`; tile.style.zIndex = String(c + r);
+    tile.addEventListener("click", () => habboMoveTo(c, r));
+    floor.appendChild(tile);
+  }
+  // Give any character without a tile a starting spot, strided so they scatter across the whole floor
+  // rather than bunching in the back rows.
+  const total = HABBO_GW * HABBO_GH;
+  const taken = new Set([...habboPos.values()].map((p) => `${p.col},${p.row}`));
+  const stride = Math.max(1, Math.floor(total / Math.max(1, list.length)));
+  let slot = 0;
+  list.forEach((ch) => {
+    if (habboPos.has(ch.id)) return;
+    let idx, c, r, key, tries = 0;
+    do { idx = (slot * stride + Math.floor(slot / total)) % total; c = idx % HABBO_GW; r = Math.floor(idx / HABBO_GW); key = `${c},${r}`; slot++; tries++; } while (taken.has(key) && tries < total * 2);
+    taken.add(key); habboPos.set(ch.id, { col: c, row: r });
+  });
+  const figs = document.createElement("div");
+  figs.className = "habbo-figs";
+  room.appendChild(figs);
+  const figEls = new Map();
+  list.forEach((ch) => {
+    const a = state.global.mystery.assignments[ch.id] || {};
+    const pos = habboPos.get(ch.id);
+    const p = habboIso(pos.col, pos.row);
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = `habbo-fig ${player.eliminated.has(ch.id) ? "is-down" : ""} ${ch.id === habboSelected ? "selected" : ""}`.trim();
+    el.dataset.id = ch.id;
+    el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
+    el.style.zIndex = String(100 + pos.col + pos.row);
+    el.innerHTML = `<span class="hb-name">${escapeHtml(displayName(ch))}</span>`
+      + `<span class="hb-kill" title="cross off">✕</span>`
+      + `<img class="hb-head" src="${a.head || ch.image}" alt="">`
+      + `<span class="hb-body" style="--shirt:${a.shirt || "#4a90e2"}"></span>`
+      + `<span class="hb-shadow"></span>`;
+    el.addEventListener("click", (e) => {
+      if (e.target.classList.contains("hb-kill")) { toggleEliminated(ch.id); return; }
+      selectHabbo(ch.id);
+    });
+    figs.appendChild(el);
+    figEls.set(ch.id, el);
+    // Pixelate the head into chunky Habbo pixels once it loads.
+    if (a.head) pixelateSrc(a.head, 44, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; });
+  });
+  habboCtx = { figEls };
 }
 
 function renderHints() {
@@ -1361,7 +1458,8 @@ function applyMysteryEffect(effectId) {
 function clearMysteryEffectUI() {
   state.global.mystery = null;
   resetHeadsAnim();
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board");
+  resetHabbo();
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -2037,6 +2135,9 @@ function getMysteryCardData(character) {
   if (mystery.id === "heads-only") {
     return { effectName: mystery.name, cardClass: "heads-secret", image: assignment.image || undefined, html: "" };
   }
+  if (mystery.id === "habbo") {
+    return { effectName: mystery.name, cardClass: "habbo-secret", image: assignment.head || undefined, html: "" };
+  }
   if (mystery.id === "sims") {
     const a = assignment;
     const bar = (label, n) => {
@@ -2342,6 +2443,22 @@ function applyHeadsOnly(effect) {
       ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, headOnly: true })
       : ch.image;
     assignments[ch.id] = { image };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// HABBO HOTEL: an isometric room. Every character becomes a blocky Habbo-style avatar (a pixelated
+// head on a shirt-coloured body) standing on an iso floor. Click an avatar to select it, then click a
+// tile to walk them there.
+function applyHabbo(effect) {
+  const tb = window.faceGenerator?.traitBook;
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const head = ch.traits && window.faceGenerator
+      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, headOnly: true })
+      : ch.image;
+    const shirt = ch.traits?.shirt || (tb?.skinToneHex?.[ch.traits?.skin]) || "#4a90e2";
+    assignments[ch.id] = { head, shirt };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

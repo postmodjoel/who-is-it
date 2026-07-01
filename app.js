@@ -617,6 +617,85 @@ function characterStat(ch, key) {
   // "fuck" (fuckability) and the rest are deterministic per-character comedy stats.
   return stableHash(`${state.gameSalt}:sortstat:${key}:${ch.id}`) % 1000;
 }
+
+// ===================== Breeding (drag one card onto another to make a baby) =====================
+function mixHex(a, b, t = 0.5) {
+  const pa = parseInt(String(a).replace("#", ""), 16), pb = parseInt(String(b).replace("#", ""), 16);
+  const ch = (s) => { const va = (pa >> s) & 255, vb = (pb >> s) & 255; return Math.round(va + (vb - va) * t).toString(16).padStart(2, "0"); };
+  return `#${ch(16)}${ch(8)}${ch(0)}`;
+}
+// Cross two parents' traits: numbers average (a real blend), hex colours mix, categorical picks a
+// parent at random. Skin becomes an interpolated tone so babies come out genuinely mixed.
+function mergeTraits(A, B) {
+  const child = {};
+  new Set([...Object.keys(A), ...Object.keys(B)]).forEach((k) => {
+    const av = A[k], bv = B[k];
+    if (av === undefined) { child[k] = bv; return; }
+    if (bv === undefined) { child[k] = av; return; }
+    if (typeof av === "number" && typeof bv === "number") { child[k] = (av + bv) / 2; return; }
+    if (typeof av === "string" && typeof bv === "string" && av[0] === "#" && bv[0] === "#") { child[k] = mixHex(av, bv); return; }
+    child[k] = Math.random() < 0.5 ? av : bv;
+  });
+  const tb = window.faceGenerator?.traitBook?.skinToneHex || {};
+  const aHex = A.skinHex || tb[A.skin], bHex = B.skinHex || tb[B.skin];
+  if (aHex && bHex) child.skinHex = mixHex(aHex, bHex);
+  return child;
+}
+function babyName(a, b) {
+  const head = a.slice(0, Math.ceil(a.length / 2));
+  const tail = b.slice(Math.floor(b.length / 2));
+  const n = (head + tail) || a;
+  return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+}
+let babyCounter = 0;
+function makeBaby(A, B) {
+  const traits = mergeTraits(A.traits || {}, B.traits || {});
+  const seed = 90001 + (babyCounter++);
+  return {
+    id: `baby-${seed}`,
+    name: babyName(A.name, B.name),
+    pronouns: Math.random() < 0.5 ? A.pronouns : B.pronouns,
+    feature: "a brand-new baby",
+    secret: A.secret,
+    role: Math.random() < 0.5 ? A.role : B.role,
+    image: window.faceGenerator.renderPortrait(seed, traits),
+    tags: [],
+    variant: "",
+    traits,
+    seed,
+    isBaby: true,
+    parents: [A.name, B.name]
+  };
+}
+// Drop character `aId` onto `bId` -> a baby joins the board for THIS game only (never saved).
+function breedCharacters(aId, bId) {
+  const A = characterById(aId), B = characterById(bId);
+  if (!A || !B || !window.faceGenerator) return;
+  const baby = makeBaby(A, B);
+  state.board.push(baby);
+  // Regenerate the active mode's per-character data so the baby gets its own stats/card too.
+  if (state.global.mystery) {
+    const eff = mysteryEffects.find((e) => e.id === state.global.mystery.id);
+    if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (e) { /* mode has no per-baby data - fine */ } }
+  }
+  state.justBorn = baby.id;
+  if (typeof addLog === "function") addLog(`${A.name} + ${B.name} made a baby: ${baby.name}!`);
+  renderBoard();
+  state.justBorn = null;
+}
+// Shared drag-and-drop wiring: any card / floating head can be dragged onto another to breed.
+function wireBreedDnD(el, id) {
+  el.draggable = true;
+  el.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "copy"; el.classList.add("dragging"); });
+  el.addEventListener("dragend", () => el.classList.remove("dragging"));
+  el.addEventListener("dragover", (e) => { e.preventDefault(); el.classList.add("drop-target"); });
+  el.addEventListener("dragleave", () => el.classList.remove("drop-target"));
+  el.addEventListener("drop", (e) => {
+    e.preventDefault(); el.classList.remove("drop-target");
+    const src = e.dataTransfer.getData("text/plain");
+    if (src && src !== id) breedCharacters(src, id);
+  });
+}
 function sortedBoard() {
   const key = state.sortKey;
   // Judgement Day lays the board out spatially: heaven at the top, purgatory in the middle, hell at
@@ -878,6 +957,7 @@ function renderHeadsOnlyBoard(player) {
     el.style.setProperty("--bob", `${(stableHash(ch.id) % 1000) / 1000 * 3}s`);
     el.innerHTML = `<img src="${m.image || ch.image}" alt=""><span class="float-name">${escapeHtml(displayName(ch))}</span>`;
     el.addEventListener("click", () => toggleEliminated(ch.id));
+    wireBreedDnD(el, ch.id);
     layer.appendChild(el);
     const seed = headsPos.get(ch.id);
     return { el, id: ch.id, x: seed ? seed.x : null, y: seed ? seed.y : null };
@@ -1205,11 +1285,16 @@ function createCharacterCard(character, player) {
       + `<div class="fw-blood">${blood}</div>`
       + `<div class="fw-burst">${parts}</div><div class="fw-flash"></div></div>`;
   }
+  // Freshly-bred babies get a badge + a one-shot "born" pop.
+  if (character.isBaby) card.classList.add("is-baby");
+  if (state.justBorn === character.id) card.classList.add("just-born");
+  const babyBadge = character.isBaby ? `<span class="baby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">👶 NEW</span>` : "";
   card.innerHTML = `
     <div class="portrait-wrap">
       <img src="${portraitSrc}" alt="${escapeHtml(character.name)}">
       ${fireworks}
       ${prop}
+      ${babyBadge}
       ${mystery.cornerHtml || ""}
     </div>
     <div class="card-plate">
@@ -1220,6 +1305,7 @@ function createCharacterCard(character, player) {
     </div>
   `;
   card.addEventListener("click", () => toggleEliminated(character.id));
+  wireBreedDnD(card, character.id);
   return card;
 }
 

@@ -3953,3 +3953,20 @@ body.mode-pixall .secret-card img {
 .float-head.is-down img { filter: grayscale(1) brightness(0.7); animation: none; }
 .float-head.is-down .float-name { text-decoration: line-through; opacity: 0.7; }
 @media (prefers-reduced-motion: reduce) { .float-head img { animation: none; } }
+
+/* ===================== Breeding (drag-to-make-a-baby) ===================== */
+.character-card.dragging, .float-head.dragging { opacity: 0.45; }
+.character-card.drop-target { outline: 3px dashed #ff8fd0; outline-offset: -3px; }
+.float-head.drop-target img { outline: 3px dashed #ff8fd0; border-radius: 50%; }
+.character-card.is-baby { box-shadow: 0 0 0 2px #ff7ac0, 0 0 16px -2px #ff7ac0; }
+.baby-badge {
+  position: absolute; top: 5px; left: 5px; z-index: 6;
+  padding: 1px 6px; border-radius: 10px; font-size: 0.5rem; font-weight: 900; color: #3a0022;
+  background: linear-gradient(180deg, #ffd0ea, #ff8fd0); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+.character-card.just-born { animation: baby-pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes baby-pop {
+  0% { transform: scale(0) rotate(-12deg); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}

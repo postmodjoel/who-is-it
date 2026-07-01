@@ -541,8 +541,7 @@ let ps1Cleanup = null;
 
 function newGame() {
   clearMysteryEffectUI();
-  state.sortKey = "";
-  if (els.sortSelect) els.sortSelect.value = "";
+  // Sort choice persists across rounds (rebuildSortOptions drops it only if the new mode can't do it).
   // The board only draws from the procedurally generated faces. The hand-illustrated PNG
   // characters (baseCharacters) stay defined as the gold-standard reference but are never dealt
   // into the playable board.
@@ -621,8 +620,50 @@ function skinLuminance(ch) {
 function characterStat(ch, key) {
   if (key === "name") return ch.name;
   if (key === "skin") return skinLuminance(ch);
-  // "fuck" (fuckability) and the rest are deterministic per-character comedy stats.
+  // Where the active mode actually tracks the stat, sort by the REAL value.
+  const a = state.global.mystery?.assignments?.[ch.id];
+  if (a) {
+    switch (key) {
+      case "cum": return parseCum(a.cum) || a.cumLifetime || a.cumToday || 0;
+      case "eggs": return a.barren ? -1 : (a.eggs || 0);
+      case "days": return a.days || 0;
+      case "cash": return a.simoleons != null ? a.simoleons : 0;
+      case "match": return a.match || 0;
+      case "distance": return -(a.distance || 0);              // nearer first
+      case "karma": return a.karma != null ? a.karma : 0;
+      case "happiness": return a.happiness != null ? a.happiness : 0;
+      case "habits": return a.habits ? a.habits.length : 0;
+      case "horniness": return a.horniness || 0;
+      case "bodycount": return a.bodyCount || 0;
+      case "deathness": return a.lifespan != null ? (10 - a.lifespan) : 0;
+      case "mood": return a.mood === "red" ? 2 : a.mood === "yellow" ? 1 : 0;
+      default: break;
+    }
+  }
+  // "fuck" (fuckability) and anything the mode doesn't track fall back to a deterministic comedy stat.
   return stableHash(`${state.gameSalt}:sortstat:${key}:${ch.id}`) % 1000;
+}
+// Baseline stats every character "holds"; extra options appear only for the modes that track them, and
+// the chosen sort persists across rounds (unless it's not valid for the new mode).
+const BASE_SORTS = [["", "Board order"], ["name", "Name A–Z"], ["skin", "Skin tone 🎨"], ["fuck", "Fuckability 😏"]];
+const MODE_SORTS = {
+  orgy: [["horniness", "Horniness 🔥"], ["cum", "Cum count 💦"], ["bodycount", "Body count 🍆"], ["deathness", "Close to death 💀"]],
+  woke: [["horniness", "Horniness 🔥"], ["cum", "Cum count 💦"], ["deathness", "Close to death 💀"]],
+  fertility: [["cum", "Sperm count 💦"], ["eggs", "Egg count 🥚"]],
+  disease: [["deathness", "Close to death 💀"]],
+  drugs: [["habits", "Habits 💉"]],
+  work: [["days", "Days left ⛏"]],
+  sims: [["cash", "Simoleons §"], ["mood", "Mood 💎"]],
+  judgement: [["karma", "Karma ⚖️"], ["happiness", "Happiness 😀"]],
+  swipe: [["match", "Match % 🔥"], ["distance", "Distance 📍"]]
+};
+function rebuildSortOptions() {
+  const sel = els.sortSelect;
+  if (!sel) return;
+  const opts = [...BASE_SORTS, ...(MODE_SORTS[state.global.mystery?.id] || [])];
+  if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = "";   // drop a sort the new mode can't do
+  sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
+  sel.value = state.sortKey;
 }
 
 // ===================== Breeding (drag one card onto another to make a baby) =====================
@@ -796,7 +837,9 @@ function playBirthAnimation(imgA, imgB, baby, grind, done) {
   document.body.appendChild(ov);
   setTimeout(() => { ov.remove(); done(); }, grind ? 3200 : 2500);
 }
-// Shared drag-and-drop wiring: any card / floating head can be dragged onto another to breed.
+// Shared drag-and-drop wiring: any card / floating head can be dragged onto another to breed. Works
+// with the mouse (HTML5 drag) AND touch (a manual finger-drag).
+let breedTouch = null;
 function wireBreedDnD(el, id) {
   el.draggable = true;
   el.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "copy"; el.classList.add("dragging"); });
@@ -807,6 +850,33 @@ function wireBreedDnD(el, id) {
     e.preventDefault(); el.classList.remove("drop-target");
     const src = e.dataTransfer.getData("text/plain");
     if (src && src !== id) breedCharacters(src, id);
+  });
+  // Touch: drag a finger from one card onto another to breed. A tap (no real drag) still eliminates.
+  el.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    breedTouch = { id, x: t.clientX, y: t.clientY, moved: false };
+  }, { passive: true });
+  el.addEventListener("touchmove", (e) => {
+    if (!breedTouch || breedTouch.id !== id) return;
+    const t = e.touches[0];
+    if (!breedTouch.moved && (Math.abs(t.clientX - breedTouch.x) > 8 || Math.abs(t.clientY - breedTouch.y) > 8)) breedTouch.moved = true;
+    if (breedTouch.moved) {
+      e.preventDefault();                               // don't scroll while dragging a face
+      el.classList.add("dragging");
+      document.querySelectorAll(".drop-target").forEach((x) => x.classList.remove("drop-target"));
+      const under = document.elementFromPoint(t.clientX, t.clientY)?.closest("[data-id]");
+      if (under && under.dataset.id !== id) under.classList.add("drop-target");
+    }
+  }, { passive: false });
+  el.addEventListener("touchend", (e) => {
+    el.classList.remove("dragging");
+    document.querySelectorAll(".drop-target").forEach((x) => x.classList.remove("drop-target"));
+    if (breedTouch && breedTouch.id === id && breedTouch.moved) {
+      const t = e.changedTouches[0];
+      const under = document.elementFromPoint(t.clientX, t.clientY)?.closest("[data-id]");
+      if (under && under.dataset.id !== id) { e.preventDefault(); breedCharacters(id, under.dataset.id); }
+    }
+    breedTouch = null;
   });
 }
 
@@ -1140,6 +1210,7 @@ function wireFloatingSecret() {
 
 function renderBoard() {
   const player = currentPlayer();
+  rebuildSortOptions();            // sort menu adapts to the active mode (and persists the choice)
   stopHeadsAnim();                 // kill any running floating-heads loop before we rebuild
   els.characterBoard.innerHTML = "";
   els.characterBoard.className = "character-board";
@@ -1202,9 +1273,20 @@ let headsStartTs = null;       // persisted so the formation cycle keeps its pha
 function stopHeadsAnim() { if (headsAnimRaf) { cancelAnimationFrame(headsAnimRaf); headsAnimRaf = null; } }
 function resetHeadsAnim() { stopHeadsAnim(); headsPos = new Map(); headsStartTs = null; }
 
+const HEADS_FORM_NAMES = ["Ring ◯", "Figure-8 ∞", "Grid ▦", "Spiral ✺", "Heart ♥", "Wave 〜"];
 function renderHeadsOnlyBoard(player) {
   els.characterBoard.classList.add("heads-board");
   els.characterBoard.setAttribute("aria-label", "Floating heads");
+  if (state.headsForm == null) state.headsForm = 0;
+  // A little formation picker sits inside the board - pick the shape rather than auto-cycling.
+  const bar = document.createElement("div");
+  bar.className = "heads-toolbar";
+  bar.innerHTML = HEADS_FORM_NAMES.map((nm, i) => `<button type="button" class="heads-form-btn ${i === state.headsForm ? "on" : ""}" data-form="${i}">${nm}</button>`).join("");
+  bar.querySelectorAll("[data-form]").forEach((b) => b.addEventListener("click", () => {
+    state.headsForm = Number(b.dataset.form);
+    bar.querySelectorAll(".heads-form-btn").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  els.characterBoard.appendChild(bar);
   const layer = document.createElement("div");
   layer.className = "heads-layer";
   els.characterBoard.appendChild(layer);
@@ -1224,19 +1306,20 @@ function renderHeadsOnlyBoard(player) {
     const seed = headsPos.get(ch.id);
     return { el, id: ch.id, x: seed ? seed.x : null, y: seed ? seed.y : null };
   });
-  const FORM_MS = 5600;
+  const PAD = 58;   // keep whole heads + names inside the board
   const step = (ts) => {
     if (headsStartTs == null) headsStartTs = ts;
-    const elapsed = ts - headsStartTs;
-    const form = HEADS_FORMATIONS[Math.floor(elapsed / FORM_MS) % HEADS_FORMATIONS.length];
-    const t = elapsed / 1000;
+    const t = (ts - headsStartTs) / 1000;
+    const form = HEADS_FORMATIONS[state.headsForm || 0];
     const rect = layer.getBoundingClientRect();
     const w = rect.width || 640, h = rect.height || 520;
     heads.forEach((hd, i) => {
       const tgt = form(i, n, t, w, h);
-      if (hd.x == null) { hd.x = tgt.x; hd.y = tgt.y; }
-      hd.x += (tgt.x - hd.x) * 0.06;   // ease toward the formation so morphs glide
-      hd.y += (tgt.y - hd.y) * 0.06;
+      const tx = Math.max(PAD, Math.min(w - PAD, tgt.x));   // clamp inside the board
+      const ty = Math.max(PAD, Math.min(h - PAD, tgt.y));
+      if (hd.x == null) { hd.x = tx; hd.y = ty; }
+      hd.x += (tx - hd.x) * 0.06;   // ease toward the formation so morphs glide
+      hd.y += (ty - hd.y) * 0.06;
       hd.el.style.transform = `translate(${hd.x.toFixed(1)}px, ${hd.y.toFixed(1)}px) translate(-50%, -50%)`;
       headsPos.set(hd.id, { x: hd.x, y: hd.y });
     });
@@ -1311,6 +1394,19 @@ function renderHabboBoard(player) {
     tile.addEventListener("click", () => habboMoveTo(c, r));
     floor.appendChild(tile);
   }
+  // Original room decor (NOT Habbo's copyrighted art): a rug on the floor, framed abstract paintings on
+  // the back wall, and a pot plant.
+  const mid = habboIso((HABBO_GW - 1) / 2, (HABBO_GH - 1) / 2);
+  const wallX = habboIso(0, 0).x;
+  const decor = document.createElement("div");
+  decor.className = "habbo-decor";
+  decor.innerHTML =
+    `<div class="hb-rug" style="left:${mid.x}px;top:${mid.y}px"></div>` +
+    `<div class="hb-painting hb-p1" style="left:${wallX - 130}px"></div>` +
+    `<div class="hb-painting hb-p2" style="left:${wallX}px"></div>` +
+    `<div class="hb-painting hb-p3" style="left:${wallX + 130}px"></div>` +
+    `<div class="hb-plant" style="left:${wallX - 250}px"><span class="hb-pot"></span></div>`;
+  room.appendChild(decor);
   // Give any character without a tile a starting spot, strided so they scatter across the whole floor
   // rather than bunching in the back rows.
   const total = HABBO_GW * HABBO_GH;

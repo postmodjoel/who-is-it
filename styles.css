@@ -4212,3 +4212,46 @@ body.mode-pixall .secret-card img {
   content: ""; position: absolute; inset: -3px; border-radius: 14px; z-index: -1;
   background: linear-gradient(90deg, #ff5a5a, #ffb14e, #ffe83a, #5dff8f, #4dd2ff, #c46bff);
 }
+
+/* ===================== Heads-Only formation picker ===================== */
+.heads-toolbar {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 0 10px; max-width: 96%;
+}
+.heads-form-btn {
+  padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(14, 16, 30, 0.72); color: #cdd6f0; font-size: 0.62rem; font-weight: 700; cursor: pointer;
+  backdrop-filter: blur(3px);
+}
+.heads-form-btn:hover { border-color: #ffbe0b; }
+.heads-form-btn.on { background: #ffbe0b; color: #1a1508; border-color: #ffbe0b; }
+
+/* ===================== Habbo: walk bob + original room decor ===================== */
+/* A little stepping bounce while an avatar walks the grid. */
+.habbo-fig.walking .hb-head, .habbo-fig.walking .hb-body { animation: hb-step 0.3s ease-in-out infinite; }
+@keyframes hb-step { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
+.habbo-fig.walking .hb-shadow { animation: hb-step-shadow 0.3s ease-in-out infinite; }
+@keyframes hb-step-shadow { 0%, 100% { transform: translateX(-50%) scaleX(1); } 50% { transform: translateX(-50%) scaleX(0.82); } }
+/* Decor (all original CSS art, not Habbo assets). */
+.habbo-decor { position: absolute; inset: 0; }
+.hb-rug {
+  position: absolute; width: 190px; height: 96px; margin-left: -95px; margin-top: -48px; z-index: 20;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: repeating-linear-gradient(45deg, #a83a3a 0 10px, #8a2c2c 10px 20px);
+  box-shadow: inset 0 0 0 4px #e0b04a, inset 0 0 0 7px #8a2c2c;
+  opacity: 0.92;
+}
+.hb-painting {
+  position: absolute; top: 34px; width: 58px; height: 44px; margin-left: -29px; z-index: 1;
+  border: 4px solid #6a4a2a; border-radius: 2px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+.hb-p1 { background: linear-gradient(135deg, #e0653a, #ffd24d 70%); }
+.hb-p2 { background: radial-gradient(circle at 38% 40%, #7bf0a6, #1a6b8a 75%); }
+.hb-p3 { background: linear-gradient(45deg, #c46bff, #3a86ff); }
+.hb-plant { position: absolute; top: 40px; margin-left: -14px; z-index: 1; width: 28px; height: 46px; }
+.hb-plant::before {
+  content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 30px; height: 30px; border-radius: 50% 50% 46% 46%;
+  background: radial-gradient(circle at 40% 35%, #6fd36a, #2c8a34);
+}
+.hb-pot { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 18px; height: 16px; background: linear-gradient(#c47a3a, #8a4f22); border-radius: 3px 3px 5px 5px; }

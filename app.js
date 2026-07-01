@@ -275,6 +275,7 @@ const els = {
   sortSelect: document.querySelector("#sortSelect"),
   themeButton: document.querySelector("#themeButton"),
   setupButton: document.querySelector("#setupButton"),
+  editorButton: document.querySelector("#editorButton"),
   newGameButton: document.querySelector("#newGameButton"),
   debugEffectPicker: document.querySelector("#debugEffectPicker"),
   setupDialog: document.querySelector("#setupDialog"),
@@ -695,6 +696,151 @@ function wireBreedDnD(el, id) {
     const src = e.dataTransfer.getData("text/plain");
     if (src && src !== id) breedCharacters(src, id);
   });
+}
+
+// ===================== Custom character editor (persisted to localStorage) =====================
+const CUSTOM_KEY = "whoisit_custom_chars_v1";
+const EDITOR_ANIM = ["still", "calm", "curious", "serious", "shifty", "alert", "smug", "sleepy", "googly", "sideeye", "crosseyed", "nervous", "nod", "bobble", "dreamy", "lean", "squint"];
+function loadCustomChars() { try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || []; } catch (e) { return []; } }
+function saveCustomChars(list) { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(list)); } catch (e) { /* storage disabled */ } }
+function buildCustomCharacter(data) {
+  const seed = data.seed != null ? data.seed : (95000 + (stableHash(data.id) % 4000));
+  return {
+    id: data.id, name: data.name || "Custom", pronouns: data.pronouns || "they",
+    feature: "a custom-made character", secret: "keeps to themselves", role: data.role || "local witness",
+    image: window.faceGenerator.renderPortrait(seed, data.traits), tags: [], variant: "",
+    traits: data.traits, seed, isCustom: true
+  };
+}
+// Rebuild the custom entries in the playable pool from storage (so saved faces get dealt into games).
+function mergeCustomIntoPool() {
+  if (!window.faceGenerator) return;
+  [generatedCharacters, allCharacters].forEach((arr) => {
+    for (let i = arr.length - 1; i >= 0; i--) if (arr[i].isCustom) arr.splice(i, 1);
+  });
+  loadCustomChars().forEach((d) => { const ch = buildCustomCharacter(d); generatedCharacters.push(ch); allCharacters.push(ch); });
+}
+function upsertCustom(data) {
+  const list = loadCustomChars();
+  const i = list.findIndex((c) => c.id === data.id);
+  if (i >= 0) list[i] = data; else list.push(data);
+  saveCustomChars(list);
+  mergeCustomIntoPool();
+}
+function deleteCustom(id) {
+  saveCustomChars(loadCustomChars().filter((c) => c.id !== id));
+  mergeCustomIntoPool();
+}
+
+let editorDialog = null, editorState = null;
+function newEditorState() {
+  const bases = generatedCharacters.filter((c) => !c.isCustom);
+  const base = JSON.parse(JSON.stringify((bases.length ? pick(bases) : generatedCharacters[0]).traits || {}));
+  return { id: `custom-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`, name: "New Face", pronouns: "they", traits: base, seed: 96000 + Math.floor(Math.random() * 3000), existing: false };
+}
+function renderEditorPreview() {
+  const img = editorDialog.querySelector("#edPreview");
+  if (img) img.src = window.faceGenerator.renderPortrait(editorState.seed, editorState.traits);
+}
+function renderEditorControls() {
+  const T = window.faceGenerator.traitBook, t = editorState.traits;
+  const field = (label, html) => `<label class="ed-field"><span>${label}</span>${html}</label>`;
+  const selVal = (key, val) => `<select data-key="${key}">`;
+  const sel = (key, opts, val) => selVal(key) + opts.map((o) => `<option ${o === val ? "selected" : ""}>${o}</option>`).join("") + "</select>";
+  const slide = (key, label, min, max, step, val) => field(label, `<input type="range" data-key="${key}" data-num="1" min="${min}" max="${max}" step="${step}" value="${val}">`);
+  editorDialog.querySelector(".editor-controls").innerHTML =
+    field("Name", `<input type="text" data-key="__name" value="${escapeHtml(editorState.name)}" maxlength="16">`) +
+    field("Pronouns", sel("__pronouns", ["she", "he", "they"], editorState.pronouns)) +
+    field("Skin", sel("skin", T.skinTones, t.skin)) +
+    field("Hair", sel("hair", T.hairStyles, t.hair)) +
+    field("Hair colour", sel("hairColor", T.hairColors, t.hairColor)) +
+    field("Expression", sel("expression", T.expressions, t.expression)) +
+    field("Face shape", sel("faceShape", T.faceShapes, t.faceShape)) +
+    field("Nose", sel("noseTip", T.noseTips, t.noseTip || "round")) +
+    field("Brow", sel("browShape", T.browShapes, t.browShape || T.browShapes[0])) +
+    field("Clothing", sel("clothing", T.clothing, t.clothing)) +
+    field("Accessory", sel("accessory", T.accessories, t.accessory || "none")) +
+    field("Animation", sel("animMode", EDITOR_ANIM, t.animMode || "still")) +
+    field("Eye colour", `<input type="color" data-key="eyeColor" value="${t.eyeColor || "#5a3d28"}">`) +
+    field("Shirt", `<input type="color" data-key="shirt" value="${t.shirt || "#3a86ff"}">`) +
+    slide("eyeScale", "Eye size", 0.8, 1.2, 0.01, t.eyeScale != null ? t.eyeScale : 1) +
+    slide("browThick", "Brow weight", 0.7, 1.4, 0.01, t.browThick != null ? t.browThick : 1) +
+    slide("noseWidth", "Nose width", 0.7, 1.3, 0.01, t.noseWidth != null ? t.noseWidth : 1) +
+    slide("mouthScale", "Mouth size", 0.85, 1.2, 0.01, t.mouthScale != null ? t.mouthScale : 1) +
+    slide("build", "Build", 60, 110, 1, t.build != null ? t.build : 82);
+}
+function renderEditorSaved() {
+  const list = loadCustomChars();
+  const box = editorDialog.querySelector("#edSavedList");
+  box.innerHTML = list.length
+    ? list.map((c) => `<button type="button" class="ed-chip" data-edit="${c.id}">${escapeHtml(c.name)}</button>`).join("")
+    : `<span class="ed-empty">None yet — build one and hit Save.</span>`;
+  box.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => {
+    const c = loadCustomChars().find((x) => x.id === b.dataset.edit);
+    if (c) { editorState = { ...c, traits: JSON.parse(JSON.stringify(c.traits)), existing: true }; renderEditorControls(); renderEditorPreview(); syncEditorButtons(); }
+  }));
+}
+function syncEditorButtons() {
+  const del = editorDialog.querySelector("#edDelete");
+  if (del) del.style.display = editorState.existing ? "" : "none";
+}
+function buildEditorDialog() {
+  const d = document.createElement("dialog");
+  d.className = "editor-dialog";
+  d.innerHTML = `
+    <div class="editor-inner">
+      <div class="dialog-head">
+        <div><p class="eyebrow">Character studio</p><h2>Make &amp; save a character</h2></div>
+        <button class="icon-button" id="edClose" type="button" aria-label="Close">X</button>
+      </div>
+      <div class="editor-body">
+        <div class="editor-preview"><img id="edPreview" alt="preview"><small>Saved faces get dealt into future games.</small></div>
+        <div class="editor-controls"></div>
+      </div>
+      <div class="editor-saved"><p class="label">Saved characters</p><div id="edSavedList" class="ed-saved-list"></div></div>
+      <div class="dialog-actions">
+        <button type="button" id="edDelete" class="button ghost">Delete</button>
+        <button type="button" id="edNew" class="button ghost">New</button>
+        <button type="button" id="edAdd" class="button secondary">Add to board</button>
+        <button type="button" id="edSave" class="button primary">Save</button>
+      </div>
+    </div>`;
+  document.body.appendChild(d);
+  d.querySelector(".editor-controls").addEventListener("input", (e) => {
+    const el = e.target, key = el.dataset.key;
+    if (!key) return;
+    if (key === "__name") editorState.name = el.value || "Face";
+    else if (key === "__pronouns") editorState.pronouns = el.value;
+    else editorState.traits[key] = el.dataset.num ? Number(el.value) : el.value;
+    renderEditorPreview();
+  });
+  const persist = () => {
+    const data = { id: editorState.id, name: editorState.name, pronouns: editorState.pronouns, traits: editorState.traits, seed: editorState.seed };
+    upsertCustom(data);
+    editorState.existing = true;
+    renderEditorSaved(); syncEditorButtons();
+    return data;
+  };
+  d.querySelector("#edSave").addEventListener("click", persist);
+  d.querySelector("#edAdd").addEventListener("click", () => {
+    const data = persist();
+    const ch = buildCustomCharacter(data);
+    const bi = state.board.findIndex((c) => c.id === data.id);
+    if (bi >= 0) state.board[bi] = ch; else state.board.push(ch);
+    if (state.global.mystery) { const eff = mysteryEffects.find((x) => x.id === state.global.mystery.id); if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (err) { /* no per-char data */ } } }
+    state.justBorn = data.id; renderBoard(); state.justBorn = null;
+  });
+  d.querySelector("#edNew").addEventListener("click", () => { editorState = newEditorState(); renderEditorControls(); renderEditorPreview(); syncEditorButtons(); });
+  d.querySelector("#edDelete").addEventListener("click", () => { if (editorState.existing) deleteCustom(editorState.id); editorState = newEditorState(); renderEditorControls(); renderEditorPreview(); renderEditorSaved(); syncEditorButtons(); });
+  d.querySelector("#edClose").addEventListener("click", () => d.close());
+  return d;
+}
+function openCharacterEditor() {
+  if (!window.faceGenerator) return;
+  if (!editorDialog) editorDialog = buildEditorDialog();
+  editorState = newEditorState();
+  renderEditorControls(); renderEditorPreview(); renderEditorSaved(); syncEditorButtons();
+  editorDialog.showModal();
 }
 function sortedBoard() {
   const key = state.sortKey;
@@ -3146,6 +3292,8 @@ function syncSettingsToForm() {
 
 loadTheme();
 installStaticIcons();
+mergeCustomIntoPool();                 // fold saved custom characters into the playable pool
+if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
 newGame();
 wireCueCardClick();
 wireFloatingSecret();

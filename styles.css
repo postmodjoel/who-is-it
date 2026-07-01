@@ -3970,3 +3970,36 @@ body.mode-pixall .secret-card img {
   60% { transform: scale(1.12); opacity: 1; }
   100% { transform: scale(1); }
 }
+
+/* ===================== Character editor ===================== */
+.editor-dialog {
+  border: none; border-radius: 14px; padding: 0; max-width: 640px; width: calc(100% - 32px);
+  background: linear-gradient(180deg, #191b22, #101218); color: #eef1f6;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+.editor-dialog::backdrop { background: rgba(6, 7, 11, 0.66); backdrop-filter: blur(3px); }
+.editor-inner { padding: 16px 18px 14px; }
+.editor-dialog .dialog-head { display: flex; justify-content: space-between; align-items: flex-start; }
+.editor-dialog .icon-button { background: none; border: 1px solid rgba(255,255,255,.18); color: inherit; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; }
+.editor-body { display: grid; grid-template-columns: 180px 1fr; gap: 16px; margin-top: 8px; }
+.editor-preview { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.editor-preview img { width: 170px; height: 170px; border-radius: 12px; background: #cdd6e0; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+.editor-preview small { font-size: 0.6rem; color: #9aa2b1; text-align: center; }
+.editor-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; align-content: start; }
+.ed-field { display: flex; flex-direction: column; gap: 2px; font-size: 0.62rem; font-weight: 600; color: #aab2c2; }
+.ed-field input[type="text"], .ed-field select {
+  width: 100%; padding: 4px 6px; border-radius: 7px; border: 1px solid rgba(255,255,255,.14);
+  background: #0d0f15; color: #eef1f6; font-size: 0.72rem;
+}
+.ed-field input[type="color"] { width: 100%; height: 26px; padding: 0; border: 1px solid rgba(255,255,255,.14); border-radius: 7px; background: #0d0f15; }
+.ed-field input[type="range"] { width: 100%; accent-color: #ffbe0b; }
+.editor-saved { margin-top: 12px; }
+.ed-saved-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.ed-chip { padding: 3px 9px; border-radius: 20px; border: 1px solid rgba(255,255,255,.2); background: #22252e; color: #eef1f6; font-size: 0.66rem; font-weight: 700; cursor: pointer; }
+.ed-chip:hover { border-color: #ffbe0b; }
+.ed-empty { font-size: 0.66rem; color: #8890a0; }
+.editor-dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+@media (max-width: 560px) {
+  .editor-body { grid-template-columns: 1fr; }
+  .editor-controls { grid-template-columns: 1fr 1fr; }
+}

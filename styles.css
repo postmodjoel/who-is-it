@@ -3833,27 +3833,48 @@ body.mode-pixall .secret-card img {
   padding: 1px 6px; border-radius: 4px; font-size: 0.55rem; font-weight: 800; color: #0c1f2c;
   background: linear-gradient(180deg, #8be8a0, #3ec46a);
 }
-/* The plumbob: a faceted gem whose four pyramid facets are shaded (light from top-left) so it reads as
-   a solid 3D crystal, spinning for real via rotateY under the container's perspective + a gentle bob. */
+/* The plumbob: a real 3D square bipyramid built from 8 triangular faces (short top pyramid + longer
+   bottom pyramid) that actually rotates in 3D space, so its side faces stay visible as it turns. */
 .sim-plumbob {
-  position: absolute; top: 1%; left: 50%; z-index: 6;
-  width: 15px; height: 21px;
+  position: absolute; top: -6px; left: 50%; z-index: 6;
+  width: 18px; height: 30px;
   transform: translateX(-50%);
-  perspective: 140px;
+  perspective: 130px;
   animation: sim-bob 2.6s ease-in-out infinite;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 5px var(--pb-glow, rgba(60, 230, 80, 0.85)));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 5px var(--pb-glow, rgba(60, 230, 80, 0.85)));
 }
-.sim-plumbob svg { width: 100%; height: 100%; overflow: visible; transform-origin: 50% 50%; animation: sim-spin 3s linear infinite; }
-.sim-plumbob .pb-ul { fill: var(--pb-hi); }
-.sim-plumbob .pb-ur { fill: var(--pb-mid); }
-.sim-plumbob .pb-ll { fill: var(--pb-mid2); }
-.sim-plumbob .pb-lr { fill: var(--pb-dark); }
-.sim-plumbob .pb-shine { fill: #ffffff; opacity: 0.5; }
-.sim-plumbob .pb-outline { fill: none; stroke: var(--pb-dark); stroke-width: 1.4; stroke-linejoin: round; }
+.pb3d {
+  position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+  transform-style: preserve-3d;
+  animation: pb-spin 2.6s linear infinite;
+}
+.pb3d .pf { position: absolute; width: 0; height: 0; backface-visibility: visible; }
+/* Top pyramid: apex-up triangles, bases meeting at the waist. */
+.pb3d .pt0, .pb3d .pt1, .pb3d .pt2, .pb3d .pt3 {
+  left: -6px; top: -8px;
+  border-left: 6px solid transparent; border-right: 6px solid transparent;
+  border-bottom: 8px solid var(--pf, #3fcf42);
+  transform-origin: 50% 100%;
+}
+.pb3d .pt0 { --pf: var(--pb-hi);   transform: rotateY(0deg)   translateZ(6px) rotateX(37deg); }
+.pb3d .pt1 { --pf: var(--pb-mid);  transform: rotateY(90deg)  translateZ(6px) rotateX(37deg); }
+.pb3d .pt2 { --pf: var(--pb-mid2); transform: rotateY(180deg) translateZ(6px) rotateX(37deg); }
+.pb3d .pt3 { --pf: var(--pb-mid);  transform: rotateY(270deg) translateZ(6px) rotateX(37deg); }
+/* Bottom pyramid: apex-down triangles (longer), bases meeting at the waist. */
+.pb3d .pb0, .pb3d .pb1, .pb3d .pb2, .pb3d .pb3 {
+  left: -6px; top: 0;
+  border-left: 6px solid transparent; border-right: 6px solid transparent;
+  border-top: 14px solid var(--pf, #2aa834);
+  transform-origin: 50% 0%;
+}
+.pb3d .pb0 { --pf: var(--pb-mid);  transform: rotateY(0deg)   translateZ(6px) rotateX(-23deg); }
+.pb3d .pb1 { --pf: var(--pb-dark); transform: rotateY(90deg)  translateZ(6px) rotateX(-23deg); }
+.pb3d .pb2 { --pf: var(--pb-mid2); transform: rotateY(180deg) translateZ(6px) rotateX(-23deg); }
+.pb3d .pb3 { --pf: var(--pb-dark); transform: rotateY(270deg) translateZ(6px) rotateX(-23deg); }
 .sim-plumbob[data-mood="green"]  { --pb-hi: #9dff74; --pb-mid: #48d14a; --pb-mid2: #2aa834; --pb-dark: #137a22; --pb-glow: rgba(60, 230, 80, 0.85); }
 .sim-plumbob[data-mood="yellow"] { --pb-hi: #fff07a; --pb-mid: #ffd23a; --pb-mid2: #e0a520; --pb-dark: #a87610; --pb-glow: rgba(255, 210, 58, 0.85); }
 .sim-plumbob[data-mood="red"]    { --pb-hi: #ff9a86; --pb-mid: #ff4f4f; --pb-mid2: #d62a2a; --pb-dark: #8f1616; --pb-glow: rgba(255, 60, 60, 0.9); }
-@keyframes sim-spin { to { transform: rotateY(360deg); } }
+@keyframes pb-spin { to { transform: rotateY(360deg); } }
 @keyframes sim-bob { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-3px); } }
 .sim-sheet { display: flex; flex-direction: column; gap: 3px; }
 .sim-action { font-size: 0.56rem; font-style: italic; color: #bfe6ff; line-height: 1.25; }
@@ -4060,3 +4081,70 @@ body.mode-pixall .secret-card img {
 .habbo-fig.selected .hb-kill { display: flex; }
 .habbo-fig.is-down { opacity: 0.32; filter: grayscale(1); }
 .habbo-fig.is-down .hb-name { text-decoration: line-through; }
+
+/* ===================== Breeding animation (fertility) ===================== */
+.flash-toast {
+  position: fixed; left: 50%; top: 28%; transform: translateX(-50%); z-index: 1001;
+  padding: 10px 18px; border-radius: 12px; background: rgba(24, 10, 18, 0.94); color: #ffd6ea;
+  font-weight: 800; font-size: 0.88rem; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  animation: toast-in 0.28s ease, toast-out 0.3s ease 1.5s forwards;
+}
+@keyframes toast-in { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@keyframes toast-out { to { opacity: 0; } }
+.breed-overlay {
+  position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 4, 12, 0.6); backdrop-filter: blur(2px); pointer-events: none;
+}
+.breed-stage { position: relative; width: 300px; height: 240px; }
+.breed-p {
+  position: absolute; left: 50%; top: 50%; width: 118px; height: 118px; border-radius: 16px;
+  object-fit: cover; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+.breed-a { animation: breed-a 2.1s ease-in-out forwards; }
+.breed-b { animation: breed-b 2.1s ease-in-out forwards; }
+@keyframes breed-a {
+  0%   { transform: translate(-50%,-50%) translateX(-130px) rotate(-6deg); }
+  28%  { transform: translate(-50%,-50%) translateX(-34px) rotate(-3deg); }
+  36%  { transform: translate(-50%,-50%) translateX(-40px) rotate(-5deg) scale(1.03); }
+  40%  { transform: translate(-50%,-50%) translateX(-28px) rotate(1deg) scale(1.05); }
+  44%  { transform: translate(-50%,-50%) translateX(-40px) rotate(-4deg) scale(1.03); }
+  48%  { transform: translate(-50%,-50%) translateX(-28px) rotate(0deg) scale(1.06); }
+  53%  { transform: translate(-50%,-50%) translateX(-34px) scale(0.92); }
+  80%  { transform: translate(-50%,-50%) translateX(-160px) rotate(-12deg); opacity: 0.6; }
+  100% { transform: translate(-50%,-50%) translateX(-210px) rotate(-16deg); opacity: 0; }
+}
+@keyframes breed-b {
+  0%   { transform: translate(-50%,-50%) translateX(130px) rotate(6deg); }
+  28%  { transform: translate(-50%,-50%) translateX(34px) rotate(3deg); }
+  36%  { transform: translate(-50%,-50%) translateX(40px) rotate(5deg) scale(1.03); }
+  40%  { transform: translate(-50%,-50%) translateX(28px) rotate(-1deg) scale(1.05); }
+  44%  { transform: translate(-50%,-50%) translateX(40px) rotate(4deg) scale(1.03); }
+  48%  { transform: translate(-50%,-50%) translateX(28px) rotate(0deg) scale(1.06); }
+  53%  { transform: translate(-50%,-50%) translateX(34px) scale(0.92); }
+  80%  { transform: translate(-50%,-50%) translateX(160px) rotate(12deg); opacity: 0.6; }
+  100% { transform: translate(-50%,-50%) translateX(210px) rotate(16deg); opacity: 0; }
+}
+.breed-flash {
+  position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%,-50%);
+  border-radius: 50%; background: radial-gradient(circle, #fff, rgba(255,200,240,0.7) 40%, transparent 72%);
+  opacity: 0; animation: breed-flash 2.1s ease-out forwards;
+}
+@keyframes breed-flash {
+  0%, 50% { opacity: 0; transform: translate(-50%,-50%) scale(0.2); }
+  56% { opacity: 1; transform: translate(-50%,-50%) scale(6); }
+  72% { opacity: 0; transform: translate(-50%,-50%) scale(11); }
+  100% { opacity: 0; }
+}
+.breed-baby {
+  position: absolute; left: 50%; top: 50%; width: 112px; height: 112px; border-radius: 16px;
+  box-shadow: 0 0 0 3px #ff8fd0, 0 8px 24px rgba(0, 0, 0, 0.6);
+  transform: translate(-50%,-50%) scale(0); opacity: 0;
+  animation: breed-baby 2.1s cubic-bezier(0.2, 1.5, 0.4, 1) forwards;
+}
+@keyframes breed-baby {
+  0%, 54% { opacity: 0; transform: translate(-50%,-50%) scale(0) rotate(-20deg); }
+  62% { opacity: 1; transform: translate(-50%,-50%) scale(1.2) rotate(6deg); }
+  72% { transform: translate(-50%,-50%) scale(1) rotate(0deg); }
+  92% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(1); }
+}

@@ -674,10 +674,42 @@ function makeBaby(A, B) {
     parents: [A.name, B.name]
   };
 }
+// --- Fertility "balance" helpers (the cum count is a display string like "770M" / "2.0B") ---
+function parseCum(str) { const m = String(str).match(/([\d.]+)\s*([MB])/i); if (!m) return 0; return parseFloat(m[1]) * (m[2].toUpperCase() === "B" ? 1000 : 1); }
+function formatCum(mils) { return mils >= 1000 ? `${(mils / 1000).toFixed(1)}B` : `${Math.max(0, Math.round(mils))}M`; }
+
 // Drop character `aId` onto `bId` -> a baby joins the board for THIS game only (never saved).
 function breedCharacters(aId, bId) {
   const A = characterById(aId), B = characterById(bId);
   if (!A || !B || !window.faceGenerator) return;
+
+  // In FERTILITY mode breeding is gated: you need one egg-producer + one sperm-producer, and it costs
+  // each of them some balance. They grind together, then a baby explodes out (parents survive).
+  if (state.global.mystery?.id === "fertility") {
+    const asg = state.global.mystery.assignments;
+    const fa = asg[A.id], fb = asg[B.id];
+    if (!fa || !fb) { flashToast("These two can't breed."); return; }
+    const eggOf = (f) => f.hasEggs && !f.barren && f.eggs > 0;
+    const spermOf = (f) => f.hasCount && parseCum(f.cum) > 0;
+    let egg, sperm;
+    if (eggOf(fa) && spermOf(fb)) { egg = fa; sperm = fb; }
+    else if (eggOf(fb) && spermOf(fa)) { egg = fb; sperm = fa; }
+    else { flashToast("Need eggs 🥚 + sperm 💦 — no viable match!"); return; }
+    egg.eggs = Math.max(0, egg.eggs - 1);                     // deduct one egg
+    sperm.cum = formatCum(parseCum(sperm.cum) - (60 + Math.floor(Math.random() * 90))); // deduct some sperm
+    const baby = makeBaby(A, B);
+    asg[baby.id] = { cum: `${1 + Math.floor(Math.random() * 8)}M`, eggs: 1 + Math.floor(Math.random() * 4), barren: false, hrs: 71, mins: 59, defect: null, hasCount: true, hasEggs: true };
+    renderBoard();                                            // show the deducted balances immediately
+    playBreedAnimation(A.image, B.image, baby.image, () => {
+      state.board.push(baby);
+      state.justBorn = baby.id;
+      renderBoard();
+      state.justBorn = null;
+      if (typeof addLog === "function") addLog(`${A.name} + ${B.name} bred ${baby.name}!`);
+    });
+    return;
+  }
+
   const baby = makeBaby(A, B);
   state.board.push(baby);
   // Regenerate the active mode's per-character data so the baby gets its own stats/card too.
@@ -689,6 +721,27 @@ function breedCharacters(aId, bId) {
   if (typeof addLog === "function") addLog(`${A.name} + ${B.name} made a baby: ${baby.name}!`);
   renderBoard();
   state.justBorn = null;
+}
+// A brief centred toast for breeding feedback.
+function flashToast(msg) {
+  const t = document.createElement("div");
+  t.className = "flash-toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1800);
+}
+// The two parents grind together (friction/pressure) then a baby explodes out; parents survive.
+function playBreedAnimation(imgA, imgB, babyImg, done) {
+  const ov = document.createElement("div");
+  ov.className = "breed-overlay";
+  ov.innerHTML = `<div class="breed-stage">
+      <img class="breed-p breed-a" src="${imgA}" alt="">
+      <img class="breed-p breed-b" src="${imgB}" alt="">
+      <div class="breed-flash"></div>
+      <img class="breed-baby" src="${babyImg}" alt="">
+    </div>`;
+  document.body.appendChild(ov);
+  setTimeout(() => { ov.remove(); done(); }, 2100);
 }
 // Shared drag-and-drop wiring: any card / floating head can be dragged onto another to breed.
 function wireBreedDnD(el, id) {
@@ -1154,16 +1207,38 @@ function selectHabbo(id) {
   habboSelected = id;
   if (habboCtx) habboCtx.figEls.forEach((el, cid) => el.classList.toggle("selected", cid === id));
 }
+// An L-shaped path along the grid (columns first, then rows). Each hop is to an ADJACENT tile, which
+// on screen is a pure isometric diagonal - so the avatar walks the grid like a real Habbo, turning at
+// the corner, instead of sliding straight across the room.
+function habboPath(c0, r0, c1, r1) {
+  const path = []; let c = c0, r = r0;
+  while (c !== c1) { c += Math.sign(c1 - c); path.push({ col: c, row: r }); }
+  while (r !== r1) { r += Math.sign(r1 - r); path.push({ col: c, row: r }); }
+  return path;
+}
 function habboMoveTo(col, row) {
   if (!habboSelected || !habboCtx) return;
   for (const [id, p] of habboPos) if (id !== habboSelected && p.col === col && p.row === row) return; // tile taken
-  habboPos.set(habboSelected, { col, row });
   const el = habboCtx.figEls.get(habboSelected);
-  if (!el) return;
-  const p = habboIso(col, row);
+  const cur = habboPos.get(habboSelected);
+  if (!el || !cur) return;
+  const path = habboPath(cur.col, cur.row, col, row);
+  if (!path.length) return;
+  habboPos.set(habboSelected, { col, row });          // final tile (kept for persistence)
+  const token = (el._walk = (el._walk || 0) + 1);      // cancels any walk already in progress
+  const STEP = 300;
   el.classList.add("walking");
-  el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
-  el.style.zIndex = String(100 + col + row);
+  let i = 0;
+  const stepTo = () => {
+    if (el._walk !== token || i >= path.length) return;
+    const s = path[i]; const p = habboIso(s.col, s.row);
+    el.style.transitionDuration = `${STEP}ms`;
+    el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
+    el.style.zIndex = String(100 + s.col + s.row);
+    i++;
+    setTimeout(stepTo, STEP);
+  };
+  stepTo();
 }
 function renderHabboBoard(player) {
   els.characterBoard.classList.add("habbo-board");
@@ -2145,16 +2220,13 @@ function getMysteryCardData(character) {
       return `<span class="sim-bar"><b>${label}</b><i><s class="${cls}" style="--n:${n}%"></s></i></span>`;
     };
     const money = a.simoleons < 0 ? `-§${Math.abs(a.simoleons).toLocaleString()}` : `§${a.simoleons.toLocaleString()}`;
-    // A faceted SVG gem (shaded pyramids) that actually spins in 3D via rotateY under perspective.
+    // A real CSS-3D square bipyramid (8 triangular faces) that genuinely rotates in 3D - so side faces
+    // stay visible as it turns instead of squashing to a flat line like the old SVG.
     const plumbob = `<span class="sim-plumbob" data-mood="${a.mood}" aria-label="mood: ${a.mood}">`
-      + `<svg viewBox="0 0 44 62">`
-      + `<polygon class="pb-ul" points="22,3 3,23 22,25"/>`
-      + `<polygon class="pb-ur" points="22,3 41,23 22,25"/>`
-      + `<polygon class="pb-ll" points="22,59 3,23 22,25"/>`
-      + `<polygon class="pb-lr" points="22,59 41,23 22,25"/>`
-      + `<polygon class="pb-shine" points="22,8 11,21 22,23"/>`
-      + `<polygon class="pb-outline" points="22,3 41,23 22,59 3,23"/>`
-      + `</svg></span>`;
+      + `<span class="pb3d">`
+      + `<b class="pf pt0"></b><b class="pf pt1"></b><b class="pf pt2"></b><b class="pf pt3"></b>`
+      + `<b class="pf pb0"></b><b class="pf pb1"></b><b class="pf pb2"></b><b class="pf pb3"></b>`
+      + `</span></span>`;
     return {
       effectName: mystery.name,
       cardClass: `sims sim-${a.mood}`,

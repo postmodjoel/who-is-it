@@ -401,7 +401,7 @@ const mysteryEffects = [
     id: "witness-protection-filter",
     name: "Witness Protection Filter",
     apply: applyWitnessProtectionFilter,
-    exampleQuestion: "Is your person under nightclub lighting?"
+    exampleQuestion: "Are your person's eyes redacted with a black bar?"
   },
   {
     id: "role-reveal",
@@ -1427,11 +1427,14 @@ function getMysteryCardData(character) {
   if (mystery.id === "gay-frogged") {
     const cornerHtml = `<div class="gayfrog-corner">${assignment.letters.map((l) => `<span class="gayfrog-letter">${escapeHtml(l)}</span>`).join("")}</div>`;
     const titleBadge = assignment.title ? addMysteryBadge(assignment.title, "gayfrog-badge gayfrog-word") : "";
+    // A per-tile negative animation-delay (0 to -6s) so the pulsing rainbow background on each card is
+    // offset from its neighbours - the board shimmers rather than strobing in unison.
+    const pulseDelay = -(stableHash(character.id + ":pulse") % 6000) / 1000;
     return {
       effectName: mystery.name,
       cardClass: `gayfrog gayfrog-${assignment.key}`,
       dataset: { gayfrogColor: assignment.color },
-      style: `--glow:${assignment.color}`,
+      style: `--glow:${assignment.color};--pulse-delay:${pulseDelay.toFixed(2)}s`,
       image: assignment.image || undefined,
       cornerHtml,
       pronoun: assignment.pronoun,
@@ -1452,18 +1455,33 @@ function getMysteryCardData(character) {
     const a = assignment;
     const M = window.GameData.drugMethods;
     const tierCls = { MINOR: "dz-minor", MAJOR: "dz-major", MEGA: "dz-mega" };
+    const has = (m) => a.modules && a.modules.includes(m);
+    // Each card only shows the modules it actually rolled - so the board is a patchwork of stats.
+    const rows = [];
+    if (has("orgy")) rows.push(`<div class="woke-row"><span class="orgy-pos">${escapeHtml(a.pos)}</span><span class="woke-cum">💦 ${escapeHtml(a.cum)}</span></div>`);
+    if (has("drugs") && a.habits) rows.push(a.habits.map((dr) => `<div class="woke-line">🚬 <b>${escapeHtml(dr.name)}</b> <i>${M[dr.method] || dr.method}</i></div>`).join(""));
+    if (has("disease")) rows.push(`<div class="dz-pill ${tierCls[a.disease.tier]}">${escapeHtml(a.disease.tier)} · ${escapeHtml(a.disease.name)}</div>`);
+    if (has("fertility")) {
+      const eggTxt = a.barren ? '<span class="ft-barren">BARREN</span>' : `${a.eggs} 🥚`;
+      const def = a.defect ? ` <span class="ft-defect">⚠ ${escapeHtml(a.defect)}</span>` : "";
+      rows.push(`<div class="woke-line">🥚 ${eggTxt}${def}</div>`);
+    }
+    if (has("work")) rows.push(`<div class="woke-line">⛏ <b>${a.days}d</b> left · <i>${escapeHtml(a.stash)}</i></div>`);
+    if (has("disguise")) rows.push(`<div class="woke-line">🕶 <i>incognito</i></div>`);
+    if (has("gay") && !rows.length) rows.push(`<div class="woke-line">✨ ${escapeHtml(a.pronoun)}</div>`);
+    let corner = "";
+    if (has("gay")) corner = `<span class="wk-pronoun">${escapeHtml(a.pronoun)}</span>`;
+    else if (has("work")) corner = `<span class="wk-pronoun" title="days remaining">${a.days}d</span>`;
+    else if (has("fertility")) corner = `<span class="wk-pronoun" title="next emptying">⏳ ${a.ftHrs}h</span>`;
+    else if (has("orgy")) corner = `<span class="wk-pronoun">${escapeHtml(a.pos)}</span>`;
     return {
       effectName: mystery.name,
       cardClass: "woke",
       image: a.image || undefined,
       style: `--glow:${a.glow}`,
-      dataset: { wokePos: a.pos },
-      cornerHtml: `<span class="wk-pronoun">${escapeHtml(a.pronoun)}</span>`,
-      html: `<div class="woke-sheet">
-        <div class="woke-row"><span class="orgy-pos">${escapeHtml(a.pos)}</span><span class="woke-cum">💦 ${escapeHtml(a.cum)}</span></div>
-        <div class="woke-line">🚬 <b>${escapeHtml(a.drug.name)}</b> <i>${M[a.drug.method] || a.drug.method}</i></div>
-        <div class="dz-pill ${tierCls[a.disease.tier]}">${escapeHtml(a.disease.tier)} · ${escapeHtml(a.disease.name)}</div>
-      </div>`
+      dataset: a.pos ? { wokePos: a.pos } : {},
+      cornerHtml: corner,
+      html: `<div class="woke-sheet">${rows.join("")}</div>`
     };
   }
   if (mystery.id === "work") {
@@ -1634,31 +1652,72 @@ function applyFertility(effect) {
   return { id: effect.id, name: effect.name, assignments };
 }
 
-// WOKE Mode: a chaotic mash-up of the other stat modes (gay glow + pronoun, orgy position, a drug
-// habit, a disease, and a fertility count) all on one bare-shouldered card. Not Yu-Gi-Oh.
+// WOKE Mode: a chaotic mix-and-match of every other stat mode. Each character rolls a RANDOM SUBSET
+// (2-4) of modules - gay glow+pronoun, orgy position, a drug habit, a disease, a fertility readout,
+// a work-camp sentence, or a disguise - so no two cards carry the same set. Not Yu-Gi-Oh.
+const WOKE_MODULES = ["gay", "orgy", "drugs", "disease", "fertility", "work", "disguise"];
 function applyWoke(effect) {
   const D = window.GameData;
   const positions = ["TOP", "BOTTOM", "VERS", "SIDE", "GAGGED", "POWER BOTTOM"];
   const pronouns = ["they/them", "she/they", "he/they", "xe/xem", "ze/zir", "fae/faer", "it/its", "any/all"];
   const glows = ["#ff4d6d", "#ff9e3a", "#ffe23a", "#4dd46a", "#3aa0ff", "#a05aff", "#ff5ad0"];
+  const defects = ["SLOW SWIMMERS", "EXPIRED STOCK", "TWO-HEADED RISK", "RECALLED BATCH", "ALL DUDS", "PREMIUM (allegedly)"];
+  const stash = (D && D.workInventory) || ["Shiv"];
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:woke:${ch.id}`);
-    const drug = D.drugs[(h >>> 7) % D.drugs.length];
-    const disease = D.diseases[(h >>> 9) % D.diseases.length];
-    const billions = (h >>> 2) % 4 === 0;
-    const cum = billions ? (1 + ((h >>> 4) % 40) / 10).toFixed(1) + "B" : (50 + ((h >>> 4) % 900)) + "M";
-    const image = (ch.traits && window.faceGenerator)
-      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, clothing: "bare", accessory: "none" })
-      : ch.image;
-    assignments[ch.id] = {
-      glow: glows[h % glows.length],
-      pronoun: pronouns[(h >>> 3) % pronouns.length],
-      pos: positions[(h >>> 5) % positions.length],
-      drug: { name: drug[0], method: drug[1] },
-      disease: { name: disease[0], tier: disease[1] },
-      cum, image
-    };
+    // Deterministic shuffle of the module list, then take 2-4 of them for this character.
+    const order = WOKE_MODULES
+      .map((m) => [m, stableHash(`${state.gameSalt}:wkmod:${ch.id}:${m}`)])
+      .sort((a, b) => a[1] - b[1])
+      .map((x) => x[0]);
+    const mods = order.slice(0, 2 + (h % 3));
+    const has = (m) => mods.includes(m);
+    const a = { modules: mods, glow: glows[h % glows.length] };
+    if (has("gay")) a.pronoun = pronouns[(h >>> 3) % pronouns.length];
+    if (has("orgy")) {
+      a.pos = positions[(h >>> 5) % positions.length];
+      const billions = (h >>> 2) % 4 === 0;
+      a.cum = billions ? (1 + ((h >>> 4) % 40) / 10).toFixed(1) + "B" : (50 + ((h >>> 4) % 900)) + "M";
+    }
+    if (has("drugs")) {
+      const n = 1 + ((h >>> 6) % 2);
+      const habits = [];
+      for (let k = 0; k < n; k++) {
+        const dr = D.drugs[stableHash(`${state.gameSalt}:wkdg:${ch.id}:${k}`) % D.drugs.length];
+        if (!habits.some((x) => x.name === dr[0])) habits.push({ name: dr[0], method: dr[1] });
+      }
+      a.habits = habits;
+    }
+    if (has("disease")) {
+      const dz = D.diseases[(h >>> 9) % D.diseases.length];
+      a.disease = { name: dz[0], tier: dz[1] };
+    }
+    if (has("fertility")) {
+      a.barren = (h >>> 11) % 5 === 0;
+      a.eggs = a.barren ? 0 : 8 + ((h >>> 6) % 320);
+      a.ftHrs = (h >>> 13) % 72;
+      a.defect = ((h >>> 17) % 3 === 0) ? defects[(h >>> 19) % defects.length] : null;
+    }
+    if (has("work")) {
+      a.days = 1 + (h % 9000);
+      a.stash = stash[(h >>> 4) % stash.length];
+    }
+    // Image: a disguised covering when that module rolled, otherwise the bare-shouldered woke portrait.
+    if (ch.traits && window.faceGenerator) {
+      const R = (extra) => window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, ...extra });
+      a.image = has("disguise")
+        ? (ch.pronouns === "she"
+          ? R({ disguise: true })
+          : R({ hair: "bald", hairLocks: [], beardLength: 0, accessory: "turban", accessoryColor: "#ededee",
+            accessoryY: 0, accessoryScale: 1,
+            clothing: (ch.traits.clothing === "bare" || ch.traits.clothing === "singlet") ? "tee" : ch.traits.clothing,
+            shirt: "#f2f2f2" }))
+        : R({ clothing: "bare", accessory: "none" });
+    } else {
+      a.image = ch.image;
+    }
+    assignments[ch.id] = a;
   });
   return { id: effect.id, name: effect.name, assignments };
 }
@@ -2135,19 +2194,29 @@ function applyVibeLabels(effect) {
 }
 
 function applyWitnessProtectionFilter(effect) {
-  const categories = [
-    ["Aquarium Glass", "witness-aquarium"],
-    ["Nightclub Lighting", "witness-nightclub"],
-    ["Security Camera", "witness-security"],
-    ["Fog Machine", "witness-fog"],
-    ["Interrogation Lamp", "witness-interrogation"],
-    ["Smoke Alarm Incident", "witness-smoke"]
+  // Weighted pool: black censor bars over the eyes/mouth are the most common redaction, a handful get
+  // the CCTV/security-camera look, and the rest are sprinkled with the atmospheric filters. Each entry
+  // is [label, className, weight]; higher weight = shows up on more people.
+  const pool = [
+    ["Eyes Redacted", "witness-eyebar", 5],
+    ["Mouth Redacted", "witness-mouthbar", 3],
+    ["Security Camera", "witness-security", 4],
+    ["Aquarium Glass", "witness-aquarium", 1],
+    ["Fog Machine", "witness-fog", 1],
+    ["Interrogation Lamp", "witness-interrogation", 1],
+    ["Smoke Alarm Incident", "witness-smoke", 1]
   ];
+  const weighted = [];
+  pool.forEach(([label, cls, w]) => { for (let i = 0; i < w; i++) weighted.push([label, cls]); });
+  // Filter roughly 60% of the board (always including both players' secrets), each assigned a weighted
+  // category - so bars and cameras can repeat across several people.
+  const count = Math.max(6, Math.round(state.board.length * 0.6));
+  const selectedIds = buildWitnessShortlist(effect.id, count);
   const assignments = {};
-  const selectedIds = buildWitnessShortlist(effect.id, categories.length);
-  deterministicOrder(selectedIds.map((id) => characterById(id)), `${state.gameSalt}:${effect.id}:selected`).forEach((character, index) => {
-    const value = categories[index];
-    assignments[character.id] = { value: value[0], className: value[1] };
+  selectedIds.forEach((id) => {
+    const pickHash = stableHash(`${state.gameSalt}:${effect.id}:pick:${id}`);
+    const [label, cls] = weighted[pickHash % weighted.length];
+    assignments[id] = { value: label, className: cls };
   });
   return { id: effect.id, name: effect.name, assignments, selectedIds };
 }

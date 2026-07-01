@@ -1041,11 +1041,11 @@
       noseTip: "narrow", noseWidth: 0.78, eyeDart: 0.95, frontHairY: -2
     },
     lucas: {
-      animMode: "calm", blinkRate: 5.5, eyeOpen: 0.9, browThick: 1.1, noseTip: "button", noseWidth: 1.05,
+      animMode: "nod", blinkRate: 5.5, eyeOpen: 0.9, browThick: 1.1, noseTip: "button", noseWidth: 1.05,
       chinShape: "round", cheekOpacity: 0.05, mouthScale: 0.98, hairColor: "darkBrown"
     },
     stella: {
-      animMode: "alert", blinkRate: 3, browShape: "arched", browY: 0.5, browThick: 1.05, eyeScale: 1.06,
+      animMode: "googly", blinkRate: 3, browShape: "arched", browY: 0.5, browThick: 1.05, eyeScale: 1.06,
       eyeOpen: 1.04, lipColor: "#7a3b46", lips: "full", lipLower: "pillow", cheekOpacity: 0.1, frontHairY: -4
     },
     jamal: {
@@ -1057,7 +1057,7 @@
       noseScale: 1.05, noseTip: "straight", chinShape: "square", chinWidth: 1.08, frownLineOpacity: 0.35
     },
     matilda: {
-      animMode: "shifty", blinkRate: 4, winkRate: 16, browShape: "thick", browY: 1, browThick: 1.2,
+      animMode: "crosseyed", blinkRate: 4, winkRate: 16, browShape: "thick", browY: 1, browThick: 1.2,
       eyeScale: 1.0, cheekOpacity: 0.16, noseTip: "button", noseWidth: 1.12, lipColor: "#9a5048", frontHairY: -2
     },
     celeste: {
@@ -1065,7 +1065,7 @@
       lips: "full", lipUpper: "peaked", cheekOpacity: 0.13, browShape: "arched", browY: -0.5, noseTip: "narrow"
     },
     amira: {
-      animMode: "alert", blinkRate: 3.2, browShape: "arched", browThick: 1.12, browY: 0.5, eyeScale: 1.0,
+      animMode: "sideeye", blinkRate: 3.2, browShape: "arched", browThick: 1.12, browY: 0.5, eyeScale: 1.0,
       lazyEye: -1, irisScale: 0.92, lipColor: "#8a4a55", lips: "full", noseTip: "pointed", frontHairY: -3
     },
     eli: {
@@ -1081,7 +1081,7 @@
       lipColor: "#6a4a44", noseTip: "narrow", underEyeOpacity: 0.45
     },
     asher: {
-      animMode: "curious", blinkRate: 4.5, winkRate: 14, eyeScale: 1.02, browThick: 0.95, browY: -0.5,
+      animMode: "bobble", blinkRate: 4.5, winkRate: 14, eyeScale: 1.02, browThick: 0.95, browY: -0.5,
       noseTip: "button", cheekOpacity: 0.06, mouthScale: 1.02, hairColor: "copper", frontHairY: -6
     },
     elena: {
@@ -1089,19 +1089,19 @@
       lips: "full", lipLower: "pillow", browShape: "arched", browY: -0.5, noseTip: "narrow", frontHairY: -3
     },
     kai: {
-      animMode: "alert", blinkRate: 2.8, browShape: "thick", browThick: 1.32, browY: 1, eyeOpen: 0.7,
+      animMode: "nervous", blinkRate: 2.8, browShape: "thick", browThick: 1.32, browY: 1, eyeOpen: 0.7,
       eyeScale: 0.96, jawShadowY: -2.5, chinShape: "square", noseScale: 1.04, frownLineOpacity: 0.4
     },
     lucy: {
-      animMode: "sleepy", blinkRate: 2.6, eyeOpen: 0.78, browShape: "thin", browY: 0.5, lipColor: "#7a3f48",
+      animMode: "dreamy", blinkRate: 2.6, eyeOpen: 0.78, browShape: "thin", browY: 0.5, lipColor: "#7a3f48",
       lips: "soft", noseTip: "narrow", noseWidth: 0.82, cheekOpacity: 0.07, frontHairY: -4
     },
     romeo: {
-      animMode: "smug", blinkRate: 4.5, winkRate: 8, eyeScale: 1.0, browThick: 1.05, browY: -0.5,
+      animMode: "lean", blinkRate: 4.5, winkRate: 8, eyeScale: 1.0, browThick: 1.05, browY: -0.5,
       noseTip: "pointed", lipColor: "#5a3a30", lips: "soft", chinShape: "dimple", chinY: -2
     },
     adeline: {
-      animMode: "calm", blinkRate: 5, eyeOpen: 0.9, browShape: "thin", browY: 0.5, cheekOpacity: 0.08,
+      animMode: "dreamy", blinkRate: 5, eyeOpen: 0.9, browShape: "thin", browY: 0.5, cheekOpacity: 0.08,
       noseTip: "button", noseWidth: 1.0, lipColor: "#9a5560", hairColor: "auburn"
     },
     felix: {
@@ -1113,7 +1113,7 @@
       eyeScale: 0.98, lazyEye: 1, lipColor: "#7a3b46", lips: "full", noseTip: "narrow", frontHairY: -2
     },
     hugo: {
-      animMode: "sleepy", blinkRate: 2.4, eyeOpen: 0.72, browY: 1.5, noseScale: 1.06, jawShadowY: 2,
+      animMode: "squint", blinkRate: 2.4, eyeOpen: 0.72, browY: 1.5, noseScale: 1.06, jawShadowY: 2,
       chinShape: "round", underEyeOpacity: 0.5, mouthScale: 0.98
     },
     noor: {
@@ -1121,7 +1121,7 @@
       lipColor: "#5a4048", lips: "soft", noseTip: "narrow", cheekOpacity: 0.06
     },
     tyler: {
-      animMode: "calm", blinkRate: 5.5, eyeScale: 1.0, browThick: 1.0, noseTip: "straight", noseScale: 1.02,
+      animMode: "bobble", blinkRate: 5.5, eyeScale: 1.0, browThick: 1.0, noseTip: "straight", noseScale: 1.02,
       chinShape: "square", chinWidth: 1.06, mouthScale: 1.02, hairColor: "darkBrown", frontHairY: -8
     }
   };
@@ -1355,7 +1355,17 @@
       shifty:  { blink: 3,   dart: 3.5, sway: 0,   wink: 0,  brow: 0,  breathe: 0 },
       alert:   { blink: 2.6, dart: 5,   sway: 0,   wink: 0,  brow: 6,  breathe: 0 },
       smug:    { blink: 4.5, dart: 0,   sway: 4.5, wink: 8,  brow: 7,  breathe: 0 },
-      sleepy:  { blink: 2.2, dart: 0,   sway: 9,   wink: 0,  brow: 0,  breathe: 0 }
+      sleepy:  { blink: 2.2, dart: 0,   sway: 9,   wink: 0,  brow: 0,  breathe: 0 },
+      // --- extra eye + body animation presets ---
+      googly:  { blink: 3.4, roll: 5,    wink: 0,  brow: 0,  breathe: 6 },   // eyes roll around
+      sideeye: { blink: 5,   side: 6,    wink: 0,  brow: 8 },                // slow side-glance + hold
+      crosseyed:{ blink: 4,  cross: 6.5, wink: 0,  brow: 0 },                // eyes briefly converge
+      nervous: { blink: 2.3, dart: 2.6,  wink: 0,  brow: 5,  shiver: 1.1 },  // darting + body jitter
+      nod:     { blink: 5,   wink: 0,    brow: 0,  nod: 3.2 },               // agreeable head-nod
+      bobble:  { blink: 4.5, wink: 9,    brow: 0,  bobble: 2.8 },            // bobblehead sway
+      dreamy:  { blink: 3,   side: 8,    wink: 0,  brow: 0,  breathe: 6.5 }, // languid drift + breathe
+      lean:    { blink: 5.5, wink: 6,    brow: 0,  lean: 7 },               // slow lean to one side
+      squint:  { blink: 0,   squint: 5,  wink: 0,  brow: 4,  sway: 7 }       // suspicious squint (no blink)
     }[mode];
     if (!cfg) return ""; // still / unknown
     const blink = traits.blinkRate != null && traits.blinkRate !== "" ? Number(traits.blinkRate) : cfg.blink;
@@ -1364,6 +1374,10 @@
     const sway = cfg.sway;
     const brow = cfg.brow || 0;
     const breathe = cfg.breathe || 0;
+    // Extra channels. Eye-move (dart/roll/side/cross/squint) and head-move (sway/breathe/nod/bobble/
+    // shiver/lean) are each mutually exclusive within a preset since they share a transformed group.
+    const roll = cfg.roll || 0, side = cfg.side || 0, cross = cfg.cross || 0, squint = cfg.squint || 0;
+    const nod = cfg.nod || 0, bobble = cfg.bobble || 0, shiver = cfg.shiver || 0, lean = cfg.lean || 0;
     const ph = (Math.sin((seed + 1) * 12.9898) * 43758.5453) % 1; // deterministic 0..1 phase
     const ph2 = (Math.sin((seed + 7) * 78.233) * 12543.6789) % 1;  // a 2nd independent 0..1 value
     // Eye-dart travel: 0..1, normalised. Defaults to a per-character value so the roster varies.
@@ -1378,7 +1392,7 @@
     const widthPct = (dur, period) => Math.max(1, Math.min(26, (dur / period) * 100));
     const kf = [];
     const rules = ["g.fa-eye,g.fa-iris{transform-box:fill-box;transform-origin:center}"];
-    if (blink > 0) {
+    if (blink > 0 && !squint) {
       const bw = widthPct(BLINK_DUR, blink);
       const bs = (100 - bw).toFixed(2);          // blink begins
       const bm = (100 - bw * 0.5).toFixed(2);     // eye fully shut
@@ -1388,12 +1402,33 @@
       rules.push(`g.fa-eye{animation:faBlink ${blink}s infinite;animation-delay:${d(blink)}s}`);
       rules.push(`g.fa-lid{animation:faLid ${blink}s infinite;animation-delay:${d(blink)}s}`);
     }
+    // Suspicious squint: both eyes hold half-shut for a beat (replaces blink - they share g.fa-eye).
+    if (squint > 0) {
+      kf.push(`@keyframes faSquint{0%,24%,100%{transform:scaleY(1)}44%,80%{transform:scaleY(.56)}}`);
+      rules.push(`g.fa-eye{transform-box:fill-box;transform-origin:center;animation:faSquint ${squint}s ease-in-out infinite;animation-delay:${d(squint)}s}`);
+    }
+    // Eye-move channel: dart, eye-roll, or a slow side-glance - all translate the shared .fa-iris.
     if (dart > 0) {
       // Travel scaled by dartAmt (eyeDart). Base magnitudes are generous so eyeDart=1 reads as a big
       // look-around and eyeDart≈0 barely moves.
       const a = (n) => (n * dartAmt).toFixed(2);
       kf.push(`@keyframes faDart{0%,16%{translate:0 0}20%,38%{translate:${a(3.8)}px ${a(-1.7)}px}42%,60%{translate:${a(-4.2)}px ${a(1.4)}px}64%,82%{translate:${a(1.7)}px ${a(2.4)}px}86%,100%{translate:0 0}}`);
       rules.push(`g.fa-iris{animation:faDart ${dart}s infinite;animation-delay:${d(dart)}s}`);
+    } else if (roll > 0) {
+      // A quick eye-roll (iris travels a full loop) then rests for most of the cycle.
+      kf.push(`@keyframes faRoll{0%,66%,100%{translate:0 0}72%{translate:0 -2.8px}79%{translate:2.6px -.6px}86%{translate:.4px 2.6px}93%{translate:-2.6px -.4px}}`);
+      rules.push(`g.fa-iris{animation:faRoll ${roll}s ease-in-out infinite;animation-delay:${d(roll)}s}`);
+    } else if (side > 0) {
+      // A slow glance to one side, held, then back to centre.
+      kf.push(`@keyframes faSide{0%,12%{translate:0 0}26%,58%{translate:3.4px .2px}72%,100%{translate:0 0}}`);
+      rules.push(`g.fa-iris{animation:faSide ${side}s ease-in-out infinite;animation-delay:${d(side)}s}`);
+    }
+    // Cross-eyed: the two irises briefly converge on the nose (per-eye, opposite directions).
+    if (cross > 0) {
+      kf.push(`@keyframes faCrossL{0%,52%,100%{translate:0 0}66%,82%{translate:2.8px .6px}}`);
+      kf.push(`@keyframes faCrossR{0%,52%,100%{translate:0 0}66%,82%{translate:-2.8px .6px}}`);
+      rules.push(`g.fa-eye-l g.fa-iris{animation:faCrossL ${cross}s ease-in-out infinite;animation-delay:${d(cross)}s}`);
+      rules.push(`g.fa-eye-r g.fa-iris{animation:faCrossR ${cross}s ease-in-out infinite;animation-delay:${d(cross)}s}`);
     }
     if (wink > 0) {
       // A wink is the SAME skin-lid sweep as the blink, but on the right eye only (.fa-winklid), so it
@@ -1403,6 +1438,7 @@
       kf.push(`@keyframes faWinkLid{0%,${a}%,${b}%,100%{transform:translateY(-30px)}50%{transform:translateY(0)}}`);
       rules.push(`g.fa-winklid{animation:faWinkLid ${wink}s infinite;animation-delay:${d(wink)}s}`);
     }
+    // Head-move channel: exactly one of sway/breathe/nod/bobble/shiver/lean rides the .fa-head group.
     if (sway > 0) {
       kf.push("@keyframes faSway{0%,100%{transform:rotate(-1.1deg)}50%{transform:rotate(1.1deg)}}");
       rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 205px;animation:faSway ${sway}s ease-in-out infinite;animation-delay:${d(sway)}s}`);
@@ -1410,6 +1446,22 @@
       // A gentle breathing bob (only when not swaying, since both ride the .fa-head group).
       kf.push("@keyframes faBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(1.1px) scale(1.006)}}");
       rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 210px;animation:faBreathe ${breathe}s ease-in-out infinite;animation-delay:${d(breathe)}s}`);
+    } else if (nod > 0) {
+      // An agreeable double-nod: chin dips down then up, twice, then rests.
+      kf.push("@keyframes faNod{0%,56%,100%{transform:translateY(0)}66%{transform:translateY(1.8px)}76%{transform:translateY(.2px)}85%{transform:translateY(1.3px)}94%{transform:translateY(0)}}");
+      rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 150px;animation:faNod ${nod}s ease-in-out infinite;animation-delay:${d(nod)}s}`);
+    } else if (bobble > 0) {
+      // A continuous bobblehead rock, pivoting low at the neck.
+      kf.push("@keyframes faBobble{0%,100%{transform:rotate(-2.3deg)}50%{transform:rotate(2.3deg)}}");
+      rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 150px;animation:faBobble ${bobble}s ease-in-out infinite;animation-delay:${d(bobble)}s}`);
+    } else if (shiver > 0) {
+      // A fast, small jitter - the whole head trembles.
+      kf.push("@keyframes faShiver{0%,100%{transform:translate(0,0)}20%{transform:translate(-.6px,.3px)}40%{transform:translate(.6px,-.3px)}60%{transform:translate(-.5px,-.4px)}80%{transform:translate(.5px,.4px)}}");
+      rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 190px;animation:faShiver ${shiver}s linear infinite;animation-delay:${d(shiver)}s}`);
+    } else if (lean > 0) {
+      // A slow lean to one side, held, then back upright.
+      kf.push("@keyframes faLean{0%,12%{transform:rotate(0)}30%,62%{transform:rotate(3deg)}82%,100%{transform:rotate(0)}}");
+      rules.push(`g.fa-head{transform-box:view-box;transform-origin:128px 220px;animation:faLean ${lean}s ease-in-out infinite;animation-delay:${d(lean)}s}`);
     }
     if (brow > 0) {
       // An occasional eyebrow raise - a quick lift then settle, most of the cycle at rest.

@@ -1597,6 +1597,23 @@ button:disabled {
   animation: smoke-waft 6s ease-in-out infinite alternate;
 }
 
+/* Redaction bars: a solid black censor band over the eyes or the mouth. The base ::after overlay uses
+   mix-blend-mode:multiply, so a pure-black band renders fully black while the transparent rest of the
+   gradient leaves the portrait untouched. */
+.witness-eyebar .portrait-wrap {
+  --portrait-overlay: linear-gradient(180deg, transparent 0 37%, #000 37% 50%, transparent 50%);
+}
+
+.witness-mouthbar .portrait-wrap {
+  --portrait-overlay: linear-gradient(180deg, transparent 0 58%, #000 58% 70%, transparent 70%);
+}
+
+/* A faint glossy highlight strip on the censor bar so it reads as a deliberate sticker, not a gap. */
+.witness-eyebar .portrait-wrap::after,
+.witness-mouthbar .portrait-wrap::after {
+  mix-blend-mode: multiply;
+}
+
 @keyframes security-scan {
   from {
     background-position: 0 -10px, 0 0;
@@ -1920,6 +1937,39 @@ button:disabled {
 
 .character-card.gayfrog .portrait-wrap {
   border-bottom-color: var(--glow);
+}
+
+/* A slow pulsing rainbow club-light washing over each gay-frogged portrait. Each tile carries its own
+   negative --pulse-delay (set inline per card) so the board shimmers out of sync instead of strobing
+   all together. */
+.character-card.gayfrog .portrait-wrap::after {
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 0, 102, .55),
+    rgba(255, 140, 0, .42),
+    rgba(255, 230, 0, .40),
+    rgba(0, 210, 120, .38),
+    rgba(0, 180, 255, .44),
+    rgba(110, 80, 255, .48),
+    rgba(255, 0, 204, .55),
+    rgba(255, 0, 102, .55)
+  );
+  background-size: 180% 180%;
+  background-position: center;
+  mix-blend-mode: overlay;
+  opacity: .5;
+  transform-origin: 50% 42%;
+  animation: gay-pulse 3.8s ease-in-out infinite;
+  animation-delay: var(--pulse-delay, 0s);
+}
+
+@keyframes gay-pulse {
+  0%, 100% { opacity: .24; filter: hue-rotate(0deg); transform: scale(1) rotate(0deg); }
+  50%      { opacity: .62; filter: hue-rotate(55deg); transform: scale(1.12) rotate(8deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .character-card.gayfrog .portrait-wrap::after { animation: none; opacity: .34; }
 }
 
 .gayfrog-corner {

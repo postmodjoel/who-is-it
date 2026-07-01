@@ -1677,7 +1677,6 @@ function getMysteryCardData(character) {
           <span class="sw-flag sw-red">🚩 ${escapeHtml(a.red)}</span>
         </div>
         <div class="sw-ick">😬 <b>The ick:</b> ${escapeHtml(a.ick)}</div>
-        <div class="sw-buttons"><span class="sw-btn sw-nope">✗</span><span class="sw-btn sw-star">★</span><span class="sw-btn sw-like">♥</span></div>
       </div>`
     };
   }
@@ -1687,6 +1686,12 @@ function getMysteryCardData(character) {
     // Short badge label so it never collides with the centred crown (PURGATORY -> LIMBO).
     const label = { HEAVEN: "HEAVEN", HELL: "HELL", PURGATORY: "LIMBO" }[a.verdict];
     const crown = { HEAVEN: '<span class="jd-halo"></span>', HELL: '<span class="jd-horns"></span>', PURGATORY: '<span class="jd-limbo">?</span>' }[a.verdict];
+    const meter2Label = { HEAVEN: "BLISS", HELL: "TORMENT", PURGATORY: "BOREDOM" }[a.verdict];
+    const meter2Cls = { HEAVEN: "rct-good", HELL: "rct-bad", PURGATORY: "rct-mid" }[a.verdict];
+    const where = a.verdict === "PURGATORY"
+      ? `${escapeHtml(a.location)} · <b>#${a.queuePos.toLocaleString()} in queue</b>`
+      : `${escapeHtml(a.location)} · <b>${a.verdict === "HELL" ? "Circle" : "Tier"} ${a.layer}</b>`;
+    const bar = (lbl, n, cls) => `<span class="rct-bar"><b>${lbl}</b><i><s class="${cls}" style="--n:${n}%"></s></i></span>`;
     return {
       effectName: mystery.name,
       cardClass: `judgement jd-${a.verdict.toLowerCase()}`,
@@ -1694,10 +1699,10 @@ function getMysteryCardData(character) {
       cornerHtml: `<span class="jd-verdict">${glyph} ${label}</span>`
         + `<span class="jd-crown" aria-hidden="true">${crown}</span>`,
       html: `<div class="jd-sheet">
-        <div class="jd-cause">⚰️ <b>Cause:</b> ${escapeHtml(a.cause)}</div>
-        <div class="jd-sins"><b>😈 Sins:</b> ${a.sins.map(escapeHtml).join(", ")}</div>
-        <div class="jd-deed"><b>😇 Good deed:</b> ${escapeHtml(a.goodDeed)}</div>
-        <div class="jd-karma"><b>Karma:</b> <span>${a.karma > 0 ? "+" : ""}${a.karma}</span></div>
+        <div class="jd-loc">📍 ${where}</div>
+        <div class="jd-thought">💭 <i>"${escapeHtml(a.thought)}"</i></div>
+        ${bar("HAPPINESS", a.happiness, "rct-happy")}
+        ${bar(meter2Label, a.meter2, meter2Cls)}
       </div>`
     };
   }
@@ -1708,10 +1713,20 @@ function getMysteryCardData(character) {
       return `<span class="sim-bar"><b>${label}</b><i><s class="${cls}" style="--n:${n}%"></s></i></span>`;
     };
     const money = a.simoleons < 0 ? `-§${Math.abs(a.simoleons).toLocaleString()}` : `§${a.simoleons.toLocaleString()}`;
+    // A faceted SVG gem (shaded pyramids) that actually spins in 3D via rotateY under perspective.
+    const plumbob = `<span class="sim-plumbob" data-mood="${a.mood}" aria-label="mood: ${a.mood}">`
+      + `<svg viewBox="0 0 44 62">`
+      + `<polygon class="pb-ul" points="22,3 3,23 22,25"/>`
+      + `<polygon class="pb-ur" points="22,3 41,23 22,25"/>`
+      + `<polygon class="pb-ll" points="22,59 3,23 22,25"/>`
+      + `<polygon class="pb-lr" points="22,59 41,23 22,25"/>`
+      + `<polygon class="pb-shine" points="22,8 11,21 22,23"/>`
+      + `<polygon class="pb-outline" points="22,3 41,23 22,59 3,23"/>`
+      + `</svg></span>`;
     return {
       effectName: mystery.name,
       cardClass: `sims sim-${a.mood}`,
-      cornerHtml: `<span class="sim-plumbob" aria-label="mood" data-mood="${a.mood}"></span>`
+      cornerHtml: plumbob
         + `<span class="sim-cash" title="simoleons">${money}</span>`,
       html: `<div class="sim-sheet">
         <div class="sim-action">💬 <i>${escapeHtml(a.action)}…</i></div>
@@ -1926,30 +1941,33 @@ function applySwipe(effect) {
   return { id: effect.id, name: effect.name, assignments };
 }
 
-// JUDGEMENT DAY: everyone has died and been sorted into HEAVEN, HELL or PURGATORY - each with its own
-// themed backdrop (clouds / flames / grey limbo) and a halo, horns or a shrug. Plus a cause of death,
-// a tally of sins, one redeeming good deed, and a karma score.
+// JUDGEMENT DAY: the afterlife as a RollerCoaster-Tycoon theme park. Everyone's been sorted into
+// HEAVEN, HELL or PURGATORY - each with its own dramatic backdrop (god-rays / flames / grey limbo) and
+// a halo, horns or a shrug. Rendered like an RCT guest: a Location + Circle/Tier (or queue position), a
+// guest "thought", and Happiness + a themed mood meter.
 function applyJudgement(effect) {
   const D = window.GameData;
   const verdicts = ["HEAVEN", "HELL", "PURGATORY"];
-  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:jd:${salt}`) % arr.length];
+  const pick = (obj, verdict, salt) => {
+    const arr = (obj && obj[verdict]) || ["—"];
+    return arr[stableHash(`${state.gameSalt}:jd:${salt}`) % arr.length];
+  };
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:judge:${ch.id}`);
     // Skew slightly toward hell/heaven over purgatory (0,1 = heaven/hell twice as likely each).
     const verdict = verdicts[[0, 1, 0, 1, 2][h % 5]];
-    const sins = [];
-    const sn = 1 + ((h >>> 3) % 3);
-    for (let k = 0; k < sn; k++) {
-      const s = pick(D.judgementSins || ["Sloth"], `${ch.id}:s${k}`);
-      if (!sins.includes(s)) sins.push(s);
-    }
+    const layer = verdict === "PURGATORY" ? null : 1 + ((h >>> 3) % 9);      // Dante circles / heaven tiers
+    const queuePos = verdict === "PURGATORY" ? 1 + ((h >>> 3) % 900000) : null;
+    // Happiness: heaven high, hell rock-bottom, purgatory low. Second meter is verdict-specific.
+    const base = verdict === "HEAVEN" ? 72 : verdict === "HELL" ? 2 : 22;
     assignments[ch.id] = {
       verdict,
-      cause: pick(D.judgementCauses || ["Old age"], `${ch.id}:c`),
-      goodDeed: pick(D.judgementDeeds || ["Held a door once"], `${ch.id}:d`),
-      sins,
-      karma: (verdict === "HEAVEN" ? 20 : verdict === "HELL" ? -100 : -20) + ((h >>> 9) % 80)
+      location: pick(D.judgementLocations, verdict, `${ch.id}:loc`),
+      thought: pick(D.judgementThoughts, verdict, `${ch.id}:th`),
+      layer, queuePos,
+      happiness: Math.min(100, base + ((h >>> 5) % 26)),
+      meter2: verdict === "HELL" ? 70 + ((h >>> 7) % 30) : verdict === "PURGATORY" ? 58 + ((h >>> 7) % 42) : 4 + ((h >>> 7) % 24)
     };
   });
   return { id: effect.id, name: effect.name, assignments };

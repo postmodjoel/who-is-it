@@ -2209,7 +2209,7 @@ body[data-character-renderer="ps1"] .card-plate {
   transform-origin: 50% 62%;
   perspective: 420px;
   perspective-origin: 50% 44%;
-  transition: transform 150ms steps(3, end);
+  transition: transform 180ms steps(6, end);
 }
 
 body[data-character-renderer="ps1"] .character-card:hover .ps1-head-rig {
@@ -2235,7 +2235,9 @@ body[data-character-renderer="ps1"] .character-card:hover .ps1-head-rig {
   transform: translateX(-50%) rotateY(0deg);
   transform-origin: 50% 52%;
   transform-style: preserve-3d;
-  animation: ps1-head-turn 5.8s steps(7, end) infinite;
+  /* steps() keeps the choppy PS1 low-framerate feel, but 7 poses over ~6s read as lag-spikes; 16 gives
+     ~3 pose-changes/sec - clearly a deliberate low frame rate rather than a stuttering machine. */
+  animation: ps1-head-turn 5.4s steps(16, end) infinite;
   animation-delay: var(--ps1-bob-delay, 0ms);
   will-change: transform;
 }
@@ -2342,16 +2344,21 @@ body[data-character-renderer="ps1"] .character-card:hover .ps1-head-rig {
 }
 
 .ps1-map-top {
-  left: 10%;
-  top: 6%;
-  width: 80%;
-  height: 9%;
+  left: 9%;
+  top: 2%;
+  width: 82%;
+  height: 16%;
   z-index: 8;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 34%),
-    linear-gradient(180deg, var(--ps1-hair-light, #5a3529), var(--ps1-hair, #2b1c18));
-  clip-path: polygon(10% 0, 90% 0, 98% 100%, 2% 100%);
-  transform: rotateX(18deg) translateZ(22px);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 42%),
+    linear-gradient(180deg, var(--ps1-hair-light, #5a3529), var(--ps1-hair, #2b1c18) 78%, transparent);
+  /* Softer edge than the other planes - the hard 0.6 black border made this read as a separate tile
+     bolted on top of the face. A domed, multi-point clip + a feathered bottom fade blends it into the
+     forehead instead of the old flat banded "shelf". */
+  border: 1px solid rgba(0, 0, 0, 0.26);
+  border-bottom: none;
+  clip-path: polygon(26% 12%, 42% 1%, 58% 1%, 74% 12%, 92% 46%, 97% 100%, 3% 100%, 8% 46%);
+  transform: rotateX(12deg) translateZ(21px);
   transform-origin: 50% 100%;
 }
 
@@ -2359,10 +2366,10 @@ body[data-character-renderer="ps1"] .character-card:hover .ps1-head-rig {
   position: absolute;
   inset: 0;
   content: "";
-  background:
-    repeating-linear-gradient(100deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 9px),
-    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 11px);
-  opacity: 0.55;
+  /* A single faint diagonal strand hint at wide spacing - the old dense horizontal banding looked like
+     venetian blinds / dropped frames. */
+  background: repeating-linear-gradient(102deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 16px);
+  opacity: 0.32;
 }
 
 .ps1-front-facet {

@@ -2251,6 +2251,29 @@ body[data-character-renderer="ps1"] .character-card:hover .ps1-head-rig {
   display: block;
 }
 
+/* A solid head-coloured blob sitting BEHIND every facet (lowest translateZ). The angled side planes
+   don't quite meet the front face, so without this the card background shows through as dark wedges;
+   the core makes any gap read as skin/hair instead. Kept inside the facet silhouette so it never haloes
+   out past the head edges. */
+.ps1-head-core {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 3%;
+  bottom: 6%;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    var(--ps1-hair, #2b1c18) 0 13%,
+    var(--ps1-skin-dark, #a86f50) 22%,
+    var(--ps1-skin, #d59a70) 52%,
+    var(--ps1-skin-dark, #a86f50)
+  );
+  border-radius: 44% 44% 38% 38% / 48% 48% 42% 42%;
+  transform: translateZ(6px);
+  backface-visibility: hidden;
+}
+
 .ps1-map-plane {
   overflow: hidden;
   background-repeat: no-repeat;

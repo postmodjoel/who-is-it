@@ -2741,6 +2741,7 @@ if (els.sortSelect) {
         <div class="ps1-head-rig">
           <span class="ps1-shadow"></span>
           <div class="ps1-head-blob">
+            <span class="ps1-head-core"></span>
             <span class="ps1-map-plane ps1-map-left"></span>
             <span class="ps1-map-plane ps1-map-right"></span>
             <span class="ps1-ear ps1-ear-left"></span>

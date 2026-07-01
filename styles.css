@@ -3627,42 +3627,61 @@ body.mode-pixall .secret-card img {
   backdrop-filter: none !important;
 }
 .character-card.swipe {
-  background: linear-gradient(180deg, #2a141c, #170d13);
+  background: linear-gradient(180deg, #241019, #150b11);
   border: 1px solid #ff5a72;
-  box-shadow: 0 0 0 1px rgba(255, 90, 114, 0.38), 0 0 14px -3px #ff5a72;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 90, 114, 0.35), 0 6px 18px -6px rgba(255, 60, 100, 0.6);
   color: #ffe6ec;
 }
-.character-card.swipe .portrait-wrap { border-bottom: 1px solid #ff5a72; }
-.character-card.swipe .card-plate { padding: 6px 8px 8px; gap: 3px; background: none; }
-.character-card.swipe h3 { display: none; }   /* name + age live in the profile sheet */
+/* Photo-forward: the portrait IS the profile pic - taller, edge-to-edge, no divider. */
+.character-card.swipe .portrait-wrap { border-bottom: none; border-radius: 0; }
+.character-card.swipe .portrait-wrap img { aspect-ratio: 5 / 6; }
+.character-card.swipe .card-plate { padding: 6px 9px 8px; gap: 3px; background: none; align-items: stretch; text-align: left; }
+.character-card.swipe h3 { display: none; }   /* name + age live overlaid on the photo */
 .secret-card.swipe .secret-name { display: none; }
 .sw-match {
-  position: absolute; top: 5px; right: 5px; z-index: 3;
-  padding: 2px 7px; border-radius: 20px; font-size: 0.6rem; font-weight: 900; color: #fff;
-  background: linear-gradient(180deg, #ff5a72, #e11d48); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-}
-.sw-dist {
-  position: absolute; bottom: 5px; left: 5px; z-index: 3;
-  padding: 1px 7px; border-radius: 20px; font-size: 0.5rem; font-weight: 700; color: #fff;
-  background: rgba(0, 0, 0, 0.55);
+  position: absolute; top: 7px; right: 7px; z-index: 4;
+  padding: 2px 8px; border-radius: 20px; font-size: 0.56rem; font-weight: 900; color: #fff;
+  background: linear-gradient(180deg, #ff7a4d, #ff2d6f); box-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
 }
 .sw-unread {
-  position: absolute; top: 5px; left: 5px; z-index: 3;
-  min-width: 16px; height: 16px; padding: 0 4px; display: flex; align-items: center; justify-content: center;
-  border-radius: 10px; font-size: 0.5rem; font-weight: 900; color: #fff; background: #3aa0ff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  position: absolute; top: 7px; left: 7px; z-index: 4;
+  padding: 2px 7px; border-radius: 20px; font-size: 0.5rem; font-weight: 800; color: #fff;
+  background: #3aa0ff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
+/* Name / age / distance sit on a dark scrim over the bottom of the photo. */
+.sw-photo-label {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  padding: 20px 9px 6px;
+  background: linear-gradient(180deg, transparent, rgba(6, 2, 6, 0.9));
+  pointer-events: none;
+}
+.sw-name { font-size: 0.95rem; font-weight: 800; color: #fff; line-height: 1; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); }
+.sw-age { font-weight: 500; opacity: 0.9; }
+.sw-tick { color: #4bc0ff; font-size: 0.8rem; }
+.sw-dist { margin-top: 3px; font-size: 0.5rem; font-weight: 600; color: #ffe1e8; display: flex; align-items: center; gap: 4px; }
+.sw-dist i { font-style: normal; opacity: 0.7; }
+.sw-online { width: 7px; height: 7px; border-radius: 50%; background: #35e06a; box-shadow: 0 0 5px #35e06a; }
 .sw-sheet { display: flex; flex-direction: column; gap: 3px; }
-.sw-name { font-size: 0.82rem; font-weight: 800; color: #fff; line-height: 1.1; }
-.sw-tick { color: #3aa0ff; }
-.sw-bio { font-size: 0.56rem; font-style: italic; color: #ffd6de; line-height: 1.25; }
-.sw-look { font-size: 0.54rem; color: #ffb3c2; }
-.sw-flags { display: flex; flex-wrap: wrap; gap: 3px; }
-.sw-flag { padding: 1px 5px; border-radius: 4px; font-size: 0.5rem; font-weight: 700; line-height: 1.3; }
-.sw-green { background: rgba(60, 200, 120, 0.22); color: #8ff0b4; }
-.sw-red { background: rgba(255, 80, 90, 0.22); color: #ff9ea8; }
-.sw-ick { font-size: 0.52rem; color: #e7b8c2; }
-.sw-ick i { color: #ffcdd6; }
+.sw-bio { font-size: 0.55rem; font-style: italic; color: #ffd0da; line-height: 1.25; }
+.sw-look { font-size: 0.5rem; font-weight: 600; color: #ff9ec2; }
+.sw-flagrow { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.sw-flag { padding: 2px 5px; border-radius: 5px; font-size: 0.48rem; font-weight: 700; line-height: 1.25; }
+.sw-green { background: rgba(53, 224, 106, 0.15); color: #83f0aa; }
+.sw-red { background: rgba(255, 80, 90, 0.15); color: #ff9ea8; }
+.sw-ick { font-size: 0.48rem; color: #e7b8c2; line-height: 1.25; }
+.sw-ick b { color: #ffb3c2; font-weight: 800; }
+/* The signature Tinder swipe buttons. */
+.sw-buttons { display: flex; justify-content: center; gap: 12px; margin-top: 4px; }
+.sw-btn {
+  width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 0.82rem; font-weight: 900; background: #180d13; color: currentColor;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 0 0 1.5px currentColor;
+}
+.sw-nope { color: #ff466a; }
+.sw-star { color: #4bc0ff; width: 22px; height: 22px; font-size: 0.7rem; }
+.sw-like { color: #35e06a; }
 /* NOPE / LIKED stamp slams in when you cross a card off (or bring it back). */
 .character-card.swipe.swipe-nope .portrait-wrap::before,
 .character-card.swipe.swipe-like .portrait-wrap::before {

@@ -1659,21 +1659,25 @@ function getMysteryCardData(character) {
   if (mystery.id === "swipe") {
     const a = assignment;
     const tick = a.verified ? ' <span class="sw-tick" title="verified">✔</span>' : "";
-    const unread = a.unread ? `<span class="sw-unread" title="unread messages">${a.unread}</span>` : "";
+    const unread = a.unread ? `<span class="sw-unread" title="unread messages">💬 ${a.unread}</span>` : "";
     return {
       effectName: mystery.name,
       cardClass: "swipe",
-      cornerHtml: `<span class="sw-match" title="match">${a.match}%</span>`
-        + `<span class="sw-dist">📍 ${a.distance}km away</span>${unread}`,
+      // Name / age / distance overlay directly on the "profile photo", Tinder-style.
+      cornerHtml: `<span class="sw-match" title="match">🔥 ${a.match}%</span>${unread}`
+        + `<div class="sw-photo-label">`
+        + `<div class="sw-name">${escapeHtml(displayName(character))} <span class="sw-age">${a.age}</span>${tick}</div>`
+        + `<div class="sw-dist"><span class="sw-online"></span> ${a.distance} km away · <i>active now</i></div>`
+        + `</div>`,
       html: `<div class="sw-sheet">
-        <div class="sw-name">${escapeHtml(displayName(character))}, ${a.age}${tick}</div>
         <div class="sw-bio">"${escapeHtml(a.bio)}"</div>
         <div class="sw-look">🔎 ${escapeHtml(a.lookingFor)}</div>
-        <div class="sw-flags">
-          <span class="sw-flag sw-green">✅ ${escapeHtml(a.green)}</span>
+        <div class="sw-flagrow">
+          <span class="sw-flag sw-green">💚 ${escapeHtml(a.green)}</span>
           <span class="sw-flag sw-red">🚩 ${escapeHtml(a.red)}</span>
         </div>
-        <div class="sw-ick">😬 The ick: <i>${escapeHtml(a.ick)}</i></div>
+        <div class="sw-ick">😬 <b>The ick:</b> ${escapeHtml(a.ick)}</div>
+        <div class="sw-buttons"><span class="sw-btn sw-nope">✗</span><span class="sw-btn sw-star">★</span><span class="sw-btn sw-like">♥</span></div>
       </div>`
     };
   }

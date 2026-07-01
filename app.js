@@ -871,14 +871,18 @@ function toggleEliminated(id) {
   if (player.eliminated.has(id)) {
     player.eliminated.delete(id);
     state.justEliminated = null;
+    // Mark the just-restored card so the reverse one-shot animation can play (Yu-Gi-Oh un-flip).
+    state.justRestored = id;
   } else {
     player.eliminated.add(id);
     // Mark the just-eliminated card so a one-shot animation can play on it (fireworks head-pop, or
     // the Yu-Gi-Oh flip-to-back) - the board re-renders, so the effect runs from a fresh keyframe.
     state.justEliminated = id;
+    state.justRestored = null;
   }
   renderBoard();
   state.justEliminated = null;
+  state.justRestored = null;
 }
 
 // Per-mode question decks - when a special mode is active, every drawn question matches its flavour.
@@ -1037,8 +1041,10 @@ function createCharacterCard(character, player) {
   // One-shot head-pop + fireworks when just eliminated in Fireworks Mode.
   const popping = justKilled && modeId === "fireworks";
   if (popping) card.classList.add("is-fireworks-pop");
-  // One-shot flip-to-back animation when just eliminated in Yu-Gi-Oh mode.
+  // One-shot flip-to-back animation when just eliminated in Yu-Gi-Oh mode, and the reverse un-flip
+  // when a downed card is clicked back up.
   if (justKilled && modeId === "yugioh") card.classList.add("ygo-flip");
+  if (state.justRestored === character.id && modeId === "yugioh") card.classList.add("ygo-unflip");
   card.dataset.id = character.id;
   if (mystery.effectName) card.dataset.mysteryEffect = mystery.effectName;
   if (mystery.style) card.setAttribute("style", mystery.style);

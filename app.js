@@ -516,6 +516,12 @@ const mysteryEffects = [
     name: "Sims Mode",
     apply: applySims,
     exampleQuestion: "Is your person's plumbob red?"
+  },
+  {
+    id: "heads-only",
+    name: "Heads Only",
+    apply: applyHeadsOnly,
+    exampleQuestion: "Is your person's head in the top half right now?"
   }
 ];
 
@@ -797,11 +803,16 @@ function wireFloatingSecret() {
 
 function renderBoard() {
   const player = currentPlayer();
+  stopHeadsAnim();                 // kill any running floating-heads loop before we rebuild
   els.characterBoard.innerHTML = "";
   els.characterBoard.className = "character-board";
   els.characterBoard.setAttribute("aria-label", "Character board");
   if (state.global.mystery?.id === "family-tree-disaster") {
     renderFamilyBoard(player);
+    return;
+  }
+  if (state.global.mystery?.id === "heads-only") {
+    renderHeadsOnlyBoard(player);
     return;
   }
   if (state.global.mystery?.id === "knockoff-manor") {
@@ -826,6 +837,70 @@ function renderBoard() {
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
   if (modeId === "pixall") pixelateBoard();
+}
+
+// ===================== Heads Only mode =====================
+// Formations: each maps (index i, count n, time-seconds t, width w, height h) -> a target {x,y} in px.
+const HEADS_FORMATIONS = [
+  // Ring, slowly rotating.
+  (i, n, t, w, h) => { const R = Math.min(w, h) * 0.38; const a = (i / n) * Math.PI * 2 + t * 0.22; return { x: w / 2 + Math.cos(a) * R, y: h / 2 + Math.sin(a) * R }; },
+  // Figure-8 / infinity (lemniscate), drifting along the curve.
+  (i, n, t, w, h) => { const S = Math.min(w, h) * 0.44; const th = (i / n) * Math.PI * 2 + t * 0.35; const d = 1 + Math.sin(th) * Math.sin(th); return { x: w / 2 + (S * 1.35 * Math.cos(th)) / d, y: h / 2 + (S * Math.sin(th) * Math.cos(th)) / d }; },
+  // Tidy grid.
+  (i, n, t, w, h) => { const cols = Math.ceil(Math.sqrt(n * (w / h))); const c = i % cols, r = Math.floor(i / cols); const rows = Math.ceil(n / cols); return { x: w * (0.1 + ((c + 0.5) / cols) * 0.8), y: h * (0.12 + ((r + 0.5) / Math.max(rows, 1)) * 0.76) }; },
+  // Phyllotaxis spiral.
+  (i, n, t, w, h) => { const R = Math.min(w, h) * 0.46; const a = i * 2.399963 + t * 0.28; const rad = R * Math.sqrt((i + 1) / n); return { x: w / 2 + Math.cos(a) * rad, y: h / 2 + Math.sin(a) * rad }; },
+  // Heart.
+  (i, n, t, w, h) => { const th = (i / n) * Math.PI * 2; const s = Math.min(w, h) * 0.03; const hx = 16 * Math.pow(Math.sin(th), 3); const hy = 13 * Math.cos(th) - 5 * Math.cos(2 * th) - 2 * Math.cos(3 * th) - Math.cos(4 * th); return { x: w / 2 + hx * s, y: h / 2 - hy * s }; },
+  // Rolling sine wave.
+  (i, n, t, w, h) => { const px = (i + 0.5) / n; return { x: w * (0.08 + px * 0.84), y: h / 2 + Math.sin(px * Math.PI * 4 + t * 1.1) * h * 0.26 }; }
+];
+let headsAnimRaf = null;
+let headsPos = new Map();      // char id -> {x,y}, kept across re-renders so clicks don't jolt
+let headsStartTs = null;       // persisted so the formation cycle keeps its phase across re-renders
+function stopHeadsAnim() { if (headsAnimRaf) { cancelAnimationFrame(headsAnimRaf); headsAnimRaf = null; } }
+function resetHeadsAnim() { stopHeadsAnim(); headsPos = new Map(); headsStartTs = null; }
+
+function renderHeadsOnlyBoard(player) {
+  els.characterBoard.classList.add("heads-board");
+  els.characterBoard.setAttribute("aria-label", "Floating heads");
+  const layer = document.createElement("div");
+  layer.className = "heads-layer";
+  els.characterBoard.appendChild(layer);
+  const list = sortedBoard();
+  const n = list.length;
+  const heads = list.map((ch) => {
+    const m = getMysteryCardData(ch);
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = `float-head ${player.eliminated.has(ch.id) ? "is-down" : ""}`.trim();
+    el.dataset.id = ch.id;
+    el.style.setProperty("--bob", `${(stableHash(ch.id) % 1000) / 1000 * 3}s`);
+    el.innerHTML = `<img src="${m.image || ch.image}" alt=""><span class="float-name">${escapeHtml(displayName(ch))}</span>`;
+    el.addEventListener("click", () => toggleEliminated(ch.id));
+    layer.appendChild(el);
+    const seed = headsPos.get(ch.id);
+    return { el, id: ch.id, x: seed ? seed.x : null, y: seed ? seed.y : null };
+  });
+  const FORM_MS = 5600;
+  const step = (ts) => {
+    if (headsStartTs == null) headsStartTs = ts;
+    const elapsed = ts - headsStartTs;
+    const form = HEADS_FORMATIONS[Math.floor(elapsed / FORM_MS) % HEADS_FORMATIONS.length];
+    const t = elapsed / 1000;
+    const rect = layer.getBoundingClientRect();
+    const w = rect.width || 640, h = rect.height || 520;
+    heads.forEach((hd, i) => {
+      const tgt = form(i, n, t, w, h);
+      if (hd.x == null) { hd.x = tgt.x; hd.y = tgt.y; }
+      hd.x += (tgt.x - hd.x) * 0.06;   // ease toward the formation so morphs glide
+      hd.y += (tgt.y - hd.y) * 0.06;
+      hd.el.style.transform = `translate(${hd.x.toFixed(1)}px, ${hd.y.toFixed(1)}px) translate(-50%, -50%)`;
+      headsPos.set(hd.id, { x: hd.x, y: hd.y });
+    });
+    headsAnimRaf = requestAnimationFrame(step);
+  };
+  headsAnimRaf = requestAnimationFrame(step);
 }
 
 function renderHints() {
@@ -1059,7 +1134,8 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board");
+  resetHeadsAnim();
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -1726,6 +1802,9 @@ function getMysteryCardData(character) {
       </div>`
     };
   }
+  if (mystery.id === "heads-only") {
+    return { effectName: mystery.name, cardClass: "heads-secret", image: assignment.image || undefined, html: "" };
+  }
   if (mystery.id === "sims") {
     const a = assignment;
     const bar = (label, n) => {
@@ -2017,6 +2096,20 @@ function applySims(effect) {
       career: pick(D.simsCareers || ["Unemployed"], `${ch.id}:job`),
       simoleons: (h % 3 === 0 ? -(h % 900) : (h >>> 4) % 99000)
     };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// HEADS ONLY: no cards at all - just every character's floating head (+ name) drifting around the
+// board, morphing between formations (circle, figure-8, grid, spiral, heart, wave). Heads render with
+// a transparent background so only the head shows.
+function applyHeadsOnly(effect) {
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const image = ch.traits && window.faceGenerator
+      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, headOnly: true })
+      : ch.image;
+    assignments[ch.id] = { image };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

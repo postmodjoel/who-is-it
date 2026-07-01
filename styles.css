@@ -2609,6 +2609,9 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
     repeating-conic-gradient(from 0deg at 50% 50%, #160f2c 0deg 9deg, #1f1638 9deg 18deg),
     #120c22 !important;
 }
+/* Cards were crowding each other - shrink them a touch and open up the gutters so each duel card can
+   breathe. */
+.character-board.ygo-board { --card-min: 96px; gap: 12px; }
 
 @media (max-width: 860px) {
   .game-layout { grid-template-columns: 1fr; }
@@ -3690,11 +3693,16 @@ body.mode-pixall .secret-card img {
 }
 
 /* ===================== Judgement Day (heaven / hell / purgatory) ===================== */
+/* Board reads top-to-bottom like the realms it holds: bright cloudy sky (heaven) -> grey limbo ->
+   fiery depths (hell), matching the verdict ordering of the cards. */
 .character-board.judgement-board {
-  border-color: #4a3a1a !important;
+  border-color: #3a2630 !important;
   background:
-    linear-gradient(180deg, rgba(255, 226, 150, 0.14), transparent 32%, rgba(150, 24, 10, 0.22) 100%),
-    linear-gradient(160deg, #14121a, #0a0810) !important;
+    radial-gradient(ellipse 24% 12% at 18% 6%, rgba(255, 255, 255, 0.55), transparent 65%),
+    radial-gradient(ellipse 22% 11% at 68% 11%, rgba(255, 255, 255, 0.45), transparent 65%),
+    radial-gradient(ellipse 20% 10% at 42% 15%, rgba(255, 255, 255, 0.4), transparent 65%),
+    radial-gradient(ellipse 46% 26% at 50% 101%, rgba(255, 90, 0, 0.55), transparent 72%),
+    linear-gradient(180deg, #6ea8e0 0%, #a7c8e6 13%, #8a8a94 42%, #55302e 64%, #300e08 86%, #1a0402 100%) !important;
   backdrop-filter: none !important;
 }
 /* Card body stays dark so the dossier text is legible; the REALM (flames / clouds / mist) plays over
@@ -3727,18 +3735,26 @@ body.mode-pixall .secret-card img {
   100% { transform: translateY(-3%) scaleY(1.12) scaleX(0.96); opacity: 1; }
 }
 .jd-hell .portrait-wrap img { filter: brightness(1.02) saturate(1.15) contrast(1.05); }
-/* HEAVEN: rotating golden god-rays + a radiant bloom + drifting light. */
+/* HEAVEN: the portrait renders on a transparent background, so a sky + drifting clouds sit BEHIND the
+   figure on the wrap; a gentle set of god-rays glows in front. */
+.jd-heaven .portrait-wrap {
+  background:
+    radial-gradient(ellipse 32% 24% at 18% 84%, rgba(255, 255, 255, 0.95), transparent 72%),
+    radial-gradient(ellipse 40% 30% at 54% 96%, #ffffff, transparent 74%),
+    radial-gradient(ellipse 30% 22% at 84% 86%, rgba(255, 255, 255, 0.92), transparent 72%),
+    radial-gradient(ellipse 24% 18% at 34% 70%, rgba(255, 255, 255, 0.8), transparent 74%),
+    linear-gradient(180deg, #79b1ea 0%, #a6cdf0 52%, #d6e9fb 100%);
+  animation: jd-cloud-drift 9s ease-in-out infinite alternate;
+}
+@keyframes jd-cloud-drift { 0% { background-position: -6% 0, 0 0, 6% 0, -3% 0, 0 0; } 100% { background-position: 6% 0, 0 0, -6% 0, 3% 0, 0 0; } }
 .jd-heaven .portrait-wrap::after {
   background:
-    repeating-conic-gradient(from 0deg at 50% 34%, rgba(255, 248, 214, 0.5) 0deg 4deg, transparent 4deg 15deg),
-    radial-gradient(circle at 50% 34%, rgba(255, 255, 255, 0.92), rgba(255, 244, 190, 0.5) 26%, transparent 60%),
-    radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.5), transparent 42%),
-    linear-gradient(180deg, rgba(255, 250, 225, 0.32), rgba(180, 214, 255, 0.26));
-  mix-blend-mode: screen;
-  animation: jd-rays 14s linear infinite;
+    repeating-conic-gradient(from 0deg at 50% 28%, rgba(255, 248, 214, 0.32) 0deg 4deg, transparent 4deg 16deg),
+    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.55), transparent 48%);
+  mix-blend-mode: screen; opacity: 0.85;
+  animation: jd-rays 16s linear infinite;
 }
 @keyframes jd-rays { to { transform: rotate(360deg); } }
-.jd-heaven .portrait-wrap img { filter: brightness(1.08) saturate(1.05); }
 .jd-purgatory .portrait-wrap img { filter: grayscale(0.78) contrast(0.92) brightness(0.96); }
 .jd-purgatory .portrait-wrap::after {
   background:
@@ -3757,32 +3773,30 @@ body.mode-pixall .secret-card img {
 .jd-hell .jd-verdict { background: linear-gradient(180deg, #ff9a3a, #ff3410); color: #2a0d04; box-shadow: 0 0 10px rgba(255, 80, 20, 0.7); }
 .jd-purgatory .jd-verdict { background: linear-gradient(180deg, #e2e2ea, #a0a0aa); color: #26262c; }
 /* Crown over the head, always on top of the realm effects. */
-.jd-crown { position: absolute; top: 3%; left: 50%; transform: translateX(-50%); z-index: 8; pointer-events: none; }
-.jd-hell .jd-crown { top: 7%; }
+.jd-crown { position: absolute; top: 2%; left: 50%; transform: translateX(-50%); z-index: 8; pointer-events: none; }
+.jd-hell .jd-crown { top: 6%; }
 .jd-halo {
-  display: block; width: 54px; height: 17px;
-  border: 4px solid #ffe680; border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(255, 240, 170, 0.4), transparent 68%);
-  box-shadow: 0 0 14px 3px rgba(255, 224, 120, 0.95), 0 0 28px 7px rgba(255, 224, 120, 0.5);
-  animation: jd-halo-glow 2.2s ease-in-out infinite;
+  display: block; width: 50px; height: 18px; overflow: visible;
+  filter: drop-shadow(0 0 8px rgba(255, 224, 120, 0.95)) drop-shadow(0 0 16px rgba(255, 224, 120, 0.55));
+  animation: jd-halo-glow 2.4s ease-in-out infinite;
 }
-@keyframes jd-halo-glow {
-  0%, 100% { box-shadow: 0 0 12px 2px rgba(255, 224, 120, 0.9), 0 0 22px 5px rgba(255, 224, 120, 0.45); }
-  50% { box-shadow: 0 0 20px 5px rgba(255, 236, 150, 1), 0 0 38px 11px rgba(255, 224, 120, 0.65); }
+.jd-halo ellipse { fill: none; stroke: #ffe680; stroke-width: 4; }
+@keyframes jd-halo-glow { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+.jd-horns {
+  display: block; width: 46px; height: 26px; overflow: visible;
+  filter: drop-shadow(0 1px 4px rgba(255, 50, 20, 0.9));
 }
-.jd-horns { position: relative; display: block; width: 66px; height: 24px; }
-.jd-horns::before, .jd-horns::after {
-  content: ""; position: absolute; bottom: 0; width: 0; height: 0;
-  border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 24px solid #e2361f;
-  filter: drop-shadow(0 0 5px rgba(255, 60, 20, 0.95));
-}
-.jd-horns::before { left: 0; transform: rotate(-28deg); }
-.jd-horns::after { right: 0; transform: rotate(28deg); }
+.jd-horns .horn { fill: #d8281a; stroke: #6e0d06; stroke-width: 1.5; stroke-linejoin: round; }
 .jd-limbo {
   display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;
   border-radius: 50%; background: rgba(190, 190, 200, 0.92); color: #26262c; font-weight: 900; font-size: 0.9rem;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.45);
 }
+/* On the secret ("YOU ARE") card the portrait sits in the ~90px left column, so head-overlays must move
+   off-centre to sit over it rather than over the name. */
+.secret-card .jd-crown { left: 46px; top: 20px; }
+.secret-card.jd-hell .jd-crown { top: 34px; }
+.secret-card .sim-plumbob { left: 46px; top: 12px; }
 /* RollerCoaster-Tycoon guest readout: location + circle/tier, a guest thought, and mood bars. */
 .jd-sheet { display: flex; flex-direction: column; gap: 3px; font-size: 0.54rem; line-height: 1.3; }
 .jd-loc { font-weight: 600; }
@@ -3843,11 +3857,40 @@ body.mode-pixall .secret-card img {
 @keyframes sim-bob { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-3px); } }
 .sim-sheet { display: flex; flex-direction: column; gap: 3px; }
 .sim-action { font-size: 0.56rem; font-style: italic; color: #bfe6ff; line-height: 1.25; }
-.sim-bar { display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 5px; }
-.sim-bar b { font-size: 0.46rem; font-weight: 800; color: #9fd0e8; }
-.sim-bar i { display: block; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
-.sim-bar s { display: block; height: 100%; width: var(--n, 50%); }
+/* Fixed label column + a full-width, clearly-visible track so every bar is the SAME length and only the
+   coloured fill varies (a low need used to look like a stray floating pill). */
+.sim-bar { display: grid; grid-template-columns: 56px 1fr; align-items: center; gap: 6px; }
+.sim-bar b { font-size: 0.47rem; font-weight: 800; color: #9fd0e8; letter-spacing: 0.02em; }
+.sim-bar i { display: block; width: 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.2); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
+.sim-bar s { display: block; height: 100%; width: var(--n, 50%); border-radius: 4px 0 0 4px; }
 .sim-bar s.sim-ok { background: linear-gradient(90deg, #5fe06a, #37b23a); }
 .sim-bar s.sim-warn { background: linear-gradient(90deg, #ffe06a, #f0b23a); }
 .sim-bar s.sim-crit { background: linear-gradient(90deg, #ff7a6a, #e03a3a); }
 .sim-career { font-size: 0.54rem; color: #bfe6ff; }
+
+/* ===================== Orgy Mode: dripping ===================== */
+/* Pearly drips form along the bottom edge of each orgy card and fall off onto the cards below. The card
+   allows overflow so the drops can escape; columns are desynced so it doesn't pulse in unison. */
+.character-card.orgy { overflow: visible; }
+.character-card.orgy::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 54px; z-index: 8;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 4px 6px at 15% 0, rgba(250, 243, 246, 0.98) 60%, transparent 64%),
+    radial-gradient(ellipse 3px 5px at 38% 0, rgba(250, 243, 246, 0.98) 60%, transparent 64%),
+    radial-gradient(ellipse 4.5px 7px at 62% 0, rgba(250, 243, 246, 0.98) 60%, transparent 64%),
+    radial-gradient(ellipse 3.2px 5px at 85% 0, rgba(250, 243, 246, 0.98) 60%, transparent 64%);
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  animation: orgy-drip 2.8s ease-in infinite;
+}
+@keyframes orgy-drip {
+  0%   { background-position: 15% -8px, 38% -8px, 62% -8px, 85% -8px; opacity: 0; }
+  16%  { opacity: 1; }
+  100% { background-position: 15% 52px, 38% 42px, 62% 54px, 85% 38px; opacity: 0; }
+}
+.character-card.orgy:nth-child(4n)::before   { animation-delay: 0.7s; }
+.character-card.orgy:nth-child(4n+1)::before { animation-delay: 1.9s; }
+.character-card.orgy:nth-child(4n+2)::before { animation-delay: 1.2s; }
+.character-card.orgy:nth-child(4n+3)::before { animation-delay: 2.4s; }
+@media (prefers-reduced-motion: reduce) { .character-card.orgy::before { animation: none; opacity: 0; } }

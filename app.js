@@ -599,12 +599,27 @@ function render() {
 // ===================== Board sorting =====================
 // Deterministic hidden stats per character, so the board can be re-ordered by "happiness / horniness
 // / close-to-death / cum count" regardless of which mode is active (WOKE-friendly).
+function skinLuminance(ch) {
+  const tb = window.faceGenerator && window.faceGenerator.traitBook;
+  const hex = (tb && tb.skinToneHex && tb.skinToneHex[ch.traits?.skin]) || ch.traits?.skinHex || "#c88968";
+  const n = parseInt(hex.replace("#", ""), 16);
+  return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+}
 function characterStat(ch, key) {
   if (key === "name") return ch.name;
+  if (key === "skin") return skinLuminance(ch);
+  // "fuck" (fuckability) and the rest are deterministic per-character comedy stats.
   return stableHash(`${state.gameSalt}:sortstat:${key}:${ch.id}`) % 1000;
 }
 function sortedBoard() {
   const key = state.sortKey;
+  // Judgement Day lays the board out spatially: heaven at the top, purgatory in the middle, hell at
+  // the bottom (unless the player has picked an explicit sort).
+  if (!key && state.global.mystery?.id === "judgement") {
+    const rank = { HEAVEN: 0, PURGATORY: 1, HELL: 2 };
+    const vOf = (c) => rank[state.global.mystery.assignments?.[c.id]?.verdict] ?? 1;
+    return [...state.board].sort((a, b) => vOf(a) - vOf(b) || a.name.localeCompare(b.name));
+  }
   if (!key) return state.board;
   const arr = [...state.board];
   if (key === "name") return arr.sort((a, b) => a.name.localeCompare(b.name));
@@ -1685,7 +1700,11 @@ function getMysteryCardData(character) {
     const glyph = { HEAVEN: "😇", HELL: "😈", PURGATORY: "🤷" }[a.verdict];
     // Short badge label so it never collides with the centred crown (PURGATORY -> LIMBO).
     const label = { HEAVEN: "HEAVEN", HELL: "HELL", PURGATORY: "LIMBO" }[a.verdict];
-    const crown = { HEAVEN: '<span class="jd-halo"></span>', HELL: '<span class="jd-horns"></span>', PURGATORY: '<span class="jd-limbo">?</span>' }[a.verdict];
+    const crown = {
+      HEAVEN: '<svg class="jd-halo" viewBox="0 0 64 22"><ellipse cx="32" cy="11" rx="27" ry="7.5"/></svg>',
+      HELL: '<svg class="jd-horns" viewBox="0 0 62 34"><path class="horn" d="M21 34 C 8 25 5 9 14 2 C 13 13 17 25 25 31 Z"/><path class="horn" d="M41 34 C 54 25 57 9 48 2 C 49 13 45 25 37 31 Z"/></svg>',
+      PURGATORY: '<span class="jd-limbo">?</span>'
+    }[a.verdict];
     const meter2Label = { HEAVEN: "BLISS", HELL: "TORMENT", PURGATORY: "BOREDOM" }[a.verdict];
     const meter2Cls = { HEAVEN: "rct-good", HELL: "rct-bad", PURGATORY: "rct-mid" }[a.verdict];
     const where = a.verdict === "PURGATORY"
@@ -1696,6 +1715,7 @@ function getMysteryCardData(character) {
       effectName: mystery.name,
       cardClass: `judgement jd-${a.verdict.toLowerCase()}`,
       dataset: { verdict: a.verdict },
+      image: a.image || undefined,
       cornerHtml: `<span class="jd-verdict">${glyph} ${label}</span>`
         + `<span class="jd-crown" aria-hidden="true">${crown}</span>`,
       html: `<div class="jd-sheet">
@@ -1961,8 +1981,13 @@ function applyJudgement(effect) {
     const queuePos = verdict === "PURGATORY" ? 1 + ((h >>> 3) % 900000) : null;
     // Happiness: heaven high, hell rock-bottom, purgatory low. Second meter is verdict-specific.
     const base = verdict === "HEAVEN" ? 72 : verdict === "HELL" ? 2 : 22;
+    // Heaven renders on a TRANSPARENT background so the drifting clouds behind the card show through
+    // around the figure (fire for hell stays in front, over the portrait).
+    const image = (verdict === "HEAVEN" && ch.traits && window.faceGenerator)
+      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: "transparent" })
+      : null;
     assignments[ch.id] = {
-      verdict,
+      verdict, image,
       location: pick(D.judgementLocations, verdict, `${ch.id}:loc`),
       thought: pick(D.judgementThoughts, verdict, `${ch.id}:th`),
       layer, queuePos,
@@ -2546,8 +2571,12 @@ function applyHiddenAgendas(effect) {
 function applyMonocultural(effect) {
   const tb = window.faceGenerator && window.faceGenerator.traitBook;
   const names = (tb && tb.skinTones) || ["fair"];
-  const skin = pick(names);
-  const color = (tb && tb.skinToneHex && tb.skinToneHex[skin]) || "#c88968";
+  const hexOf = (name) => (tb && tb.skinToneHex && tb.skinToneHex[name]) || "#c88968";
+  const lum = (name) => { const n = parseInt(hexOf(name).replace("#", ""), 16); return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
+  // Monocultural goes to an extreme: everyone becomes either the WHITEST or the DARKEST tone.
+  const sorted = [...names].sort((a, b) => lum(a) - lum(b));
+  const skin = (stableHash(`${state.gameSalt}:mono`) % 2 === 0) ? sorted[0] : sorted[sorted.length - 1];
+  const color = hexOf(skin);
   const assignments = {};
   state.board.forEach((character) => {
     const image = character.traits && window.faceGenerator

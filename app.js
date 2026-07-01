@@ -700,7 +700,7 @@ function breedCharacters(aId, bId) {
     const baby = makeBaby(A, B);
     asg[baby.id] = { cum: `${1 + Math.floor(Math.random() * 8)}M`, eggs: 1 + Math.floor(Math.random() * 4), barren: false, hrs: 71, mins: 59, defect: null, hasCount: true, hasEggs: true };
     renderBoard();                                            // show the deducted balances immediately
-    playBreedAnimation(A.image, B.image, baby.image, () => {
+    playBirthAnimation(A.image, B.image, baby, true, () => {
       state.board.push(baby);
       state.justBorn = baby.id;
       renderBoard();
@@ -711,16 +711,18 @@ function breedCharacters(aId, bId) {
   }
 
   const baby = makeBaby(A, B);
-  state.board.push(baby);
-  // Regenerate the active mode's per-character data so the baby gets its own stats/card too.
-  if (state.global.mystery) {
-    const eff = mysteryEffects.find((e) => e.id === state.global.mystery.id);
-    if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (e) { /* mode has no per-baby data - fine */ } }
-  }
-  state.justBorn = baby.id;
-  if (typeof addLog === "function") addLog(`${A.name} + ${B.name} made a baby: ${baby.name}!`);
-  renderBoard();
-  state.justBorn = null;
+  playBirthAnimation(A.image, B.image, baby, false, () => {
+    state.board.push(baby);
+    // Regenerate the active mode's per-character data so the baby gets its own stats/card too.
+    if (state.global.mystery) {
+      const eff = mysteryEffects.find((e) => e.id === state.global.mystery.id);
+      if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (e) { /* mode has no per-baby data - fine */ } }
+    }
+    state.justBorn = baby.id;
+    if (typeof addLog === "function") addLog(`${A.name} + ${B.name} made a baby: ${baby.name}!`);
+    renderBoard();
+    state.justBorn = null;
+  });
 }
 // A brief centred toast for breeding feedback.
 function flashToast(msg) {
@@ -730,18 +732,29 @@ function flashToast(msg) {
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 1800);
 }
-// The two parents grind together (friction/pressure) then a baby explodes out; parents survive.
-function playBreedAnimation(imgA, imgB, babyImg, done) {
+// The birth fanfare: (fertility only) the parents grind together, then a fireworks burst + flash, an
+// "IT'S A BOY/GIRL/THEM!" reveal with the baby's name, and finally the baby forms into a card that
+// flies down to the bottom of the stack. `done()` fires at the end (adds the baby to the board).
+function playBirthAnimation(imgA, imgB, baby, grind, done) {
+  const gender = baby.pronouns === "he" ? "IT'S A BOY!" : baby.pronouns === "she" ? "IT'S A GIRL!" : "IT'S A THEM!";
+  const cols = ["#ff4d6d", "#ffd24d", "#5dff8f", "#4dd2ff", "#c46bff", "#ff8a4d", "#fff27a"];
+  let burst = "";
+  for (let i = 0; i < 18; i++) {
+    const ang = (i / 18) * Math.PI * 2 + (i % 2 ? 0.2 : 0);
+    const dist = 78 + (i % 4) * 24;
+    burst += `<i style="--tx:${Math.round(Math.cos(ang) * dist)}px;--ty:${Math.round(Math.sin(ang) * dist)}px;color:${cols[i % cols.length]}"></i>`;
+  }
   const ov = document.createElement("div");
-  ov.className = "breed-overlay";
+  ov.className = `breed-overlay ${grind ? "with-grind" : ""}`.trim();
   ov.innerHTML = `<div class="breed-stage">
-      <img class="breed-p breed-a" src="${imgA}" alt="">
-      <img class="breed-p breed-b" src="${imgB}" alt="">
+      ${grind ? `<img class="breed-p breed-a" src="${imgA}" alt=""><img class="breed-p breed-b" src="${imgB}" alt="">` : ""}
       <div class="breed-flash"></div>
-      <img class="breed-baby" src="${babyImg}" alt="">
+      <div class="breed-burst">${burst}</div>
+      <div class="birth-banner">${gender}</div>
+      <div class="birth-card"><img src="${baby.image}" alt=""><span class="birth-name">${escapeHtml(baby.name)}</span></div>
     </div>`;
   document.body.appendChild(ov);
-  setTimeout(() => { ov.remove(); done(); }, 2100);
+  setTimeout(() => { ov.remove(); done(); }, grind ? 3200 : 2500);
 }
 // Shared drag-and-drop wiring: any card / floating head can be dragged onto another to breed.
 function wireBreedDnD(el, id) {

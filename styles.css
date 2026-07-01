@@ -3417,3 +3417,37 @@ body.mode-pixall .secret-card img {
   }
 }
 @keyframes fsDrop { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+/* ===================== WOKE Mode (everything at once) ===================== */
+.character-board.woke-board {
+  border-color: #6a2f6a !important;
+  background:
+    conic-gradient(from 0deg at 50% 50%, rgba(255,80,120,.14), rgba(255,200,60,.14), rgba(90,220,120,.14), rgba(60,160,255,.14), rgba(180,90,255,.14), rgba(255,80,120,.14)),
+    linear-gradient(160deg, #1a1020, #0c0a12) !important;
+  backdrop-filter: none !important;
+}
+.character-card.woke {
+  background: linear-gradient(180deg, #1e1224, #100a14);
+  border: 1px solid var(--glow, #a05aff);
+  box-shadow: 0 0 0 1px var(--glow, #a05aff), 0 0 12px -2px var(--glow, #a05aff);
+  color: #f3e6f5;
+}
+.character-card.woke .portrait-wrap { border-bottom: 1px solid var(--glow, #a05aff); }
+.character-card.woke .card-plate { background: none; padding: 5px 7px 7px; gap: 3px; }
+.character-card.woke h3 { color: #fbeaff; font-size: 0.82rem; }
+.wk-pronoun {
+  position: absolute; top: 5px; right: 5px; z-index: 3;
+  padding: 1px 6px; font-size: 0.5rem; font-weight: 800; color: #14110d;
+  background: var(--glow, #a05aff); border-radius: 4px; text-shadow: none;
+}
+.woke-sheet { display: flex; flex-direction: column; gap: 3px; }
+.woke-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.woke-row .orgy-pos { position: static; }
+.woke-cum { font-size: 0.56rem; font-weight: 800; color: #ff9ec4; }
+.woke-line { font-size: 0.56rem; color: #e8d6ea; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.woke-line b { color: #ffcf9c; }
+.woke-line i { font-style: normal; color: #cdbcd0; }
+
+/* Sort control (sidebar) */
+.sort-control { display: flex; flex-direction: column; gap: 6px; }
+.sort-control select { width: 100%; text-align: left; }

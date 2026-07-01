@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Press+Start+2P&family=Cinzel:wght@500;600;700;800;900&family=MedievalSharp&display=swap">
-    <link rel="stylesheet" href="styles.css?v=32">
+    <link rel="stylesheet" href="styles.css?v=33">
   </head>
   <body>
     <div id="locationBackdrop" class="location-backdrop" aria-hidden="true"></div>
@@ -42,6 +42,18 @@
               <button id="revealSecretButton" class="button secondary compact icon-only" type="button" aria-label="Hide face" title="Hide face"></button>
               <button id="mysteryButton" class="button mystery compact icon-only" type="button" aria-label="Mystery effect" title="Mystery effect"></button>
             </div>
+          </div>
+
+          <div class="side-block sort-control">
+            <label class="label" for="sortSelect">Sort board by</label>
+            <select id="sortSelect" class="button ghost">
+              <option value="">Board order</option>
+              <option value="happiness">Happiness 😀</option>
+              <option value="horniness">Horniness 🔥</option>
+              <option value="deathness">Close to death 💀</option>
+              <option value="cum">Cum count 💦</option>
+              <option value="name">Name A–Z</option>
+            </select>
           </div>
 
           <div id="opponentPanel" class="opponent-panel"></div>
@@ -132,9 +144,9 @@
       </form>
     </dialog>
 
-    <script src="game-data.js?v=32"></script>
-    <script src="faces-hair.js?v=32"></script>
-    <script src="face-generator.js?v=32"></script>
-    <script src="app.js?v=32"></script>
+    <script src="game-data.js?v=33"></script>
+    <script src="faces-hair.js?v=33"></script>
+    <script src="face-generator.js?v=33"></script>
+    <script src="app.js?v=33"></script>
   </body>
 </html>

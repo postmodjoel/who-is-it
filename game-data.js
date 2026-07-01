@@ -160,6 +160,18 @@ window.GameData = {
     "Is your person hiding a smile under there?",
     "Could your person rob a bank like this?"
   ],
+  woke: [
+    "Is your person doing the absolute most?",
+    "Does your person have a neopronoun?",
+    "Is your person a top with a terminal diagnosis?",
+    "Is your person hooked on something AND barren?",
+    "Would your person trauma-dump on the first date?",
+    "Is your person problematic in at least three ways?",
+    "Does your person's glow clash with their vibe?",
+    "Is your person a MEGA diagnosis away from cancellation?",
+    "Is your person both horny and dying?",
+    "Would your person put all of this in their bio?"
+  ],
   work: [
     "Does your person have more than 1000 days left?",
     "Is your person hiding a shiv?",

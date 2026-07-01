@@ -272,6 +272,7 @@ const els = {
   characterBoard: document.querySelector("#characterBoard"),
   opponentPanel: document.querySelector("#opponentPanel"),
   floatingSecret: document.querySelector("#floatingSecret"),
+  sortSelect: document.querySelector("#sortSelect"),
   themeButton: document.querySelector("#themeButton"),
   setupButton: document.querySelector("#setupButton"),
   newGameButton: document.querySelector("#newGameButton"),
@@ -491,6 +492,12 @@ const mysteryEffects = [
     name: "Work Mode",
     apply: applyWork,
     exampleQuestion: "Is your person ready for the meeting?"
+  },
+  {
+    id: "woke",
+    name: "WOKE Mode",
+    apply: applyWoke,
+    exampleQuestion: "Is your person doing the absolute most?"
   }
 ];
 
@@ -503,6 +510,8 @@ let ps1Cleanup = null;
 
 function newGame() {
   clearMysteryEffectUI();
+  state.sortKey = "";
+  if (els.sortSelect) els.sortSelect.value = "";
   // The board only draws from the procedurally generated faces. The hand-illustrated PNG
   // characters (baseCharacters) stay defined as the gold-standard reference but are never dealt
   // into the playable board.
@@ -567,6 +576,21 @@ function render() {
   renderBoard();
   renderMystery();
   renderOpponentPanel();
+}
+
+// ===================== Board sorting =====================
+// Deterministic hidden stats per character, so the board can be re-ordered by "happiness / horniness
+// / close-to-death / cum count" regardless of which mode is active (WOKE-friendly).
+function characterStat(ch, key) {
+  if (key === "name") return ch.name;
+  return stableHash(`${state.gameSalt}:sortstat:${key}:${ch.id}`) % 1000;
+}
+function sortedBoard() {
+  const key = state.sortKey;
+  if (!key) return state.board;
+  const arr = [...state.board];
+  if (key === "name") return arr.sort((a, b) => a.name.localeCompare(b.name));
+  return arr.sort((a, b) => characterStat(b, key) - characterStat(a, key));
 }
 
 // ===================== Opponent view (simulated online play) =====================
@@ -759,9 +783,10 @@ function renderBoard() {
   els.characterBoard.classList.toggle("drugs-board", modeId === "drugs");
   els.characterBoard.classList.toggle("fertility-board", modeId === "fertility");
   els.characterBoard.classList.toggle("work-board", modeId === "work");
+  els.characterBoard.classList.toggle("woke-board", modeId === "woke");
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
-  state.board.forEach((character) => {
+  sortedBoard().forEach((character) => {
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
   if (modeId === "pixall") pixelateBoard();
@@ -996,7 +1021,7 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -1423,6 +1448,24 @@ function getMysteryCardData(character) {
   if (mystery.id === "disguise") {
     return { effectName: mystery.name, image: assignment.image || undefined, html: "" };
   }
+  if (mystery.id === "woke") {
+    const a = assignment;
+    const M = window.GameData.drugMethods;
+    const tierCls = { MINOR: "dz-minor", MAJOR: "dz-major", MEGA: "dz-mega" };
+    return {
+      effectName: mystery.name,
+      cardClass: "woke",
+      image: a.image || undefined,
+      style: `--glow:${a.glow}`,
+      dataset: { wokePos: a.pos },
+      cornerHtml: `<span class="wk-pronoun">${escapeHtml(a.pronoun)}</span>`,
+      html: `<div class="woke-sheet">
+        <div class="woke-row"><span class="orgy-pos">${escapeHtml(a.pos)}</span><span class="woke-cum">💦 ${escapeHtml(a.cum)}</span></div>
+        <div class="woke-line">🚬 <b>${escapeHtml(a.drug.name)}</b> <i>${M[a.drug.method] || a.drug.method}</i></div>
+        <div class="dz-pill ${tierCls[a.disease.tier]}">${escapeHtml(a.disease.tier)} · ${escapeHtml(a.disease.name)}</div>
+      </div>`
+    };
+  }
   if (mystery.id === "work") {
     const a = assignment;
     return {
@@ -1587,6 +1630,35 @@ function applyFertility(effect) {
       ? defects[stableHash(`${state.gameSalt}:fdef:${ch.id}`) % defects.length]
       : null;
     assignments[ch.id] = { cum, eggs, barren, hrs, mins, defect, hasCount, hasEggs };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// WOKE Mode: a chaotic mash-up of the other stat modes (gay glow + pronoun, orgy position, a drug
+// habit, a disease, and a fertility count) all on one bare-shouldered card. Not Yu-Gi-Oh.
+function applyWoke(effect) {
+  const D = window.GameData;
+  const positions = ["TOP", "BOTTOM", "VERS", "SIDE", "GAGGED", "POWER BOTTOM"];
+  const pronouns = ["they/them", "she/they", "he/they", "xe/xem", "ze/zir", "fae/faer", "it/its", "any/all"];
+  const glows = ["#ff4d6d", "#ff9e3a", "#ffe23a", "#4dd46a", "#3aa0ff", "#a05aff", "#ff5ad0"];
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:woke:${ch.id}`);
+    const drug = D.drugs[(h >>> 7) % D.drugs.length];
+    const disease = D.diseases[(h >>> 9) % D.diseases.length];
+    const billions = (h >>> 2) % 4 === 0;
+    const cum = billions ? (1 + ((h >>> 4) % 40) / 10).toFixed(1) + "B" : (50 + ((h >>> 4) % 900)) + "M";
+    const image = (ch.traits && window.faceGenerator)
+      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, clothing: "bare", accessory: "none" })
+      : ch.image;
+    assignments[ch.id] = {
+      glow: glows[h % glows.length],
+      pronoun: pronouns[(h >>> 3) % pronouns.length],
+      pos: positions[(h >>> 5) % positions.length],
+      drug: { name: drug[0], method: drug[1] },
+      disease: { name: disease[0], tier: disease[1] },
+      cum, image
+    };
   });
   return { id: effect.id, name: effect.name, assignments };
 }
@@ -2526,6 +2598,9 @@ installStaticIcons();
 newGame();
 wireCueCardClick();
 wireFloatingSecret();
+if (els.sortSelect) {
+  els.sortSelect.addEventListener("change", () => { state.sortKey = els.sortSelect.value; renderBoard(); });
+}
 (function () {
   const boardSelector = "#characterBoard";
   const cardSelector = ".character-card";

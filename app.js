@@ -498,6 +498,24 @@ const mysteryEffects = [
     name: "WOKE Mode",
     apply: applyWoke,
     exampleQuestion: "Is your person doing the absolute most?"
+  },
+  {
+    id: "swipe",
+    name: "SWIPE",
+    apply: applySwipe,
+    exampleQuestion: "Would you swipe right on your person?"
+  },
+  {
+    id: "judgement",
+    name: "Judgement Day",
+    apply: applyJudgement,
+    exampleQuestion: "Is your person going to hell?"
+  },
+  {
+    id: "sims",
+    name: "Sims Mode",
+    apply: applySims,
+    exampleQuestion: "Is your person's plumbob red?"
   }
 ];
 
@@ -784,6 +802,9 @@ function renderBoard() {
   els.characterBoard.classList.toggle("fertility-board", modeId === "fertility");
   els.characterBoard.classList.toggle("work-board", modeId === "work");
   els.characterBoard.classList.toggle("woke-board", modeId === "woke");
+  els.characterBoard.classList.toggle("swipe-board", modeId === "swipe");
+  els.characterBoard.classList.toggle("judgement-board", modeId === "judgement");
+  els.characterBoard.classList.toggle("sims-board", modeId === "sims");
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
   sortedBoard().forEach((character) => {
@@ -1023,7 +1044,7 @@ function applyMysteryEffect(effectId) {
 
 function clearMysteryEffectUI() {
   state.global.mystery = null;
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -1045,6 +1066,9 @@ function createCharacterCard(character, player) {
   // when a downed card is clicked back up.
   if (justKilled && modeId === "yugioh") card.classList.add("ygo-flip");
   if (state.justRestored === character.id && modeId === "yugioh") card.classList.add("ygo-unflip");
+  // SWIPE: crossing a card off slams a "NOPE" stamp on it; bringing it back stamps "LIKED".
+  if (justKilled && modeId === "swipe") card.classList.add("swipe-nope");
+  if (state.justRestored === character.id && modeId === "swipe") card.classList.add("swipe-like");
   card.dataset.id = character.id;
   if (mystery.effectName) card.dataset.mysteryEffect = mystery.effectName;
   if (mystery.style) card.setAttribute("style", mystery.style);
@@ -1632,6 +1656,66 @@ function getMysteryCardData(character) {
       html: `<span class="ygo-typeline">${escapeHtml(a.typeLine)}</span>${footer ? `<span class="ygo-footer">${footer}</span>` : ""}`
     };
   }
+  if (mystery.id === "swipe") {
+    const a = assignment;
+    const tick = a.verified ? ' <span class="sw-tick" title="verified">✔</span>' : "";
+    const unread = a.unread ? `<span class="sw-unread" title="unread messages">${a.unread}</span>` : "";
+    return {
+      effectName: mystery.name,
+      cardClass: "swipe",
+      cornerHtml: `<span class="sw-match" title="match">${a.match}%</span>`
+        + `<span class="sw-dist">📍 ${a.distance}km away</span>${unread}`,
+      html: `<div class="sw-sheet">
+        <div class="sw-name">${escapeHtml(displayName(character))}, ${a.age}${tick}</div>
+        <div class="sw-bio">"${escapeHtml(a.bio)}"</div>
+        <div class="sw-look">🔎 ${escapeHtml(a.lookingFor)}</div>
+        <div class="sw-flags">
+          <span class="sw-flag sw-green">✅ ${escapeHtml(a.green)}</span>
+          <span class="sw-flag sw-red">🚩 ${escapeHtml(a.red)}</span>
+        </div>
+        <div class="sw-ick">😬 The ick: <i>${escapeHtml(a.ick)}</i></div>
+      </div>`
+    };
+  }
+  if (mystery.id === "judgement") {
+    const a = assignment;
+    const glyph = { HEAVEN: "😇", HELL: "😈", PURGATORY: "🤷" }[a.verdict];
+    // Short badge label so it never collides with the centred crown (PURGATORY -> LIMBO).
+    const label = { HEAVEN: "HEAVEN", HELL: "HELL", PURGATORY: "LIMBO" }[a.verdict];
+    const crown = { HEAVEN: '<span class="jd-halo"></span>', HELL: '<span class="jd-horns"></span>', PURGATORY: '<span class="jd-limbo">?</span>' }[a.verdict];
+    return {
+      effectName: mystery.name,
+      cardClass: `judgement jd-${a.verdict.toLowerCase()}`,
+      dataset: { verdict: a.verdict },
+      cornerHtml: `<span class="jd-verdict">${glyph} ${label}</span>`
+        + `<span class="jd-crown" aria-hidden="true">${crown}</span>`,
+      html: `<div class="jd-sheet">
+        <div class="jd-cause">⚰️ <b>Cause:</b> ${escapeHtml(a.cause)}</div>
+        <div class="jd-sins"><b>😈 Sins:</b> ${a.sins.map(escapeHtml).join(", ")}</div>
+        <div class="jd-deed"><b>😇 Good deed:</b> ${escapeHtml(a.goodDeed)}</div>
+        <div class="jd-karma"><b>Karma:</b> <span>${a.karma > 0 ? "+" : ""}${a.karma}</span></div>
+      </div>`
+    };
+  }
+  if (mystery.id === "sims") {
+    const a = assignment;
+    const bar = (label, n) => {
+      const cls = n < 25 ? "sim-crit" : n < 55 ? "sim-warn" : "sim-ok";
+      return `<span class="sim-bar"><b>${label}</b><i><s class="${cls}" style="--n:${n}%"></s></i></span>`;
+    };
+    const money = a.simoleons < 0 ? `-§${Math.abs(a.simoleons).toLocaleString()}` : `§${a.simoleons.toLocaleString()}`;
+    return {
+      effectName: mystery.name,
+      cardClass: `sims sim-${a.mood}`,
+      cornerHtml: `<span class="sim-plumbob" aria-label="mood" data-mood="${a.mood}"></span>`
+        + `<span class="sim-cash" title="simoleons">${money}</span>`,
+      html: `<div class="sim-sheet">
+        <div class="sim-action">💬 <i>${escapeHtml(a.action)}…</i></div>
+        ${bar("HUNGER", a.needs.hunger)}${bar("SOCIAL", a.needs.social)}${bar("BLADDER", a.needs.bladder)}${bar("FUN", a.needs.fun)}
+        <div class="sim-career">💼 ${escapeHtml(a.career)}</div>
+      </div>`
+    };
+  }
   return { html: "", dataset: {} };
 }
 
@@ -1808,6 +1892,84 @@ function applyWoke(effect) {
       a.image = ch.image;
     }
     assignments[ch.id] = a;
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// SWIPE Mode: every character becomes a dating-app profile - a bio, what they're looking for, a green
+// flag, a red flag, the ick, an age, a distance away, a match %, and unread messages. Crossing a card
+// off slaps a "NOPE" stamp on it; bringing it back stamps "LIKED".
+function applySwipe(effect) {
+  const D = window.GameData;
+  const lookingFor = D.swipeLookingFor || ["Something casual"];
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:sw:${salt}`) % arr.length];
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:swipe:${ch.id}`);
+    assignments[ch.id] = {
+      age: 18 + (h % 42),
+      distance: 1 + ((h >>> 4) % 40),
+      match: 1 + ((h >>> 7) % 99),
+      unread: (h >>> 5) % 4 === 0 ? (h >>> 11) % 99 : 0,
+      verified: (h >>> 13) % 7 === 0,
+      lookingFor: lookingFor[(h >>> 3) % lookingFor.length],
+      bio: pick(D.swipeBios || ["Just vibes."], `${ch.id}:bio`),
+      green: pick(D.swipeGreenFlags || ["Texts back"], `${ch.id}:g`),
+      red: pick(D.swipeRedFlags || ["Still loves their ex"], `${ch.id}:r`),
+      ick: pick(D.swipeIcks || ["Chases the bus"], `${ch.id}:ick`)
+    };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// JUDGEMENT DAY: everyone has died and been sorted into HEAVEN, HELL or PURGATORY - each with its own
+// themed backdrop (clouds / flames / grey limbo) and a halo, horns or a shrug. Plus a cause of death,
+// a tally of sins, one redeeming good deed, and a karma score.
+function applyJudgement(effect) {
+  const D = window.GameData;
+  const verdicts = ["HEAVEN", "HELL", "PURGATORY"];
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:jd:${salt}`) % arr.length];
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:judge:${ch.id}`);
+    // Skew slightly toward hell/heaven over purgatory (0,1 = heaven/hell twice as likely each).
+    const verdict = verdicts[[0, 1, 0, 1, 2][h % 5]];
+    const sins = [];
+    const sn = 1 + ((h >>> 3) % 3);
+    for (let k = 0; k < sn; k++) {
+      const s = pick(D.judgementSins || ["Sloth"], `${ch.id}:s${k}`);
+      if (!sins.includes(s)) sins.push(s);
+    }
+    assignments[ch.id] = {
+      verdict,
+      cause: pick(D.judgementCauses || ["Old age"], `${ch.id}:c`),
+      goodDeed: pick(D.judgementDeeds || ["Held a door once"], `${ch.id}:d`),
+      sins,
+      karma: (verdict === "HEAVEN" ? 20 : verdict === "HELL" ? -100 : -20) + ((h >>> 9) % 80)
+    };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// SIMS Mode: every character is a Sim - a plumbob mood (green/yellow/red) floating over the head, four
+// depleting need bars, whatever autonomous action they're currently doing, a career, and a simoleon
+// balance.
+function applySims(effect) {
+  const D = window.GameData;
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:sim:${salt}`) % arr.length];
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:sims:${ch.id}`);
+    const need = (salt) => 1 + (stableHash(`${state.gameSalt}:simn:${ch.id}:${salt}`) % 100);
+    const needs = { hunger: need("hun"), social: need("soc"), bladder: need("bla"), fun: need("fun") };
+    const lowest = Math.min(needs.hunger, needs.social, needs.bladder, needs.fun);
+    const mood = lowest < 25 ? "red" : lowest < 55 ? "yellow" : "green";
+    assignments[ch.id] = {
+      mood, needs,
+      action: pick(D.simsActions || ["Standing still"], `${ch.id}:a`),
+      career: pick(D.simsCareers || ["Unemployed"], `${ch.id}:job`),
+      simoleons: (h % 3 === 0 ? -(h % 900) : (h >>> 4) % 99000)
+    };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

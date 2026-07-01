@@ -860,11 +860,9 @@ function renderMystery() {
   const disabled = !state.settings.mystery || currentPlayer().mysteryUsed;
   els.mysteryButton.disabled = disabled;
   setButtonIcon(els.mysteryButton, "spark", currentPlayer().mysteryUsed ? "Mystery spent" : "Mystery effect");
-  if (!state.settings.mystery) {
-    els.mysteryResult.textContent = "Mystery is off.";
-  } else if (currentPlayer().mysteryUsed && !els.mysteryResult.textContent) {
-    els.mysteryResult.textContent = "This seat already burned its mystery.";
-  }
+  // The sub-line under the question stays empty - the mystery button already shows its own state, so
+  // no filler status text ("Mystery is off." / "already burned its mystery.") clutters the cue card.
+  els.mysteryResult.textContent = "";
 }
 
 function toggleEliminated(id) {

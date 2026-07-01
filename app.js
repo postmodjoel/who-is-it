@@ -1460,32 +1460,73 @@ function getMysteryCardData(character) {
     const M = window.GameData.drugMethods;
     const tierCls = { MINOR: "dz-minor", MAJOR: "dz-major", MEGA: "dz-mega" };
     const has = (m) => a.modules && a.modules.includes(m);
-    // Each card only shows the modules it actually rolled - so the board is a patchwork of stats.
-    const rows = [];
-    if (has("orgy")) rows.push(`<div class="woke-row"><span class="orgy-pos">${escapeHtml(a.pos)}</span><span class="woke-cum">💦 ${escapeHtml(a.cum)}</span></div>`);
-    if (has("drugs") && a.habits) rows.push(a.habits.map((dr) => `<div class="woke-line">🚬 <b>${escapeHtml(dr.name)}</b> <i>${M[dr.method] || dr.method}</i></div>`).join(""));
-    if (has("disease")) rows.push(`<div class="dz-pill ${tierCls[a.disease.tier]}">${escapeHtml(a.disease.tier)} · ${escapeHtml(a.disease.name)}</div>`);
-    if (has("fertility")) {
-      const eggTxt = a.barren ? '<span class="ft-barren">BARREN</span>' : `${a.eggs} 🥚`;
-      const def = a.defect ? ` <span class="ft-defect">⚠ ${escapeHtml(a.defect)}</span>` : "";
-      rows.push(`<div class="woke-line">🥚 ${eggTxt}${def}</div>`);
+
+    // --- Corners: each module keeps the signature badge from its home mode. LBGT letter chips go
+    //     top-left (like Gay-Frogged); every other badge stacks top-right in .woke-badges. ---
+    const prideCorner = has("gay")
+      ? `<div class="gayfrog-corner">${a.gay.letters.map((l) => `<span class="gayfrog-letter">${escapeHtml(l)}</span>`).join("")}</div>`
+      : "";
+    const badges = [];
+    if (has("orgy")) badges.push(`<span class="orgy-pos">${escapeHtml(a.orgy.pos)}</span>`);
+    if (has("drugs")) badges.push(`<span class="dg-count">${a.drugs.habits.length}× hooked</span>`);
+    if (has("disease")) badges.push(`<span class="dz-pain">${window.GameData.painFaces[a.disease.pain]}</span>`);
+    if (has("fertility")) badges.push(`<span class="ft-timer">⏳ ${a.fertility.hrs}h ${a.fertility.mins}m</span>`);
+    if (has("work")) badges.push(`<span class="wk-days">${a.work.days}d</span>`);
+    const cornerHtml = prideCorner + (badges.length ? `<div class="woke-badges">${badges.join("")}</div>` : "");
+
+    // --- Body: each module rendered with its home mode's own markup/classes, stacked. ---
+    const blocks = [];
+    if (has("gay")) {
+      const tags = [...(stableHash(character.id + ":poc") % 3 === 0 ? ["POC"] : []), ...characterTags(character)];
+      blocks.push(`<div class="woke-block woke-gay">`
+        + `<p class="card-pronouns">${escapeHtml(a.gay.pronoun)}</p>`
+        + `<div class="card-grindr-tags">${tags.map((t) => `<span class="grindr-tag">${escapeHtml(t)}</span>`).join("")}</div>`
+        + `<span class="mystery-badge gayfrog-badge gayfrog-word">${escapeHtml(a.gay.title)}</span></div>`);
     }
-    if (has("work")) rows.push(`<div class="woke-line">⛏ <b>${a.days}d</b> left · <i>${escapeHtml(a.stash)}</i></div>`);
-    if (has("disguise")) rows.push(`<div class="woke-line">🕶 <i>incognito</i></div>`);
-    if (has("gay") && !rows.length) rows.push(`<div class="woke-line">✨ ${escapeHtml(a.pronoun)}</div>`);
-    let corner = "";
-    if (has("gay")) corner = `<span class="wk-pronoun">${escapeHtml(a.pronoun)}</span>`;
-    else if (has("work")) corner = `<span class="wk-pronoun" title="days remaining">${a.days}d</span>`;
-    else if (has("fertility")) corner = `<span class="wk-pronoun" title="next emptying">⏳ ${a.ftHrs}h</span>`;
-    else if (has("orgy")) corner = `<span class="wk-pronoun">${escapeHtml(a.pos)}</span>`;
+    if (has("orgy")) {
+      const o = a.orgy;
+      const bar = (label, n) => `<span class="orgy-bar"><b>${label}</b><i><s style="--n:${n * 10}%"></s></i></span>`;
+      blocks.push(`<div class="orgy-stats">`
+        + `<div class="orgy-cum"><span>💦 ${o.cumToday} today</span><span>${o.cumLifetime.toLocaleString()} life</span></div>`
+        + `${bar("STAMINA", o.stamina)}${bar("HORNY", o.horniness)}${bar("LIFESPAN", o.lifespan)}${bar("SECRETS", o.secrets)}</div>`);
+    }
+    if (has("drugs")) {
+      const rows = a.drugs.habits.map((d) => `<span class="dg-row"><b>${escapeHtml(d.name)}</b><i>${M[d.method] || d.method}</i></span>`).join("");
+      blocks.push(`<div class="dg-sheet">${rows}<div class="dg-daily">~${a.drugs.daily}/day</div></div>`);
+    }
+    if (has("disease")) {
+      const d = a.disease;
+      const pills = d.diseases.map((x) => `<span class="dz-pill ${tierCls[x.tier]}">${escapeHtml(x.tier)} · ${escapeHtml(x.name)}</span>`).join("");
+      const cancers = d.cancers.length
+        ? `<div class="dz-cancers"><b>🎗 Cancers:</b> ${d.cancers.map((c) => `${escapeHtml(c.type)} <i>(${escapeHtml(c.eta)})</i>`).join(", ")}</div>`
+        : "";
+      const meds = `<div class="dz-meds"><b>💊 Meds:</b> ${d.meds.map(escapeHtml).join(", ")}</div>`;
+      blocks.push(`<div class="dz-sheet"><div class="dz-pills">${pills}</div>`
+        + `<div class="dz-bar"><b>AUTISM</b><i><s style="--n:${Math.round(d.autism * 100)}%"></s></i><u>${Math.round(d.autism * 100)}%</u></div>`
+        + `${cancers}${meds}</div>`);
+    }
+    if (has("fertility")) {
+      const f = a.fertility;
+      const defect = f.defect ? `<div class="ft-defect">⚠ ${escapeHtml(f.defect)}</div>` : "";
+      blocks.push(`<div class="ft-sheet">`
+        + `<div class="ft-row"><b>💦</b><i>${escapeHtml(f.cum)}</i></div>`
+        + `<div class="ft-row"><b>🥚</b><i>${f.barren ? '<span class="ft-barren">BARREN</span>' : f.eggs}</i></div>${defect}</div>`);
+    }
+    if (has("work")) {
+      blocks.push(`<div class="wk-sheet"><div class="wk-sentence">⛏ ${a.work.days} DAYS REMAINING</div>`
+        + `<div class="wk-stash"><b>STASH:</b> ${a.work.items.map(escapeHtml).join(", ")}</div></div>`);
+    }
+    if (has("disguise")) blocks.push(`<div class="woke-line">🕶 <i>incognito</i></div>`);
+
+    const pulseDelay = -(stableHash(character.id + ":pulse") % 6000) / 1000;
     return {
       effectName: mystery.name,
-      cardClass: "woke",
+      cardClass: has("gay") ? "woke has-pride" : "woke",
       image: a.image || undefined,
-      style: `--glow:${a.glow}`,
-      dataset: a.pos ? { wokePos: a.pos } : {},
-      cornerHtml: corner,
-      html: `<div class="woke-sheet">${rows.join("")}</div>`
+      style: `--glow:${a.glow};--pulse-delay:${pulseDelay.toFixed(2)}s`,
+      dataset: a.orgy ? { wokePos: a.orgy.pos } : {},
+      cornerHtml,
+      html: `<div class="woke-sheet">${blocks.join("")}</div>`
     };
   }
   if (mystery.id === "work") {
@@ -1657,56 +1698,92 @@ function applyFertility(effect) {
 }
 
 // WOKE Mode: a chaotic mix-and-match of every other stat mode. Each character rolls a RANDOM SUBSET
-// (2-4) of modules - gay glow+pronoun, orgy position, a drug habit, a disease, a fertility readout,
-// a work-camp sentence, or a disguise - so no two cards carry the same set. Not Yu-Gi-Oh.
+// (2-3) of modules and, for each, gets the SAME data a real card in that mode would - so the woke card
+// can be rendered with each mode's own visual treatment (LBGT letter chips, orgy bars, disease pills,
+// pain-face corner, fertility timer, work sentence, disguise). Not Yu-Gi-Oh.
 const WOKE_MODULES = ["gay", "orgy", "drugs", "disease", "fertility", "work", "disguise"];
 function applyWoke(effect) {
   const D = window.GameData;
-  const positions = ["TOP", "BOTTOM", "VERS", "SIDE", "GAGGED", "POWER BOTTOM"];
-  const pronouns = ["they/them", "she/they", "he/they", "xe/xem", "ze/zir", "fae/faer", "it/its", "any/all"];
+  const positions = ["TOP", "BOTTOM", "SIDE", "GAGGED", "CHOKING", "VERS", "POWER BOTTOM", "STARFISH"];
   const glows = ["#ff4d6d", "#ff9e3a", "#ffe23a", "#4dd46a", "#3aa0ff", "#a05aff", "#ff5ad0"];
   const defects = ["SLOW SWIMMERS", "EXPIRED STOCK", "TWO-HEADED RISK", "RECALLED BATCH", "ALL DUDS", "PREMIUM (allegedly)"];
   const stash = (D && D.workInventory) || ["Shiv"];
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:wk:${salt}`) % arr.length];
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:woke:${ch.id}`);
-    // Deterministic shuffle of the module list, then take 2-4 of them for this character.
+    // Deterministic shuffle of the module list, then take 2-3 for this character.
     const order = WOKE_MODULES
       .map((m) => [m, stableHash(`${state.gameSalt}:wkmod:${ch.id}:${m}`)])
       .sort((a, b) => a[1] - b[1])
       .map((x) => x[0]);
-    const mods = order.slice(0, 2 + (h % 3));
+    const mods = order.slice(0, 2 + (h % 2));
     const has = (m) => mods.includes(m);
-    const a = { modules: mods, glow: glows[h % glows.length] };
-    if (has("gay")) a.pronoun = pronouns[(h >>> 3) % pronouns.length];
-    if (has("orgy")) {
-      a.pos = positions[(h >>> 5) % positions.length];
-      const billions = (h >>> 2) % 4 === 0;
-      a.cum = billions ? (1 + ((h >>> 4) % 40) / 10).toFixed(1) + "B" : (50 + ((h >>> 4) % 900)) + "M";
+    const a = { modules: mods };
+
+    // Gay-Frogged: LBGT letter(s), a pride colour, pronoun, and an orientation title.
+    if (has("gay")) {
+      const L = PRIDE_LETTERS_POOL[(h >>> 3) % PRIDE_LETTERS_POOL.length];
+      a.gay = {
+        letters: L.letters, key: L.key, color: L.color,
+        pronoun: PRIDE_PRONOUNS_POOL[(h >>> 6) % PRIDE_PRONOUNS_POOL.length],
+        title: PRIDE_TITLES_POOL[(h >>> 9) % PRIDE_TITLES_POOL.length]
+      };
     }
+    a.glow = a.gay ? a.gay.color : glows[h % glows.length];
+
+    // Orgy: position, body count, today's/lifetime cum, and the four stat bars.
+    if (has("orgy")) {
+      const stat = (salt) => 1 + (stableHash(`${state.gameSalt}:wko:${ch.id}:${salt}`) % 10);
+      a.orgy = {
+        pos: positions[(h >>> 5) % positions.length],
+        bodyCount: 2 + ((h >>> 3) % 187),
+        cumToday: (h >>> 5) % 14,
+        cumLifetime: 150 + ((h >>> 7) % 9850),
+        stamina: stat("sta"), horniness: stat("hor"), lifespan: stat("life"), secrets: stat("sec")
+      };
+    }
+    // Drug Addict: 1-2 street-name habits + how they take each, plus a daily count.
     if (has("drugs")) {
       const n = 1 + ((h >>> 6) % 2);
       const habits = [];
       for (let k = 0; k < n; k++) {
-        const dr = D.drugs[stableHash(`${state.gameSalt}:wkdg:${ch.id}:${k}`) % D.drugs.length];
+        const dr = pick(D.drugs, `${ch.id}:dg${k}`);
         if (!habits.some((x) => x.name === dr[0])) habits.push({ name: dr[0], method: dr[1] });
       }
-      a.habits = habits;
+      a.drugs = { habits, daily: 1 + ((h >>> 5) % 40) };
     }
+    // Disease: 1-2 diagnoses (with severity), a possible cancer, meds, an autism %, and a pain face.
     if (has("disease")) {
-      const dz = D.diseases[(h >>> 9) % D.diseases.length];
-      a.disease = { name: dz[0], tier: dz[1] };
+      const diseases = [];
+      const dn = 1 + (h % 2);
+      for (let k = 0; k < dn; k++) {
+        const dz = pick(D.diseases, `${ch.id}:dz${k}`);
+        if (!diseases.some((x) => x.name === dz[0])) diseases.push({ name: dz[0], tier: dz[1] });
+      }
+      const cancers = [];
+      if ((h >>> 9) % 3 === 0) cancers.push({ type: pick(D.cancerTypes, `${ch.id}:c`), eta: pick(D.cancerEtas, `${ch.id}:e`) });
+      a.disease = {
+        diseases, cancers, meds: [pick(D.medications, `${ch.id}:m`)],
+        autism: ((h >>> 3) % 101) / 100, pain: (h >>> 11) % D.painFaces.length
+      };
     }
+    // Fertility: a cum count, an egg count (or BARREN), a next-emptying timer, and a possible defect.
     if (has("fertility")) {
-      a.barren = (h >>> 11) % 5 === 0;
-      a.eggs = a.barren ? 0 : 8 + ((h >>> 6) % 320);
-      a.ftHrs = (h >>> 13) % 72;
-      a.defect = ((h >>> 17) % 3 === 0) ? defects[(h >>> 19) % defects.length] : null;
+      const barren = (h >>> 11) % 5 === 0;
+      const billions = (h >>> 2) % 4 === 0;
+      a.fertility = {
+        cum: billions ? (1 + ((h >>> 4) % 40) / 10).toFixed(1) + "B" : (50 + ((h >>> 4) % 900)) + "M",
+        eggs: barren ? 0 : 8 + ((h >>> 6) % 320), barren,
+        hrs: (h >>> 13) % 72, mins: (h >>> 15) % 60,
+        defect: ((h >>> 17) % 3 === 0) ? defects[(h >>> 19) % defects.length] : null
+      };
     }
+    // Work: a days-remaining sentence and a stash item.
     if (has("work")) {
-      a.days = 1 + (h % 9000);
-      a.stash = stash[(h >>> 4) % stash.length];
+      a.work = { days: 1 + (h % 9000), items: [stash[(h >>> 4) % stash.length]] };
     }
+
     // Image: a disguised covering when that module rolled, otherwise the bare-shouldered woke portrait.
     if (ch.traits && window.faceGenerator) {
       const R = (extra) => window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, ...extra });

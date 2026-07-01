@@ -1942,7 +1942,8 @@ button:disabled {
 /* A slow pulsing rainbow club-light washing over each gay-frogged portrait. Each tile carries its own
    negative --pulse-delay (set inline per card) so the board shimmers out of sync instead of strobing
    all together. */
-.character-card.gayfrog .portrait-wrap::after {
+.character-card.gayfrog .portrait-wrap::after,
+.character-card.woke.has-pride .portrait-wrap::after {
   background: conic-gradient(
     from 0deg,
     rgba(255, 0, 102, .55),
@@ -1969,7 +1970,8 @@ button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .character-card.gayfrog .portrait-wrap::after { animation: none; opacity: .34; }
+  .character-card.gayfrog .portrait-wrap::after,
+  .character-card.woke.has-pride .portrait-wrap::after { animation: none; opacity: .34; }
 }
 
 .gayfrog-corner {
@@ -1998,7 +2000,8 @@ button:disabled {
   box-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
 
-.character-card.gayfrog .mystery-badge.gayfrog-badge {
+.character-card.gayfrog .mystery-badge.gayfrog-badge,
+.character-card.woke .mystery-badge.gayfrog-badge {
   min-width: 1.4em;
   color: #0c0d11;
   background: var(--glow);
@@ -2006,7 +2009,8 @@ button:disabled {
   text-align: center;
 }
 
-.character-card.gayfrog .mystery-badge.gayfrog-word {
+.character-card.gayfrog .mystery-badge.gayfrog-word,
+.character-card.woke .mystery-badge.gayfrog-word {
   font-size: 0.48rem;
   letter-spacing: 0.02em;
   padding: 2px 5px;
@@ -3537,12 +3541,35 @@ body.mode-pixall .secret-card img {
   background: var(--glow, #a05aff); border-radius: 4px; text-shadow: none;
 }
 .woke-sheet { display: flex; flex-direction: column; gap: 3px; }
+/* A faint divider between the blended module blocks so the mashup stays legible. */
+.woke-sheet > * + * { margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.09); }
 .woke-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .woke-row .orgy-pos { position: static; }
 .woke-cum { font-size: 0.56rem; font-weight: 800; color: #ff9ec4; }
 .woke-line { font-size: 0.56rem; color: #e8d6ea; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .woke-line b { color: #ffcf9c; }
 .woke-line i { font-style: normal; color: #cdbcd0; }
+.woke-block.woke-gay { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.woke-block.woke-gay .card-pronouns { margin: 0; }
+
+/* Corner badge stack (top-right): reuse each mode's own badge visuals, but let them flow down a column
+   instead of every one pinning itself to the same corner. LBGT letter chips stay top-left. */
+.woke-badges {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  max-width: 66%;
+}
+.woke-badges > * {
+  position: static !important;
+  inset: auto !important;
+}
+.woke-badges .dz-pain { font-size: 0.82rem; }
 
 /* Sort control (sidebar) */
 .sort-control { display: flex; flex-direction: column; gap: 6px; }

@@ -4261,7 +4261,7 @@ function playEffectAnnouncement(name) {
   overlay.appendChild(word);
 
   document.body.appendChild(overlay);
-  window.setTimeout(() => overlay.remove(), 1900);
+  window.setTimeout(() => overlay.remove(), 3050);   // linger - let the title actually land
 }
 
 function showMysteryAnnouncement(_effectName, _exampleQuestion) {

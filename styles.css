@@ -4347,6 +4347,7 @@ body.mode-pixall .secret-card img {
 /* ===================== Disguise: Arabic name + phonetic ===================== */
 .character-card.disguise h3 { display: none; }   /* the readable name is hidden - that's the disguise */
 .secret-card.disguise .secret-name { display: none; }
+.character-card.disguise .card-meta { flex-direction: column; flex-wrap: nowrap; gap: 0; }
 .dg-arabic {
   font-family: "Reem Kufi", "Amiri", "Scheherazade New", serif;
   font-size: 1.15rem; font-weight: 700; text-align: center; line-height: 1.3; color: #f4ead9;
@@ -4456,13 +4457,21 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   content: ""; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%);
   width: 22px; height: 6px; border-radius: 50%; background: rgba(255, 220, 90, 0.55);
 }
-/* The Sim scrunches up and shudders in relief. */
-.character-card.sims.sim-pissing .portrait-wrap img { animation: sim-shudder 0.11s linear infinite; }
+/* Keep the shaking clipped inside the portrait so nobody rattles out of their card. */
+.character-card.sims .portrait-wrap { overflow: hidden; }
+/* Shudder crew: a tight, minor vibrate in relief. */
+.character-card.sims.sim-pissing.relief-shake .portrait-wrap img { animation: sim-shudder 0.14s linear infinite; transform-origin: 50% 100%; }
 @keyframes sim-shudder {
-  0%, 100% { transform: translate(0, 0) scaleY(0.98); }
-  25% { transform: translate(-1px, 1px) scaleY(0.96); }
-  50% { transform: translate(1px, -1px) scaleY(0.98); }
-  75% { transform: translate(-1px, -1px) scaleY(0.96); }
+  0%, 100% { transform: translate(0, 0) scaleY(0.99); }
+  25% { transform: translate(-0.6px, 0.5px); }
+  50% { transform: translate(0.6px, -0.4px); }
+  75% { transform: translate(-0.5px, -0.5px); }
+}
+/* Sway crew: a slow, gentle side-to-side bob (shaking-the-willy energy). */
+.character-card.sims.sim-pissing.relief-sway .portrait-wrap img { animation: sim-sway 0.44s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes sim-sway {
+  0%, 100% { transform: rotate(-2.2deg) translateX(-1px); }
+  50% { transform: rotate(2.2deg) translateX(1px); }
 }
 
 /* ===================== The Void (elimination) ===================== */

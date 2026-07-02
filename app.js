@@ -1221,7 +1221,7 @@ function renderSecret() {
   // Habbo mode: pixelate the player's own portrait too so it matches the room.
   if (state.global.mystery?.id === "habbo") {
     const simg = els.secretCard.querySelector(".secret-portrait > img");
-    if (simg && simg.src) { simg.style.imageRendering = "pixelated"; pixelateSrc(simg.src, 30, (url) => { simg.src = url; }); }
+    if (simg && simg.src) { simg.style.imageRendering = "pixelated"; pixelateSrc(simg.src, 24, (url) => { simg.src = url; }); }
   }
   setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
 }
@@ -1407,15 +1407,17 @@ function simsTick() {
     if (!card || card.classList.contains("sim-pissing")) return;
     if (!simBladder.has(ch.id)) simBladder.set(ch.id, a.needs.bladder);
     const s = card.querySelector('.sim-bar[data-need="bladder"] s');
-    let v = simBladder.get(ch.id) - (2 + Math.random() * 5);
+    let v = simBladder.get(ch.id) - (0.8 + Math.random() * 1.5);   // gentle, slow drain
     if (v <= 0) {
       simBladder.set(ch.id, 94 + Math.random() * 6);           // relief - refill
       if (s) { s.style.width = "100%"; s.className = "sim-ok"; }
-      card.classList.add("sim-pissing");
+      // Some Sims shudder; others gently sway/bob side to side (a relieved little jiggle).
+      const relief = stableHash(ch.id + ":relief") % 2 ? "relief-sway" : "relief-shake";
+      card.classList.add("sim-pissing", relief);
       const piss = document.createElement("span");
       piss.className = "sim-piss";
       card.appendChild(piss);
-      setTimeout(() => { card.classList.remove("sim-pissing"); piss.remove(); }, 2200);
+      setTimeout(() => { card.classList.remove("sim-pissing", relief); piss.remove(); }, 2200);
     } else {
       simBladder.set(ch.id, v);
       if (s) { s.style.width = `${v}%`; s.className = v < 25 ? "sim-crit" : v < 55 ? "sim-warn" : "sim-ok"; }
@@ -1497,6 +1499,10 @@ function renderHabboBoard(player) {
   const floor = document.createElement("div");
   floor.className = "habbo-floor";
   room.appendChild(floor);
+  // Clicking empty room (not an avatar, not a walkable tile) drops the camera back out.
+  room.addEventListener("click", (e) => {
+    if (habboSelected && (e.target === room || e.target === floor || e.target.classList.contains("habbo-decor"))) selectHabbo(habboSelected);
+  });
   for (let r = 0; r < HABBO_GH; r++) for (let c = 0; c < HABBO_GW; c++) {
     const p = habboIso(c, r);
     const tile = document.createElement("div");
@@ -1550,13 +1556,14 @@ function renderHabboBoard(player) {
       + `<span class="hb-body" style="--shirt:${a.shirt || "#4a90e2"}"></span>`
       + `<span class="hb-shadow"></span>`;
     el.addEventListener("click", (e) => {
-      if (e.target.classList.contains("hb-kill")) { toggleEliminated(ch.id); return; }
+      // Killing an avatar also drops the camera back out.
+      if (e.target.classList.contains("hb-kill")) { if (habboSelected === ch.id) habboSelected = null; toggleEliminated(ch.id); return; }
       selectHabbo(ch.id);
     });
     figs.appendChild(el);
     figEls.set(ch.id, el);
-    // Pixelate the head into chunky Habbo pixels once it loads.
-    if (a.head) pixelateSrc(a.head, 30, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; });
+    // Pixelate the head into chunky Habbo pixels once it loads (smaller = chunkier).
+    if (a.head) pixelateSrc(a.head, 18, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; });
   });
   habboCtx = { figEls, room };
   if (habboSelected) habboCamera(habboSelected);   // keep the camera on re-render
@@ -2958,14 +2965,14 @@ function applyDisguise(effect) {
   state.board.forEach((ch) => {
     let image = null;
     if (ch.traits && window.faceGenerator) {
-      // REALLY incognito: the covering + all clothing goes pure black.
+      // Two incognito looks: balaclava crew go pure black; turban crew go clean white.
       image = ch.pronouns === "she"
-        ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true, accessoryColor: "#0b0b0d", shirt: "#0b0b0d" })
+        ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true, disguiseColor: "#0c0c0f", accessoryColor: "#0b0b0d", shirt: "#0b0b0d" })
         : window.faceGenerator.renderPortrait(ch.seed, {
           ...ch.traits, hair: "bald", hairLocks: [], beardLength: 0,
-          accessory: "turban", accessoryColor: "#0b0b0d", accessoryY: 0, accessoryScale: 1,
+          accessory: "turban", accessoryColor: "#eceae2", accessoryY: 0, accessoryScale: 1,
           clothing: (ch.traits.clothing === "bare" || ch.traits.clothing === "singlet") ? "tee" : ch.traits.clothing,
-          shirt: "#0b0b0d"
+          shirt: "#ededea"
         });
     }
     assignments[ch.id] = { image, arabic: arabicize(ch.name), phon: phonetic(ch.name) };

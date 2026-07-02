@@ -4876,23 +4876,40 @@ function showTitleScreen() {
       <span class="ts-isit">IS IT?</span>
     </div>
     <div class="ts-actions">
-      <button type="button" class="button primary ts-local">🛋 LOCAL GAME</button>
-      <button type="button" class="button secondary ts-online">🌐 ONLINE GAME</button>
-      <div class="ts-join">
-        <input class="ts-join-input" type="text" inputmode="numeric" maxlength="4" placeholder="room #" aria-label="Room code to join">
-        <button type="button" class="button ghost ts-join-btn">JOIN</button>
+      <div class="ts-step ts-step-main">
+        <button type="button" class="button primary ts-local">🛋 LOCAL GAME</button>
+        <button type="button" class="button secondary ts-online">🌐 ONLINE GAME</button>
+        ${saved ? `<button type="button" class="button ghost ts-resume">↩ RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</button>` : ""}
       </div>
-      ${saved ? `<button type="button" class="button ghost ts-resume">↩ RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</button>` : ""}
+      <div class="ts-step ts-step-online" hidden>
+        <button type="button" class="button primary ts-host">🎪 HOST A ROOM</button>
+        <button type="button" class="button secondary ts-showjoin">🔑 JOIN A ROOM</button>
+        <button type="button" class="button ghost ts-back">← back</button>
+      </div>
+      <div class="ts-step ts-step-join" hidden>
+        <p class="ts-join-label">Enter your friend's room number</p>
+        <input class="ts-join-input" type="text" inputmode="numeric" maxlength="4" placeholder="1234" aria-label="Room code to join">
+        <button type="button" class="button primary ts-join-go">JOIN ROOM →</button>
+        <button type="button" class="button ghost ts-back">← back</button>
+      </div>
     </div>
     <p class="ts-hint">Local = pass one screen back and forth. Online = share your room number with a friend.</p>`;
   document.body.appendChild(ov);
   const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
+  const steps = {
+    main: ov.querySelector(".ts-step-main"),
+    online: ov.querySelector(".ts-step-online"),
+    join: ov.querySelector(".ts-step-join")
+  };
+  const show = (name) => Object.entries(steps).forEach(([k, el]) => { el.hidden = k !== name; });
   ov.querySelector(".ts-local").addEventListener("click", () => { close(); startLocalGame(); });
-  ov.querySelector(".ts-online").addEventListener("click", () => { close(); startOnlineGame(); });
-  const joinBtn = ov.querySelector(".ts-join-btn");
+  ov.querySelector(".ts-online").addEventListener("click", () => show("online"));
+  ov.querySelector(".ts-host").addEventListener("click", () => { close(); startOnlineGame(); });
+  ov.querySelector(".ts-showjoin").addEventListener("click", () => { show("join"); setTimeout(() => ov.querySelector(".ts-join-input").focus(), 50); });
+  ov.querySelectorAll(".ts-back").forEach((b) => b.addEventListener("click", () => show("main")));
   const joinInput = ov.querySelector(".ts-join-input");
   const doJoin = () => { const code = (joinInput.value || "").trim(); if (/^\d{3,4}$/.test(code)) { close(); joinRoom(code); } else { joinInput.classList.add("shake"); setTimeout(() => joinInput.classList.remove("shake"), 400); } };
-  joinBtn.addEventListener("click", doJoin);
+  ov.querySelector(".ts-join-go").addEventListener("click", doJoin);
   joinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doJoin(); });
   const res = ov.querySelector(".ts-resume");
   if (res) res.addEventListener("click", () => { close(); resumeGame(saved); });

@@ -1387,6 +1387,29 @@ function stopHeadsAnim() { if (headsAnimRaf) { cancelAnimationFrame(headsAnimRaf
 function resetHeadsAnim() { stopHeadsAnim(); headsPos = new Map(); headsStartTs = null; }
 
 const HEADS_FORM_NAMES = ["Ring ◯", "Figure-8 ∞", "Grid ▦", "Spiral ✺", "Heart ♥", "Wave 〜"];
+// Safari perf: SVG data-URL images get re-rasterised by WebKit while they move, and a live CSS
+// drop-shadow filter on ~24 animated elements repaints every frame. So each head is rasterised ONCE
+// to a flat PNG with the shadow baked in - Safari then just composites bitmaps.
+const headRasterCache = new Map();
+function rasterizeHead(src, done) {
+  if (headRasterCache.has(src)) { done(headRasterCache.get(src)); return; }
+  const im = new Image();
+  im.onload = () => {
+    const S = 160;
+    const c = document.createElement("canvas");
+    c.width = S; c.height = S;
+    const x = c.getContext("2d");
+    x.shadowColor = "rgba(0, 0, 0, 0.6)";
+    x.shadowBlur = 6;
+    x.shadowOffsetY = 3;
+    x.drawImage(im, 0, 0, S, S);
+    const url = c.toDataURL();
+    headRasterCache.set(src, url);
+    done(url);
+  };
+  im.onerror = () => done(src);
+  im.src = src;
+}
 function renderHeadsOnlyBoard(player) {
   els.characterBoard.classList.add("heads-board");
   els.characterBoard.setAttribute("aria-label", "Floating heads");
@@ -1416,16 +1439,22 @@ function renderHeadsOnlyBoard(player) {
     el.addEventListener("click", () => toggleEliminated(ch.id));
     wireBreedDnD(el, ch.id);
     layer.appendChild(el);
+    // Swap the SVG for a flat pre-shadowed PNG once it's rasterised (Safari perf - see rasterizeHead).
+    rasterizeHead(m.image || ch.image, (url) => { const img = el.querySelector("img"); if (img) img.src = url; });
     const seed = headsPos.get(ch.id);
     return { el, id: ch.id, x: seed ? seed.x : null, y: seed ? seed.y : null };
   });
   const PAD = 58;   // keep whole heads + names inside the board
+  // Board size is read ONCE and refreshed on resize - a getBoundingClientRect() inside the rAF loop
+  // forces a synchronous layout every frame, which Safari pays for far more dearly than Chrome.
+  let w = layer.clientWidth || 640, h = layer.clientHeight || 520;
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(() => { w = layer.clientWidth || 640; h = layer.clientHeight || 520; }).observe(layer);
+  }
   const step = (ts) => {
     if (headsStartTs == null) headsStartTs = ts;
     const t = (ts - headsStartTs) / 1000;
     const form = HEADS_FORMATIONS[state.headsForm || 0];
-    const rect = layer.getBoundingClientRect();
-    const w = rect.width || 640, h = rect.height || 520;
     heads.forEach((hd, i) => {
       const tgt = form(i, n, t, w, h);
       const tx = Math.max(PAD, Math.min(w - PAD, tgt.x));   // clamp inside the board

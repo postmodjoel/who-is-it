@@ -4013,7 +4013,8 @@ body.mode-pixall .secret-card img {
   height: 68px;
   object-fit: contain;
   object-position: 50% 32%;
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+  /* No live drop-shadow filter: it's baked into the rasterised head (rasterizeHead in app.js).
+     An animated CSS filter on ~24 moving SVG images forces Safari to repaint every frame. */
   animation: head-bob 3s ease-in-out infinite;
   animation-delay: var(--bob, 0s);
   transition: transform 0.18s ease;

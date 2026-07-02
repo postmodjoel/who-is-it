@@ -4100,37 +4100,56 @@ body.mode-pixall .secret-card img {
 .game-stage .character-board.habbo-board {
   position: relative; display: block; min-height: 72vh; padding: 0; overflow: auto;
   border-color: #20263e !important;
-  /* Habbo-style room shell: wall top-cap, dither texture, skirting board where wall meets floor. */
+  /* The room itself has REAL iso walls + floor slab (built in app.js, themed per location); the board
+     is just a dim, dithered backdrop behind the floating room. */
   background:
-    linear-gradient(180deg, #55619233 0 4px, transparent 4px) no-repeat,
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.022) 0 2px, transparent 2px 4px),
-    linear-gradient(180deg,
-      transparent calc(30% - 7px),
-      #4d5985 calc(30% - 7px) calc(30% - 4px),
-      #1d2338 calc(30% - 4px) calc(30% - 2px),
-      transparent calc(30% - 2px)),
-    linear-gradient(180deg, #3a4468 0 30%, #2b3350 30% 100%),
-    #2b3350 !important;
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 4px),
+    radial-gradient(circle at 50% 26%, rgba(255, 255, 255, 0.06), transparent 62%),
+    var(--hb-room, #232a4a) !important;
 }
+/* ===== The iso room shell: two walls meeting at the back corner + a solid ground slab. ===== */
+.hb-wallpanel {
+  position: absolute; z-index: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 8px),
+    var(--hb-wall, #7d87b8);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.28);
+}
+/* Wall top cap. */
+.hb-wallpanel::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px;
+  background: var(--hb-cap, #99a2cc);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+/* Skirting board where the wall meets the floor. */
+.hb-wallpanel::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 8px;
+  background: var(--hb-skirt, #565e88);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.28);
+}
+/* skewY tan(±26.565°) = ±0.5 - the exact slope of the iso floor edges. The left wall reads a touch
+   darker than the right (single light source, Habbo-style). */
+.hbw-left  { transform-origin: 100% 0; transform: skewY(-26.565deg); filter: brightness(0.88); }
+.hbw-right { transform-origin: 0 0;   transform: skewY(26.565deg); }
+.hb-ground { position: absolute; inset: 0; z-index: 0; }
 .habbo-room { position: relative; width: 100%; min-height: 72vh; transform-origin: 0 0; transition: transform 0.5s ease; }
 .habbo-floor, .habbo-figs { position: absolute; inset: 0; }
 .habbo-tile {
   position: absolute; width: 60px; height: 30px; margin-left: -30px; margin-top: -15px;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  /* Pixel-art tiles: a flat top tone with a 4px checker dither (no smooth gradients), a tinted
-     near-black outline, and a hard drop-shadow extrusion so they read as chunky pixel slabs. */
+  /* Pixel-art tiles: a flat location-themed tone with a 4px checker dither, a tinted outline, and a
+     hard drop-shadow extrusion so they read as chunky pixel slabs. */
   background:
-    repeating-conic-gradient(rgba(255, 250, 230, 0.35) 0% 25%, transparent 0% 50%) 0 0 / 8px 8px,
-    #d8c79a;
-  box-shadow: inset 0 0 0 1.5px rgba(43, 32, 18, 0.35);
-  filter: drop-shadow(0 3px 0 #93805a);
+    repeating-conic-gradient(rgba(255, 255, 255, 0.28) 0% 25%, transparent 0% 50%) 0 0 / 8px 8px,
+    var(--hb-tile, #d8c79a);
+  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.3);
+  filter: drop-shadow(0 3px 0 var(--hb-side, #93805a));
   cursor: pointer; transition: background 0.12s;
 }
 .habbo-tile.alt {
   background:
-    repeating-conic-gradient(rgba(60, 44, 20, 0.22) 0% 25%, transparent 0% 50%) 4px 4px / 8px 8px,
-    #cbb888;
-  filter: drop-shadow(0 3px 0 #857249);
+    repeating-conic-gradient(rgba(0, 0, 0, 0.14) 0% 25%, transparent 0% 50%) 4px 4px / 8px 8px,
+    var(--hb-tile-alt, #cbb888);
 }
 .habbo-tile:hover { background: #ffe58a; }
 .habbo-fig {
@@ -4325,15 +4344,15 @@ body.mode-pixall .secret-card img {
   opacity: 0.92;
 }
 /* Paintings are real 16x12 pixel-art scenes (inline crisp-edge SVGs built in app.js) inside a
-   chunky bevelled frame with a hard offset shadow. */
+   chunky bevelled frame. They live INSIDE the wall panels, inheriting the wall's skew. */
 .hb-painting {
-  position: absolute; top: 34px; width: 58px; height: 44px; margin-left: -29px; z-index: 1;
+  position: absolute; width: 58px; height: 44px; z-index: 1;
   overflow: hidden; background: #123;
   border: 4px solid #6a4a2a; border-radius: 0;
   box-shadow:
     inset 2px 2px 0 #8a6538,        /* lit bevel */
     inset -2px -2px 0 #4a3018,      /* shaded bevel */
-    4px 4px 0 rgba(0, 0, 0, 0.45);  /* hard pixel shadow, not a blur */
+    3px 3px 0 rgba(0, 0, 0, 0.35);  /* hard pixel shadow, not a blur */
 }
 .hb-painting svg { display: block; width: 100%; height: 100%; }
 .hb-plant { position: absolute; top: 40px; margin-left: -14px; z-index: 1; width: 28px; height: 46px; }
@@ -4363,10 +4382,6 @@ body.mode-pixall .secret-card img {
 }
 .character-card.fertility.is-fresh { box-shadow: 0 0 0 2px #ff5a7d, 0 0 14px -3px #ff5a7d; }
 
-/* Isometric wall paintings. The back-LEFT wall recedes up-to-the-right (matching the floor's top-left
-   edge), so its paintings slope DOWN to the left; the back-right wall is the mirror. */
-.hb-wall-l { transform: skewY(-16deg); }
-.hb-wall-r { transform: skewY(16deg); }
 
 /* ===================== Witness reason + chest pixelation ===================== */
 .wp-reason {

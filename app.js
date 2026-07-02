@@ -1363,6 +1363,7 @@ function renderBoard() {
   const player = currentPlayer();
   rebuildSortOptions();            // sort menu adapts to the active mode (and persists the choice)
   stopHeadsAnim();                 // kill any running floating-heads loop before we rebuild
+  habboizeBanner(state.global.mystery?.id === "habbo");   // chunky pixel banner in Habbo mode only
   const dvb = document.getElementById("deVoidBtn"); if (dvb) dvb.style.display = "none";  // re-shown only by the Habbo board
   els.characterBoard.innerHTML = "";
   els.characterBoard.className = "character-board";
@@ -1655,6 +1656,40 @@ function habboMoveTo(col, row) {
   };
   stepTo();
 }
+// In Habbo mode the location banner gets crunched down to chunky pixels + quantised colours so the
+// whole top of the screen reads as one pixel-art scene. Restored when the mode ends.
+function habboizeBanner(on) {
+  const photo = document.querySelector(".location-photo");
+  if (!photo) return;
+  if (!on) {
+    if (photo.dataset.origBg) { photo.style.backgroundImage = photo.dataset.origBg; photo.style.removeProperty("image-rendering"); delete photo.dataset.origBg; }
+    return;
+  }
+  if (photo.dataset.origBg) return;   // already pixelated
+  const m = /url\("?([^")]+)"?\)/.exec(photo.style.backgroundImage);
+  if (!m) return;
+  photo.dataset.origBg = photo.style.backgroundImage;
+  const im = new Image();
+  im.onload = () => {
+    const W = 144, H = 48;
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const x = c.getContext("2d");
+    x.imageSmoothingEnabled = false;
+    x.drawImage(im, 0, 0, W, H);
+    try {
+      const d = x.getImageData(0, 0, W, H); const a = d.data;
+      for (let i = 0; i < a.length; i += 4) { a[i] = Math.round(a[i] / 36) * 36; a[i + 1] = Math.round(a[i + 1] / 36) * 36; a[i + 2] = Math.round(a[i + 2] / 36) * 36; }
+      x.putImageData(d, 0, 0);
+    } catch (e) { /* tainted - skip quantise */ }
+    if (photo.dataset.origBg) {   // still in habbo mode
+      photo.style.backgroundImage = `url('${c.toDataURL()}')`;
+      photo.style.imageRendering = "pixelated";
+    }
+  };
+  im.src = decodeURI(m[1]);
+}
+
 function renderHabboBoard(player) {
   els.characterBoard.classList.add("habbo-board");
   els.characterBoard.setAttribute("aria-label", "Habbo Hotel room");
@@ -1662,12 +1697,53 @@ function renderHabboBoard(player) {
   const room = document.createElement("div");
   room.className = "habbo-room";
   els.characterBoard.appendChild(room);
+
+  // ===== The room shell: two REAL iso walls meeting at the back corner + a solid floor slab, all
+  // themed from the current location (hot spring = teal water room, park = grass, etc). Everything
+  // lives inside .habbo-room so the camera zoom carries the whole room. =====
+  const wallX = habboIso(0, 0).x;                      // back corner of the diamond
+  const EDGE = (HABBO_GW - 1) * (HABBO_TW / 2);         // horizontal run of one wall (252px)
+  const RISE = (HABBO_GH - 1) * (HABBO_TH / 2);         // vertical drop of one wall edge (126px)
+  const WALL_H = 112;
+  const locName = ((state.location && state.location.name) || "").toLowerCase();
+  const HABBO_THEMES = [
+    [/spring|spa|pool|aquarium|beach|lake|bath|pier|harbour|harbor/, { wall: "#2e6f78", cap: "#4c99a2", skirt: "#1d4a50", ground: "#7fccc4", tile: "#cdeeea", tileAlt: "#b2e0da", side: "#5f9a94", room: "#12262e" }],
+    [/park|garden|forest|farm|zoo|camp|orchard|meadow/, { wall: "#7a5a34", cap: "#96754a", skirt: "#59401f", ground: "#57a344", tile: "#6fbf58", tileAlt: "#5da84a", side: "#3f7531", room: "#161f12" }],
+    [/ski|snow|ice|arctic|lodge|mountain/, { wall: "#5a7a9a", cap: "#7c9cba", skirt: "#3f5a75", ground: "#dce9f4", tile: "#f4f8fc", tileAlt: "#dfe9f2", side: "#a2b6ca", room: "#141c28" }],
+    [/casino|nightclub|club|bar|arcade|theatre|theater|cinema/, { wall: "#3a2a52", cap: "#57407a", skirt: "#241634", ground: "#502e58", tile: "#8a4a94", tileAlt: "#74407e", side: "#3e2044", room: "#120a1a" }],
+    [/rooftop|office|train|airport|station|city|museum|library|laundromat/, { wall: "#5e6472", cap: "#7c828f", skirt: "#41454f", ground: "#8e94a0", tile: "#c2c8d2", tileAlt: "#aeb4c0", side: "#767c88", room: "#141821" }]
+  ];
+  const theme = (HABBO_THEMES.find(([re]) => re.test(locName)) || [null,
+    { wall: "#7d87b8", cap: "#99a2cc", skirt: "#565e88", ground: "#c3ae7e", tile: "#d8c79a", tileAlt: "#cbb888", side: "#93805a", room: "#232a4a" }])[1];
+  const varName = { tileAlt: "tile-alt" };
+  Object.keys(theme).forEach((k) => els.characterBoard.style.setProperty(`--hb-${varName[k] || k}`, theme[k]));
+
+  // Solid ground slab under the tiles (with a hard extrusion off the two front edges).
+  const ground = document.createElement("div");
+  ground.className = "hb-ground";
+  ground.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${EDGE * 2}" height="${RISE * 2 + 10}" style="position:absolute;left:${wallX - EDGE}px;top:150px" aria-hidden="true">
+      <polygon points="${EDGE},${RISE * 2} ${EDGE * 2},${RISE} ${EDGE * 2},${RISE + 9} ${EDGE},${RISE * 2 + 9} 0,${RISE + 9} 0,${RISE}" fill="var(--hb-side)"/>
+      <polygon points="${EDGE},0 ${EDGE * 2},${RISE} ${EDGE},${RISE * 2} 0,${RISE}" fill="var(--hb-ground)"/>
+    </svg>`;
+  // Walls: parallelograms whose bottom edges ride the floor's two back edges exactly (skewY ±26.565°,
+  // tan = TH/TW = 0.5). Left wall shaded a touch darker than the right, Habbo-style.
+  const wallL = document.createElement("div");
+  wallL.className = "hb-wallpanel hbw-left";
+  wallL.style.cssText = `left:${wallX - EDGE}px;top:${150 - WALL_H}px;width:${EDGE}px;height:${WALL_H}px`;
+  const wallR = document.createElement("div");
+  wallR.className = "hb-wallpanel hbw-right";
+  wallR.style.cssText = `left:${wallX}px;top:${150 - WALL_H}px;width:${EDGE}px;height:${WALL_H}px`;
+  room.appendChild(wallL);
+  room.appendChild(wallR);
+  room.appendChild(ground);
+
   const floor = document.createElement("div");
   floor.className = "habbo-floor";
   room.appendChild(floor);
   // Clicking empty room (not an avatar, not a walkable tile) drops the camera back out.
   room.addEventListener("click", (e) => {
-    if (habboSelected && (e.target === room || e.target === floor || e.target.classList.contains("habbo-decor"))) selectHabbo(habboSelected);
+    if (habboSelected && (e.target === room || e.target === floor || e.target.closest(".hb-ground")
+      || e.target.classList.contains("hb-wallpanel") || e.target.classList.contains("habbo-decor"))) selectHabbo(habboSelected);
   });
   for (let r = 0; r < HABBO_GH; r++) for (let c = 0; c < HABBO_GW; c++) {
     const p = habboIso(c, r);
@@ -1680,7 +1756,6 @@ function renderHabboBoard(player) {
   // Original room decor (NOT Habbo's copyrighted art): a rug on the floor, framed abstract paintings on
   // the back wall, and a pot plant.
   const mid = habboIso((HABBO_GW - 1) / 2, (HABBO_GH - 1) / 2);
-  const wallX = habboIso(0, 0).x;
   const decor = document.createElement("div");
   decor.className = "habbo-decor";
   // The paintings are ACTUAL tiny pixel-art scenes (16x12 SVG grids, crisp edges): a sunset over the
@@ -1704,11 +1779,12 @@ function renderHabboBoard(player) {
     + `</svg>`;
   decor.innerHTML =
     `<div class="hb-rug" style="left:${mid.x}px;top:${mid.y}px"></div>` +
-    `<div class="hb-painting hb-wall-l" style="left:${wallX - 150}px">${paintSunset}</div>` +
-    `<div class="hb-painting hb-wall-l" style="left:${wallX - 30}px">${paintHills}</div>` +
-    `<div class="hb-painting hb-wall-r" style="left:${wallX + 140}px">${paintNight}</div>` +
-    `<div class="hb-plant" style="left:${wallX - 270}px"><span class="hb-pot"></span></div>`;
+    `<div class="hb-plant" style="left:${wallX - EDGE - 6}px;top:${150 + RISE - 54}px"><span class="hb-pot"></span></div>`;
   room.appendChild(decor);
+  // Paintings hang INSIDE the wall panels, so they inherit the wall's skew and sit flat on it.
+  wallL.innerHTML = `<div class="hb-painting" style="left:34px;top:20px">${paintSunset}</div>`
+    + `<div class="hb-painting" style="left:150px;top:26px">${paintHills}</div>`;
+  wallR.innerHTML = `<div class="hb-painting" style="left:96px;top:22px">${paintNight}</div>`;
   // Give any character without a tile a starting spot, strided so they scatter across the whole floor
   // rather than bunching in the back rows.
   const total = HABBO_GW * HABBO_GH;

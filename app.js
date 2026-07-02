@@ -4514,17 +4514,32 @@ function syncSettingsToForm() {
 // protocol only needs to carry the salt plus live events (eliminations, babies, conversions,
 // round-end); a future WebSocket relay can speak this exact protocol.
 let net = null;
+// Cross-device transport: add ?relay=ws://<host>:8765 to the URL on every device and run
+// `python3 relay.py` on one machine - the relay fans messages out per room. Without the param the
+// transport is a BroadcastChannel (two tabs in the same browser). Same protocol either way.
+const NET_RELAY = (() => { try { return new URLSearchParams(location.search).get("relay"); } catch (e) { return null; } })();
 function netConnect() {
+  try { if (net) net.close(); } catch (e) { /* already closed */ }
+  net = null;
+  if (NET_RELAY) {
+    try {
+      const ws = new WebSocket(`${NET_RELAY.replace(/\/+$/, "")}/${state.roomCode}`);
+      ws.onmessage = (e) => { try { handleNetMsg(JSON.parse(e.data)); } catch (err) { /* junk frame */ } };
+      ws.onopen = () => netSend("hello", {});
+      net = { post: (m) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); }, close: () => { try { ws.close(); } catch (e) { /* fine */ } } };
+    } catch (e) { net = null; }
+    return;
+  }
   try {
-    if (net) net.close();
-    net = new BroadcastChannel(`whoisit-room-${state.roomCode}`);
-    net.onmessage = (e) => handleNetMsg(e.data || {});
+    const bc = new BroadcastChannel(`whoisit-room-${state.roomCode}`);
+    bc.onmessage = (e) => handleNetMsg(e.data || {});
+    net = { post: (m) => bc.postMessage(m), close: () => bc.close() };
     netSend("hello", {});
   } catch (e) { net = null; /* no BroadcastChannel - offline only */ }
 }
 function netSend(type, data) {
   if (!net) return;
-  try { net.postMessage({ type, seat: state.mySeat || 0, ...data }); } catch (e) { /* channel closed */ }
+  try { net.post({ type, seat: state.mySeat || 0, ...data }); } catch (e) { /* channel closed */ }
 }
 function markPeerOnline() {
   if (!state.onlinePeer) {

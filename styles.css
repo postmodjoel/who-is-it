@@ -97,12 +97,17 @@ button:disabled {
   letter-spacing: 0;
 }
 .side-head h1 {
-  font-size: clamp(1.5rem, 3.4vw, 2.3rem);
+  font-family: "Archivo", sans-serif;
+  font-weight: 900;
+  font-size: clamp(1.6rem, 3.6vw, 2.5rem);
+  letter-spacing: -0.02em;
   line-height: 0.9;
-  color: var(--ink);
   text-transform: uppercase;
   overflow-wrap: anywhere;
 }
+/* Same colours + shadows as the splash: yellow WHO?, white IS IT? with a blue drop. */
+.side-head h1 .brand-who { color: #ffbe0b; text-shadow: 0.04em 0.04em 0 #171512; }
+.side-head h1 .brand-isit { color: #fffdf7; text-shadow: 0.04em 0.04em 0 #3a86ff; }
 .side-head .room-code {
   font-size: 0.72rem;
   opacity: 0.55;
@@ -4950,3 +4955,36 @@ img.pol-mascot {
 .manor-room-tile.drop-target { outline: 3px dashed #ffd24d; outline-offset: -3px; filter: brightness(1.18); }
 .manor-token { cursor: grab; }
 .manor-token:active { cursor: grabbing; }
+
+/* ===================== Title screen: local / online / join ===================== */
+.ts-join { display: flex; gap: 6px; width: min(260px, 78vw); }
+.ts-join-input {
+  flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06);
+  color: #fffdf7; font-weight: 800; font-size: 1rem; text-align: center; letter-spacing: 0.12em;
+}
+.ts-join-input::placeholder { color: rgba(255, 255, 255, 0.4); letter-spacing: 0; font-weight: 600; }
+.ts-join-input.shake { animation: ts-shake 0.4s; border-color: #ff5a5a; }
+@keyframes ts-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+.ts-join-btn { flex: 0 0 auto; }
+.ts-hint { max-width: min(360px, 86vw); text-align: center; font-size: 0.72rem; color: rgba(255,255,255,0.5); margin: 4px 0 0; line-height: 1.5; }
+
+/* ===================== Online room panel (replaces the YOU/B chips) ===================== */
+.seat-roster.online-room {
+  display: block; text-align: center;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1.5px dashed color-mix(in srgb, var(--line) 60%, transparent);
+  background: rgba(58, 134, 255, 0.08);
+}
+.or-label { margin: 0 0 2px; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #8fb4ff; }
+.or-code { display: flex; align-items: center; justify-content: center; gap: 8px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.9rem; letter-spacing: 0.04em; color: var(--ink); }
+.or-copy { border: none; background: none; cursor: pointer; font-size: 1rem; padding: 2px 4px; border-radius: 6px; }
+.or-copy:hover { background: rgba(255,255,255,0.1); }
+.or-status { margin: 4px 0 0; font-size: 0.68rem; font-weight: 600; color: var(--muted, #9aa3b2); }
+
+/* Online: no seat-swap button (you only control your own seat). */
+body.mode-online #swapSeatButton { display: none; }
+
+/* Local pass-and-play: the opponent's crossings panel is redundant (you see the whole board and
+   swap seats), so it only shows in online mode. */
+body:not(.mode-online) .opponent-panel { display: none; }

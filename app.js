@@ -240,6 +240,7 @@ const state = {
     boardSize: 24
   },
   currentPlayer: 0,
+  gameMode: "local",   // "local" (pass-and-play) or "online" (room-synced)
   board: [],
   players: [],
   location: null,
@@ -570,15 +571,24 @@ function newGame(seedSalt, opts = {}) {
   // The wheel outcome is picked from the no-repeat bag now, so the "start" message can carry it
   // (a remote client's own bag may disagree - the dealer's pick wins).
   state.wheelPick = opts.effectId !== undefined ? opts.effectId : (state.settings.mystery ? wheelTargetFromBag() : null);
-  // Tell any connected opponent about the new round BEFORE hopping to the new room's channel.
-  if (!opts.remote) netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick });
-  netConnect();
+  // Networking only runs in ONLINE mode. Local (pass-and-play) never touches the channel.
+  if (state.gameMode === "online") {
+    if (!opts.remote) netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick });
+    netConnect();
+  }
   drawPrompt();
   addLog("New game dealt. Nobody looks trustworthy.");
   render();
   replayBrand();   // WHO? / IS IT? slides back in for the fresh round
   stopOpponentSim();
   if (opts.resume) return;   // resume path applies the effect itself (silently, no wheel animation)
+  // A joiner deals a throwaway round just to populate the UI - no wheel, no opponent sim; the host's
+  // sync will replace it in a moment.
+  if (opts.silentEffect) {
+    if (state.settings.mystery && state.wheelPick) applyMysteryEffect(state.wheelPick);
+    render();
+    return;
+  }
   // The Wheel of Fate spins at the start of the round to pick the chaos mode BOTH seats will share.
   // The landing spot is a hash of the salt, so every client's wheel lands on the SAME mode.
   if (state.settings.mystery) {
@@ -596,10 +606,7 @@ function newGame(seedSalt, opts = {}) {
       }
       render();
       scheduleSave();
-      if (!state.onlinePeer) startOpponentSim();
     });
-  } else if (!state.onlinePeer) {
-    startOpponentSim();
   }
   scheduleSave();
 }
@@ -1323,10 +1330,29 @@ function renderLocation() {
 }
 
 function renderRoom() {
+  const online = state.gameMode === "online";
+  document.body.classList.toggle("mode-online", online);
   els.roomCode.innerHTML = `${iconSvg("hash")}<span>${escapeHtml(state.roomCode)}</span>`;
   els.roomCode.setAttribute("aria-label", `Room ${state.roomCode}`);
   els.roomStatus.textContent = "";
   els.seatRoster.innerHTML = "";
+  if (online) {
+    // ONLINE: no seat toggle (you only ever control your own seat). Instead, a big shareable room
+    // number so a friend can JOIN it, plus a live connection status.
+    els.seatRoster.className = "seat-roster online-room";
+    els.seatRoster.innerHTML = `
+      <p class="or-label">Your room</p>
+      <div class="or-code">#${escapeHtml(state.roomCode)} <button type="button" class="or-copy" title="Copy room number">📋</button></div>
+      <p class="or-status">${state.onlinePeer ? "🟢 friend connected" : "⏳ waiting for a friend to join…"}</p>`;
+    const copyBtn = els.seatRoster.querySelector(".or-copy");
+    if (copyBtn) copyBtn.addEventListener("click", () => {
+      if (navigator.clipboard) navigator.clipboard.writeText(state.roomCode).catch(() => {});
+      copyBtn.textContent = "✓"; setTimeout(() => { copyBtn.textContent = "📋"; }, 900);
+    });
+    return;
+  }
+  // LOCAL: the pass-and-play seat toggle.
+  els.seatRoster.className = "seat-roster";
   state.players.forEach((player, index) => {
     const chip = document.createElement("button");
     chip.type = "button";
@@ -4534,6 +4560,7 @@ els.revealSecretButton.addEventListener("click", () => {
 });
 
 els.swapSeatButton.addEventListener("click", () => {
+  if (state.gameMode === "online") return;   // online: you only control your own seat
   state.currentPlayer = state.currentPlayer === 0 ? 1 : 0;
   render();
 });
@@ -4643,6 +4670,8 @@ function markPeerOnline() {
     state.onlinePeer = true;
     stopOpponentSim();                       // a REAL opponent replaces the AI sim
     addLog("Another player connected to the room.");
+    if (els.roomStatus) els.roomStatus.textContent = "";
+    renderRoom();                            // flip the room panel to "friend connected"
   }
 }
 function handleNetMsg(msg) {
@@ -4750,6 +4779,7 @@ function saveGameState() {
       v: 1,
       salt: state.gameSalt,
       settings: state.settings,
+      gameMode: state.gameMode || "local",
       mySeat: state.mySeat || 0,
       currentPlayer: state.currentPlayer,
       boardIds: state.board.map((c) => c.id),   // pin the exact deal: the pool can grow mid-round (fresh GAYBYs)
@@ -4765,6 +4795,7 @@ function loadGameSave() {
 }
 function resumeGame(saved) {
   state.settings = { ...state.settings, ...(saved.settings || {}) };
+  state.gameMode = saved.gameMode || "local";
   state.mySeat = saved.mySeat || 0;
   newGame(saved.salt, { resume: true, remote: true });
   // Rebuild the EXACT dealt board from the save: re-dealing from the salt isn't enough because the
@@ -4799,7 +4830,6 @@ function resumeGame(saved) {
   state.currentPlayer = saved.currentPlayer ?? (state.mySeat || 0);
   addLog("Round restored - carry on.");
   render();
-  if (!state.onlinePeer) startOpponentSim();
 }
 
 // ===================== End round + title screen =====================
@@ -4832,14 +4862,44 @@ function showTitleScreen() {
       <span class="ts-isit">IS IT?</span>
     </div>
     <div class="ts-actions">
-      <button type="button" class="button primary ts-new">NEW GAME</button>
-      ${saved ? `<button type="button" class="button secondary ts-resume">RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</button>` : ""}
-    </div>`;
+      <button type="button" class="button primary ts-local">🛋 LOCAL GAME</button>
+      <button type="button" class="button secondary ts-online">🌐 ONLINE GAME</button>
+      <div class="ts-join">
+        <input class="ts-join-input" type="text" inputmode="numeric" maxlength="4" placeholder="room #" aria-label="Room code to join">
+        <button type="button" class="button ghost ts-join-btn">JOIN</button>
+      </div>
+      ${saved ? `<button type="button" class="button ghost ts-resume">↩ RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</button>` : ""}
+    </div>
+    <p class="ts-hint">Local = pass one screen back and forth. Online = share your room number with a friend.</p>`;
   document.body.appendChild(ov);
   const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
-  ov.querySelector(".ts-new").addEventListener("click", () => { close(); newGame(); });
+  ov.querySelector(".ts-local").addEventListener("click", () => { close(); startLocalGame(); });
+  ov.querySelector(".ts-online").addEventListener("click", () => { close(); startOnlineGame(); });
+  const joinBtn = ov.querySelector(".ts-join-btn");
+  const joinInput = ov.querySelector(".ts-join-input");
+  const doJoin = () => { const code = (joinInput.value || "").trim(); if (/^\d{3,4}$/.test(code)) { close(); joinRoom(code); } else { joinInput.classList.add("shake"); setTimeout(() => joinInput.classList.remove("shake"), 400); } };
+  joinBtn.addEventListener("click", doJoin);
+  joinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doJoin(); });
   const res = ov.querySelector(".ts-resume");
   if (res) res.addEventListener("click", () => { close(); resumeGame(saved); });
+}
+
+// LOCAL: pass-and-play on one screen - the YOU/B seat toggle is how you swap turns.
+function startLocalGame() { state.gameMode = "local"; state.mySeat = 0; newGame(); }
+// ONLINE (host): deal a round and open the room so a friend can join with the room number.
+function startOnlineGame() { state.gameMode = "online"; state.mySeat = 0; newGame(); }
+// ONLINE (guest): connect to someone else's room number and wait for their round to sync in.
+function joinRoom(code) {
+  state.gameMode = "online";
+  state.mySeat = 1;
+  // Deal a throwaway local round so the UI is populated, then point the transport at the host's room
+  // and announce ourselves - the host's "sync" reply adopts their salt and swaps everything over.
+  newGame(undefined, { silentEffect: true });
+  state.roomCode = code;
+  renderRoom();
+  netConnect();
+  addLog(`Connecting to room #${code}…`);
+  els.roomStatus.textContent = `Connecting to room #${code}…`;
 }
 
 // ===================== SEED codes (share a whole setup) =====================

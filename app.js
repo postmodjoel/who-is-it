@@ -4547,6 +4547,12 @@ function handleNetMsg(msg) {
       state.settings = { ...state.settings, ...(msg.settings || {}) };
       state.mySeat = msg.seat === 0 ? 1 : 0;   // take the other seat
       newGame(msg.salt, { remote: true });
+    } else if ((state.mySeat || 0) === (msg.seat || 0)) {
+      // Same round (e.g. second tab resumed the same save) but we collided on the seat - the
+      // newcomer (that's us: we sent the hello this sync answers) yields to the other one.
+      state.mySeat = msg.seat === 0 ? 1 : 0;
+      state.currentPlayer = state.mySeat;
+      render();
     }
     return;
   }

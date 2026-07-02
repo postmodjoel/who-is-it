@@ -459,6 +459,12 @@ const mysteryEffects = [
     exampleQuestion: "Ready to make someone's head pop?"
   },
   {
+    id: "politics",
+    name: "Two-Party System",
+    apply: applyPolitics,
+    exampleQuestion: "Would your person survive a tug-o-war?"
+  },
+  {
     id: "pixall",
     name: "PIXALL",
     apply: applyPixall,
@@ -816,6 +822,8 @@ function breedCharacters(aId, bId) {
   const A = characterById(aId), B = characterById(bId);
   if (!A || !B || !window.faceGenerator) return;
   const mode = state.global.mystery?.id;
+  // Politics: an opposite-party drag is a TUG-O-WAR, not a breed.
+  if (mode === "politics") { politicsTug(A, B); return; }
   if (!BREED_MODES.includes(mode)) {
     // No nagging message - just jiggle the pair to say "not here".
     [aId, bId].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("no-breed-jiggle"); void c.offsetWidth; c.classList.add("no-breed-jiggle"); } });
@@ -1675,11 +1683,30 @@ function renderHabboBoard(player) {
   const wallX = habboIso(0, 0).x;
   const decor = document.createElement("div");
   decor.className = "habbo-decor";
+  // The paintings are ACTUAL tiny pixel-art scenes (16x12 SVG grids, crisp edges): a sunset over the
+  // sea, green hills with a tree, and a starry night - not abstract colour mush.
+  const PXA = `xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 12" width="100%" height="100%" preserveAspectRatio="none" shape-rendering="crispEdges"`;
+  const r = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
+  const paintSunset = `<svg ${PXA}>`
+    + r(0, 0, 16, 3, "#8a2c3e") + r(0, 3, 16, 2, "#c8503a") + r(0, 5, 16, 2, "#e8843a") + r(0, 7, 16, 1, "#f0b04a")
+    + r(6, 4, 4, 4, "#ffd24d") + r(7, 3, 2, 1, "#ffd24d") + r(7, 8, 2, 1, "#ffe9a0")   // sun + top notch + glint
+    + r(0, 8, 16, 4, "#1a4a6a") + r(5, 9, 6, 1, "#3a7a9a") + r(6, 10, 4, 1, "#3a7a9a") // sea + reflection
+    + `</svg>`;
+  const paintHills = `<svg ${PXA}>`
+    + r(0, 0, 16, 8, "#8ac8e8") + r(2, 2, 4, 1, "#ffffff") + r(3, 1, 2, 1, "#ffffff") + r(10, 3, 3, 1, "#ffffff")  // sky + clouds
+    + r(0, 8, 16, 4, "#4a9a3a") + r(0, 7, 7, 1, "#4a9a3a") + r(9, 7, 7, 1, "#3a8030")   // rolling hills
+    + r(11, 4, 2, 3, "#6a4a2a") + r(9, 1, 6, 4, "#2c7a2c") + r(10, 0, 4, 1, "#2c7a2c")  // tree trunk + canopy
+    + `</svg>`;
+  const paintNight = `<svg ${PXA}>`
+    + r(0, 0, 16, 9, "#1a1440") + r(2, 1, 3, 3, "#f0eccc") + r(3, 2, 3, 2, "#1a1440")   // sky + crescent moon
+    + r(8, 2, 1, 1, "#ffffff") + r(12, 1, 1, 1, "#ffffff") + r(10, 5, 1, 1, "#ffe9a0") + r(14, 4, 1, 1, "#ffffff") + r(6, 6, 1, 1, "#ffffff")
+    + r(0, 9, 16, 3, "#33245c") + r(0, 8, 5, 1, "#33245c") + r(11, 8, 5, 1, "#33245c")  // purple hills
+    + `</svg>`;
   decor.innerHTML =
     `<div class="hb-rug" style="left:${mid.x}px;top:${mid.y}px"></div>` +
-    `<div class="hb-painting hb-p1 hb-wall-l" style="left:${wallX - 150}px"></div>` +
-    `<div class="hb-painting hb-p2 hb-wall-l" style="left:${wallX - 30}px"></div>` +
-    `<div class="hb-painting hb-p3 hb-wall-r" style="left:${wallX + 140}px"></div>` +
+    `<div class="hb-painting hb-wall-l" style="left:${wallX - 150}px">${paintSunset}</div>` +
+    `<div class="hb-painting hb-wall-l" style="left:${wallX - 30}px">${paintHills}</div>` +
+    `<div class="hb-painting hb-wall-r" style="left:${wallX + 140}px">${paintNight}</div>` +
     `<div class="hb-plant" style="left:${wallX - 270}px"><span class="hb-pot"></span></div>`;
   room.appendChild(decor);
   // Give any character without a tile a starting spot, strided so they scatter across the whole floor
@@ -2065,12 +2092,43 @@ function createCharacterCard(character, player) {
     const render = (extra) => window.faceGenerator.renderPortrait(character.seed, { ...character.traits, ...extra });
     const headSrc = render({ headOnly: true });        // the head that flies off
 
-    const cols = ["#ff4d6d", "#ffd24d", "#5dff8f", "#4dd2ff", "#c46bff", "#ff8a4d", "#fff27a"];
+    // Every character explodes differently: a hashed burst STYLE (ring / willow droop / double
+    // crackle / 5-point star) with its own palette, particle sizes, spreads and stagger.
+    const PALETTES = [
+      ["#ff4d6d", "#ffd24d", "#fff27a"], ["#4dd2ff", "#5dff8f", "#c8fff2"],
+      ["#c46bff", "#ff5ad0", "#ffd0f4"], ["#ff8a4d", "#ffd24d", "#ff4d3a"],
+      ["#5dff8f", "#c8ff5a", "#f2ffc8"], ["#fff27a", "#ffffff", "#ffd24d"]
+    ];
+    const fh = (s) => stableHash(character.id + ":" + s);
+    const pal = PALETTES[fh("fwpal") % PALETTES.length];
+    const style = ["ring", "willow", "crackle", "star"][fh("fwsty") % 4];
+    const spark = (ang, dist, o) => {
+      o = o || {};
+      const size = o.size != null ? o.size : 0.7 + (fh("fwsz" + ang + dist) % 60) / 100;
+      return `<i style="--tx:${Math.round(Math.cos(ang) * dist)}px;--ty:${Math.round(Math.sin(ang) * dist)}px;`
+        + `--ps:${size.toFixed(2)};--gy:${o.droop || 0}px;--pd:${(o.delay || 0).toFixed(2)}s;--pdur:${(o.dur || 0.85).toFixed(2)}s;`
+        + `background:${o.col || pal[fh("fwc" + ang) % pal.length]}"></i>`;
+    };
     let parts = "";
-    for (let i = 0; i < 16; i++) {
-      const ang = (i / 16) * Math.PI * 2 + (i % 2 ? 0.2 : 0);
-      const dist = 46 + (i % 4) * 14;
-      parts += `<i style="--tx:${Math.round(Math.cos(ang) * dist)}px;--ty:${Math.round(Math.sin(ang) * dist)}px;background:${cols[i % cols.length]}"></i>`;
+    if (style === "ring") {          // clean even shell, one colour ring inside another
+      for (let i = 0; i < 14; i++) parts += spark((i / 14) * Math.PI * 2, 58 + (fh("r" + i) % 10), { col: pal[0] });
+      for (let i = 0; i < 9; i++) parts += spark((i / 9) * Math.PI * 2 + 0.3, 30, { col: pal[1], size: 0.6, delay: 0.08 });
+    } else if (style === "willow") { // long droopy trails that sag under gravity
+      for (let i = 0; i < 18; i++) {
+        const ang = (i / 18) * Math.PI * 2 + (fh("w" + i) % 10) / 30;
+        parts += spark(ang, 40 + (fh("wd" + i) % 34), { droop: 34 + (fh("wg" + i) % 26), dur: 1.5, size: 0.8 });
+      }
+    } else if (style === "crackle") { // main pop, then a delayed scatter of small crackles
+      for (let i = 0; i < 10; i++) parts += spark((i / 10) * Math.PI * 2, 44 + (fh("c" + i) % 14));
+      for (let i = 0; i < 14; i++) {
+        const ang = (fh("ca" + i) % 628) / 100;
+        parts += spark(ang, 52 + (fh("cd" + i) % 30), { size: 0.45, delay: 0.22 + (fh("cy" + i) % 20) / 100, col: pal[2] });
+      }
+    } else {                          // star: particles march out along 5 spokes
+      for (let s = 0; s < 5; s++) for (let k = 1; k <= 3; k++) {
+        const ang = (s / 5) * Math.PI * 2 - Math.PI / 2;
+        parts += spark(ang, 26 * k, { size: 1.15 - k * 0.25, delay: k * 0.06, col: pal[k - 1] });
+      }
     }
     // Blood: particles spraying up/out from the neck (around 59% down the portrait, centred).
     let blood = "";
@@ -2421,6 +2479,22 @@ function getMysteryCardData(character) {
   if (!mystery || !mystery.assignments) return { html: "", dataset: {} };
   const assignment = mystery.assignments[character.id];
   if (!assignment) return { html: "", dataset: {} };
+  if (mystery.id === "politics") {
+    const a = assignment;
+    const rep = a.party === "REP";
+    return {
+      effectName: mystery.name,
+      cardClass: `pol ${rep ? "pol-rep" : "pol-dem"}`,
+      dataset: { party: a.party },
+      cornerHtml: `<img class="pol-mascot" src="assets/${rep ? "pol-elephant" : "pol-donkey"}.png" alt="${a.party}">`
+        + (a.converted ? `<span class="pol-converted">CONVERTED</span>` : ""),
+      html: `<div class="pol-sheet">
+        <span class="pol-party">${rep ? "🐘 REPUBLICAN" : "🫏 DEMOCRAT"}</span>
+        <div class="pol-slogan">“${escapeHtml(a.slogan)}”</div>
+        <div class="pol-approval"><b>APPROVAL</b><i><s style="--n:${a.approval}%"></s></i><u>${a.approval}%</u></div>
+      </div>`
+    };
+  }
   if (mystery.id === "prop-panic") {
     // The prop is WIELDED, not a corner badge: big, plonked somewhere on the person at a hashed
     // angle/position, wobbling on its own beat. The panic loop periodically swaps props around.
@@ -3294,6 +3368,91 @@ function applyPixall(effect) {
   return { id: effect.id, name: effect.name, assignments: {} };
 }
 
+// ===================== Two-Party System (politics + tug-o-war) =====================
+// Everyone is drafted REP or DEM. Dragging someone onto a member of the OTHER party triggers a
+// tug-o-war: the elephant and donkey mascots pull the rope, a random side wins, and the loser is
+// converted to the winner's party.
+const POL_SLOGANS = {
+  REP: ["Guns don't miss people", "Drill baby drill", "Taxes are theft", "War on woke", "My other car is a tank", "Thoughts & prayers dept.", "Freedom isn't free (it's $19.99)"],
+  DEM: ["Rainbow-industrial complex", "Tax the rich (later)", "In this house we believe", "Pronouns in bio", "Oat milk lobbyist", "Defund something", "Hope™ since 2008"]
+};
+function applyPolitics(effect) {
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const party = stableHash(`${state.gameSalt}:pol:${ch.id}`) % 2 ? "REP" : "DEM";
+    const slogans = POL_SLOGANS[party];
+    assignments[ch.id] = {
+      party,
+      slogan: slogans[stableHash(`${state.gameSalt}:pols:${ch.id}`) % slogans.length],
+      approval: 12 + (stableHash(`${state.gameSalt}:pola:${ch.id}`) % 84)
+    };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+if (window.GameData && window.GameData.modePrompts && !window.GameData.modePrompts.politics) {
+  window.GameData.modePrompts.politics = [
+    "Is your person packing heat at a school bake sale?",
+    "Would your person fart a rainbow on live TV?",
+    "Does your person own more than three flags?",
+    "Is your person's approval rating under 40%?",
+    "Would your person win a tug-o-war?",
+    "Has your person ever been cancelled?",
+    "Does your person think the moon landing was staged?",
+    "Would your person tax YOU specifically?",
+    "Is your person a REP?",
+    "Is your person a DEM?",
+    "Does your person do their own research?",
+    "Would your person survive a town hall?",
+    "Is your person in it for the lobbyist money?",
+    "Does your person kiss babies for the cameras?"
+  ];
+}
+// The tug-o-war: donkey pulls from the left, elephant from the right, both contestants' faces ride
+// the rope. It strains back and forth, a random side wins with a yank, and the loser converts.
+function politicsTug(A, B) {
+  const asg = state.global.mystery.assignments;
+  const pa = asg[A.id], pb = asg[B.id];
+  if (!pa || !pb) return;
+  if (pa.party === pb.party) {
+    // Same team - no fight, just the no-breed jiggle.
+    [A.id, B.id].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("no-breed-jiggle"); void c.offsetWidth; c.classList.add("no-breed-jiggle"); } });
+    return;
+  }
+  const dem = pa.party === "DEM" ? A : B;
+  const rep = pa.party === "REP" ? A : B;
+  const ov = document.createElement("div");
+  ov.className = "tug-overlay";
+  ov.innerHTML = `<div class="tug-stage">
+      <div class="tug-title">⚖️ TUG-O-WAR!</div>
+      <img class="tug-mascot tug-donkey" src="assets/pol-donkey.png" alt="">
+      <img class="tug-mascot tug-elephant" src="assets/pol-elephant.png" alt="">
+      <div class="tug-pull">
+        <div class="tug-rope"></div>
+        <img class="tug-face tug-face-dem" src="${dem.image}" alt="">
+        <img class="tug-face tug-face-rep" src="${rep.image}" alt="">
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const repWins = Math.random() < 0.5;
+  // Strain for a couple of seconds, then the winning side yanks the rope home.
+  setTimeout(() => {
+    ov.classList.add(repWins ? "win-rep" : "win-dem");
+    const banner = document.createElement("div");
+    banner.className = "tug-banner";
+    const loser = repWins ? dem : rep;
+    banner.innerHTML = `${repWins ? "🐘" : "🫏"} <b>${escapeHtml(loser.name)}</b> CONVERTED!`;
+    ov.querySelector(".tug-stage").appendChild(banner);
+  }, 2300);
+  setTimeout(() => {
+    const loser = repWins ? dem : rep;
+    const newParty = repWins ? "REP" : "DEM";
+    const slogans = POL_SLOGANS[newParty];
+    asg[loser.id] = { ...asg[loser.id], party: newParty, slogan: slogans[Math.floor(Math.random() * slogans.length)], converted: true };
+    ov.remove();
+    renderBoard();
+  }, 3900);
+}
+
 // Rasterise an SVG portrait down to `size` px and quantise its colours for a real 8-bit look.
 const pixelCache = new Map();
 // `crop` (optional) is [fx, fy, fw, fh] as FRACTIONS of the source (0-1) - use it to spend the whole
@@ -3867,7 +4026,8 @@ const MODE_FLASH = {
   disease: "#e0341a", "gay-frogged": "rainbow", orgy: "#ff2d6f", drugs: "#8a5cff", fertility: "#ff5a7d",
   work: "#8a1a1a", woke: "#ff5ad0", judgement: "#ffcf4d", sims: "#3ec46a", swipe: "#ff5a72",
   habbo: "#2fb6d8", astrology: "#8c5af0", fireworks: "#ffd24d", yugioh: "#a05aff", disguise: "#0b0b0d",
-  "witness-protection-filter": "#c9d200", pixall: "#5dff8f", monocultural: "#c88968", "heads-only": "#7a5cff"
+  "witness-protection-filter": "#c9d200", pixall: "#5dff8f", monocultural: "#c88968", "heads-only": "#7a5cff",
+  politics: "#3a5fd0"
 };
 function playEffectAnnouncement(name) {
   const prev = document.getElementById("effectBlast");

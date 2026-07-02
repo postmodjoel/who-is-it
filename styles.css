@@ -3028,13 +3028,14 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   border-radius: 50%;
   opacity: 0;
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.75);
-  animation: fwBurst 0.85s 0.45s ease-out forwards;
+  /* Per-particle duration/stagger; willow particles sag via --gy, sizes vary via --ps. */
+  animation: fwBurst var(--pdur, 0.85s) calc(0.45s + var(--pd, 0s)) ease-out forwards;
 }
 @keyframes fwBurst {
   0%   { transform: translate(0, 0) scale(0.3); opacity: 0; }
   15%  { opacity: 1; }
   70%  { opacity: 1; }
-  100% { transform: translate(var(--tx), var(--ty)) scale(0.9); opacity: 0; }
+  100% { transform: translate(var(--tx), calc(var(--ty) + var(--gy, 0px))) scale(var(--ps, 0.9)); opacity: 0; }
 }
 
 /* ===================== Orgy Mode ===================== */
@@ -4323,35 +4324,18 @@ body.mode-pixall .secret-card img {
   box-shadow: inset 0 0 0 4px #e0b04a, inset 0 0 0 7px #8a2c2c;
   opacity: 0.92;
 }
-/* Pixel-art paintings: hard-stop colour bands with a checker-dither seam (the classic pixel-art
-   gradient) inside a chunky bevelled frame with a hard offset shadow. No smooth gradients. */
+/* Paintings are real 16x12 pixel-art scenes (inline crisp-edge SVGs built in app.js) inside a
+   chunky bevelled frame with a hard offset shadow. */
 .hb-painting {
   position: absolute; top: 34px; width: 58px; height: 44px; margin-left: -29px; z-index: 1;
+  overflow: hidden; background: #123;
   border: 4px solid #6a4a2a; border-radius: 0;
   box-shadow:
     inset 2px 2px 0 #8a6538,        /* lit bevel */
     inset -2px -2px 0 #4a3018,      /* shaded bevel */
     4px 4px 0 rgba(0, 0, 0, 0.45);  /* hard pixel shadow, not a blur */
 }
-.hb-p1 {  /* sunset: banded sky + dither seam + a square pixel sun */
-  background:
-    radial-gradient(circle 5px at 70% 32%, #fff2a8 98%, transparent 100%),
-    repeating-conic-gradient(#ffd24d 0% 25%, transparent 0% 50%) 0 12px / 8px 8px no-repeat,
-    linear-gradient(180deg, #b33a24 0 25%, #e0653a 0 50%, #f09a3e 0 75%, #ffd24d 0 100%);
-}
-.hb-p2 {  /* sea: banded teal + dithered wave line */
-  background:
-    repeating-conic-gradient(#7bf0a6 0% 25%, transparent 0% 50%) 0 22px / 8px 8px no-repeat,
-    linear-gradient(180deg, #123a52 0 30%, #1a6b8a 0 55%, #2b9aa8 0 78%, #7bf0a6 0 100%);
-}
-.hb-p3 {  /* night: banded purple + pixel stars */
-  background:
-    radial-gradient(circle 2px at 22% 26%, #fff 98%, transparent 100%),
-    radial-gradient(circle 2px at 62% 16%, #fff 98%, transparent 100%),
-    radial-gradient(circle 2px at 82% 44%, #ffe9a8 98%, transparent 100%),
-    repeating-conic-gradient(#7a4ad0 0% 25%, transparent 0% 50%) 0 16px / 8px 8px no-repeat,
-    linear-gradient(180deg, #2a1650 0 35%, #533190 0 65%, #3a86ff 0 100%);
-}
+.hb-painting svg { display: block; width: 100%; height: 100%; }
 .hb-plant { position: absolute; top: 40px; margin-left: -14px; z-index: 1; width: 28px; height: 46px; }
 .hb-plant::before {
   content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
@@ -4668,3 +4652,90 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   border-top: 2px dashed rgba(255, 255, 255, 0.22);
 }
 .family-extras .character-card { width: 108px; }
+
+/* ===================== Two-Party System: cards + TUG-O-WAR ===================== */
+.character-card.pol-rep { border-color: #c33; box-shadow: 0 0 0 1px #c33, 0 0 12px -4px #f44; }
+.character-card.pol-dem { border-color: #36c; box-shadow: 0 0 0 1px #36c, 0 0 12px -4px #48f; }
+/* Needs the extra specificity: the generic `.portrait-wrap img { width: 100% }` rule wins otherwise
+   and blows the mascot up to full card size. */
+.character-card .portrait-wrap img.pol-mascot {
+  position: absolute; right: 4px; top: 4px; left: auto; z-index: 4;
+  width: 46px; height: 34px; object-fit: contain; pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+.pol-converted {
+  position: absolute; left: 6px; top: 8px; z-index: 5; transform: rotate(-9deg);
+  padding: 1px 6px; border: 2px solid #ffd24d; border-radius: 4px;
+  font-size: 0.5rem; font-weight: 900; letter-spacing: 0.08em; color: #ffd24d;
+  background: rgba(20, 10, 0, 0.7);
+}
+.pol-sheet { width: 100%; display: flex; flex-direction: column; gap: 3px; align-items: center; }
+.pol-party { font-size: 0.56rem; font-weight: 900; letter-spacing: 0.06em; }
+.pol-rep .pol-party { color: #ff7a6a; }
+.pol-dem .pol-party { color: #7aa8ff; }
+.pol-slogan { font-size: 0.55rem; font-style: italic; opacity: 0.85; text-align: center; }
+.pol-approval { display: flex; align-items: center; gap: 5px; width: 100%; font-size: 0.5rem; font-weight: 800; }
+.pol-approval i { flex: 1; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.14); overflow: hidden; display: block; }
+.pol-approval s { display: block; height: 100%; width: var(--n, 50%); text-decoration: none; background: linear-gradient(90deg, #c33, #f4a); }
+.pol-dem .pol-approval s { background: linear-gradient(90deg, #36c, #4cf); }
+
+.tug-overlay {
+  position: fixed; inset: 0; z-index: 1005; display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 4, 14, 0.82); backdrop-filter: blur(3px);
+}
+.tug-stage { position: relative; width: min(860px, 96vw); height: 320px; }
+.tug-title {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  font-size: 2rem; font-weight: 900; letter-spacing: 0.08em; color: #ffd24d;
+  text-shadow: 0 3px 0 #7a3a00, 0 0 22px rgba(255, 190, 11, 0.6);
+  animation: tug-title-pop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+@keyframes tug-title-pop { from { transform: translateX(-50%) scale(0.3); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+/* Donkey pulls from the left, elephant from the right; both lean into the strain. */
+.tug-mascot { position: absolute; bottom: 24px; height: 170px; }
+.tug-donkey { left: 0; transform: scaleX(-1); animation: tug-strain-l 0.5s ease-in-out infinite; }
+.tug-elephant { right: 0; animation: tug-strain-r 0.5s ease-in-out infinite 0.25s; }
+@keyframes tug-strain-l { 0%, 100% { transform: scaleX(-1) rotate(0deg) translateX(0); } 50% { transform: scaleX(-1) rotate(-3deg) translateX(-6px); } }
+@keyframes tug-strain-r { 0%, 100% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(3deg) translateX(6px); } }
+/* The rope + the two contestants riding it, jerking back and forth with the struggle. */
+.tug-pull { position: absolute; left: 50%; bottom: 118px; width: 0; animation: tug-jerk 0.62s ease-in-out infinite; }
+@keyframes tug-jerk {
+  0%, 100% { transform: translateX(-16px); }
+  28% { transform: translateX(20px); }
+  55% { transform: translateX(-24px); }
+  80% { transform: translateX(14px); }
+}
+.tug-rope {
+  position: absolute; left: -220px; top: 0; width: 440px; height: 7px;
+  background: repeating-linear-gradient(90deg, #c8a35a 0 10px, #a87f38 10px 20px);
+  border-radius: 4px; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+.tug-face { position: absolute; top: -66px; width: 62px; height: 62px; object-fit: cover; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6); }
+.tug-face-dem { left: -96px; border-color: #48f; }
+.tug-face-rep { left: 34px; border-color: #f44; }
+/* The yank: the whole pull assembly flies to the winner's side. */
+.tug-overlay.win-rep .tug-pull { animation: tug-win-rep 0.9s cubic-bezier(0.6, -0.2, 0.8, 1) forwards; }
+.tug-overlay.win-dem .tug-pull { animation: tug-win-dem 0.9s cubic-bezier(0.6, -0.2, 0.8, 1) forwards; }
+@keyframes tug-win-rep { to { transform: translateX(300px); } }
+@keyframes tug-win-dem { to { transform: translateX(-300px); } }
+.tug-overlay.win-rep .tug-donkey { animation: tug-lose-l 0.9s ease-in forwards; }
+.tug-overlay.win-dem .tug-elephant { animation: tug-lose-r 0.9s ease-in forwards; }
+@keyframes tug-lose-l { to { transform: scaleX(-1) rotate(38deg) translate(-40px, 30px); opacity: 0.5; } }
+@keyframes tug-lose-r { to { transform: rotate(-38deg) translate(40px, 30px); opacity: 0.5; } }
+.tug-banner {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%) rotate(-3deg);
+  font-size: 2.1rem; font-weight: 900; color: #fff; white-space: nowrap;
+  text-shadow: 0 3px 0 #1a1a2a, 0 0 26px rgba(255, 255, 255, 0.5);
+  animation: tug-title-pop 0.35s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+.tug-banner b { color: #ffd24d; }
+@media (max-width: 640px) {
+  .tug-mascot { height: 100px; bottom: 60px; }
+  .tug-pull { bottom: 116px; }
+  .tug-rope { left: -130px; width: 260px; }
+  .tug-face { width: 46px; height: 46px; top: -50px; }
+  .tug-face-dem { left: -70px; }
+  .tug-face-rep { left: 24px; }
+  .tug-banner { font-size: 1.2rem; }
+  .tug-title { font-size: 1.3rem; }
+}

@@ -4135,7 +4135,9 @@ body.mode-pixall .secret-card img {
 .habbo-room { position: relative; width: 100%; min-height: 72vh; transform-origin: 0 0; transition: transform 0.5s ease; }
 .habbo-floor, .habbo-figs { position: absolute; inset: 0; }
 .habbo-tile {
-  position: absolute; width: 60px; height: 30px; margin-left: -30px; margin-top: -15px;
+  /* Full 84x42 grid pitch so adjacent diamonds tessellate EDGE-TO-EDGE like a real Habbo floor -
+     the inset outline reads as the grout line between tiles. */
+  position: absolute; width: 84px; height: 42px; margin-left: -42px; margin-top: -21px;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   /* Pixel-art tiles: a flat location-themed tone with a 4px checker dither, a tinted outline, and a
      hard drop-shadow extrusion so they read as chunky pixel slabs. */
@@ -4755,3 +4757,8 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   .tug-banner { font-size: 1.2rem; }
   .tug-title { font-size: 1.3rem; }
 }
+
+/* Iso facing: heads turn slightly toward the room centre (paired with the shifted pupils baked into
+   the head render) so avatars read as standing in the room, not mugging the camera. */
+.habbo-fig.hb-face-l .hb-head { transform: rotate(-5deg); }
+.habbo-fig.hb-face-r .hb-head { transform: rotate(5deg); }

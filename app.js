@@ -1807,9 +1807,21 @@ function renderHabboBoard(player) {
     const a = state.global.mystery.assignments[ch.id] || {};
     const pos = habboPos.get(ch.id);
     const p = habboIso(pos.col, pos.row);
+    // Iso facing: instead of staring at the camera, everyone looks diagonally toward the room's
+    // centre - pupils shifted sideways+down and a slight head turn, Habbo-style.
+    const facing = pos.col >= pos.row ? -1 : 1;   // right half of the room looks left, left half right
+    if (ch.traits && window.faceGenerator) {
+      try {
+        a.head = window.faceGenerator.renderPortrait(ch.seed, {
+          ...ch.traits, headOnly: true,
+          pupilX: (Number(ch.traits.pupilX) || 0) + facing * 2.6,
+          pupilY: (Number(ch.traits.pupilY) || 0) + 1.6
+        });
+      } catch (e) { /* keep the stock head */ }
+    }
     const el = document.createElement("button");
     el.type = "button";
-    el.className = `habbo-fig ${ch.id === habboSelected ? "selected" : ""}`.trim();
+    el.className = `habbo-fig ${facing === 1 ? "hb-face-r" : "hb-face-l"} ${ch.id === habboSelected ? "selected" : ""}`.trim();
     el.dataset.id = ch.id;
     el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
     el.style.zIndex = String(100 + pos.col + pos.row);

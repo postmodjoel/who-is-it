@@ -4641,13 +4641,27 @@ let net = null;
 // Cross-device transport: add ?relay=ws://<host>:8765 to the URL on every device and run
 // `python3 relay.py` on one machine - the relay fans messages out per room. Without the param the
 // transport is a BroadcastChannel (two tabs in the same browser). Same protocol either way.
-const NET_RELAY = (() => { try { return new URLSearchParams(location.search).get("relay"); } catch (e) { return null; } })();
+// Where the room-sync WebSocket lives. Priority: an explicit ?relay=ws://host param (local dev with
+// a separate relay); else, when the page is served over http(s) from a real host (a deployment),
+// use the SAME origin - so a deployed single-container build "just works" with no param. On plain
+// localhost/file with no param we stay on BroadcastChannel (two tabs = two clients).
+const NET_RELAY = (() => {
+  try {
+    const explicit = new URLSearchParams(location.search).get("relay");
+    if (explicit) return explicit.replace(/\/+$/, "");
+    const isLocal = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?)/.test(location.hostname) || location.protocol === "file:";
+    if (!isLocal && (location.protocol === "http:" || location.protocol === "https:")) {
+      return `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}`;
+    }
+  } catch (e) { /* fall through to BroadcastChannel */ }
+  return null;
+})();
 function netConnect() {
   try { if (net) net.close(); } catch (e) { /* already closed */ }
   net = null;
   if (NET_RELAY) {
     try {
-      const ws = new WebSocket(`${NET_RELAY.replace(/\/+$/, "")}/${state.roomCode}`);
+      const ws = new WebSocket(`${NET_RELAY}/${state.roomCode}`);
       ws.onmessage = (e) => { try { handleNetMsg(JSON.parse(e.data)); } catch (err) { /* junk frame */ } };
       ws.onopen = () => netSend("hello", {});
       net = { post: (m) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); }, close: () => { try { ws.close(); } catch (e) { /* fine */ } } };

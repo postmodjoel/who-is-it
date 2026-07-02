@@ -1,0 +1,12 @@
+# Fly.io config: `fly launch --now` (or `fly deploy`). WebSockets work out of the box.
+app = "who-is-it"
+primary_region = "syd"
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0

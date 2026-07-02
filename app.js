@@ -1218,6 +1218,11 @@ function renderSecret() {
     </div>
     ${m.cornerHtml ? `<div class="secret-corner">${m.cornerHtml}</div>` : ""}
   `;
+  // Habbo mode: pixelate the player's own portrait too so it matches the room.
+  if (state.global.mystery?.id === "habbo") {
+    const simg = els.secretCard.querySelector(".secret-portrait > img");
+    if (simg && simg.src) { simg.style.imageRendering = "pixelated"; pixelateSrc(simg.src, 30, (url) => { simg.src = url; }); }
+  }
   setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
 }
 
@@ -1420,9 +1425,29 @@ function habboIso(col, row) {
   const originY = 150;   // sits the room lower in the tall board area
   return { x: originX + (col - row) * HABBO_TW / 2, y: originY + (col + row) * HABBO_TH / 2 };
 }
+// A "camera" that zooms the room onto a chosen avatar and follows them (like Habbo). Pass null to
+// pull back out to the whole room.
+function habboCamera(id) {
+  const room = habboCtx?.room;
+  if (!room) return;
+  if (!id || !habboPos.has(id)) { room.style.transform = ""; return; }
+  const p = habboIso(habboPos.get(id).col, habboPos.get(id).row);
+  const rect = els.characterBoard.getBoundingClientRect();
+  const scale = 2.0;
+  const cx = p.x, cy = p.y - 44;                 // aim at the head, not the feet
+  room.style.transform = `translate(${(rect.width / 2 - cx * scale).toFixed(0)}px, ${(rect.height / 2 - cy * scale).toFixed(0)}px) scale(${scale})`;
+}
 function selectHabbo(id) {
+  // Click the already-selected avatar again to zoom back out.
+  if (habboSelected === id) {
+    habboSelected = null;
+    habboCtx?.figEls.forEach((el) => el.classList.remove("selected"));
+    habboCamera(null);
+    return;
+  }
   habboSelected = id;
   if (habboCtx) habboCtx.figEls.forEach((el, cid) => el.classList.toggle("selected", cid === id));
+  habboCamera(id);
 }
 // An L-shaped path along the grid (columns first, then rows). Each hop is to an ADJACENT tile, which
 // on screen is a pure isometric diagonal - so the avatar walks the grid like a real Habbo, turning at
@@ -1452,6 +1477,7 @@ function habboMoveTo(col, row) {
     el.style.transitionDuration = `${STEP}ms`;
     el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
     el.style.zIndex = String(100 + s.col + s.row);
+    if (habboSelected === el.dataset.id) habboCamera(el.dataset.id);   // camera follows the walk
     i++;
     setTimeout(stepTo, STEP);
   };
@@ -1526,9 +1552,10 @@ function renderHabboBoard(player) {
     figs.appendChild(el);
     figEls.set(ch.id, el);
     // Pixelate the head into chunky Habbo pixels once it loads.
-    if (a.head) pixelateSrc(a.head, 44, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; });
+    if (a.head) pixelateSrc(a.head, 30, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; });
   });
-  habboCtx = { figEls };
+  habboCtx = { figEls, room };
+  if (habboSelected) habboCamera(habboSelected);   // keep the camera on re-render
 }
 
 function renderHints() {

@@ -2125,7 +2125,16 @@ button:disabled {
 }
 body[data-character-renderer="ps1"] {
   font-family: "Press Start 2P", monospace;
+  line-height: 1.6;
 }
+/* The pixel font is cramped - give it room to breathe wherever it's used. */
+body[data-character-renderer="ps1"] h1,
+body[data-character-renderer="ps1"] h2,
+body[data-character-renderer="ps1"] h3,
+body[data-character-renderer="ps1"] p,
+body[data-character-renderer="ps1"] .question-prompt,
+body[data-character-renderer="ps1"] .secret-name,
+body[data-character-renderer="ps1"] .label { line-height: 1.7; }
 
 body[data-character-renderer="ps1"] .character-board {
   --card-min: 132px;
@@ -4080,7 +4089,7 @@ body.mode-pixall .secret-card img {
     linear-gradient(180deg, #3a4468 0 30%, #2b3350 30% 100%),
     #2b3350 !important;
 }
-.habbo-room { position: relative; width: 100%; min-height: 72vh; }
+.habbo-room { position: relative; width: 100%; min-height: 72vh; transform-origin: 0 0; transition: transform 0.5s ease; }
 .habbo-floor, .habbo-figs { position: absolute; inset: 0; }
 .habbo-tile {
   position: absolute; width: 60px; height: 30px; margin-left: -30px; margin-top: -15px;
@@ -4091,27 +4100,28 @@ body.mode-pixall .secret-card img {
 .habbo-tile.alt { background: #cbb888; }
 .habbo-tile:hover { background: #ffe58a; }
 .habbo-fig {
-  position: absolute; top: 0; left: 0; width: 46px; height: 66px;
-  margin-left: -23px; margin-top: -54px;
+  position: absolute; top: 0; left: 0; width: 66px; height: 92px;
+  margin-left: -33px; margin-top: -74px;
   background: none; border: none; padding: 0; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
   transition: transform 0.55s cubic-bezier(.4,0,.2,1);
 }
 .habbo-fig.walking { transition: transform 0.7s linear; }
+/* Head is big + hard-pixelated (Habbo is head-heavy, ~45-50% of height). */
 .hb-head {
-  width: 36px; height: 36px; object-fit: contain; object-position: 50% 26%;
+  width: 54px; height: 54px; object-fit: contain; object-position: 50% 26%;
   image-rendering: pixelated;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); z-index: 2;
 }
 .hb-body {
-  width: 22px; height: 24px; margin-top: -7px;
-  border-radius: 9px 9px 5px 5px; background: var(--shirt, #4a90e2);
-  box-shadow: inset -3px -2px 0 rgba(0, 0, 0, 0.2), inset 3px 2px 0 rgba(255, 255, 255, 0.15);
+  width: 30px; height: 32px; margin-top: -9px;
+  border-radius: 10px 10px 6px 6px; background: var(--shirt, #4a90e2);
+  box-shadow: inset -4px -3px 0 rgba(0, 0, 0, 0.22), inset 4px 3px 0 rgba(255, 255, 255, 0.16);
   z-index: 1;
 }
 .hb-shadow {
   position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
-  width: 30px; height: 12px; border-radius: 50%; background: rgba(0, 0, 0, 0.32); filter: blur(1.5px); z-index: 0;
+  width: 40px; height: 15px; border-radius: 50%; background: rgba(0, 0, 0, 0.32); filter: blur(1.5px); z-index: 0;
 }
 .hb-name {
   position: absolute; top: -13px; z-index: 4;

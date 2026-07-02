@@ -4464,3 +4464,44 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   50% { transform: translate(1px, -1px) scaleY(0.98); }
   75% { transform: translate(-1px, -1px) scaleY(0.96); }
 }
+
+/* ===================== The Void (elimination) ===================== */
+.character-card.voiding {
+  pointer-events: none;
+  animation: void-fall 0.55s cubic-bezier(0.5, 0, 0.9, 0.5) forwards;
+  transform-origin: 50% 120%;
+}
+@keyframes void-fall {
+  0% { transform: translateY(0) scale(1) rotate(0); opacity: 1; filter: none; }
+  45% { transform: translateY(30px) scale(0.6) rotate(140deg); opacity: 0.85; }
+  100% { transform: translateY(120px) scale(0.02) rotate(420deg); opacity: 0; filter: brightness(0.2); }
+}
+/* DE-VOID button floats over the board. */
+.board-wrap { position: relative; }
+.de-void-btn {
+  position: absolute; right: 14px; bottom: 14px; z-index: 30;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 22px; cursor: pointer;
+  font-weight: 800; font-size: 0.8rem; color: #e8e2ff;
+  background: radial-gradient(circle at 30% 30%, #3a2a6a, #120a24);
+  border: 1px solid #6a4fd0; box-shadow: 0 0 0 1px #2a1a55, 0 6px 18px rgba(60, 20, 120, 0.6);
+}
+.de-void-btn:hover { border-color: #a58cff; }
+.de-void-btn .dv-hole { font-size: 1rem; filter: drop-shadow(0 0 4px #7a5cff); }
+.de-void-btn .dv-count { min-width: 18px; padding: 0 5px; border-radius: 10px; background: #7a5cff; color: #0c0716; font-size: 0.7rem; }
+.void-panel {
+  position: absolute; right: 14px; bottom: 58px; z-index: 31; width: min(360px, 86%);
+  max-height: 60vh; overflow: auto; display: none;
+  padding: 12px; border-radius: 14px;
+  background: radial-gradient(circle at 50% 0%, #241645, #0c0718);
+  border: 1px solid #6a4fd0; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+.void-panel.open { display: block; }
+.vp-title { margin: 0 0 8px; font-size: 0.72rem; font-weight: 900; color: #cdbcff; letter-spacing: 0.03em; }
+.vp-title span { display: block; font-size: 0.56rem; font-weight: 600; color: #8f82c0; letter-spacing: 0; }
+.vp-faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 8px; }
+.vp-face { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px; border: none; background: none; cursor: pointer; }
+.vp-face img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; filter: grayscale(0.6) brightness(0.7); transition: filter 0.15s, transform 0.15s; box-shadow: 0 0 0 1px #4a3a8a; }
+.vp-face:hover img { filter: none; transform: scale(1.12); box-shadow: 0 0 0 2px #a58cff; }
+.vp-name { font-size: 0.5rem; font-weight: 700; color: #b8a8ee; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0; }
+.vp-face:hover .vp-name { opacity: 1; }

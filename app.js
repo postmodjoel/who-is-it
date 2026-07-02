@@ -1261,6 +1261,7 @@ function renderBoard() {
   const player = currentPlayer();
   rebuildSortOptions();            // sort menu adapts to the active mode (and persists the choice)
   stopHeadsAnim();                 // kill any running floating-heads loop before we rebuild
+  const dvb = document.getElementById("deVoidBtn"); if (dvb) dvb.style.display = "none";  // re-shown only by the standard board
   els.characterBoard.innerHTML = "";
   els.characterBoard.className = "character-board";
   els.characterBoard.setAttribute("aria-label", "Character board");
@@ -1296,10 +1297,13 @@ function renderBoard() {
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
   sortedBoard().forEach((character) => {
+    // Voided (eliminated) cards vanish - except the one just voided, which plays the fall first.
+    if (player.eliminated.has(character.id) && state.justEliminated !== character.id) return;
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
   if (modeId === "pixall") pixelateBoard();
   if (modeId === "sims") startSimsLoop(); else stopSimsLoop();
+  renderVoidControls(player);
 }
 
 // ===================== Heads Only mode =====================
@@ -1647,8 +1651,53 @@ function toggleEliminated(id) {
     state.justRestored = null;
   }
   renderBoard();
+  const justVoided = state.justEliminated;
   state.justEliminated = null;
   state.justRestored = null;
+  // After the fall animation, drop the card from the DOM so the board reflows over the void.
+  if (justVoided) setTimeout(() => {
+    const el = document.getElementById(`card-${justVoided}`);
+    if (el && currentPlayer().eliminated.has(justVoided) && el.classList.contains("voiding")) el.remove();
+  }, 580);
+}
+
+// ===================== The Void (elimination) + DE-VOID panel =====================
+function renderVoidControls(player) {
+  const wrap = document.querySelector(".board-wrap");
+  if (!wrap) return;
+  const voided = state.board.filter((c) => player.eliminated.has(c.id));
+  let btn = document.getElementById("deVoidBtn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.id = "deVoidBtn"; btn.type = "button"; btn.className = "de-void-btn";
+    btn.addEventListener("click", toggleVoidPanel);
+    wrap.appendChild(btn);
+  }
+  btn.innerHTML = `<span class="dv-hole">🕳</span> DE-VOID REQUIRED? <span class="dv-count">${voided.length}</span>`;
+  btn.style.display = voided.length ? "" : "none";
+  if (!voided.length) { const p = document.getElementById("voidPanel"); if (p) p.classList.remove("open"); }
+  const panel = document.getElementById("voidPanel");
+  if (panel && panel.classList.contains("open")) fillVoidPanel(player);
+}
+function toggleVoidPanel() {
+  let panel = document.getElementById("voidPanel");
+  if (!panel) {
+    panel = document.createElement("div"); panel.id = "voidPanel"; panel.className = "void-panel";
+    document.querySelector(".board-wrap").appendChild(panel);
+  }
+  panel.classList.toggle("open");
+  if (panel.classList.contains("open")) fillVoidPanel(currentPlayer());
+}
+function fillVoidPanel(player) {
+  const panel = document.getElementById("voidPanel");
+  if (!panel) return;
+  const voided = state.board.filter((c) => player.eliminated.has(c.id));
+  panel.innerHTML = `<p class="vp-title">DE-VOID REQUIRED? <span>tap a face to pull them back out</span></p>`
+    + `<div class="vp-faces">${voided.map((c) => {
+      const m = getMysteryCardData(c);
+      return `<button type="button" class="vp-face" data-id="${c.id}"><img src="${m.image || c.image}" alt=""><span class="vp-name">${escapeHtml(displayName(c))}</span></button>`;
+    }).join("")}</div>`;
+  panel.querySelectorAll(".vp-face").forEach((b) => b.addEventListener("click", () => toggleEliminated(b.dataset.id)));
 }
 
 // Per-mode question decks - when a special mode is active, every drawn question matches its flavour.
@@ -1804,7 +1853,8 @@ function createCharacterCard(character, player) {
   card.type = "button";
   card.id = `card-${character.id}`;
   card.className = `character-card ${character.variant || ""} ${mystery.cardClass || ""}`.trim();
-  card.classList.toggle("is-down", player.eliminated.has(character.id));
+  // Voided cards aren't rendered at all; the just-voided one plays a fall-into-the-void first.
+  if (player.eliminated.has(character.id) && state.justEliminated === character.id) card.classList.add("voiding");
   const justKilled = state.justEliminated === character.id;
   const modeId = state.global.mystery?.id;
   // One-shot head-pop + fireworks when just eliminated in Fireworks Mode.

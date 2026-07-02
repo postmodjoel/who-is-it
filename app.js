@@ -761,7 +761,7 @@ function parseCum(str) { const m = String(str).match(/([\d.]+)\s*([MB])/i); if (
 function formatCum(mils) { return mils >= 1000 ? `${(mils / 1000).toFixed(1)}B` : `${Math.max(0, Math.round(mils))}M`; }
 
 // Breeding only happens in the modes where it makes sense.
-const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims", "woke"];
+const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims", "woke", "family-tree-disaster"];
 
 // ===================== Identity reels (slot-machine pickers for new babies) =====================
 // A row of slot-machine reels that spin through their values and land staggered left-to-right (same
@@ -850,6 +850,39 @@ function breedCharacters(aId, bId) {
       renderBoard();
       state.justBorn = null;
       if (typeof addLog === "function") addLog(`${A.name} + ${B.name} bred ${baby.name}!`);
+    });
+    return;
+  }
+
+  // FAMILY TREE: dragging someone onto another family marries them INTO that family, and the pair
+  // gets a baby/gayby that branches off them in the tree.
+  if (mode === "family-tree-disaster") {
+    const asg = state.global.mystery.assignments;
+    const fa = asg[A.id], fb = asg[B.id];
+    if (!fa || !fb) return;
+    const gaybyKid = sameSex(A, B);
+    const baby = makeBaby(A, B, gaybyKid);
+    playBirthAnimation(A.image, B.image, baby, true, () => {
+      state.board.push(baby);
+      const clusters = state.global.mystery.clusters || [];
+      // The dragged one leaves their old family and joins the drop target's.
+      if (fa.clusterId !== fb.clusterId) {
+        const from = clusters.find((c) => c.id === fa.clusterId);
+        const to = clusters.find((c) => c.id === fb.clusterId);
+        if (from && to) {
+          from.characterIds = from.characterIds.filter((cid) => cid !== A.id);
+          to.characterIds.push(A.id);
+          fa.clusterId = to.id;
+        }
+      }
+      const home = clusters.find((c) => c.id === fb.clusterId);
+      if (home) home.characterIds.push(baby.id);
+      asg[baby.id] = { clusterId: fb.clusterId, role: "Baby Somehow" };
+      if (baby.isGayby) persistGayby(baby);
+      state.justBorn = baby.id;
+      if (typeof addLog === "function") addLog(`${A.name} married into ${home ? home.name : "the family"} — ${baby.name} branches off!`);
+      renderBoard();
+      state.justBorn = null;
     });
     return;
   }
@@ -1362,6 +1395,36 @@ function renderBoard() {
   });
   if (modeId === "pixall") pixelateBoard();
   if (modeId === "sims") startSimsLoop(); else stopSimsLoop();
+  if (modeId === "prop-panic") startPropLoop(); else stopPropLoop();
+}
+
+// ===================== Prop Panic: the periodic PROP SWAP =====================
+// Every few seconds the props go berserk and two random characters trade props - so the answers to
+// "who is holding the X" keep shifting mid-round. That's the panic.
+let propPanicTimer = null;
+function stopPropLoop() { if (propPanicTimer) { clearInterval(propPanicTimer); propPanicTimer = null; } }
+function startPropLoop() {
+  if (propPanicTimer) return;
+  propPanicTimer = setInterval(() => {
+    if (state.global.mystery?.id !== "prop-panic") { stopPropLoop(); return; }
+    const asg = state.global.mystery.assignments;
+    const ids = state.board.map((c) => c.id).filter((id) => asg[id]);
+    if (ids.length < 2) return;
+    const a = ids[Math.floor(Math.random() * ids.length)];
+    let b = a;
+    while (b === a) b = ids[Math.floor(Math.random() * ids.length)];
+    // Everyone's prop goes berserk, a PROP SWAP!! flash hits, then the two props trade owners.
+    els.characterBoard.classList.add("prop-berserk");
+    const flash = document.createElement("div");
+    flash.className = "prop-swap-flash";
+    flash.textContent = "PROP SWAP!!";
+    document.body.appendChild(flash);
+    setTimeout(() => {
+      [asg[a], asg[b]] = [asg[b], asg[a]];
+      flash.remove();
+      renderBoard();
+    }, 700);
+  }, 6000);
 }
 
 // ===================== Heads Only mode =====================
@@ -1503,6 +1566,14 @@ function simsTick() {
       card.classList.add("sim-pissing", relief);
       const piss = document.createElement("span");
       piss.className = "sim-piss";
+      // Organic dribble: individual droplets with their own offsets/timing fall off the bottom of the
+      // tile onto the tile underneath, where a puddle collects.
+      piss.innerHTML = Array.from({ length: 4 }, (_, i) => {
+        const dx = -6 + Math.floor(Math.random() * 13);
+        const dl = (i * 0.32 + Math.random() * 0.2).toFixed(2);
+        const du = (0.55 + Math.random() * 0.3).toFixed(2);
+        return `<i class="sim-drop" style="--dx:${dx}px;--dl:${dl}s;--du:${du}s"></i>`;
+      }).join("") + `<i class="sim-puddle"></i>`;
       card.appendChild(piss);
       setTimeout(() => { card.classList.remove("sim-pissing", relief); piss.remove(); }, 2200);
     } else {
@@ -1943,6 +2014,7 @@ function clearMysteryEffectUI() {
   resetHeadsAnim();
   resetHabbo();
   resetSimsLoop();
+  stopPropLoop();
   els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
@@ -2082,6 +2154,19 @@ function renderFamilyBoard(player) {
       node.appendChild(createCharacterCard(character, player));
       tree.appendChild(node);
     });
+    // Members beyond the template's slots (in-laws who married in, fresh babies) branch off below the
+    // tree instead of silently vanishing.
+    const slotted = new Set(treeModel.slots.map((s) => s.characterId));
+    const extras = cluster.characterIds.filter((cid) => !slotted.has(cid));
+    if (extras.length) {
+      const row = document.createElement("div");
+      row.className = "family-extras";
+      extras.forEach((cid) => {
+        const character = state.board.find((item) => item.id === cid);
+        if (character) row.appendChild(createCharacterCard(character, player));
+      });
+      group.appendChild(row);
+    }
     els.characterBoard.appendChild(group);
   });
 }
@@ -2337,10 +2422,18 @@ function getMysteryCardData(character) {
   const assignment = mystery.assignments[character.id];
   if (!assignment) return { html: "", dataset: {} };
   if (mystery.id === "prop-panic") {
+    // The prop is WIELDED, not a corner badge: big, plonked somewhere on the person at a hashed
+    // angle/position, wobbling on its own beat. The panic loop periodically swaps props around.
+    const px = 12 + (stableHash(character.id + ":ppx") % 60);
+    const py = 28 + (stableHash(character.id + ":ppy") % 45);
+    const rot = -28 + (stableHash(character.id + ":ppr") % 57);
+    const dl = -(stableHash(character.id + ":ppd") % 2400) / 1000;
     return {
       effectName: mystery.name,
       primaryText: assignment.value,
       propEmoji: assignment.emoji,
+      cardClass: "prop-mode",
+      style: `--pp-x:${px}%;--pp-y:${py}%;--pp-rot:${rot}deg;--pp-delay:${dl.toFixed(2)}s`,
       dataset: { mysteryValue: assignment.value },
       html: addMysteryBadge(assignment.value, "prop")
     };
@@ -2662,12 +2755,32 @@ function getMysteryCardData(character) {
       ? `${escapeHtml(a.location)} · <b>#${a.queuePos.toLocaleString()} in queue</b>`
       : `${escapeHtml(a.location)} · <b>${a.verdict === "HELL" ? "Circle" : "Tier"} ${a.layer}</b>`;
     const bar = (lbl, n, cls) => `<span class="rct-bar"><b>${lbl}</b><i><s class="${cls}" style="--n:${n}%"></s></i></span>`;
+    // HELL: individual flame tongues, each with its own position / height / flicker timing (hashed
+    // per character+index so no two demons burn alike), split behind and in front of the body.
+    let flames = "";
+    if (a.verdict === "HELL") {
+      const mk = (i, front) => {
+        const s = `${character.id}:fl${front ? "f" : "b"}${i}`;
+        const x = 3 + (stableHash(s + "x") % 90);
+        const d = -(stableHash(s + "d") % 900) / 1000;
+        const dur = (55 + (stableHash(s + "u") % 55)) / 100;
+        const h = front ? 18 + (stableHash(s + "h") % 22) : 26 + (stableHash(s + "h") % 40);
+        const w = front ? 10 + (stableHash(s + "w") % 8) : 14 + (stableHash(s + "w") % 12);
+        return `<i class="jd-flame" style="--fx:${x}%;--fd:${d.toFixed(2)}s;--fu:${dur.toFixed(2)}s;--fh:${h}px;--fw:${w}px"></i>`;
+      };
+      let back = "", frontF = "";
+      for (let i = 0; i < 7; i++) back += mk(i, false);
+      for (let i = 0; i < 4; i++) frontF += mk(i, true);
+      flames = `<span class="jd-flames jd-flames-back" aria-hidden="true">${back}</span>`
+        + `<span class="jd-flames jd-flames-front" aria-hidden="true">${frontF}</span>`;
+    }
     return {
       effectName: mystery.name,
       cardClass: `judgement jd-${a.verdict.toLowerCase()}`,
       dataset: { verdict: a.verdict },
       image: a.image || undefined,
-      cornerHtml: `<span class="jd-verdict">${glyph} ${label}</span>`
+      cornerHtml: flames
+        + `<span class="jd-verdict">${glyph} ${label}</span>`
         + `<span class="jd-crown" aria-hidden="true">${crown}</span>`,
       html: `<div class="jd-sheet">
         <div class="jd-loc">📍 ${where}</div>

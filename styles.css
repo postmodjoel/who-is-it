@@ -3747,26 +3747,36 @@ body.mode-pixall .secret-card img {
    TOP of the person, not behind the flames/clouds. */
 .character-card.judgement .portrait-wrap { overflow: hidden; }
 .character-card.judgement .portrait-wrap::after { z-index: 1; }
-/* HELL: chaotically flickering flames (irregular steps + skew, so it licks like fire instead of a
-   smooth bottom pulse) with a slow ovoidal sway, over charred bodies. */
+/* HELL: a static ember glow at the base (no animation - the old animated panel read as the whole
+   fire tilting up and down) with INDIVIDUAL flame tongues licking independently, some behind the
+   body and a few smaller ones in front. Position/height/timing are hashed per demon in app.js. */
 .jd-hell .portrait-wrap::after {
-  background:
-    radial-gradient(ellipse 30% 58% at 30% 110%, rgba(255, 160, 20, 0.9), transparent 60%),
-    radial-gradient(ellipse 30% 58% at 70% 110%, rgba(255, 120, 8, 0.9), transparent 60%),
-    radial-gradient(ellipse 24% 66% at 50% 104%, rgba(255, 244, 130, 0.95), rgba(255, 120, 0, 0.6) 45%, transparent 66%),
-    radial-gradient(ellipse 60% 46% at 50% 116%, rgba(255, 210, 70, 0.95), rgba(255, 80, 0, 0.7) 48%, transparent 76%),
-    linear-gradient(0deg, rgba(150, 12, 0, 0.78), rgba(90, 0, 0, 0.2) 46%, transparent 62%);
-  mix-blend-mode: screen; transform-origin: 50% 100%;
-  animation: jd-fire 0.85s steps(7, end) infinite;
+  background: linear-gradient(0deg, rgba(150, 12, 0, 0.78), rgba(90, 0, 0, 0.2) 46%, transparent 62%);
+  mix-blend-mode: screen;
 }
-@keyframes jd-fire {
-  0%   { transform: translateY(2%)  scale(1.02, 0.98) skewX(2deg)  rotate(-2deg); opacity: 0.9; }
-  15%  { transform: translateY(-1%) scale(0.97, 1.07) skewX(-3deg) rotate(-1deg); opacity: 1; }
-  30%  { transform: translateY(1%)  scale(1.05, 1.0)  skewX(1deg)  rotate(1deg); opacity: 0.93; }
-  45%  { transform: translateY(-2%) scale(0.95, 1.09) skewX(-2deg) rotate(2deg); opacity: 1; }
-  60%  { transform: translateY(0%)  scale(1.04, 1.01) skewX(3deg)  rotate(1deg); opacity: 0.92; }
-  75%  { transform: translateY(-1%) scale(0.98, 1.06) skewX(-1deg) rotate(-1deg); opacity: 1; }
-  100% { transform: translateY(2%)  scale(1.02, 0.98) skewX(2deg)  rotate(-2deg); opacity: 0.9; }
+.jd-flames { position: absolute; inset: 0; pointer-events: none; }
+.jd-flames-back { z-index: 1; }
+.jd-flames-front { z-index: 3; opacity: 0.85; }
+/* The body sits between the two flame layers. */
+.jd-hell .portrait-wrap img { position: relative; z-index: 2; }
+.jd-flame {
+  position: absolute; bottom: -4px; left: var(--fx, 50%);
+  width: var(--fw, 16px); height: var(--fh, 34px);
+  margin-left: calc(var(--fw, 16px) / -2);
+  transform-origin: 50% 100%;
+  border-radius: 50% 50% 42% 42% / 74% 74% 26% 26%;
+  background: radial-gradient(ellipse 60% 70% at 50% 96%,
+    rgba(255, 246, 160, 0.95), rgba(255, 160, 20, 0.85) 42%, rgba(255, 70, 0, 0.55) 68%, transparent 78%);
+  mix-blend-mode: screen;
+  animation: jd-flame-lick var(--fu, 0.7s) steps(4, end) infinite;
+  animation-delay: var(--fd, 0s);
+}
+@keyframes jd-flame-lick {
+  0%   { transform: scale(1, 1) skewX(3deg); opacity: 0.85; }
+  25%  { transform: scale(0.82, 1.28) skewX(-5deg); opacity: 1; }
+  50%  { transform: scale(1.12, 0.88) skewX(4deg); opacity: 0.78; }
+  75%  { transform: scale(0.78, 1.38) skewX(-3deg); opacity: 1; }
+  100% { transform: scale(1, 1) skewX(3deg); opacity: 0.85; }
 }
 /* Charred, burnt bodies. */
 .jd-hell .portrait-wrap img { filter: brightness(0.48) contrast(1.4) grayscale(0.4) sepia(0.3); }
@@ -4106,15 +4116,19 @@ body.mode-pixall .secret-card img {
 .habbo-tile {
   position: absolute; width: 60px; height: 30px; margin-left: -30px; margin-top: -15px;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  /* Faceted 3-tone top face lit from the upper-left, tinted near-black outline, and a hard
-     drop-shadow extrusion so the tiles read as chunky slabs, not flat diamonds. */
-  background: linear-gradient(160deg, #e4d4a8 0%, #d8c79a 52%, #c7b382 100%);
-  box-shadow: inset 0 0 0 1.5px rgba(43, 32, 18, 0.3);
+  /* Pixel-art tiles: a flat top tone with a 4px checker dither (no smooth gradients), a tinted
+     near-black outline, and a hard drop-shadow extrusion so they read as chunky pixel slabs. */
+  background:
+    repeating-conic-gradient(rgba(255, 250, 230, 0.35) 0% 25%, transparent 0% 50%) 0 0 / 8px 8px,
+    #d8c79a;
+  box-shadow: inset 0 0 0 1.5px rgba(43, 32, 18, 0.35);
   filter: drop-shadow(0 3px 0 #93805a);
   cursor: pointer; transition: background 0.12s;
 }
 .habbo-tile.alt {
-  background: linear-gradient(160deg, #d7c494 0%, #cbb888 52%, #b9a473 100%);
+  background:
+    repeating-conic-gradient(rgba(60, 44, 20, 0.22) 0% 25%, transparent 0% 50%) 4px 4px / 8px 8px,
+    #cbb888;
   filter: drop-shadow(0 3px 0 #857249);
 }
 .habbo-tile:hover { background: #ffe58a; }
@@ -4309,13 +4323,35 @@ body.mode-pixall .secret-card img {
   box-shadow: inset 0 0 0 4px #e0b04a, inset 0 0 0 7px #8a2c2c;
   opacity: 0.92;
 }
+/* Pixel-art paintings: hard-stop colour bands with a checker-dither seam (the classic pixel-art
+   gradient) inside a chunky bevelled frame with a hard offset shadow. No smooth gradients. */
 .hb-painting {
   position: absolute; top: 34px; width: 58px; height: 44px; margin-left: -29px; z-index: 1;
-  border: 4px solid #6a4a2a; border-radius: 2px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  border: 4px solid #6a4a2a; border-radius: 0;
+  box-shadow:
+    inset 2px 2px 0 #8a6538,        /* lit bevel */
+    inset -2px -2px 0 #4a3018,      /* shaded bevel */
+    4px 4px 0 rgba(0, 0, 0, 0.45);  /* hard pixel shadow, not a blur */
 }
-.hb-p1 { background: linear-gradient(135deg, #e0653a, #ffd24d 70%); }
-.hb-p2 { background: radial-gradient(circle at 38% 40%, #7bf0a6, #1a6b8a 75%); }
-.hb-p3 { background: linear-gradient(45deg, #c46bff, #3a86ff); }
+.hb-p1 {  /* sunset: banded sky + dither seam + a square pixel sun */
+  background:
+    radial-gradient(circle 5px at 70% 32%, #fff2a8 98%, transparent 100%),
+    repeating-conic-gradient(#ffd24d 0% 25%, transparent 0% 50%) 0 12px / 8px 8px no-repeat,
+    linear-gradient(180deg, #b33a24 0 25%, #e0653a 0 50%, #f09a3e 0 75%, #ffd24d 0 100%);
+}
+.hb-p2 {  /* sea: banded teal + dithered wave line */
+  background:
+    repeating-conic-gradient(#7bf0a6 0% 25%, transparent 0% 50%) 0 22px / 8px 8px no-repeat,
+    linear-gradient(180deg, #123a52 0 30%, #1a6b8a 0 55%, #2b9aa8 0 78%, #7bf0a6 0 100%);
+}
+.hb-p3 {  /* night: banded purple + pixel stars */
+  background:
+    radial-gradient(circle 2px at 22% 26%, #fff 98%, transparent 100%),
+    radial-gradient(circle 2px at 62% 16%, #fff 98%, transparent 100%),
+    radial-gradient(circle 2px at 82% 44%, #ffe9a8 98%, transparent 100%),
+    repeating-conic-gradient(#7a4ad0 0% 25%, transparent 0% 50%) 0 16px / 8px 8px no-repeat,
+    linear-gradient(180deg, #2a1650 0 35%, #533190 0 65%, #3a86ff 0 100%);
+}
 .hb-plant { position: absolute; top: 40px; margin-left: -14px; z-index: 1; width: 28px; height: 46px; }
 .hb-plant::before {
   content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
@@ -4459,23 +4495,39 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 
 /* ===================== Sims: bladder / pissing ===================== */
 .character-card.sims { overflow: visible; }
+/* The piss isn't a solid stream - individual droplets bead up at the bottom edge of the tile and
+   drip down onto the tile underneath, where a puddle collects. */
 .sim-piss {
-  position: absolute; left: 50%; bottom: -2px; transform: translateX(-50%); z-index: 9;
-  width: 5px; height: 0; border-radius: 0 0 3px 3px; pointer-events: none;
-  background: linear-gradient(180deg, #fff0a0, #ffe36a 40%, #e0b020);
-  box-shadow: 0 0 4px rgba(255, 220, 90, 0.7);
-  animation: sim-piss 2.2s ease-in forwards;
+  position: absolute; left: 50%; bottom: 0; z-index: 9;
+  width: 0; height: 0; pointer-events: none;
 }
-@keyframes sim-piss {
-  0% { height: 0; opacity: 0; }
-  14% { height: 30px; opacity: 1; }
-  82% { height: 34px; opacity: 1; }
-  100% { height: 40px; opacity: 0; }
+.sim-drop {
+  position: absolute; left: var(--dx, 0); top: -2px;
+  width: 4px; height: 7px;
+  border-radius: 46% 46% 60% 60% / 30% 30% 70% 70%;   /* teardrop */
+  background: linear-gradient(180deg, #fff0a0, #ffd94a);
+  box-shadow: 0 0 3px rgba(255, 220, 90, 0.6);
+  opacity: 0;
+  animation: sim-drop-fall var(--du, 0.7s) cubic-bezier(0.4, 0, 1, 1) var(--dl, 0s) infinite;
 }
-/* Puddle forming under the stream. */
-.sim-piss::after {
-  content: ""; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%);
-  width: 22px; height: 6px; border-radius: 50%; background: rgba(255, 220, 90, 0.55);
+@keyframes sim-drop-fall {
+  0%   { opacity: 0; transform: translateY(0) scaleY(0.6); }
+  12%  { opacity: 1; transform: translateY(2px) scaleY(1.25); }   /* bead swells then lets go */
+  85%  { opacity: 1; transform: translateY(58px) scaleY(1.1); }
+  100% { opacity: 0; transform: translateY(64px) scaleY(0.4) scaleX(1.8); }   /* splat */
+}
+/* Puddle collecting on the tile underneath (one grid row down). */
+.sim-puddle {
+  position: absolute; top: 60px; left: 0; transform: translateX(-50%);
+  width: 6px; height: 4px; border-radius: 50%;
+  background: rgba(255, 220, 90, 0.55);
+  box-shadow: 0 0 5px rgba(255, 220, 90, 0.4);
+  animation: sim-puddle-grow 2.2s ease-out forwards;
+}
+@keyframes sim-puddle-grow {
+  0% { width: 4px; height: 3px; opacity: 0; }
+  25% { opacity: 1; }
+  100% { width: 26px; height: 7px; opacity: 0.85; }
 }
 /* Keep the shaking clipped inside the portrait so nobody rattles out of their card. */
 .character-card.sims .portrait-wrap { overflow: hidden; }
@@ -4573,3 +4625,46 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   color: #ffd24d; background: rgba(255, 190, 11, 0.12); border: 1px solid rgba(255, 190, 11, 0.4);
   border-radius: 8px; padding: 2px 6px;
 }
+
+/* ===================== Prop Panic 2.0: wielded props + PROP SWAP ===================== */
+/* The prop is big and physically ON the person - hashed position/rotation, wobbling on its own beat. */
+.prop-mode .prop-overlay {
+  right: auto; bottom: auto;
+  left: var(--pp-x, 55%); top: var(--pp-y, 50%);
+  width: 52px; height: 52px; font-size: 2.1rem;
+  transform: rotate(var(--pp-rot, 0deg));
+  animation: prop-wobble 2.6s ease-in-out infinite;
+  animation-delay: var(--pp-delay, 0s);
+  border-width: 3px;
+}
+@keyframes prop-wobble {
+  0%, 100% { transform: rotate(var(--pp-rot, 0deg)) translateY(0); }
+  25% { transform: rotate(calc(var(--pp-rot, 0deg) - 9deg)) translateY(-3px); }
+  60% { transform: rotate(calc(var(--pp-rot, 0deg) + 8deg)) translateY(2px); }
+}
+/* Berserk: right before a swap every prop rattles violently. */
+.character-board.prop-berserk .prop-overlay { animation: prop-berserk 0.09s linear infinite; }
+@keyframes prop-berserk {
+  0%, 100% { transform: rotate(var(--pp-rot, 0deg)) translate(-2px, 1px) scale(1.15); }
+  50% { transform: rotate(calc(var(--pp-rot, 0deg) + 14deg)) translate(2px, -2px) scale(1.2); }
+}
+.prop-swap-flash {
+  position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%) rotate(-4deg); z-index: 1004;
+  font-size: 3rem; font-weight: 900; letter-spacing: 0.06em; color: #fff;
+  text-shadow: 0 3px 0 #b3261e, 0 0 26px rgba(255, 80, 40, 0.9);
+  animation: prop-flash 0.7s cubic-bezier(0.2, 1.6, 0.4, 1);
+  pointer-events: none; white-space: nowrap;
+}
+@keyframes prop-flash {
+  0% { transform: translate(-50%, -50%) rotate(-14deg) scale(0.2); opacity: 0; }
+  40% { transform: translate(-50%, -50%) rotate(2deg) scale(1.18); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-4deg) scale(1); opacity: 1; }
+}
+
+/* ===================== Family tree: the in-law / new-baby branch row ===================== */
+.family-extras {
+  display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+  margin-top: 6px; padding-top: 8px;
+  border-top: 2px dashed rgba(255, 255, 255, 0.22);
+}
+.family-extras .character-card { width: 108px; }

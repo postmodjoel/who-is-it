@@ -761,7 +761,36 @@ function parseCum(str) { const m = String(str).match(/([\d.]+)\s*([MB])/i); if (
 function formatCum(mils) { return mils >= 1000 ? `${(mils / 1000).toFixed(1)}B` : `${Math.max(0, Math.round(mils))}M`; }
 
 // Breeding only happens in the modes where it makes sense.
-const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims"];
+const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims", "woke"];
+
+// ===================== Identity reels (slot-machine pickers for new babies) =====================
+// A row of slot-machine reels that spin through their values and land staggered left-to-right (same
+// energy as the opening mode roulette). Used for woke babies (pronouns/gender/ethnicity) and disease
+// babies (severity/disease). done(results) fires with the landed value of each reel.
+const PRONOUN_REEL = ["he/him", "she/her", "they/them", "ze/zir", "xe/xem", "it/its", "any/all"];
+const GENDER_REEL = ["Male", "Female", "Non-Binary", "Genderfluid", "Agender", "Two-Spirit", "Demiboy", "Demigirl", "Bigender", "Genderqueer"];
+const ETHNICITY_REEL = ["White", "Black", "Asian", "Latino", "Indigenous", "Pacific Islander", "Middle Eastern", "Mixed", "Ambiguously Ethnic"];
+function spinIdentityReels(title, reels, done) {
+  const ov = document.createElement("div");
+  ov.className = "reel-overlay";
+  ov.innerHTML = `<div class="reel-box"><p class="reel-title">${escapeHtml(title)}</p><div class="reel-row">`
+    + reels.map((r, i) => `<div class="reel" data-i="${i}"><span class="reel-label">${escapeHtml(r.label)}</span><span class="reel-value">…</span></div>`).join("")
+    + `</div></div>`;
+  document.body.appendChild(ov);
+  const results = new Array(reels.length);
+  let landedCount = 0;
+  reels.forEach((r, i) => {
+    const valEl = ov.querySelector(`.reel[data-i="${i}"] .reel-value`);
+    const spin = setInterval(() => { valEl.textContent = r.values[Math.floor(Math.random() * r.values.length)]; }, 70);
+    setTimeout(() => {
+      clearInterval(spin);
+      results[i] = r.values[Math.floor(Math.random() * r.values.length)];
+      valEl.textContent = results[i];
+      valEl.closest(".reel").classList.add("landed");
+      if (++landedCount === reels.length) setTimeout(() => { ov.remove(); done(results); }, 900);
+    }, 1100 + i * 750);
+  });
+}
 // Combine two parents' disease sheets into a mutant derivative for a disease-mode baby.
 function combineDiseaseAssignment(A, B) {
   const asg = state.global.mystery.assignments;
@@ -835,7 +864,7 @@ function breedCharacters(aId, bId) {
     if (mode === "disease") {
       state.global.mystery.assignments[baby.id] = diseaseBaby;   // baby inherits mutant combined diseases
     } else if (mode === "sims") {
-      state.global.mystery.assignments[baby.id] = { mood: "green", needs: { hunger: 92, social: 95, bladder: 70, fun: 98 }, action: "Being a fresh newborn", career: "Unemployed", simoleons: 0 };
+      state.global.mystery.assignments[baby.id] = { mood: "green", needs: { hunger: 92, social: 95, bladder: 70, fun: 98 }, action: "Being a fresh newborn", career: "Unemployed", simoleons: 0, ...simsPortrait(baby) };
     } else if (state.global.mystery) {
       const eff = mysteryEffects.find((e) => e.id === state.global.mystery.id);
       if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (e) { /* mode has no per-baby data - fine */ } }
@@ -845,7 +874,39 @@ function breedCharacters(aId, bId) {
     if (typeof addLog === "function") addLog(`${A.name} + ${B.name} made a baby: ${baby.name}!`);
     renderBoard();
     state.justBorn = null;
+    // Woke babies get the identity slot machine: pronouns / gender / ethnicity land at random.
+    if (mode === "woke") {
+      spinIdentityReels("THE ALGORITHM IS ASSIGNING…", [
+        { label: "PRONOUNS", values: PRONOUN_REEL },
+        { label: "GENDER", values: GENDER_REEL },
+        { label: "ETHNICITY", values: ETHNICITY_REEL }
+      ], ([pro, gen, eth]) => {
+        baby.wokeIdentity = { pronouns: pro, gender: gen, ethnicity: eth };
+        baby.pronouns = pro.startsWith("he") ? "he" : pro.startsWith("she") ? "she" : "they";
+        renderBoard();
+      });
+    }
+    // Disease babies get the pathology roulette: a random severity + a random bonus disease.
+    if (mode === "disease") {
+      const names = ((window.GameData && window.GameData.diseases) || [["Novel Ailment", "MAJOR"]]).map((d) => d[0]);
+      spinIdentityReels("PATHOLOGY ROULETTE…", [
+        { label: "SEVERITY", values: ["MINOR", "MAJOR", "MEGA"] },
+        { label: "DISEASE", values: names }
+      ], ([tier, name]) => {
+        const asg = state.global.mystery?.assignments[baby.id];
+        if (asg) asg.diseases = [{ name, tier }, ...(asg.diseases || [])].slice(0, 4);
+        renderBoard();
+      });
+    }
   }, { woohoo });
+}
+// A transparent-background portrait + the original backdrop colour, so Sims relief animations can
+// move JUST the person while the card background holds still.
+function simsPortrait(ch) {
+  if (!(ch.traits && window.faceGenerator)) return {};
+  try {
+    return { image: window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: "transparent" }), bg: ch.traits.background };
+  } catch (e) { return {}; }
 }
 // A brief centred toast for breeding feedback.
 function flashToast(msg) {
@@ -1261,7 +1322,7 @@ function renderBoard() {
   const player = currentPlayer();
   rebuildSortOptions();            // sort menu adapts to the active mode (and persists the choice)
   stopHeadsAnim();                 // kill any running floating-heads loop before we rebuild
-  const dvb = document.getElementById("deVoidBtn"); if (dvb) dvb.style.display = "none";  // re-shown only by the standard board
+  const dvb = document.getElementById("deVoidBtn"); if (dvb) dvb.style.display = "none";  // re-shown only by the Habbo board
   els.characterBoard.innerHTML = "";
   els.characterBoard.className = "character-board";
   els.characterBoard.setAttribute("aria-label", "Character board");
@@ -1297,13 +1358,10 @@ function renderBoard() {
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
   sortedBoard().forEach((character) => {
-    // Voided (eliminated) cards vanish - except the one just voided, which plays the fall first.
-    if (player.eliminated.has(character.id) && state.justEliminated !== character.id) return;
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
   if (modeId === "pixall") pixelateBoard();
   if (modeId === "sims") startSimsLoop(); else stopSimsLoop();
-  renderVoidControls(player);
 }
 
 // ===================== Heads Only mode =====================
@@ -1541,23 +1599,35 @@ function renderHabboBoard(player) {
   room.appendChild(figs);
   const figEls = new Map();
   list.forEach((ch) => {
+    // Voided avatars aren't in the room at all - they're in the void (DE-VOID panel brings them back).
+    if (player.eliminated.has(ch.id)) return;
     const a = state.global.mystery.assignments[ch.id] || {};
     const pos = habboPos.get(ch.id);
     const p = habboIso(pos.col, pos.row);
     const el = document.createElement("button");
     el.type = "button";
-    el.className = `habbo-fig ${player.eliminated.has(ch.id) ? "is-down" : ""} ${ch.id === habboSelected ? "selected" : ""}`.trim();
+    el.className = `habbo-fig ${ch.id === habboSelected ? "selected" : ""}`.trim();
     el.dataset.id = ch.id;
     el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
     el.style.zIndex = String(100 + pos.col + pos.row);
     el.innerHTML = `<span class="hb-name">${escapeHtml(displayName(ch))}</span>`
-      + `<span class="hb-kill" title="cross off">✕</span>`
+      + `<span class="hb-kill" title="into the void">✕</span>`
       + `<img class="hb-head" src="${a.head || ch.image}" alt="">`
       + `<span class="hb-body" style="--shirt:${a.shirt || "#4a90e2"}"></span>`
       + `<span class="hb-shadow"></span>`;
     el.addEventListener("click", (e) => {
-      // Killing an avatar also drops the camera back out.
-      if (e.target.classList.contains("hb-kill")) { if (habboSelected === ch.id) habboSelected = null; toggleEliminated(ch.id); return; }
+      // The ✕ drops them into the void: spin-shrink-fall on the spot, camera zooms back out, then the
+      // re-render removes them from the room (the DE-VOID panel can pull them back).
+      if (e.target.classList.contains("hb-kill")) {
+        if (el.classList.contains("hb-voiding")) return;
+        if (habboSelected === ch.id) { habboSelected = null; habboCtx?.figEls.forEach((f) => f.classList.remove("selected")); habboCamera(null); }
+        el.classList.add("hb-voiding");
+        el.style.transition = "transform 0.55s cubic-bezier(0.5, 0, 0.9, 0.5), opacity 0.55s ease-in";
+        el.style.transform = `translate(${p.x.toFixed(0)}px, ${(p.y + 60).toFixed(0)}px) rotate(420deg) scale(0.03)`;
+        el.style.opacity = "0";
+        setTimeout(() => toggleEliminated(ch.id), 560);
+        return;
+      }
       selectHabbo(ch.id);
     });
     figs.appendChild(el);
@@ -1568,6 +1638,7 @@ function renderHabboBoard(player) {
   });
   habboCtx = { figEls, room };
   if (habboSelected) habboCamera(habboSelected);   // keep the camera on re-render
+  renderVoidControls(player);                      // the void + DE-VOID panel is a Habbo-only feature
 }
 
 function renderHints() {
@@ -1659,14 +1730,8 @@ function toggleEliminated(id) {
     state.justRestored = null;
   }
   renderBoard();
-  const justVoided = state.justEliminated;
   state.justEliminated = null;
   state.justRestored = null;
-  // After the fall animation, drop the card from the DOM so the board reflows over the void.
-  if (justVoided) setTimeout(() => {
-    const el = document.getElementById(`card-${justVoided}`);
-    if (el && currentPlayer().eliminated.has(justVoided) && el.classList.contains("voiding")) el.remove();
-  }, 580);
 }
 
 // ===================== The Void (elimination) + DE-VOID panel =====================
@@ -1861,8 +1926,7 @@ function createCharacterCard(character, player) {
   card.type = "button";
   card.id = `card-${character.id}`;
   card.className = `character-card ${character.variant || ""} ${mystery.cardClass || ""}`.trim();
-  // Voided cards aren't rendered at all; the just-voided one plays a fall-into-the-void first.
-  if (player.eliminated.has(character.id) && state.justEliminated === character.id) card.classList.add("voiding");
+  card.classList.toggle("is-down", player.eliminated.has(character.id));
   const justKilled = state.justEliminated === character.id;
   const modeId = state.global.mystery?.id;
   // One-shot head-pop + fireworks when just eliminated in Fireworks Mode.
@@ -2415,6 +2479,11 @@ function getMysteryCardData(character) {
         + `<div class="wk-stash"><b>STASH:</b> ${a.work.items.map(escapeHtml).join(", ")}</div></div>`);
     }
     if (has("disguise")) blocks.push(`<div class="woke-line">🕶 <i>incognito</i></div>`);
+    // A woke baby wears whatever the identity reels landed on.
+    if (character.wokeIdentity) {
+      const w = character.wokeIdentity;
+      blocks.unshift(`<div class="woke-id">🎰 ${escapeHtml(w.pronouns)} · ${escapeHtml(w.gender)} · ${escapeHtml(w.ethnicity)}</div>`);
+    }
 
     const pulseDelay = -(stableHash(character.id + ":pulse") % 6000) / 1000;
     return {
@@ -2618,6 +2687,8 @@ function getMysteryCardData(character) {
     return {
       effectName: mystery.name,
       cardClass: `sims sim-${a.mood}`,
+      image: a.image || undefined,
+      style: a.bg ? `--sim-bg:${a.bg}` : undefined,
       cornerHtml: plumbob
         + `<span class="sim-cash" title="simoleons">${money}</span>`,
       html: `<div class="sim-sheet">
@@ -2889,7 +2960,8 @@ function applySims(effect) {
       mood, needs,
       action: pick(D.simsActions || ["Standing still"], `${ch.id}:a`),
       career: pick(D.simsCareers || ["Unemployed"], `${ch.id}:job`),
-      simoleons: (h % 3 === 0 ? -(h % 900) : (h >>> 4) % 99000)
+      simoleons: (h % 3 === 0 ? -(h % 900) : (h >>> 4) % 99000),
+      ...simsPortrait(ch)   // transparent-bg portrait so relief animations move only the person
     };
   });
   return { id: effect.id, name: effect.name, assignments };
@@ -3128,7 +3200,8 @@ function pixelateBoard() {
   els.characterBoard.querySelectorAll(".portrait-wrap > img").forEach((img) => {
     const src = img.getAttribute("src");
     if (!src || src.startsWith("data:image/png")) return;
-    pixelateSrc(src, 46, (url) => { if (img.isConnected) img.src = url; });
+    // Crop in toward the face so the pixel budget lands on features - you can still tell who's who.
+    pixelateSrc(src, 46, (url) => { if (img.isConnected) img.src = url; }, [0.15, 0.02, 0.7, 0.7]);
   });
 }
 

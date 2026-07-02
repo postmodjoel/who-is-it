@@ -2044,6 +2044,7 @@ function wireCueCardClick() {
 function activateMystery() {
   triggerMysteryEffect(state.currentPlayer);
   render();
+  scheduleSave();
 }
 
 function triggerMysteryEffect(playerIndex) {
@@ -2055,6 +2056,7 @@ function triggerMysteryEffect(playerIndex) {
   playEffectAnnouncement(effect.name);
   showMysteryAnnouncement(effect.name, effect.exampleQuestion);
   addLog(`${player.name} triggered a mystery effect.`);
+  netSend("mode", { id: effect.id });   // the shared mode changed - the other client follows
 }
 
 function triggerKnockoffManorTest() {
@@ -4584,6 +4586,18 @@ function handleNetMsg(msg) {
     if (asg && asg[msg.loserId]) { asg[msg.loserId] = { ...asg[msg.loserId], party: msg.party, converted: true }; renderBoard(); }
     return;
   }
+  if (msg.type === "mode") {
+    markPeerOnline();
+    const eff = mysteryEffects.find((e2) => e2.id === msg.id);
+    if (eff) {
+      applyMysteryEffect(eff.id);
+      playEffectAnnouncement(eff.name);
+      showMysteryAnnouncement(eff.name, eff.exampleQuestion);
+      render();
+      scheduleSave();
+    }
+    return;
+  }
   if (msg.type === "endround") {
     markPeerOnline();
     showRoundOverSplash(() => { /* the follow-up "start" message deals the new round */ });
@@ -4610,6 +4624,8 @@ function saveGameState() {
       settings: state.settings,
       mySeat: state.mySeat || 0,
       currentPlayer: state.currentPlayer,
+      boardIds: state.board.map((c) => c.id),   // pin the exact deal: the pool can grow mid-round (fresh GAYBYs)
+      effectId: state.global.mystery ? state.global.mystery.id : null,   // debug-picked/mystery-swapped modes survive too
       babies: state.board.filter((c) => c.isBaby || (c.isGayby && !c.persistedGayby)).map(serializeCharacter),
       players: state.players.map((p) => ({ secretId: p.secretId, eliminated: [...p.eliminated], mysteryUsed: p.mysteryUsed }))
     }));
@@ -4623,6 +4639,18 @@ function resumeGame(saved) {
   state.settings = { ...state.settings, ...(saved.settings || {}) };
   state.mySeat = saved.mySeat || 0;
   newGame(saved.salt, { resume: true, remote: true });
+  // Rebuild the EXACT dealt board from the save: re-dealing from the salt isn't enough because the
+  // pool can have grown mid-round (a fresh GAYBY persists into it instantly and would displace
+  // someone). Falls back to the salt deal for old saves.
+  if (Array.isArray(saved.boardIds) && saved.boardIds.length > 1) {
+    const byId = new Map(generatedCharacters.map((c) => [c.id, c]));
+    const rebuilt = saved.boardIds.map((id) => byId.get(id)).filter(Boolean);
+    if (rebuilt.length >= 2) {
+      state.board = rebuilt;
+      state.global.roleMap = {};
+      state.board.forEach((ch, i) => { state.global.roleMap[ch.id] = state.settings.roles ? characterRoles[i % characterRoles.length] : ch.role; });
+    }
+  }
   // Session babies rejoin the board (images re-rendered from their traits).
   (saved.babies || []).forEach((b) => {
     if (state.board.some((c) => c.id === b.id)) return;
@@ -4630,11 +4658,10 @@ function resumeGame(saved) {
     if (baby.traits && window.faceGenerator) { try { baby.image = window.faceGenerator.renderPortrait(baby.seed, baby.traits); } catch (e) { return; } }
     state.board.push(baby);
   });
-  // Apply the derived effect AFTER the babies exist so they get per-mode stats too. No wheel replay.
-  if (state.settings.mystery) {
-    const id = wheelTarget();
-    if (id) applyMysteryEffect(id);
-  }
+  // Apply the effect AFTER the babies exist so they get per-mode stats too. No wheel replay. The
+  // saved effect id wins (covers debug-picked modes); old saves fall back to the derived wheel.
+  const effId = saved.effectId !== undefined ? saved.effectId : (state.settings.mystery ? wheelTarget() : null);
+  if (effId) applyMysteryEffect(effId);
   (saved.players || []).forEach((sp, i) => {
     if (!state.players[i]) return;
     state.players[i].secretId = sp.secretId || state.players[i].secretId;

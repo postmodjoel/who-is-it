@@ -4402,3 +4402,55 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   .heads-form-btn { padding: 3px 7px; font-size: 0.56rem; }
   .character-board.heads-board { min-height: 60vh; }
 }
+
+/* ===================== Effect flash bg + no-breed jiggle ===================== */
+.effect-blast-bg {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0; mix-blend-mode: screen;
+  animation: effect-flash-bg 1.85s ease-out forwards;
+}
+@keyframes effect-flash-bg {
+  0% { opacity: 0; }
+  10% { opacity: 0.85; }
+  30% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+.effect-blast-flash, .effect-blast-word { position: relative; z-index: 1; }
+.no-breed-jiggle { animation: no-breed 0.42s ease; }
+@keyframes no-breed {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  15% { transform: translateX(-5px) rotate(-2deg); }
+  30% { transform: translateX(5px) rotate(2deg); }
+  45% { transform: translateX(-4px) rotate(-1.5deg); }
+  60% { transform: translateX(4px) rotate(1.5deg); }
+  80% { transform: translateX(-2px) rotate(0); }
+}
+
+/* ===================== Sims: bladder / pissing ===================== */
+.character-card.sims { overflow: visible; }
+.sim-piss {
+  position: absolute; left: 50%; bottom: -2px; transform: translateX(-50%); z-index: 9;
+  width: 5px; height: 0; border-radius: 0 0 3px 3px; pointer-events: none;
+  background: linear-gradient(180deg, #fff0a0, #ffe36a 40%, #e0b020);
+  box-shadow: 0 0 4px rgba(255, 220, 90, 0.7);
+  animation: sim-piss 2.2s ease-in forwards;
+}
+@keyframes sim-piss {
+  0% { height: 0; opacity: 0; }
+  14% { height: 30px; opacity: 1; }
+  82% { height: 34px; opacity: 1; }
+  100% { height: 40px; opacity: 0; }
+}
+/* Puddle forming under the stream. */
+.sim-piss::after {
+  content: ""; position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%);
+  width: 22px; height: 6px; border-radius: 50%; background: rgba(255, 220, 90, 0.55);
+}
+/* The Sim scrunches up and shudders in relief. */
+.character-card.sims.sim-pissing .portrait-wrap img { animation: sim-shudder 0.11s linear infinite; }
+@keyframes sim-shudder {
+  0%, 100% { transform: translate(0, 0) scaleY(0.98); }
+  25% { transform: translate(-1px, 1px) scaleY(0.96); }
+  50% { transform: translate(1px, -1px) scaleY(0.98); }
+  75% { transform: translate(-1px, -1px) scaleY(0.96); }
+}

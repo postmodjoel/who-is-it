@@ -787,7 +787,11 @@ function breedCharacters(aId, bId) {
   const A = characterById(aId), B = characterById(bId);
   if (!A || !B || !window.faceGenerator) return;
   const mode = state.global.mystery?.id;
-  if (!BREED_MODES.includes(mode)) { flashToast("Breeding only works in Fertility, Orgy, Gay or Disease mode 👶"); return; }
+  if (!BREED_MODES.includes(mode)) {
+    // No nagging message - just jiggle the pair to say "not here".
+    [aId, bId].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("no-breed-jiggle"); void c.offsetWidth; c.classList.add("no-breed-jiggle"); } });
+    return;
+  }
 
   // In FERTILITY mode breeding is gated: you need one egg-producer + one sperm-producer, and it costs
   // each of them some balance. They grind together, then a baby explodes out (parents survive).
@@ -1290,6 +1294,7 @@ function renderBoard() {
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
   if (modeId === "pixall") pixelateBoard();
+  if (modeId === "sims") startSimsLoop(); else stopSimsLoop();
 }
 
 // ===================== Heads Only mode =====================
@@ -1370,11 +1375,46 @@ function renderHeadsOnlyBoard(player) {
 }
 
 // ===================== Habbo Hotel mode =====================
-const HABBO_GW = 8, HABBO_GH = 8, HABBO_TW = 60, HABBO_TH = 30;
+const HABBO_GW = 7, HABBO_GH = 7, HABBO_TW = 84, HABBO_TH = 42;
 let habboPos = new Map();     // char id -> {col,row}, persisted so walking survives re-renders
 let habboSelected = null;
 let habboCtx = null;
 function resetHabbo() { habboPos = new Map(); habboSelected = null; habboCtx = null; }
+
+// ===================== Sims bladder cycle =====================
+// The BLADDER need drains over time; when it bottoms out the Sim pisses (a stream off the bottom of
+// the card, eyes-shut shake), then it fills back up.
+let simBladderTimer = null;
+let simBladder = new Map();
+function stopSimsLoop() { if (simBladderTimer) { clearInterval(simBladderTimer); simBladderTimer = null; } }
+function resetSimsLoop() { stopSimsLoop(); simBladder = new Map(); }
+function simsTick() {
+  if (state.global.mystery?.id !== "sims") { stopSimsLoop(); return; }
+  const asg = state.global.mystery.assignments || {};
+  state.board.forEach((ch) => {
+    const a = asg[ch.id];
+    if (!a || !a.needs) return;
+    const card = document.getElementById(`card-${ch.id}`);
+    if (!card || card.classList.contains("sim-pissing")) return;
+    if (!simBladder.has(ch.id)) simBladder.set(ch.id, a.needs.bladder);
+    const s = card.querySelector('.sim-bar[data-need="bladder"] s');
+    let v = simBladder.get(ch.id) - (2 + Math.random() * 5);
+    if (v <= 0) {
+      simBladder.set(ch.id, 94 + Math.random() * 6);           // relief - refill
+      if (s) { s.style.width = "100%"; s.className = "sim-ok"; }
+      card.classList.add("sim-pissing");
+      const piss = document.createElement("span");
+      piss.className = "sim-piss";
+      card.appendChild(piss);
+      setTimeout(() => { card.classList.remove("sim-pissing"); piss.remove(); }, 2200);
+    } else {
+      simBladder.set(ch.id, v);
+      if (s) { s.style.width = `${v}%`; s.className = v < 25 ? "sim-crit" : v < 55 ? "sim-warn" : "sim-ok"; }
+    }
+  });
+}
+function startSimsLoop() { if (!simBladderTimer) simBladderTimer = setInterval(simsTick, 480); }
+
 function habboIso(col, row) {
   const originX = HABBO_GH * HABBO_TW / 2 + 24;
   const originY = 150;   // sits the room lower in the tall board area
@@ -1724,6 +1764,7 @@ function clearMysteryEffectUI() {
   state.global.mystery = null;
   resetHeadsAnim();
   resetHabbo();
+  resetSimsLoop();
   els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
@@ -2472,9 +2513,9 @@ function getMysteryCardData(character) {
   }
   if (mystery.id === "sims") {
     const a = assignment;
-    const bar = (label, n) => {
+    const bar = (label, n, need) => {
       const cls = n < 25 ? "sim-crit" : n < 55 ? "sim-warn" : "sim-ok";
-      return `<span class="sim-bar"><b>${label}</b><i><s class="${cls}" style="--n:${n}%"></s></i></span>`;
+      return `<span class="sim-bar" data-need="${need}"><b>${label}</b><i><s class="${cls}" style="--n:${n}%"></s></i></span>`;
     };
     const money = a.simoleons < 0 ? `-§${Math.abs(a.simoleons).toLocaleString()}` : `§${a.simoleons.toLocaleString()}`;
     // A real CSS-3D square bipyramid (8 triangular faces) that genuinely rotates in 3D - so side faces
@@ -2491,7 +2532,7 @@ function getMysteryCardData(character) {
         + `<span class="sim-cash" title="simoleons">${money}</span>`,
       html: `<div class="sim-sheet">
         <div class="sim-action">💬 <i>${escapeHtml(a.action)}…</i></div>
-        ${bar("HUNGER", a.needs.hunger)}${bar("SOCIAL", a.needs.social)}${bar("BLADDER", a.needs.bladder)}${bar("FUN", a.needs.fun)}
+        ${bar("HUNGER", a.needs.hunger, "hunger")}${bar("SOCIAL", a.needs.social, "social")}${bar("BLADDER", a.needs.bladder, "bladder")}${bar("FUN", a.needs.fun, "fun")}
         <div class="sim-career">💼 ${escapeHtml(a.career)}</div>
       </div>`
     };
@@ -3500,6 +3541,13 @@ function applyPs1Mode(effect) {
 
 // Full-frame announcement: a white flash plus the effect's name, each letter flung in from
 // off-screen along its own path to slam together in the centre.
+// Per-mode flash colour behind the effect title. "rainbow" gets a special conic wash.
+const MODE_FLASH = {
+  disease: "#e0341a", "gay-frogged": "rainbow", orgy: "#ff2d6f", drugs: "#8a5cff", fertility: "#ff5a7d",
+  work: "#8a1a1a", woke: "#ff5ad0", judgement: "#ffcf4d", sims: "#3ec46a", swipe: "#ff5a72",
+  habbo: "#2fb6d8", astrology: "#8c5af0", fireworks: "#ffd24d", yugioh: "#a05aff", disguise: "#0b0b0d",
+  "witness-protection-filter": "#c9d200", pixall: "#5dff8f", monocultural: "#c88968", "heads-only": "#7a5cff"
+};
 function playEffectAnnouncement(name) {
   const prev = document.getElementById("effectBlast");
   if (prev) prev.remove();
@@ -3507,6 +3555,15 @@ function playEffectAnnouncement(name) {
   const overlay = document.createElement("div");
   overlay.id = "effectBlast";
   overlay.className = "effect-blast";
+
+  // Full-screen colour flash behind the letters, tinted to the active mode.
+  const col = MODE_FLASH[state.global.mystery?.id] || "#ffbe0b";
+  const bg = document.createElement("div");
+  bg.className = "effect-blast-bg";
+  bg.style.background = col === "rainbow"
+    ? "conic-gradient(from 0deg, #ff5a5a, #ffb14e, #ffe83a, #5dff8f, #4dd2ff, #c46bff, #ff5a5a)"
+    : `radial-gradient(circle at 50% 45%, ${col}, transparent 70%)`;
+  overlay.appendChild(bg);
 
   const flash = document.createElement("div");
   flash.className = "effect-blast-flash";

@@ -2657,16 +2657,26 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   inset: 0;
   z-index: 2;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 14px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;   /* bottom-left, clear of the topbar button row */
+  gap: 0;
+  padding: 0 14px 7px;
 }
-.stage-top .location-band .location-copy { min-width: 0; }
-.stage-top .location-band .location-copy .eyebrow { font-size: 0.58rem; margin: 0; opacity: 0.85; }
-.stage-top .location-band .location-copy h2 { margin: 1px 0; font-size: clamp(0.95rem, 1.7vw, 1.35rem); line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage-top .location-band .location-copy { min-width: 0; max-width: 100%; }
+.stage-top .location-band .location-copy .eyebrow { display: none; }   /* declutter - the name is enough */
+.stage-top .location-band .location-copy h2 {
+  margin: 0;
+  font-family: "Archivo", sans-serif;
+  font-weight: 900;
+  font-size: clamp(1.4rem, 2.7vw, 2.1rem);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6), 0.04em 0.04em 0 rgba(0, 0, 0, 0.4);
+}
 .stage-top .location-band .location-copy p { display: none; }   /* the long prompt stays in the side cue card */
-.stage-top .location-band .location-overlay { padding-right: 200px; }  /* leave room for the nested buttons */
+/* Name sits at the BOTTOM now, clear of the top button row - it can use the full banner width. */
 .stage-top .location-band .location-stamp { display: none; }          /* buttons take the right side */
 
 /* ===================== Yu-Gi-Oh! mode ===================== */
@@ -4914,3 +4924,29 @@ img.pol-mascot {
 }
 /* Sort select now lives in the gameplay topbar. */
 #sortSelect { max-width: 150px; }
+
+/* ===================== MURDER TIME: shifty suspects + drag between rooms ===================== */
+/* Everyone glances around nervously - a per-suspect hashed sway/tilt. */
+.manor-token img { animation: manor-shifty var(--shift-dur, 3s) ease-in-out var(--shift-delay, 0s) infinite; }
+@keyframes manor-shifty {
+  0%, 100% { transform: scale(1.64) translateX(0) rotate(0deg); }
+  20% { transform: scale(1.64) translateX(-1.6px) rotate(-1.4deg); }
+  38% { transform: scale(1.64) translateX(1.4px) rotate(1deg); }
+  60% { transform: scale(1.66) translateX(-0.8px) rotate(-0.6deg); }
+  80% { transform: scale(1.64) translateX(1.2px) rotate(1.2deg); }
+}
+.manor-token.dragging { opacity: 0.55; transform: scale(1.14); z-index: 30; }
+.manor-token:hover img { animation-play-state: paused; }
+/* Whoever's in the blood room sweats guiltily and shudders harder. */
+.manor-token.in-blood { animation: manor-nervous 0.5s ease-in-out infinite; }
+@keyframes manor-nervous { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-1px, 0.5px); } 75% { transform: translate(1px, -0.5px); } }
+.manor-token .manor-sweat {
+  position: absolute; top: -6px; right: -4px; left: auto; max-width: none;
+  padding: 0; border: none; background: none; font-size: 0.8rem; transform: none;
+  animation: manor-drip 1.4s ease-in infinite; z-index: 6;
+}
+@keyframes manor-drip { 0% { opacity: 0; transform: translateY(-2px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(10px); } }
+/* A room lights up when you drag a suspect over it. */
+.manor-room-tile.drop-target { outline: 3px dashed #ffd24d; outline-offset: -3px; filter: brightness(1.18); }
+.manor-token { cursor: grab; }
+.manor-token:active { cursor: grabbing; }

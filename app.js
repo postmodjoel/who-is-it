@@ -396,12 +396,6 @@ const mysteryEffects = [
     exampleQuestion: "Is your person dangerously confident?"
   },
   {
-    id: "vibe-labels",
-    name: "Vibe Labels",
-    apply: applyVibeLabels,
-    exampleQuestion: "Does your person have lore?"
-  },
-  {
     id: "witness-protection-filter",
     name: "Witness Protection Filter",
     apply: applyWitnessProtectionFilter,
@@ -625,15 +619,32 @@ function wheelBag() {
   try { const b = JSON.parse(localStorage.getItem(WHEEL_BAG_KEY) || "[]"); return Array.isArray(b) ? b : []; }
   catch (e) { return []; }
 }
+// Escalating derangement: the wheel works through TIERS, tame -> unhinged. It only reaches into a
+// tier once the earlier tiers are exhausted, so a session eases in (PS1, prop panic, murder time)
+// and gets progressively more feral, finishing on WOKE (the everything-at-once finale). Within the
+// current tier the pick is salt-random for variety. Once the whole gauntlet is seen the bag resets.
+const WHEEL_TIERS = [
+  ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", null],
+  ["knockoff-manor", "family-tree-disaster", "heads-only", "yugioh", "pixall", "habbo"],
+  ["hidden-agendas", "monocultural", "witness-protection-filter", "gay-frogged", "swipe", "fireworks", "sims"],
+  ["drugs", "disguise", "disease", "fertility", "orgy", "judgement", "work"],
+  ["woke"]
+];
+// woke needs every one of its component modes experienced first (belt-and-braces beyond its tier).
+const WOKE_PREREQS = ["gay-frogged", "orgy", "drugs", "disease", "fertility", "work", "disguise"];
 function wheelTargetFromBag() {
-  const all = [...mysteryEffects.map((e) => e.id), null];   // null = the No Effect cell
+  const known = new Set(mysteryEffects.map((e) => e.id));
   const seen = wheelBag();
-  let unseen = all.filter((id) => !seen.includes(id));
-  if (!unseen.length) {
-    try { localStorage.setItem(WHEEL_BAG_KEY, "[]"); } catch (e) { /* fine */ }
-    unseen = all;   // full lap complete - fresh bag
+  for (const tier of WHEEL_TIERS) {
+    let pool = tier.filter((id) => (id === null || known.has(id)) && !seen.includes(id));
+    // Gate WOKE until its prerequisite modes have all been seen.
+    pool = pool.filter((id) => id !== "woke" || WOKE_PREREQS.every((p) => seen.includes(p)));
+    if (pool.length) return pool[stableHash(`${state.gameSalt}:wheel`) % pool.length];
   }
-  return unseen[stableHash(`${state.gameSalt}:wheel`) % unseen.length];
+  // Whole gauntlet complete - reset and start a fresh, escalating lap.
+  try { localStorage.setItem(WHEEL_BAG_KEY, "[]"); } catch (e) { /* fine */ }
+  const first = WHEEL_TIERS[0].filter((id) => id === null || known.has(id));
+  return first[stableHash(`${state.gameSalt}:wheel`) % first.length];
 }
 function markWheelSeen(id) {
   try {
@@ -1948,6 +1959,15 @@ function renderKnockoffManorBoard(player) {
       .forEach((character) => {
         cardWrap.appendChild(createManorCharacterToken(character, player));
       });
+    // Rooms accept dragged suspects.
+    roomTile.dataset.roomId = room.id;
+    roomTile.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; roomTile.classList.add("drop-target"); });
+    roomTile.addEventListener("dragleave", () => roomTile.classList.remove("drop-target"));
+    roomTile.addEventListener("drop", (e) => {
+      e.preventDefault(); roomTile.classList.remove("drop-target");
+      const cid = e.dataTransfer.getData("text/plain");
+      if (cid) manorMoveTo(cid, room.id);
+    });
     els.characterBoard.appendChild(roomTile);
   });
 }
@@ -2315,20 +2335,67 @@ function createCharacterCard(character, player) {
 function createManorCharacterToken(character, player) {
   const token = document.createElement("button");
   const assignment = state.global.mystery?.assignments[character.id];
+  const inBlood = assignment?.roomId && assignment.roomId === state.global.mystery?.bloodRoomId;
   token.type = "button";
   token.id = `token-${character.id}`;
-  token.className = "manor-token";
+  token.className = `manor-token ${inBlood ? "in-blood" : ""}`.trim();
   token.classList.toggle("is-down", player.eliminated.has(character.id));
   token.dataset.id = character.id;
   if (assignment?.roomName) token.dataset.houseRoom = assignment.roomName;
   token.setAttribute("aria-label", `${character.name}${assignment?.roomName ? ` in ${assignment.roomName}` : ""}`);
-  token.setAttribute("title", `${character.name}${assignment?.roomName ? ` · ${assignment.roomName}` : ""}`);
+  token.setAttribute("title", `${character.name} — drag between rooms to move a suspect`);
+  // Everyone's shifty: a per-suspect nervous glance/shuffle (hashed offset + speed), guilt sweat
+  // for whoever's currently in the blood room.
+  const sway = 2.2 + (stableHash(character.id + ":shift") % 240) / 100;
+  const delay = -(stableHash(character.id + ":shiftd") % 3000) / 1000;
+  token.style.setProperty("--shift-dur", `${sway.toFixed(2)}s`);
+  token.style.setProperty("--shift-delay", `${delay.toFixed(2)}s`);
   token.innerHTML = `
     <img src="${character.image}" alt="">
-    <span>${escapeHtml(character.name)}</span>
+    ${inBlood ? '<span class="manor-sweat" aria-hidden="true">💧</span>' : ""}
+    <span class="manor-name">${escapeHtml(character.name)}</span>
   `;
-  token.addEventListener("click", () => toggleEliminated(character.id));
+  // Tap crosses off; a real drag relocates the suspect. (manordrag flag set by the drag handler.)
+  token.addEventListener("click", () => { if (token.dataset.manordrag) { delete token.dataset.manordrag; return; } toggleEliminated(character.id); });
+  wireManorDnD(token, character.id);
   return token;
+}
+// Drag a suspect from one room onto another to move them (repositioning to reason about alibis).
+// The drop target is the room tile the pointer is over.
+let manorTouchDrag = null;
+function wireManorDnD(token, id) {
+  token.draggable = true;
+  token.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "move"; token.classList.add("dragging"); token.dataset.manordrag = "1"; });
+  token.addEventListener("dragend", () => token.classList.remove("dragging"));
+  // Touch: finger-drag the token onto another room tile.
+  token.addEventListener("touchstart", (e) => { manorTouchDrag = { id, token }; }, { passive: true });
+  token.addEventListener("touchmove", (e) => {
+    if (!manorTouchDrag) return;
+    manorTouchDrag.moved = true;
+    token.dataset.manordrag = "1";
+    token.classList.add("dragging");
+  }, { passive: true });
+  token.addEventListener("touchend", (e) => {
+    if (!manorTouchDrag || !manorTouchDrag.moved) { manorTouchDrag = null; return; }
+    const t = e.changedTouches[0];
+    const tile = document.elementFromPoint(t.clientX, t.clientY)?.closest(".manor-room-tile");
+    token.classList.remove("dragging");
+    if (tile) manorMoveTo(id, tile.dataset.roomId);
+    manorTouchDrag = null;
+  });
+}
+function manorMoveTo(charId, roomId) {
+  const mystery = state.global.mystery;
+  if (!mystery || mystery.id !== "knockoff-manor") return;
+  const room = (mystery.rooms || []).find((r) => r.id === roomId);
+  const asg = mystery.assignments[charId];
+  if (!room || !asg || asg.roomId === roomId) return;
+  asg.roomId = room.id;
+  asg.roomName = room.name;
+  netSend("manor-move", { charId, roomId });
+  addLog(`A suspect slinked into ${room.name}.`);
+  renderBoard();
+  scheduleSave();
 }
 
 function renderFamilyBoard(player) {
@@ -4635,6 +4702,16 @@ function handleNetMsg(msg) {
     markPeerOnline();
     const asg = state.global.mystery?.assignments;
     if (asg && asg[msg.loserId]) { asg[msg.loserId] = { ...asg[msg.loserId], party: msg.party, converted: true }; renderBoard(); }
+    return;
+  }
+  if (msg.type === "manor-move") {
+    markPeerOnline();
+    const mystery = state.global.mystery;
+    if (mystery?.id === "knockoff-manor") {
+      const room = (mystery.rooms || []).find((r) => r.id === msg.roomId);
+      const asg = mystery.assignments[msg.charId];
+      if (room && asg) { asg.roomId = room.id; asg.roomName = room.name; renderBoard(); }
+    }
     return;
   }
   if (msg.type === "mode") {

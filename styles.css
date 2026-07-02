@@ -1547,6 +1547,20 @@ button:disabled {
 
 .witness-security .portrait-wrap img {
   filter: grayscale(1) contrast(1.3) sepia(.15);
+  transform-origin: 50% 45%;
+  animation: witness-cam 5.2s steps(1, end) infinite;   /* jerky, unpredictable CCTV pan/zoom */
+}
+@keyframes witness-cam {
+  0%   { transform: scale(1.18) translate(4%, -3%) rotate(0.6deg); }
+  11%  { transform: scale(1.35) translate(-6%, 4%) rotate(-1.4deg); }
+  19%  { transform: scale(1.12) translate(7%, 2%) rotate(1deg); }
+  34%  { transform: scale(1.42) translate(-3%, -6%) rotate(0deg); }
+  41%  { transform: scale(1.2) translate(-8%, 5%) rotate(-2deg); }
+  57%  { transform: scale(1.5) translate(5%, 3%) rotate(1.6deg); }
+  63%  { transform: scale(1.15) translate(2%, -5%) rotate(-0.5deg); }
+  78%  { transform: scale(1.3) translate(-7%, -2%) rotate(2deg); }
+  86%  { transform: scale(1.24) translate(6%, 6%) rotate(-1deg); }
+  100% { transform: scale(1.18) translate(4%, -3%) rotate(0.6deg); }
 }
 
 .witness-security .portrait-wrap::after {
@@ -2053,10 +2067,12 @@ button:disabled {
   animation: effect-flash 560ms ease-out forwards;
 }
 
+.effect-blast-wordpart { display: inline-flex; white-space: nowrap; }
 .effect-blast-word {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  gap: 0 0.22em;
   max-width: 94vw;
   font-family: "Space Grotesk", "Archivo", sans-serif;
   font-weight: 700;
@@ -4301,3 +4317,79 @@ body.mode-pixall .secret-card img {
 /* Isometric wall paintings (skewed to sit on the two receding walls). */
 .hb-wall-l { transform: skewY(16deg); }
 .hb-wall-r { transform: skewY(-16deg); }
+
+/* ===================== Witness reason + chest pixelation ===================== */
+.wp-reason {
+  font-size: 0.5rem; font-weight: 800; color: #ffd6d0; letter-spacing: 0.02em; line-height: 1.25;
+  background: rgba(120, 10, 0, 0.5); border-radius: 4px; padding: 2px 4px; margin-top: 2px;
+}
+.wp-reason b { color: #ff5a4a; }
+/* A blurred, mosaic-gridded censor over the chest of every protected witness. */
+.wp-pixel {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 40%; z-index: 4; pointer-events: none;
+  backdrop-filter: blur(4px) contrast(0.92); -webkit-backdrop-filter: blur(4px) contrast(0.92);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 4px, transparent 4px 8px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.16) 0 4px, transparent 4px 8px);
+  background-size: 8px 8px;
+}
+
+/* ===================== Disguise: Arabic name + phonetic ===================== */
+.character-card.disguise h3 { display: none; }   /* the readable name is hidden - that's the disguise */
+.secret-card.disguise .secret-name { display: none; }
+.dg-arabic {
+  font-family: "Reem Kufi", "Amiri", "Scheherazade New", serif;
+  font-size: 1.15rem; font-weight: 700; text-align: center; line-height: 1.3; color: #f4ead9;
+}
+.dg-phon {
+  font-size: 0.56rem; font-weight: 700; letter-spacing: 0.06em; text-align: center; color: #c9b79a;
+  text-transform: uppercase; margin-top: 1px;
+}
+
+/* ===================== PS1 mode: roomier line height for the blocky font ===================== */
+body[data-character-renderer="ps1"] .character-card h3 { line-height: 1.55; }
+body[data-character-renderer="ps1"] .question-prompt { line-height: 1.7; }
+body[data-character-renderer="ps1"] .secret-name { line-height: 1.5; }
+body[data-character-renderer="ps1"] .label,
+body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
+
+/* ===================== Sims: WOOHOOING IN PROGRESS ===================== */
+/* During the woohoo the parents are hidden under a classic Sims mosaic + a bouncing caption. */
+.breed-overlay.woohoo .breed-p { filter: blur(9px) contrast(1.05); }
+.woohoo-cover {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 5;
+  padding: 10px 16px; border-radius: 12px; font-weight: 900; font-size: 1.2rem; letter-spacing: 0.02em;
+  color: #fff; text-shadow: 0 2px 0 #1a8f3a, 0 0 16px rgba(60, 230, 120, 0.7);
+  background:
+    repeating-conic-gradient(#3ec46a 0% 25%, #2aa050 0% 50%) 0 0 / 14px 14px,
+    rgba(10, 30, 18, 0.7);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+  animation: woohoo-bob 0.5s ease-in-out infinite alternate;
+}
+@keyframes woohoo-bob { from { transform: translate(-50%, -52%) rotate(-2deg); } to { transform: translate(-50%, -48%) rotate(2deg); } }
+
+/* ===================== Astrology mode ===================== */
+.character-board.astrology-board {
+  border-color: #2a2350 !important;
+  background:
+    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,.7), transparent),
+    radial-gradient(1px 1px at 62% 66%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1px 1px at 82% 20%, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 44% 84%, rgba(255,255,255,.5), transparent),
+    radial-gradient(circle at 26% 22%, rgba(140,90,240,.25), transparent 46%),
+    linear-gradient(160deg, #171235, #0b0820) !important;
+  backdrop-filter: none !important;
+}
+.character-card.astrology { background: linear-gradient(180deg, #1c1638, #100b22); color: #ece6ff; border: 1px solid #5a4a9a; }
+.character-card.astrology .card-plate { padding: 6px 8px 8px; gap: 3px; background: none; }
+.character-card.astrology.astro-fire  { box-shadow: 0 0 0 1px #ff6a4a, 0 0 12px -3px #ff6a4a; }
+.character-card.astrology.astro-earth { box-shadow: 0 0 0 1px #5fb85a, 0 0 12px -3px #5fb85a; }
+.character-card.astrology.astro-air   { box-shadow: 0 0 0 1px #4fd0e0, 0 0 12px -3px #4fd0e0; }
+.character-card.astrology.astro-water { box-shadow: 0 0 0 1px #4a90e2, 0 0 12px -3px #4a90e2; }
+.astro-glyph { position: absolute; top: 5px; right: 6px; z-index: 3; font-size: 1rem; color: #ffe08a; text-shadow: 0 0 8px rgba(255, 210, 120, 0.8); }
+.astro-sheet { display: flex; flex-direction: column; gap: 3px; }
+.astro-sign { font-size: 0.62rem; font-weight: 800; color: #fff2c0; }
+.astro-big { font-size: 0.6rem; letter-spacing: 0.06em; color: #c6b6ff; }
+.astro-horo { font-size: 0.52rem; font-style: italic; color: #d9d0ff; line-height: 1.25; }
+.astro-toxic { font-size: 0.52rem; color: #ff9ea8; }
+.astro-retro { font-size: 0.5rem; font-weight: 800; color: #ffd23a; background: rgba(120, 90, 20, 0.4); border-radius: 4px; padding: 1px 5px; }

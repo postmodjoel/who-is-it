@@ -529,6 +529,12 @@ const mysteryEffects = [
     name: "Habbo Hotel",
     apply: applyHabbo,
     exampleQuestion: "Is your person standing on the left side of the room?"
+  },
+  {
+    id: "astrology",
+    name: "Astrology",
+    apply: applyAstrology,
+    exampleQuestion: "Is your person a water sign?"
   }
 ];
 
@@ -755,7 +761,7 @@ function parseCum(str) { const m = String(str).match(/([\d.]+)\s*([MB])/i); if (
 function formatCum(mils) { return mils >= 1000 ? `${(mils / 1000).toFixed(1)}B` : `${Math.max(0, Math.round(mils))}M`; }
 
 // Breeding only happens in the modes where it makes sense.
-const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease"];
+const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims"];
 // Combine two parents' disease sheets into a mutant derivative for a disease-mode baby.
 function combineDiseaseAssignment(A, B) {
   const asg = state.global.mystery.assignments;
@@ -815,14 +821,17 @@ function breedCharacters(aId, bId) {
     return;
   }
 
-  // Orgy / Gay / Disease.
+  // Orgy / Gay / Disease / Sims.
   const gayby = sameSex(A, B);
   const diseaseBaby = mode === "disease" ? combineDiseaseAssignment(A, B) : null;  // compute before the animation
   const baby = makeBaby(A, B, gayby);
-  playBirthAnimation(A.image, B.image, baby, false, () => {
+  const woohoo = mode === "sims";   // Sims "woohoo" before the baby
+  playBirthAnimation(A.image, B.image, baby, woohoo, () => {
     state.board.push(baby);
     if (mode === "disease") {
       state.global.mystery.assignments[baby.id] = diseaseBaby;   // baby inherits mutant combined diseases
+    } else if (mode === "sims") {
+      state.global.mystery.assignments[baby.id] = { mood: "green", needs: { hunger: 92, social: 95, bladder: 70, fun: 98 }, action: "Being a fresh newborn", career: "Unemployed", simoleons: 0 };
     } else if (state.global.mystery) {
       const eff = mysteryEffects.find((e) => e.id === state.global.mystery.id);
       if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (e) { /* mode has no per-baby data - fine */ } }
@@ -832,7 +841,7 @@ function breedCharacters(aId, bId) {
     if (typeof addLog === "function") addLog(`${A.name} + ${B.name} made a baby: ${baby.name}!`);
     renderBoard();
     state.justBorn = null;
-  });
+  }, { woohoo });
 }
 // A brief centred toast for breeding feedback.
 function flashToast(msg) {
@@ -845,7 +854,8 @@ function flashToast(msg) {
 // The birth fanfare: (fertility only) the parents grind together, then a fireworks burst + flash, an
 // "IT'S A BOY/GIRL/THEM!" reveal with the baby's name, and finally the baby forms into a card that
 // flies down to the bottom of the stack. `done()` fires at the end (adds the baby to the board).
-function playBirthAnimation(imgA, imgB, baby, grind, done) {
+function playBirthAnimation(imgA, imgB, baby, grind, done, opts) {
+  const woohoo = opts && opts.woohoo;
   const gender = baby.isGayby ? "IT'S A GAYBY!!" : baby.pronouns === "he" ? "IT'S A BOY!" : baby.pronouns === "she" ? "IT'S A GIRL!" : "IT'S A NON-BINARY!";
   const cols = ["#ff4d6d", "#ffd24d", "#5dff8f", "#4dd2ff", "#c46bff", "#ff8a4d", "#fff27a"];
   let burst = "";
@@ -855,9 +865,10 @@ function playBirthAnimation(imgA, imgB, baby, grind, done) {
     burst += `<i style="--tx:${Math.round(Math.cos(ang) * dist)}px;--ty:${Math.round(Math.sin(ang) * dist)}px;color:${cols[i % cols.length]}"></i>`;
   }
   const ov = document.createElement("div");
-  ov.className = `breed-overlay ${grind ? "with-grind" : ""}`.trim();
+  ov.className = `breed-overlay ${grind ? "with-grind" : ""} ${woohoo ? "woohoo" : ""}`.trim();
   ov.innerHTML = `<div class="breed-stage">
       ${grind ? `<img class="breed-p breed-a" src="${imgA}" alt=""><img class="breed-p breed-b" src="${imgB}" alt="">` : ""}
+      ${woohoo ? `<div class="woohoo-cover">🛏️ WOOHOOING IN PROGRESS…</div>` : ""}
       <div class="breed-flash"></div>
       <div class="breed-burst">${burst}</div>
       <div class="birth-banner ${baby.isGayby ? "gayby-banner" : ""}">${gender}</div>
@@ -1272,6 +1283,7 @@ function renderBoard() {
   els.characterBoard.classList.toggle("swipe-board", modeId === "swipe");
   els.characterBoard.classList.toggle("judgement-board", modeId === "judgement");
   els.characterBoard.classList.toggle("sims-board", modeId === "sims");
+  els.characterBoard.classList.toggle("astrology-board", modeId === "astrology");
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
   sortedBoard().forEach((character) => {
@@ -1712,7 +1724,7 @@ function clearMysteryEffectUI() {
   state.global.mystery = null;
   resetHeadsAnim();
   resetHabbo();
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -2167,7 +2179,8 @@ function getMysteryCardData(character) {
       effectName: mystery.name,
       cardClass: assignment.className,
       dataset: { mysteryValue: assignment.value },
-      html: ""
+      cornerHtml: `<span class="wp-pixel" aria-hidden="true"></span>`,   // pixelated censor over the chest
+      html: assignment.reason ? `<div class="wp-reason">🚨 <b>WANTED:</b> ${escapeHtml(assignment.reason)}</div>` : ""
     };
   }
   if (mystery.id === "monocultural") {
@@ -2202,7 +2215,13 @@ function getMysteryCardData(character) {
     };
   }
   if (mystery.id === "disguise") {
-    return { effectName: mystery.name, image: assignment.image || undefined, html: "" };
+    return {
+      effectName: mystery.name,
+      cardClass: "disguise",
+      image: assignment.image || undefined,
+      html: `<div class="dg-arabic" dir="rtl">${escapeHtml(assignment.arabic || "")}</div>`
+        + `<div class="dg-phon">${escapeHtml(assignment.phon || "")}</div>`
+    };
   }
   if (mystery.id === "woke") {
     const a = assignment;
@@ -2431,6 +2450,22 @@ function getMysteryCardData(character) {
   }
   if (mystery.id === "heads-only") {
     return { effectName: mystery.name, cardClass: "heads-secret", image: assignment.image || undefined, html: "" };
+  }
+  if (mystery.id === "astrology") {
+    const a = assignment;
+    const retro = a.retro ? `<div class="astro-retro">☿ Mercury retrograde</div>` : "";
+    return {
+      effectName: mystery.name,
+      cardClass: `astrology astro-${a.element.toLowerCase()}`,
+      cornerHtml: `<span class="astro-glyph" title="${escapeHtml(a.sun.name)}">${a.sun.glyph}</span>`,
+      html: `<div class="astro-sheet">
+        <div class="astro-sign">${a.sun.glyph} <b>${escapeHtml(a.sun.name)}</b> · ${escapeHtml(a.element)}</div>
+        <div class="astro-big">☀${a.sun.glyph} ☾${a.moon} ↑${a.rising}</div>
+        <div class="astro-horo">🔮 <i>"${escapeHtml(a.horoscope)}"</i></div>
+        <div class="astro-toxic">🚩 ${escapeHtml(a.toxic)}</div>
+        ${retro}
+      </div>`
+    };
   }
   if (mystery.id === "habbo") {
     return { effectName: mystery.name, cardClass: "habbo-secret", image: assignment.head || undefined, html: "" };
@@ -2743,6 +2778,29 @@ function applyHeadsOnly(effect) {
   return { id: effect.id, name: effect.name, assignments };
 }
 
+// ASTROLOGY: every character gets a sun / moon / rising sign, an element, a daily horoscope, a toxic
+// trait, and a Mercury-retrograde status.
+function applyAstrology(effect) {
+  const D = window.GameData;
+  const signs = D.astrologySigns || [["Scorpio", "♏", "Water"]];
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:astro:${ch.id}`);
+    const sun = signs[h % signs.length];
+    const moon = signs[(h >>> 4) % signs.length];
+    const rising = signs[(h >>> 8) % signs.length];
+    assignments[ch.id] = {
+      sun: { name: sun[0], glyph: sun[1], element: sun[2] },
+      moon: moon[1], rising: rising[1],
+      element: sun[2],
+      horoscope: (D.astrologyHoroscopes || ["The stars are unclear."])[(h >>> 3) % (D.astrologyHoroscopes || [1]).length],
+      toxic: (D.astrologyToxic || ["ghosts everyone"])[(h >>> 6) % (D.astrologyToxic || [1]).length],
+      retro: (h >>> 11) % 3 === 0
+    };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
 // HABBO HOTEL: an isometric room. Every character becomes a blocky Habbo-style avatar (a pixelated
 // head on a shirt-coloured body) standing on an iso floor. Click an avatar to select it, then click a
 // tile to walk them there.
@@ -2761,21 +2819,38 @@ function applyHabbo(effect) {
 
 // Special Disguise: the WOMEN get a neutral full-face covering (a single eye slit); everyone else is
 // stripped to a bald head + hat + plain white top instead. A generic concealing wrap, not religious.
+// Rough Latin->Arabic-script transliteration (looks the part, not linguistically exact) + an
+// exaggerated phonetic spelling (Olivia -> OH-LEE-VEE-AHHH).
+const ARABIC_MAP = { a: "ا", b: "ب", c: "ك", d: "د", e: "ي", f: "ف", g: "ج", h: "ه", i: "ي", j: "ج", k: "ك", l: "ل", m: "م", n: "ن", o: "و", p: "ب", q: "ق", r: "ر", s: "س", t: "ت", u: "و", v: "ف", w: "و", x: "كس", y: "ي", z: "ز" };
+function arabicize(name) {
+  return [...name.toLowerCase()].map((c) => ARABIC_MAP[c] || "").join("‌") || "؟";
+}
+function phonetic(name) {
+  const V = { a: "AH", e: "EH", i: "EE", o: "OH", u: "OO", y: "EE" };
+  const syl = []; let cons = "";
+  for (const c of name.toLowerCase()) {
+    if (V[c]) { syl.push(cons.toUpperCase() + V[c]); cons = ""; } else if (/[a-z]/.test(c)) cons += c;
+  }
+  if (cons) syl.push(cons.toUpperCase());
+  let s = syl.join("-") || name.toUpperCase();
+  return s.replace(/(AH|EH|OH|OO)$/, "$1HH").replace(/(EE)$/, "EEEE");   // stretch the final vowel
+}
 function applyDisguise(effect) {
   const assignments = {};
   state.board.forEach((ch) => {
     let image = null;
     if (ch.traits && window.faceGenerator) {
+      // REALLY incognito: the covering + all clothing goes pure black.
       image = ch.pronouns === "she"
-        ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true })
+        ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true, accessoryColor: "#0b0b0d", shirt: "#0b0b0d" })
         : window.faceGenerator.renderPortrait(ch.seed, {
           ...ch.traits, hair: "bald", hairLocks: [], beardLength: 0,
-          accessory: "turban", accessoryColor: "#ededee", accessoryY: 0, accessoryScale: 1,
+          accessory: "turban", accessoryColor: "#0b0b0d", accessoryY: 0, accessoryScale: 1,
           clothing: (ch.traits.clothing === "bare" || ch.traits.clothing === "singlet") ? "tee" : ch.traits.clothing,
-          shirt: "#f2f2f2"
+          shirt: "#0b0b0d"
         });
     }
-    assignments[ch.id] = { image };
+    assignments[ch.id] = { image, arabic: arabicize(ch.name), phon: phonetic(ch.name) };
   });
   return { id: effect.id, name: effect.name, assignments };
 }
@@ -2789,7 +2864,8 @@ function applyWork(effect) {
     const image = ch.traits && window.faceGenerator
       ? window.faceGenerator.renderPortrait(ch.seed, {
         ...ch.traits, hair: "bald", hairLocks: [], noBrows: true,
-        skinHex: "#e9ddd2", cheekOpacity: 0, beardLength: 0
+        skinHex: "#e9ddd2", cheekOpacity: 0, beardLength: 0,
+        build: 40, bodyWidth: 0.66, shoulderSlope: 1, bust: 0    // starved, tiny frail torso (head unchanged)
       })
       : null;
     const h = stableHash(`${state.gameSalt}:work:${ch.id}`);
@@ -3257,11 +3333,12 @@ function applyWitnessProtectionFilter(effect) {
   // category - so bars and cameras can repeat across several people.
   const count = Math.max(6, Math.round(state.board.length * 0.6));
   const selectedIds = buildWitnessShortlist(effect.id, count);
+  const reasons = (window.GameData && window.GameData.witnessReasons) || ["Snitched on the mob"];
   const assignments = {};
   selectedIds.forEach((id) => {
     const pickHash = stableHash(`${state.gameSalt}:${effect.id}:pick:${id}`);
     const [label, cls] = weighted[pickHash % weighted.length];
-    assignments[id] = { value: label, className: cls };
+    assignments[id] = { value: label, className: cls, reason: reasons[stableHash(`${state.gameSalt}:wpr:${id}`) % reasons.length] };
   });
   return { id: effect.id, name: effect.name, assignments, selectedIds };
 }
@@ -3437,16 +3514,24 @@ function playEffectAnnouncement(name) {
 
   const word = document.createElement("div");
   word.className = "effect-blast-word";
-  [...name.toUpperCase()].forEach((ch, index) => {
-    const span = document.createElement("span");
-    span.className = "effect-blast-letter";
-    span.textContent = ch === " " ? " " : ch;
-    const dir = index % 2 === 0 ? -1 : 1;
-    span.style.setProperty("--dx", `${dir * (55 + Math.random() * 45)}vw`);
-    span.style.setProperty("--dy", `${(Math.random() - 0.5) * 70}vh`);
-    span.style.setProperty("--rot", `${dir * (15 + Math.random() * 35)}deg`);
-    span.style.setProperty("--delay", `${index * 40}ms`);
-    word.appendChild(span);
+  // Group letters into per-word chunks that never break internally, so the title wraps BETWEEN words.
+  let blastIndex = 0;
+  name.toUpperCase().split(" ").forEach((wordText) => {
+    const chunk = document.createElement("span");
+    chunk.className = "effect-blast-wordpart";
+    [...wordText].forEach((ch) => {
+      const span = document.createElement("span");
+      span.className = "effect-blast-letter";
+      span.textContent = ch;
+      const dir = blastIndex % 2 === 0 ? -1 : 1;
+      span.style.setProperty("--dx", `${dir * (55 + Math.random() * 45)}vw`);
+      span.style.setProperty("--dy", `${(Math.random() - 0.5) * 70}vh`);
+      span.style.setProperty("--rot", `${dir * (15 + Math.random() * 35)}deg`);
+      span.style.setProperty("--delay", `${blastIndex * 40}ms`);
+      chunk.appendChild(span);
+      blastIndex++;
+    });
+    word.appendChild(chunk);
   });
   overlay.appendChild(word);
 

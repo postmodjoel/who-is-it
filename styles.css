@@ -4708,38 +4708,33 @@ img.pol-mascot {
   animation: tug-title-pop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1);
 }
 @keyframes tug-title-pop { from { transform: translateX(-50%) scale(0.3); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
-/* Donkey pulls from the left, elephant from the right. The donkey art already faces RIGHT with the
-   stick in its hooves toward the rope, so NO mirror - it grips the rope and leans back to strain. */
-.tug-mascot { position: absolute; bottom: 24px; height: 170px; }
-.tug-donkey { left: 0; animation: tug-strain-l 0.5s ease-in-out infinite; }
-.tug-elephant { right: 0; animation: tug-strain-r 0.5s ease-in-out infinite 0.25s; }
-@keyframes tug-strain-l { 0%, 100% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(3deg) translateX(-6px); } }
-@keyframes tug-strain-r { 0%, 100% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(-3deg) translateX(6px); } }
-/* The rope + the two contestants riding it, jerking back and forth with the struggle. */
-.tug-pull { position: absolute; left: 50%; bottom: 118px; width: 0; animation: tug-jerk 0.62s ease-in-out infinite; }
+/* One consolidated artwork (donkey + rope + elephant). The whole scene strains back and forth as
+   one piece, and the contestants' faces ride the rope line (~52% down the art). */
+.tug-scene {
+  position: absolute; left: 50%; top: 50%;
+  width: min(820px, 92vw);
+  transform: translate(-50%, -50%);
+  animation: tug-jerk 0.62s ease-in-out infinite;
+}
+.tug-art { display: block; width: 100%; height: auto; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.55)); }
 @keyframes tug-jerk {
-  0%, 100% { transform: translateX(-16px); }
-  28% { transform: translateX(20px); }
-  55% { transform: translateX(-24px); }
-  80% { transform: translateX(14px); }
+  0%, 100% { transform: translate(calc(-50% - 14px), -50%); }
+  28% { transform: translate(calc(-50% + 18px), -50%); }
+  55% { transform: translate(calc(-50% - 20px), -50%); }
+  80% { transform: translate(calc(-50% + 12px), -50%); }
 }
-.tug-rope {
-  position: absolute; left: -220px; top: 0; width: 440px; height: 7px;
-  background: repeating-linear-gradient(90deg, #c8a35a 0 10px, #a87f38 10px 20px);
-  border-radius: 4px; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+.tug-face {
+  position: absolute; top: 52%; width: 62px; height: 62px; margin-top: -31px;
+  object-fit: cover; border-radius: 50%; border: 3px solid #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
-.tug-face { position: absolute; top: -66px; width: 62px; height: 62px; object-fit: cover; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6); }
-.tug-face-dem { left: -96px; border-color: #48f; }
-.tug-face-rep { left: 34px; border-color: #f44; }
-/* The yank: the whole pull assembly flies to the winner's side. */
-.tug-overlay.win-rep .tug-pull { animation: tug-win-rep 0.9s cubic-bezier(0.6, -0.2, 0.8, 1) forwards; }
-.tug-overlay.win-dem .tug-pull { animation: tug-win-dem 0.9s cubic-bezier(0.6, -0.2, 0.8, 1) forwards; }
-@keyframes tug-win-rep { to { transform: translateX(300px); } }
-@keyframes tug-win-dem { to { transform: translateX(-300px); } }
-.tug-overlay.win-rep .tug-donkey { animation: tug-lose-l 0.9s ease-in forwards; }
-.tug-overlay.win-dem .tug-elephant { animation: tug-lose-r 0.9s ease-in forwards; }
-@keyframes tug-lose-l { to { transform: rotate(-38deg) translate(-40px, 30px); opacity: 0.5; } }
-@keyframes tug-lose-r { to { transform: rotate(-38deg) translate(40px, 30px); opacity: 0.5; } }
+.tug-face-dem { left: 34%; border-color: #48f; }
+.tug-face-rep { left: 58%; border-color: #f44; }
+/* The yank: the whole scene lurches to the winner's side and tips. */
+.tug-overlay.win-rep .tug-scene { animation: tug-win-rep 0.9s cubic-bezier(0.6, -0.2, 0.8, 1) forwards; }
+.tug-overlay.win-dem .tug-scene { animation: tug-win-dem 0.9s cubic-bezier(0.6, -0.2, 0.8, 1) forwards; }
+@keyframes tug-win-rep { to { transform: translate(calc(-50% + 280px), -50%) rotate(3deg); } }
+@keyframes tug-win-dem { to { transform: translate(calc(-50% - 280px), -50%) rotate(-3deg); } }
 .tug-banner {
   position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%) rotate(-3deg);
   font-size: 2.1rem; font-weight: 900; color: #fff; white-space: nowrap;
@@ -4748,12 +4743,7 @@ img.pol-mascot {
 }
 .tug-banner b { color: #ffd24d; }
 @media (max-width: 640px) {
-  .tug-mascot { height: 100px; bottom: 60px; }
-  .tug-pull { bottom: 116px; }
-  .tug-rope { left: -130px; width: 260px; }
-  .tug-face { width: 46px; height: 46px; top: -50px; }
-  .tug-face-dem { left: -70px; }
-  .tug-face-rep { left: 24px; }
+  .tug-face { width: 42px; height: 42px; margin-top: -21px; }
   .tug-banner { font-size: 1.2rem; }
   .tug-title { font-size: 1.3rem; }
 }

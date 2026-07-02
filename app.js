@@ -3499,12 +3499,11 @@ function politicsTug(A, B) {
   const rep = norm(pa.party) === "REP" ? A : B;
   const ov = document.createElement("div");
   ov.className = "tug-overlay";
+  // One consolidated piece of art (donkey + rope + elephant); the contestants' faces ride the rope.
   ov.innerHTML = `<div class="tug-stage">
       <div class="tug-title">⚖️ TUG-O-WAR!</div>
-      <img class="tug-mascot tug-donkey" src="assets/pol-donkey.png" alt="">
-      <img class="tug-mascot tug-elephant" src="assets/pol-elephant.png" alt="">
-      <div class="tug-pull">
-        <div class="tug-rope"></div>
+      <div class="tug-scene">
+        <img class="tug-art" src="assets/pol-tug.png" alt="">
         <img class="tug-face tug-face-dem" src="${dem.image}" alt="">
         <img class="tug-face tug-face-rep" src="${rep.image}" alt="">
       </div>

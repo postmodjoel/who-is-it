@@ -4393,3 +4393,12 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .astro-horo { font-size: 0.52rem; font-style: italic; color: #d9d0ff; line-height: 1.25; }
 .astro-toxic { font-size: 0.52rem; color: #ff9ea8; }
 .astro-retro { font-size: 0.5rem; font-weight: 800; color: #ffd23a; background: rgba(120, 90, 20, 0.4); border-radius: 4px; padding: 1px 5px; }
+
+/* ===================== Mobile: fit the fixed-size iso room + roomier heads toolbar ===================== */
+@media (max-width: 640px) {
+  .game-stage .character-board.habbo-board { min-height: 56vh; overflow: hidden; }
+  .habbo-room { transform: scale(0.6); transform-origin: top center; width: 167%; margin-left: -33.5%; }
+  .heads-toolbar { gap: 4px; }
+  .heads-form-btn { padding: 3px 7px; font-size: 0.56rem; }
+  .character-board.heads-board { min-height: 60vh; }
+}

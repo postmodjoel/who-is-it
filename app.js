@@ -822,8 +822,8 @@ function breedCharacters(aId, bId) {
   const A = characterById(aId), B = characterById(bId);
   if (!A || !B || !window.faceGenerator) return;
   const mode = state.global.mystery?.id;
-  // Politics: an opposite-party drag is a TUG-O-WAR, not a breed.
-  if (mode === "politics") { politicsTug(A, B); return; }
+  // Politics / Hidden Agendas: an opposite-party drag is a TUG-O-WAR, not a breed.
+  if (mode === "politics" || mode === "hidden-agendas") { politicsTug(A, B); return; }
   if (!BREED_MODES.includes(mode)) {
     // No nagging message - just jiggle the pair to say "not here".
     [aId, bId].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("no-breed-jiggle"); void c.offsetWidth; c.classList.add("no-breed-jiggle"); } });
@@ -1402,7 +1402,7 @@ function renderBoard() {
   sortedBoard().forEach((character) => {
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
-  if (modeId === "pixall") pixelateBoard();
+  if (modeId === "pixall") startPixallLoop(); else stopPixallLoop();
   if (modeId === "sims") startSimsLoop(); else stopSimsLoop();
   if (modeId === "prop-panic") startPropLoop(); else stopPropLoop();
 }
@@ -2130,6 +2130,7 @@ function clearMysteryEffectUI() {
   resetHabbo();
   resetSimsLoop();
   stopPropLoop();
+  stopPixallLoop();
   els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
@@ -3498,16 +3499,19 @@ if (window.GameData && window.GameData.modePrompts && !window.GameData.modePromp
 // The tug-o-war: donkey pulls from the left, elephant from the right, both contestants' faces ride
 // the rope. It strains back and forth, a random side wins with a yank, and the loser converts.
 function politicsTug(A, B) {
+  const mode = state.global.mystery?.id;
   const asg = state.global.mystery.assignments;
   const pa = asg[A.id], pb = asg[B.id];
   if (!pa || !pb) return;
-  if (pa.party === pb.party) {
+  // Works for both party formats: politics uses REP/DEM, hidden agendas uses Republican/Democrat.
+  const norm = (p) => (/^rep/i.test(p || "") ? "REP" : "DEM");
+  if (norm(pa.party) === norm(pb.party)) {
     // Same team - no fight, just the no-breed jiggle.
     [A.id, B.id].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("no-breed-jiggle"); void c.offsetWidth; c.classList.add("no-breed-jiggle"); } });
     return;
   }
-  const dem = pa.party === "DEM" ? A : B;
-  const rep = pa.party === "REP" ? A : B;
+  const dem = norm(pa.party) === "DEM" ? A : B;
+  const rep = norm(pa.party) === "REP" ? A : B;
   const ov = document.createElement("div");
   ov.className = "tug-overlay";
   ov.innerHTML = `<div class="tug-stage">
@@ -3533,9 +3537,14 @@ function politicsTug(A, B) {
   }, 2300);
   setTimeout(() => {
     const loser = repWins ? dem : rep;
-    const newParty = repWins ? "REP" : "DEM";
-    const slogans = POL_SLOGANS[newParty];
-    asg[loser.id] = { ...asg[loser.id], party: newParty, slogan: slogans[Math.floor(Math.random() * slogans.length)], converted: true };
+    if (mode === "hidden-agendas") {
+      // Keep hidden agendas' full-word party format (its card render keys off it).
+      asg[loser.id] = { ...asg[loser.id], party: repWins ? "Republican" : "Democrat", converted: true };
+    } else {
+      const newParty = repWins ? "REP" : "DEM";
+      const slogans = POL_SLOGANS[newParty];
+      asg[loser.id] = { ...asg[loser.id], party: newParty, slogan: slogans[Math.floor(Math.random() * slogans.length)], converted: true };
+    }
     ov.remove();
     renderBoard();
   }, 3900);
@@ -3584,6 +3593,52 @@ function pixelateSrc(src, size, done, crop) {
   };
   im.onerror = () => done(src);
   im.src = src;
+}
+// PIXALL runs LIVE: each portrait <img> is swapped for a small canvas that re-samples the animated
+// SVG several times a second - so blinks/expressions keep playing in chunky pixels instead of the
+// old one-shot snapshot freezing people mid-blink. (SVG-image CSS animations keep running in the
+// browser's image copy; drawImage grabs whatever frame is current.)
+let pixallTimer = null;
+let pixallItems = [];
+function stopPixallLoop() { if (pixallTimer) { clearInterval(pixallTimer); pixallTimer = null; } pixallItems = []; }
+function startPixallLoop() {
+  stopPixallLoop();
+  const SIZE = 46, BASE = 256, CROP = [0.15, 0.02, 0.7, 0.7];
+  const tmp = document.createElement("canvas");
+  tmp.width = BASE; tmp.height = BASE;
+  const tx = tmp.getContext("2d");
+  els.characterBoard.querySelectorAll(".portrait-wrap > img").forEach((img) => {
+    const src = img.getAttribute("src");
+    if (!src || src.startsWith("data:image/png")) return;
+    const srcIm = new Image();
+    srcIm.src = src;                       // the browser keeps this SVG's animations ticking
+    const cv = document.createElement("canvas");
+    cv.width = SIZE; cv.height = SIZE;
+    cv.className = "pixall-live";
+    img.replaceWith(cv);
+    pixallItems.push({ srcIm, ctx: cv.getContext("2d"), cv });
+  });
+  const draw = () => {
+    pixallItems = pixallItems.filter((it) => it.cv.isConnected);
+    if (!pixallItems.length) { stopPixallLoop(); return; }
+    pixallItems.forEach((it) => {
+      if (!it.srcIm.complete) return;
+      tx.clearRect(0, 0, BASE, BASE);
+      tx.imageSmoothingEnabled = false;
+      tx.drawImage(it.srcIm, 0, 0, BASE, BASE);
+      const x = it.ctx;
+      x.imageSmoothingEnabled = false;
+      x.clearRect(0, 0, SIZE, SIZE);
+      x.drawImage(tmp, CROP[0] * BASE, CROP[1] * BASE, CROP[2] * BASE, CROP[3] * BASE, 0, 0, SIZE, SIZE);
+      try {
+        const d = x.getImageData(0, 0, SIZE, SIZE); const a = d.data;
+        for (let i = 0; i < a.length; i += 4) { a[i] = Math.round(a[i] / 51) * 51; a[i + 1] = Math.round(a[i + 1] / 51) * 51; a[i + 2] = Math.round(a[i + 2] / 51) * 51; }
+        x.putImageData(d, 0, 0);
+      } catch (e) { /* tainted - leave unquantised */ }
+    });
+  };
+  draw();
+  pixallTimer = setInterval(draw, 140);   // ~7fps: chunky, retro, cheap
 }
 function pixelateBoard() {
   els.characterBoard.querySelectorAll(".portrait-wrap > img").forEach((img) => {

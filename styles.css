@@ -4709,12 +4709,13 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   animation: tug-title-pop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1);
 }
 @keyframes tug-title-pop { from { transform: translateX(-50%) scale(0.3); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
-/* Donkey pulls from the left, elephant from the right; both lean into the strain. */
+/* Donkey pulls from the left, elephant from the right. The donkey art already faces RIGHT with the
+   stick in its hooves toward the rope, so NO mirror - it grips the rope and leans back to strain. */
 .tug-mascot { position: absolute; bottom: 24px; height: 170px; }
-.tug-donkey { left: 0; transform: scaleX(-1); animation: tug-strain-l 0.5s ease-in-out infinite; }
+.tug-donkey { left: 0; animation: tug-strain-l 0.5s ease-in-out infinite; }
 .tug-elephant { right: 0; animation: tug-strain-r 0.5s ease-in-out infinite 0.25s; }
-@keyframes tug-strain-l { 0%, 100% { transform: scaleX(-1) rotate(0deg) translateX(0); } 50% { transform: scaleX(-1) rotate(-3deg) translateX(-6px); } }
-@keyframes tug-strain-r { 0%, 100% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(3deg) translateX(6px); } }
+@keyframes tug-strain-l { 0%, 100% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(3deg) translateX(-6px); } }
+@keyframes tug-strain-r { 0%, 100% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(-3deg) translateX(6px); } }
 /* The rope + the two contestants riding it, jerking back and forth with the struggle. */
 .tug-pull { position: absolute; left: 50%; bottom: 118px; width: 0; animation: tug-jerk 0.62s ease-in-out infinite; }
 @keyframes tug-jerk {
@@ -4738,7 +4739,7 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 @keyframes tug-win-dem { to { transform: translateX(-300px); } }
 .tug-overlay.win-rep .tug-donkey { animation: tug-lose-l 0.9s ease-in forwards; }
 .tug-overlay.win-dem .tug-elephant { animation: tug-lose-r 0.9s ease-in forwards; }
-@keyframes tug-lose-l { to { transform: scaleX(-1) rotate(38deg) translate(-40px, 30px); opacity: 0.5; } }
+@keyframes tug-lose-l { to { transform: rotate(-38deg) translate(-40px, 30px); opacity: 0.5; } }
 @keyframes tug-lose-r { to { transform: rotate(-38deg) translate(40px, 30px); opacity: 0.5; } }
 .tug-banner {
   position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%) rotate(-3deg);
@@ -4762,3 +4763,9 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
    the head render) so avatars read as standing in the room, not mugging the camera. */
 .habbo-fig.hb-face-l .hb-head { transform: rotate(-5deg); }
 .habbo-fig.hb-face-r .hb-head { transform: rotate(5deg); }
+
+/* PIXALL live canvases sit exactly where the portrait <img> was. */
+.portrait-wrap > canvas.pixall-live {
+  display: block; width: 100%; height: 100%;
+  image-rendering: pixelated;
+}

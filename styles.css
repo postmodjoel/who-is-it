@@ -1548,7 +1548,9 @@ button:disabled {
 .witness-security .portrait-wrap img {
   filter: grayscale(1) contrast(1.3) sepia(.15);
   transform-origin: 50% 45%;
-  animation: witness-cam 5.2s steps(1, end) infinite;   /* jerky, unpredictable CCTV pan/zoom */
+  /* jerky, unpredictable CCTV pan/zoom - per-card delay/duration so no two cams cut in sync */
+  animation: witness-cam var(--cam-dur, 5.2s) steps(1, end) infinite;
+  animation-delay: var(--cam-delay, 0s);
 }
 @keyframes witness-cam {
   0%   { transform: scale(1.18) translate(4%, -3%) rotate(0.6deg); }
@@ -4085,7 +4087,15 @@ body.mode-pixall .secret-card img {
 .game-stage .character-board.habbo-board {
   position: relative; display: block; min-height: 72vh; padding: 0; overflow: auto;
   border-color: #20263e !important;
+  /* Habbo-style room shell: wall top-cap, dither texture, skirting board where wall meets floor. */
   background:
+    linear-gradient(180deg, #55619233 0 4px, transparent 4px) no-repeat,
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.022) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg,
+      transparent calc(30% - 7px),
+      #4d5985 calc(30% - 7px) calc(30% - 4px),
+      #1d2338 calc(30% - 4px) calc(30% - 2px),
+      transparent calc(30% - 2px)),
     linear-gradient(180deg, #3a4468 0 30%, #2b3350 30% 100%),
     #2b3350 !important;
 }
@@ -4094,10 +4104,17 @@ body.mode-pixall .secret-card img {
 .habbo-tile {
   position: absolute; width: 60px; height: 30px; margin-left: -30px; margin-top: -15px;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  background: #d8c79a; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  /* Faceted 3-tone top face lit from the upper-left, tinted near-black outline, and a hard
+     drop-shadow extrusion so the tiles read as chunky slabs, not flat diamonds. */
+  background: linear-gradient(160deg, #e4d4a8 0%, #d8c79a 52%, #c7b382 100%);
+  box-shadow: inset 0 0 0 1.5px rgba(43, 32, 18, 0.3);
+  filter: drop-shadow(0 3px 0 #93805a);
   cursor: pointer; transition: background 0.12s;
 }
-.habbo-tile.alt { background: #cbb888; }
+.habbo-tile.alt {
+  background: linear-gradient(160deg, #d7c494 0%, #cbb888 52%, #b9a473 100%);
+  filter: drop-shadow(0 3px 0 #857249);
+}
 .habbo-tile:hover { background: #ffe58a; }
 .habbo-fig {
   position: absolute; top: 0; left: 0; width: 66px; height: 92px;

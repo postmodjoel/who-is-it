@@ -2301,10 +2301,15 @@ function getMysteryCardData(character) {
     };
   }
   if (mystery.id === "witness-protection-filter") {
+    // Per-character delay + speed so the CCTV cams cut at different moments and paces - a wall of
+    // synced cameras reads as one predictable loop; desynced ones read as genuinely chaotic.
+    const camDelay = -(stableHash(character.id + ":cam") % 5200) / 1000;
+    const camDur = 3.6 + (stableHash(character.id + ":camdur") % 3200) / 1000;
     return {
       effectName: mystery.name,
       cardClass: assignment.className,
       dataset: { mysteryValue: assignment.value },
+      style: `--cam-delay:${camDelay.toFixed(2)}s;--cam-dur:${camDur.toFixed(2)}s`,
       cornerHtml: `<span class="wp-pixel" aria-hidden="true"></span>`,   // pixelated censor over the chest
       html: assignment.reason ? `<div class="wp-reason">🚨 <b>WANTED:</b> ${escapeHtml(assignment.reason)}</div>` : ""
     };

@@ -4671,14 +4671,14 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 }
 .family-extras .character-card { width: 108px; }
 
-/* ===================== Two-Party System: cards + TUG-O-WAR ===================== */
-.character-card.pol-rep { border-color: #c33; box-shadow: 0 0 0 1px #c33, 0 0 12px -4px #f44; }
-.character-card.pol-dem { border-color: #36c; box-shadow: 0 0 0 1px #36c, 0 0 12px -4px #48f; }
-/* Needs the extra specificity: the generic `.portrait-wrap img { width: 100% }` rule wins otherwise
-   and blows the mascot up to full card size. */
-.character-card .portrait-wrap img.pol-mascot {
+/* ===================== Hidden Agendas: mascots, stances + TUG-O-WAR ===================== */
+/* Needs the extra specificity (with !important on the size): generic `img { width: 100% }` rules in
+   both the card portrait AND the secret card otherwise blow the mascot up to full card size. */
+.character-card .portrait-wrap img.pol-mascot,
+.secret-corner img.pol-mascot,
+img.pol-mascot {
   position: absolute; right: 4px; top: 4px; left: auto; z-index: 4;
-  width: 46px; height: 34px; object-fit: contain; pointer-events: none;
+  width: 46px !important; height: 34px !important; object-fit: contain; pointer-events: none;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
 }
 .pol-converted {
@@ -4687,15 +4687,14 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   font-size: 0.5rem; font-weight: 900; letter-spacing: 0.08em; color: #ffd24d;
   background: rgba(20, 10, 0, 0.7);
 }
-.pol-sheet { width: 100%; display: flex; flex-direction: column; gap: 3px; align-items: center; }
-.pol-party { font-size: 0.56rem; font-weight: 900; letter-spacing: 0.06em; }
-.pol-rep .pol-party { color: #ff7a6a; }
-.pol-dem .pol-party { color: #7aa8ff; }
-.pol-slogan { font-size: 0.55rem; font-style: italic; opacity: 0.85; text-align: center; }
-.pol-approval { display: flex; align-items: center; gap: 5px; width: 100%; font-size: 0.5rem; font-weight: 800; }
-.pol-approval i { flex: 1; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, 0.14); overflow: hidden; display: block; }
-.pol-approval s { display: block; height: 100%; width: var(--n, 50%); text-decoration: none; background: linear-gradient(90deg, #c33, #f4a); }
-.pol-dem .pol-approval s { background: linear-gradient(90deg, #36c, #4cf); }
+/* The unhinged platform. */
+.ha-stances { width: 100%; display: flex; flex-direction: column; gap: 1px; text-align: left; }
+.ha-stances b { letter-spacing: 0.06em; }
+.ha-for, .ha-against { font-size: 0.52rem; font-weight: 600; line-height: 1.35; }
+.ha-for { color: #7fdc8f; }
+.ha-for b { color: #3ec46a; }
+.ha-against { color: #ff9a8a; }
+.ha-against b { color: #e0341a; }
 
 .tug-overlay {
   position: fixed; inset: 0; z-index: 1005; display: flex; align-items: center; justify-content: center;

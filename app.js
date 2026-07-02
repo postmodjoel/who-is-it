@@ -459,12 +459,6 @@ const mysteryEffects = [
     exampleQuestion: "Ready to make someone's head pop?"
   },
   {
-    id: "politics",
-    name: "Two-Party System",
-    apply: applyPolitics,
-    exampleQuestion: "Would your person survive a tug-o-war?"
-  },
-  {
     id: "pixall",
     name: "PIXALL",
     apply: applyPixall,
@@ -822,8 +816,8 @@ function breedCharacters(aId, bId) {
   const A = characterById(aId), B = characterById(bId);
   if (!A || !B || !window.faceGenerator) return;
   const mode = state.global.mystery?.id;
-  // Politics / Hidden Agendas: an opposite-party drag is a TUG-O-WAR, not a breed.
-  if (mode === "politics" || mode === "hidden-agendas") { politicsTug(A, B); return; }
+  // Hidden Agendas: an opposite-party drag is a TUG-O-WAR, not a breed.
+  if (mode === "hidden-agendas") { politicsTug(A, B); return; }
   if (!BREED_MODES.includes(mode)) {
     // No nagging message - just jiggle the pair to say "not here".
     [aId, bId].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("no-breed-jiggle"); void c.offsetWidth; c.classList.add("no-breed-jiggle"); } });
@@ -2568,22 +2562,6 @@ function getMysteryCardData(character) {
   if (!mystery || !mystery.assignments) return { html: "", dataset: {} };
   const assignment = mystery.assignments[character.id];
   if (!assignment) return { html: "", dataset: {} };
-  if (mystery.id === "politics") {
-    const a = assignment;
-    const rep = a.party === "REP";
-    return {
-      effectName: mystery.name,
-      cardClass: `pol ${rep ? "pol-rep" : "pol-dem"}`,
-      dataset: { party: a.party },
-      cornerHtml: `<img class="pol-mascot" src="assets/${rep ? "pol-elephant" : "pol-donkey"}.png" alt="${a.party}">`
-        + (a.converted ? `<span class="pol-converted">CONVERTED</span>` : ""),
-      html: `<div class="pol-sheet">
-        <span class="pol-party">${rep ? "🐘 REPUBLICAN" : "🫏 DEMOCRAT"}</span>
-        <div class="pol-slogan">“${escapeHtml(a.slogan)}”</div>
-        <div class="pol-approval"><b>APPROVAL</b><i><s style="--n:${a.approval}%"></s></i><u>${a.approval}%</u></div>
-      </div>`
-    };
-  }
   if (mystery.id === "prop-panic") {
     // The prop is WIELDED, not a corner badge: big, plonked somewhere on the person at a hashed
     // angle/position, wobbling on its own beat. The panic loop periodically swaps props around.
@@ -2639,6 +2617,7 @@ function getMysteryCardData(character) {
   }
   if (mystery.id === "hidden-agendas") {
     const side = assignment.party === "Democrat" ? "dem" : "rep";
+    const st = assignment.stances || { for: [], against: [] };
     return {
       effectName: mystery.name,
       cardClass: `agenda-${side}`,
@@ -2646,7 +2625,13 @@ function getMysteryCardData(character) {
       propEmoji: assignment.emoji,
       primaryText: `${assignment.party} · ${assignment.state} · ${assignment.mood}`,
       dataset: { agendaParty: assignment.party, agendaState: assignment.state, agendaMood: assignment.mood },
+      cornerHtml: `<img class="pol-mascot" src="assets/${side === "rep" ? "pol-elephant" : "pol-donkey"}.png" alt="${assignment.party}">`
+        + (assignment.converted ? `<span class="pol-converted">CONVERTED</span>` : ""),
       html: `${addMysteryBadge(assignment.party, `agenda-${side}`)}${addMysteryBadge(assignment.state, "agenda-state")}`
+        + `<div class="ha-stances">`
+        + `<div class="ha-for"><b>FOR:</b> ${st.for.map(escapeHtml).join(", ")}</div>`
+        + `<div class="ha-against"><b>AGAINST:</b> ${st.against.map(escapeHtml).join(", ")}</div>`
+        + `</div>`
     };
   }
   if (mystery.id === "witness-protection-filter") {
@@ -3457,29 +3442,29 @@ function applyPixall(effect) {
   return { id: effect.id, name: effect.name, assignments: {} };
 }
 
-// ===================== Two-Party System (politics + tug-o-war) =====================
-// Everyone is drafted REP or DEM. Dragging someone onto a member of the OTHER party triggers a
-// tug-o-war: the elephant and donkey mascots pull the rope, a random side wins, and the loser is
-// converted to the winner's party.
-const POL_SLOGANS = {
-  REP: ["Guns don't miss people", "Drill baby drill", "Taxes are theft", "War on woke", "My other car is a tank", "Thoughts & prayers dept.", "Freedom isn't free (it's $19.99)"],
-  DEM: ["Rainbow-industrial complex", "Tax the rich (later)", "In this house we believe", "Pronouns in bio", "Oat milk lobbyist", "Defund something", "Hope™ since 2008"]
-};
-function applyPolitics(effect) {
-  const assignments = {};
-  state.board.forEach((ch) => {
-    const party = stableHash(`${state.gameSalt}:pol:${ch.id}`) % 2 ? "REP" : "DEM";
-    const slogans = POL_SLOGANS[party];
-    assignments[ch.id] = {
-      party,
-      slogan: slogans[stableHash(`${state.gameSalt}:pols:${ch.id}`) % slogans.length],
-      approval: 12 + (stableHash(`${state.gameSalt}:pola:${ch.id}`) % 84)
-    };
-  });
-  return { id: effect.id, name: effect.name, assignments };
+// ===================== Hidden Agendas politics (stances + tug-o-war) =====================
+// Every politician runs on a platform of completely unhinged stances - FOR and AGAINST are drawn
+// from one shared pool with zero party consistency (that's the point).
+const STANCE_POOL = [
+  "Abortion", "War in Iraq", "Pregnancy Tax", "Homosexuality", "Sodomy", "Creatine",
+  "Seed Oils", "Chemtrails", "Daylight Savings", "Fluoride", "Microplastics", "5G Towers",
+  "Immigrant Geese", "The Death Penalty (for jaywalking)", "Universal Basic Cigarettes",
+  "Gluten", "Vaping in Church", "Horse Girls", "Pit Bulls (as currency)", "The Moon Landing",
+  "Divorce (recreational)", "Mandatory Gym Class", "Cousin Marriage (loopholes)", "Feet Pic Tariffs",
+  "Big Mattress", "Birds", "The Metric System", "Raw Milk Influencers", "Grandparents Voting"
+];
+function pickStances(chId) {
+  // A deterministic shuffle of the pool per character; first 2-3 are FOR, next 2-3 AGAINST.
+  const scored = STANCE_POOL.map((s) => [stableHash(`${state.gameSalt}:st:${chId}:${s}`), s]).sort((a, b) => a[0] - b[0]);
+  const nFor = 2 + (stableHash(`${state.gameSalt}:stf:${chId}`) % 2);
+  const nAg = 2 + (stableHash(`${state.gameSalt}:sta:${chId}`) % 2);
+  return { for: scored.slice(0, nFor).map((x) => x[1]), against: scored.slice(nFor, nFor + nAg).map((x) => x[1]) };
 }
-if (window.GameData && window.GameData.modePrompts && !window.GameData.modePrompts.politics) {
-  window.GameData.modePrompts.politics = [
+if (window.GameData && window.GameData.modePrompts && !window.GameData.modePrompts["hidden-agendas"]) {
+  window.GameData.modePrompts["hidden-agendas"] = [
+    "Is your person FOR sodomy?",
+    "Is your person AGAINST creatine?",
+    "Would your person tax a pregnancy?",
     "Is your person packing heat at a school bake sale?",
     "Would your person fart a rainbow on live TV?",
     "Does your person own more than three flags?",
@@ -3537,14 +3522,8 @@ function politicsTug(A, B) {
   }, 2300);
   setTimeout(() => {
     const loser = repWins ? dem : rep;
-    if (mode === "hidden-agendas") {
-      // Keep hidden agendas' full-word party format (its card render keys off it).
-      asg[loser.id] = { ...asg[loser.id], party: repWins ? "Republican" : "Democrat", converted: true };
-    } else {
-      const newParty = repWins ? "REP" : "DEM";
-      const slogans = POL_SLOGANS[newParty];
-      asg[loser.id] = { ...asg[loser.id], party: newParty, slogan: slogans[Math.floor(Math.random() * slogans.length)], converted: true };
-    }
+    // The loser swaps party but keeps their home state, mood and (crucially) their unhinged stances.
+    asg[loser.id] = { ...asg[loser.id], party: repWins ? "Republican" : "Democrat", converted: true };
     ov.remove();
     renderBoard();
   }, 3900);
@@ -4048,7 +4027,7 @@ function applyHiddenAgendas(effect) {
     const image = character.traits && window.faceGenerator
       ? window.faceGenerator.renderPortrait(character.seed, { ...character.traits, expression: mood.key })
       : null;
-    assignments[character.id] = { party, state: homeState, mood: mood.label, emoji: mood.emoji, image };
+    assignments[character.id] = { party, state: homeState, mood: mood.label, emoji: mood.emoji, image, stances: pickStances(character.id) };
   });
   return { id: effect.id, name: effect.name, assignments };
 }
@@ -4170,7 +4149,7 @@ const MODE_FLASH = {
   work: "#8a1a1a", woke: "#ff5ad0", judgement: "#ffcf4d", sims: "#3ec46a", swipe: "#ff5a72",
   habbo: "#2fb6d8", astrology: "#8c5af0", fireworks: "#ffd24d", yugioh: "#a05aff", disguise: "#0b0b0d",
   "witness-protection-filter": "#c9d200", pixall: "#5dff8f", monocultural: "#c88968", "heads-only": "#7a5cff",
-  politics: "#3a5fd0"
+  "hidden-agendas": "#3a5fd0"
 };
 function playEffectAnnouncement(name) {
   const prev = document.getElementById("effectBlast");

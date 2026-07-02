@@ -4101,7 +4101,7 @@ body.mode-pixall .secret-card img {
 .habbo-tile:hover { background: #ffe58a; }
 .habbo-fig {
   position: absolute; top: 0; left: 0; width: 66px; height: 92px;
-  margin-left: -33px; margin-top: -74px;
+  margin-left: -33px; margin-top: -88px;   /* anchor so the feet/shadow sit on the tile centre */
   background: none; border: none; padding: 0; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
   transition: transform 0.55s cubic-bezier(.4,0,.2,1);
@@ -4109,7 +4109,7 @@ body.mode-pixall .secret-card img {
 .habbo-fig.walking { transition: transform 0.7s linear; }
 /* Head is big + hard-pixelated (Habbo is head-heavy, ~45-50% of height). */
 .hb-head {
-  width: 54px; height: 54px; object-fit: contain; object-position: 50% 26%;
+  width: 54px; height: 54px; object-fit: contain; object-position: 50% 50%;
   image-rendering: pixelated;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); z-index: 2;
 }

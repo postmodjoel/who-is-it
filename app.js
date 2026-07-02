@@ -1221,7 +1221,7 @@ function renderSecret() {
   // Habbo mode: pixelate the player's own portrait too so it matches the room.
   if (state.global.mystery?.id === "habbo") {
     const simg = els.secretCard.querySelector(".secret-portrait > img");
-    if (simg && simg.src) { simg.style.imageRendering = "pixelated"; pixelateSrc(simg.src, 24, (url) => { simg.src = url; }); }
+    if (simg && simg.src) { simg.style.imageRendering = "pixelated"; pixelateSrc(simg.src, 40, (url) => { simg.src = url; }); }
   }
   setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
 }
@@ -1562,8 +1562,9 @@ function renderHabboBoard(player) {
     });
     figs.appendChild(el);
     figEls.set(ch.id, el);
-    // Pixelate the head into chunky Habbo pixels once it loads (smaller = chunkier).
-    if (a.head) pixelateSrc(a.head, 18, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; });
+    // Pixelate the head into chunky Habbo pixels once it loads. Crop tight to the head first so the
+    // whole pixel budget lands on the face (not transparent margins) - readable AND properly pixel-art.
+    if (a.head) pixelateSrc(a.head, 30, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
   });
   habboCtx = { figEls, room };
   if (habboSelected) habboCamera(habboSelected);   // keep the camera on re-render
@@ -3076,15 +3077,31 @@ function applyPixall(effect) {
 
 // Rasterise an SVG portrait down to `size` px and quantise its colours for a real 8-bit look.
 const pixelCache = new Map();
-function pixelateSrc(src, size, done) {
-  if (pixelCache.has(src)) { done(pixelCache.get(src)); return; }
+// `crop` (optional) is [fx, fy, fw, fh] as FRACTIONS of the source (0-1) - use it to spend the whole
+// pixel budget on a region (e.g. just the head) instead of wasting it on transparent margins. Given
+// as fractions so it survives whatever intrinsic size the SVG happens to rasterise at.
+function pixelateSrc(src, size, done, crop) {
+  const key = crop ? `${src}|${crop.join(",")}|${size}` : src;
+  if (pixelCache.has(key)) { done(pixelCache.get(key)); return; }
   const im = new Image();
   im.onload = () => {
     const c = document.createElement("canvas");
     c.width = size; c.height = size;
     const x = c.getContext("2d");
     x.imageSmoothingEnabled = false;
-    x.drawImage(im, 0, 0, size, size);
+    if (crop) {
+      // SVGs without width/height report intrinsic size 0, which breaks drawImage's source-crop. So
+      // first rasterise the whole SVG into a known-size canvas (dest-size draw is reliable), THEN crop.
+      const BASE = 256;
+      const tmp = document.createElement("canvas");
+      tmp.width = BASE; tmp.height = BASE;
+      const tx = tmp.getContext("2d");
+      tx.imageSmoothingEnabled = false;
+      tx.drawImage(im, 0, 0, BASE, BASE);
+      x.drawImage(tmp, crop[0] * BASE, crop[1] * BASE, crop[2] * BASE, crop[3] * BASE, 0, 0, size, size);
+    } else {
+      x.drawImage(im, 0, 0, size, size);
+    }
     try {
       const d = x.getImageData(0, 0, size, size);
       const a = d.data;
@@ -3096,7 +3113,7 @@ function pixelateSrc(src, size, done) {
       x.putImageData(d, 0, 0);
     } catch (e) { /* tainted canvas - skip quantise */ }
     const url = c.toDataURL();
-    pixelCache.set(src, url);
+    pixelCache.set(key, url);
     done(url);
   };
   im.onerror = () => done(src);

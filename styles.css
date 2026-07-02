@@ -4363,9 +4363,10 @@ body.mode-pixall .secret-card img {
 }
 .character-card.fertility.is-fresh { box-shadow: 0 0 0 2px #ff5a7d, 0 0 14px -3px #ff5a7d; }
 
-/* Isometric wall paintings (skewed to sit on the two receding walls). */
-.hb-wall-l { transform: skewY(16deg); }
-.hb-wall-r { transform: skewY(-16deg); }
+/* Isometric wall paintings. The back-LEFT wall recedes up-to-the-right (matching the floor's top-left
+   edge), so its paintings slope DOWN to the left; the back-right wall is the mirror. */
+.hb-wall-l { transform: skewY(-16deg); }
+.hb-wall-r { transform: skewY(16deg); }
 
 /* ===================== Witness reason + chest pixelation ===================== */
 .wp-reason {

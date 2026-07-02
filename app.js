@@ -277,6 +277,9 @@ const els = {
   setupButton: document.querySelector("#setupButton"),
   editorButton: document.querySelector("#editorButton"),
   newGameButton: document.querySelector("#newGameButton"),
+  endRoundButton: document.querySelector("#endRoundButton"),
+  settingSeed: document.querySelector("#settingSeed"),
+  copySeedButton: document.querySelector("#copySeedButton"),
   debugEffectPicker: document.querySelector("#debugEffectPicker"),
   setupDialog: document.querySelector("#setupDialog"),
   saveSetupButton: document.querySelector("#saveSetupButton"),
@@ -545,7 +548,10 @@ let testTriggerBuffer = "";
 let ps1Install = null;
 let ps1Cleanup = null;
 
-function newGame() {
+// A round is now FULLY derived from its gameSalt: board, location, both secrets and the Wheel of
+// Fate outcome are all deterministic hashes of it. That's what makes online sync (both clients
+// derive the same round from one shared salt), refresh-resume, and shareable SEED codes possible.
+function newGame(seedSalt, opts = {}) {
   clearMysteryEffectUI();
   // Sort choice persists across rounds (rebuildSortOptions drops it only if the new mode can't do it).
   // The board only draws from the procedurally generated faces. The hand-illustrated PNG
@@ -553,13 +559,13 @@ function newGame() {
   // into the playable board.
   const pool = generatedCharacters;
   const boardSize = Math.min(state.settings.boardSize, pool.length);
+  state.gameSalt = seedSalt || `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   state.board = buildBoard(pool, boardSize);
-  state.location = state.settings.locations ? pick(locations) : null;
-  state.locationVariant = Math.random() < 0.5 ? "day" : "night";
-  state.gameSalt = `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  state.location = state.settings.locations ? locations[stableHash(`${state.gameSalt}:loc`) % locations.length] : null;
+  state.locationVariant = stableHash(`${state.gameSalt}:var`) % 2 ? "night" : "day";
   state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
   state.players = [makePlayer(0), makePlayer(1)];
-  state.currentPlayer = 0;
+  state.currentPlayer = state.mySeat || 0;
   state.log = [];
   state.global.hints = [[], []];
   state.global.undo = [[], []];
@@ -567,11 +573,16 @@ function newGame() {
   state.board.forEach((character, index) => {
     state.global.roleMap[character.id] = state.settings.roles ? characterRoles[index % characterRoles.length] : character.role;
   });
+  // Tell any connected opponent about the new round BEFORE hopping to the new room's channel.
+  if (!opts.remote) netSend("start", { salt: state.gameSalt, settings: state.settings });
+  netConnect();
   drawPrompt();
   addLog("New game dealt. Nobody looks trustworthy.");
   render();
   stopOpponentSim();
+  if (opts.resume) return;   // resume path applies the effect itself (silently, no wheel animation)
   // The Wheel of Fate spins at the start of the round to pick the chaos mode BOTH seats will share.
+  // The landing spot is a hash of the salt, so every client's wheel lands on the SAME mode.
   if (state.settings.mystery) {
     spinModeRoulette((id) => {
       if (id) {
@@ -586,17 +597,27 @@ function newGame() {
         drawPrompt();
       }
       render();
-      startOpponentSim();
+      scheduleSave();
+      if (!state.onlinePeer) startOpponentSim();
     });
-  } else {
+  } else if (!state.onlinePeer) {
     startOpponentSim();
   }
+  scheduleSave();
+}
+
+// What the Wheel of Fate WILL land on for the current salt (deterministic; includes "no effect").
+function wheelTarget() {
+  const n = mysteryEffects.length + 1;   // +1 = the No Effect cell
+  const idx = stableHash(`${state.gameSalt}:wheel`) % n;
+  return idx < mysteryEffects.length ? mysteryEffects[idx].id : null;
 }
 
 function makePlayer(index) {
   return {
     name: `Seat ${String.fromCharCode(65 + index)}`,
-    secretId: pick(state.board).id,
+    // Deterministic per seat, so both online clients agree on BOTH secrets.
+    secretId: state.board[stableHash(`${state.gameSalt}:secret:${index}`) % state.board.length].id,
     eliminated: new Set(),
     mysteryUsed: false,
     secretVisible: true
@@ -848,6 +869,7 @@ function breedCharacters(aId, bId) {
     playBirthAnimation(A.image, B.image, baby, true, () => {
       state.board.push(baby);
       if (baby.isGayby) persistGayby(baby);
+      netAnnounceBaby(baby); scheduleSave();
       state.justBorn = baby.id;
       renderBoard();
       state.justBorn = null;
@@ -881,6 +903,7 @@ function breedCharacters(aId, bId) {
       if (home) home.characterIds.push(baby.id);
       asg[baby.id] = { clusterId: fb.clusterId, role: "Baby Somehow" };
       if (baby.isGayby) persistGayby(baby);
+      netAnnounceBaby(baby); scheduleSave();
       state.justBorn = baby.id;
       if (typeof addLog === "function") addLog(`${A.name} married into ${home ? home.name : "the family"} — ${baby.name} branches off!`);
       renderBoard();
@@ -905,6 +928,7 @@ function breedCharacters(aId, bId) {
       if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (e) { /* mode has no per-baby data - fine */ } }
     }
     if (baby.isGayby) persistGayby(baby);
+      netAnnounceBaby(baby); scheduleSave();
     state.justBorn = baby.id;
     if (typeof addLog === "function") addLog(`${A.name} + ${B.name} made a baby: ${baby.name}!`);
     renderBoard();
@@ -1941,6 +1965,8 @@ function toggleEliminated(id) {
   renderBoard();
   state.justEliminated = null;
   state.justRestored = null;
+  netSend("elim", { id, down: player.eliminated.has(id) });   // live-sync the cross-off
+  scheduleSave();
 }
 
 // ===================== The Void (elimination) + DE-VOID panel =====================
@@ -2069,7 +2095,9 @@ const MODE_GLYPHS = ["☣", "◉", "✦", "⚛", "☠", "⬢", "✶", "❂", "�
 function spinModeRoulette(done) {
   const modes = mysteryEffects.map((e, i) => ({ id: e.id, name: e.name, glyph: MODE_GLYPHS[i % MODE_GLYPHS.length], hue: (i * 47) % 360 }));
   modes.push({ id: null, name: "No Effect", glyph: "∅", hue: 210 });
-  const target = pick(modes);
+  // Deterministic landing spot (hash of the salt) - every client's wheel agrees. Matches wheelTarget().
+  const targetId = wheelTarget();
+  const target = modes.find((m) => m.id === targetId) || modes[modes.length - 1];
   const targetPos = modes.indexOf(target);
   const CELL = 112, REPS = 9;
   let cells = [];
@@ -3523,6 +3551,8 @@ function politicsTug(A, B) {
     const loser = repWins ? dem : rep;
     // The loser swaps party but keeps their home state, mood and (crucially) their unhinged stances.
     asg[loser.id] = { ...asg[loser.id], party: repWins ? "Republican" : "Democrat", converted: true };
+    netSend("tug", { loserId: loser.id, party: asg[loser.id].party });
+    scheduleSave();
     ov.remove();
     renderBoard();
   }, 3900);
@@ -4309,7 +4339,11 @@ function handleTestTextTrigger(event) {
 }
 
 function buildBoard(pool, boardSize) {
-  const shuffled = shuffle(pool);
+  // Deterministic per-game shuffle: same salt + same pool = same board on every client.
+  const shuffled = [...pool]
+    .map((ch, i) => [stableHash(`${state.gameSalt}:deal:${ch.id || i}`), ch])
+    .sort((a, b) => a[0] - b[0])
+    .map((x) => x[1]);
   const strict = [];
   const exactOnly = [];
   shuffled.forEach((character) => {
@@ -4407,7 +4441,15 @@ els.swapSeatButton.addEventListener("click", () => {
 
 if (els.drawPromptButton) els.drawPromptButton.addEventListener("click", drawPrompt);
 els.mysteryButton.addEventListener("click", activateMystery);
-els.newGameButton.addEventListener("click", newGame);
+els.newGameButton.addEventListener("click", () => newGame());
+if (els.endRoundButton) els.endRoundButton.addEventListener("click", endRound);
+if (els.copySeedButton) els.copySeedButton.addEventListener("click", () => {
+  const code = currentSeedCode();
+  if (els.settingSeed) els.settingSeed.value = code;
+  if (navigator.clipboard) navigator.clipboard.writeText(code).catch(() => {});
+  els.copySeedButton.textContent = "✓";
+  setTimeout(() => { els.copySeedButton.textContent = "📋"; }, 900);
+});
 els.themeButton.addEventListener("click", toggleTheme);
 
 // Debug: manually trigger any mystery effect from a dropdown (handy while building/balancing).
@@ -4444,7 +4486,15 @@ els.saveSetupButton.addEventListener("click", () => {
   state.settings.locations = els.settingLocations.checked;
   state.settings.roles = els.settingRoles.checked;
   state.settings.boardSize = Number(els.settingBoardSize.value);
-  newGame();
+  // A pasted seed code replays that exact round (board, location, wheel outcome, secrets).
+  const code = els.settingSeed ? els.settingSeed.value.trim() : "";
+  const parsed = code && code !== currentSeedCode() ? parseSeedCode(code) : null;
+  if (parsed) {
+    state.settings = { ...state.settings, ...(parsed.g || {}) };
+    newGame(parsed.s);
+  } else {
+    newGame();
+  }
 });
 
 function syncSettingsToForm() {
@@ -4453,6 +4503,194 @@ function syncSettingsToForm() {
   els.settingLocations.checked = state.settings.locations;
   els.settingRoles.checked = state.settings.roles;
   els.settingBoardSize.value = String(state.settings.boardSize);
+  if (els.settingSeed) els.settingSeed.value = state.gameSalt ? currentSeedCode() : "";
+}
+
+// ===================== Online layer (room-synced clients) =====================
+// The transport is a BroadcastChannel keyed by room code - two tabs/windows in the same browser ARE
+// two online clients (each drives one seat). Because a round is fully derived from its salt, the
+// protocol only needs to carry the salt plus live events (eliminations, babies, conversions,
+// round-end); a future WebSocket relay can speak this exact protocol.
+let net = null;
+function netConnect() {
+  try {
+    if (net) net.close();
+    net = new BroadcastChannel(`whoisit-room-${state.roomCode}`);
+    net.onmessage = (e) => handleNetMsg(e.data || {});
+    netSend("hello", {});
+  } catch (e) { net = null; /* no BroadcastChannel - offline only */ }
+}
+function netSend(type, data) {
+  if (!net) return;
+  try { net.postMessage({ type, seat: state.mySeat || 0, ...data }); } catch (e) { /* channel closed */ }
+}
+function markPeerOnline() {
+  if (!state.onlinePeer) {
+    state.onlinePeer = true;
+    stopOpponentSim();                       // a REAL opponent replaces the AI sim
+    addLog("Another player connected to the room.");
+  }
+}
+function handleNetMsg(msg) {
+  if (!msg || typeof msg !== "object") return;
+  if (msg.type === "hello") {
+    markPeerOnline();
+    // Tell the newcomer what round we're in; they adopt the salt and the opposite seat.
+    netSend("sync", { salt: state.gameSalt, settings: state.settings });
+    return;
+  }
+  if (msg.type === "sync") {
+    markPeerOnline();
+    if (msg.salt && msg.salt !== state.gameSalt) {
+      state.settings = { ...state.settings, ...(msg.settings || {}) };
+      state.mySeat = msg.seat === 0 ? 1 : 0;   // take the other seat
+      newGame(msg.salt, { remote: true });
+    }
+    return;
+  }
+  if (msg.type === "start") {
+    markPeerOnline();
+    state.settings = { ...state.settings, ...(msg.settings || {}) };
+    newGame(msg.salt, { remote: true });
+    return;
+  }
+  if (msg.type === "elim") {
+    markPeerOnline();
+    const seat = msg.seat === 0 ? 0 : 1;
+    if (seat === (state.mySeat || 0)) return;      // our own echo
+    const p = state.players[seat];
+    if (!p) return;
+    if (msg.down) p.eliminated.add(msg.id); else p.eliminated.delete(msg.id);
+    (state.opponentLog = state.opponentLog || []).unshift({ seat, id: msg.id, t: Date.now() });
+    renderOpponentPanel();
+    return;
+  }
+  if (msg.type === "baby") {
+    markPeerOnline();
+    if (!msg.baby || state.board.some((c) => c.id === msg.baby.id)) return;
+    const baby = { ...msg.baby };
+    if (baby.traits && window.faceGenerator) { try { baby.image = window.faceGenerator.renderPortrait(baby.seed, baby.traits); } catch (e) { return; } }
+    state.board.push(baby);
+    // Re-run the mode's apply so the newcomer gets per-baby stats on this client too.
+    const eff = mysteryEffects.find((e2) => e2.id === state.global.mystery?.id);
+    if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (e) { /* fine */ } }
+    addLog(`${baby.name} arrived from the other seat!`);
+    renderBoard();
+    return;
+  }
+  if (msg.type === "tug") {
+    markPeerOnline();
+    const asg = state.global.mystery?.assignments;
+    if (asg && asg[msg.loserId]) { asg[msg.loserId] = { ...asg[msg.loserId], party: msg.party, converted: true }; renderBoard(); }
+    return;
+  }
+  if (msg.type === "endround") {
+    markPeerOnline();
+    showRoundOverSplash(() => { /* the follow-up "start" message deals the new round */ });
+  }
+}
+// Strip a character down to what another client (or a save file) needs to rebuild them.
+function serializeCharacter(ch) {
+  const { image, ...rest } = ch;
+  return JSON.parse(JSON.stringify(rest));
+}
+function netAnnounceBaby(baby) { netSend("baby", { baby: serializeCharacter(baby) }); }
+
+// ===================== Refresh-proof game persistence =====================
+// The whole round survives a refresh: the salt re-derives the board/effect/secrets, and the save
+// carries what ISN'T derivable - session babies, eliminations, seat, settings.
+const GAME_SAVE_KEY = "whoisit_game_v1";
+let saveTimer = null;
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveGameState, 400); }
+function saveGameState() {
+  try {
+    localStorage.setItem(GAME_SAVE_KEY, JSON.stringify({
+      v: 1,
+      salt: state.gameSalt,
+      settings: state.settings,
+      mySeat: state.mySeat || 0,
+      currentPlayer: state.currentPlayer,
+      babies: state.board.filter((c) => c.isBaby || (c.isGayby && !c.persistedGayby)).map(serializeCharacter),
+      players: state.players.map((p) => ({ secretId: p.secretId, eliminated: [...p.eliminated], mysteryUsed: p.mysteryUsed }))
+    }));
+  } catch (e) { /* storage full/blocked - play on */ }
+}
+function loadGameSave() {
+  try { const s = JSON.parse(localStorage.getItem(GAME_SAVE_KEY) || "null"); return s && s.v === 1 && s.salt ? s : null; }
+  catch (e) { return null; }
+}
+function resumeGame(saved) {
+  state.settings = { ...state.settings, ...(saved.settings || {}) };
+  state.mySeat = saved.mySeat || 0;
+  newGame(saved.salt, { resume: true, remote: true });
+  // Session babies rejoin the board (images re-rendered from their traits).
+  (saved.babies || []).forEach((b) => {
+    if (state.board.some((c) => c.id === b.id)) return;
+    const baby = { ...b };
+    if (baby.traits && window.faceGenerator) { try { baby.image = window.faceGenerator.renderPortrait(baby.seed, baby.traits); } catch (e) { return; } }
+    state.board.push(baby);
+  });
+  // Apply the derived effect AFTER the babies exist so they get per-mode stats too. No wheel replay.
+  if (state.settings.mystery) {
+    const id = wheelTarget();
+    if (id) applyMysteryEffect(id);
+  }
+  (saved.players || []).forEach((sp, i) => {
+    if (!state.players[i]) return;
+    state.players[i].secretId = sp.secretId || state.players[i].secretId;
+    state.players[i].eliminated = new Set(sp.eliminated || []);
+    state.players[i].mysteryUsed = !!sp.mysteryUsed;
+  });
+  state.currentPlayer = saved.currentPlayer ?? (state.mySeat || 0);
+  addLog("Round restored - carry on.");
+  render();
+  if (!state.onlinePeer) startOpponentSim();
+}
+
+// ===================== End round + title screen =====================
+function showRoundOverSplash(done) {
+  const ov = document.createElement("div");
+  ov.className = "round-over";
+  ov.innerHTML = `<div class="ro-text">ROUND<br>OVER</div>`;
+  document.body.appendChild(ov);
+  setTimeout(() => { ov.remove(); if (done) done(); }, 1600);
+}
+function endRound() {
+  netSend("endround", {});
+  showRoundOverSplash(() => newGame());
+}
+function showTitleScreen() {
+  const saved = loadGameSave();
+  const ov = document.createElement("div");
+  ov.className = "title-screen";
+  ov.innerHTML = `
+    <div class="ts-words" aria-hidden="true">
+      <span class="ts-who">WHO?</span>
+      <span class="ts-isit">IS IT?</span>
+    </div>
+    <div class="ts-actions">
+      <button type="button" class="button primary ts-new">NEW GAME</button>
+      ${saved ? `<button type="button" class="button secondary ts-resume">RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</button>` : ""}
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
+  ov.querySelector(".ts-new").addEventListener("click", () => { close(); newGame(); });
+  const res = ov.querySelector(".ts-resume");
+  if (res) res.addEventListener("click", () => { close(); resumeGame(saved); });
+}
+
+// ===================== SEED codes (share a whole setup) =====================
+// The code packs the salt + settings; pasting it deals the IDENTICAL round (same board, same
+// location, same wheel outcome, same secrets) - assuming both sides have the same character pool.
+function currentSeedCode() {
+  try { return btoa(unescape(encodeURIComponent(JSON.stringify({ s: state.gameSalt, g: state.settings })))).replace(/=+$/, ""); }
+  catch (e) { return ""; }
+}
+function parseSeedCode(code) {
+  try {
+    const d = JSON.parse(decodeURIComponent(escape(atob((code || "").trim()))));
+    return d && d.s ? d : null;
+  } catch (e) { return null; }
 }
 
 loadTheme();
@@ -4461,7 +4699,7 @@ mergeCustomIntoPool();                 // fold saved custom characters into the 
 mergeGaybiesIntoPool();                // and the persistent GAYBYs
 wirePainScaleDrag();                   // drag the disease pain scale to change emotions
 if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
-newGame();
+showTitleScreen();                     // WHO? / IS IT? slides in; deal or resume from there
 wireCueCardClick();
 wireFloatingSecret();
 if (els.sortSelect) {

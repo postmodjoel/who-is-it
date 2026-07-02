@@ -2642,7 +2642,8 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 .character-board.ygo-board { --card-min: 96px; gap: 12px; }
 
 @media (max-width: 860px) {
-  .game-layout { grid-template-columns: 1fr; }
+  /* minmax(0,1fr): a wide board (e.g. the manor's 9x48px grid) must NOT stretch the whole page. */
+  .game-layout { grid-template-columns: minmax(0, 1fr); }
   .game-side { position: static; }
 }
 
@@ -3399,7 +3400,10 @@ body.mode-pixall .secret-card img {
   z-index: 3000;
   display: grid;
   place-items: center;
-  background: rgba(6, 5, 10, 0.9);
+  /* The board stays visible but heavily blurred behind the spinning wheel. */
+  background: rgba(6, 5, 10, 0.62);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
 }
 .roulette-box { width: min(94vw, 640px); text-align: center; }
 .roulette-title {
@@ -4338,12 +4342,13 @@ body.mode-pixall .secret-card img {
 @keyframes hb-step-shadow { 0%, 100% { transform: translateX(-50%) scaleX(1); } 50% { transform: translateX(-50%) scaleX(0.82); } }
 /* Decor (all original CSS art, not Habbo assets). */
 .habbo-decor { position: absolute; inset: 0; }
+/* An actual iso rug: theme-coloured stripes inside a trim border, sized to ~2.5 tiles. */
 .hb-rug {
-  position: absolute; width: 190px; height: 96px; margin-left: -95px; margin-top: -48px; z-index: 20;
+  position: absolute; width: 168px; height: 84px; margin-left: -84px; margin-top: -42px; z-index: 20;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  background: repeating-linear-gradient(45deg, #a83a3a 0 10px, #8a2c2c 10px 20px);
-  box-shadow: inset 0 0 0 4px #e0b04a, inset 0 0 0 7px #8a2c2c;
-  opacity: 0.92;
+  background: repeating-linear-gradient(45deg, var(--hb-rug, #8c3a3a) 0 10px, var(--hb-rug2, #742e2e) 10px 20px);
+  box-shadow: inset 0 0 0 4px var(--hb-trim, #d8b45a), inset 0 0 0 7px var(--hb-rug2, #742e2e);
+  opacity: 0.85;
 }
 /* Paintings are real 16x12 pixel-art scenes (inline crisp-edge SVGs built in app.js) inside a
    chunky bevelled frame. They live INSIDE the wall panels, inheriting the wall's skew. */
@@ -4816,3 +4821,34 @@ img.pol-mascot {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.62rem;
 }
 .seed-controls .button { padding: 5px 9px; }
+
+/* Mobile topbar: six controls have to share the row - compact everything, no overlap, no clipping. */
+@media (max-width: 640px) {
+  .topbar-actions {
+    position: static;
+    height: auto;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 6px 6px 4px;
+  }
+  .topbar-actions .button {
+    min-height: 30px;
+    padding: 3px 7px;
+    font-size: 0.62rem;
+    white-space: nowrap;
+  }
+  .topbar-actions #debugEffectPicker { max-width: 64px; font-size: 0.6rem; }
+  .stage-top { display: flex; flex-direction: column; }
+}
+
+
+/* Manor fits phones: the 9x9 grid drops its 48px minimums and tightens up. */
+@media (max-width: 640px) {
+  .knockoff-manor-board {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-rows: repeat(9, minmax(32px, 1fr));
+    gap: 2px;
+    padding: 8px;
+    min-height: 96vw;
+  }
+}

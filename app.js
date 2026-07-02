@@ -573,8 +573,11 @@ function newGame(seedSalt, opts = {}) {
   state.board.forEach((character, index) => {
     state.global.roleMap[character.id] = state.settings.roles ? characterRoles[index % characterRoles.length] : character.role;
   });
+  // The wheel outcome is picked from the no-repeat bag now, so the "start" message can carry it
+  // (a remote client's own bag may disagree - the dealer's pick wins).
+  state.wheelPick = opts.effectId !== undefined ? opts.effectId : (state.settings.mystery ? wheelTargetFromBag() : null);
   // Tell any connected opponent about the new round BEFORE hopping to the new room's channel.
-  if (!opts.remote) netSend("start", { salt: state.gameSalt, settings: state.settings });
+  if (!opts.remote) netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick });
   netConnect();
   drawPrompt();
   addLog("New game dealt. Nobody looks trustworthy.");
@@ -611,6 +614,31 @@ function wheelTarget() {
   const n = mysteryEffects.length + 1;   // +1 = the No Effect cell
   const idx = stableHash(`${state.gameSalt}:wheel`) % n;
   return idx < mysteryEffects.length ? mysteryEffects[idx].id : null;
+}
+// No-repeat wheel: the wheel draws from a persistent bag and never repeats a mode until you've
+// experienced every single one (then the bag resets for another full lap). Still salt-deterministic
+// WITHIN the bag, and the chosen id rides the "start" message so online clients agree regardless
+// of their local bag state.
+const WHEEL_BAG_KEY = "whoisit_wheel_bag_v1";
+function wheelBag() {
+  try { const b = JSON.parse(localStorage.getItem(WHEEL_BAG_KEY) || "[]"); return Array.isArray(b) ? b : []; }
+  catch (e) { return []; }
+}
+function wheelTargetFromBag() {
+  const all = [...mysteryEffects.map((e) => e.id), null];   // null = the No Effect cell
+  const seen = wheelBag();
+  let unseen = all.filter((id) => !seen.includes(id));
+  if (!unseen.length) {
+    try { localStorage.setItem(WHEEL_BAG_KEY, "[]"); } catch (e) { /* fine */ }
+    unseen = all;   // full lap complete - fresh bag
+  }
+  return unseen[stableHash(`${state.gameSalt}:wheel`) % unseen.length];
+}
+function markWheelSeen(id) {
+  try {
+    const seen = wheelBag();
+    if (!seen.includes(id)) { seen.push(id); localStorage.setItem(WHEEL_BAG_KEY, JSON.stringify(seen)); }
+  } catch (e) { /* fine */ }
 }
 
 function makePlayer(index) {
@@ -1724,15 +1752,19 @@ function renderHabboBoard(player) {
   const RISE = (HABBO_GH - 1) * (HABBO_TH / 2);         // vertical drop of one wall edge (126px)
   const WALL_H = 112;
   const locName = ((state.location && state.location.name) || "").toLowerCase();
+  // Every location maps to a full room skin (walls / floor / rug) so a Ski Lodge READS as a ski
+  // lodge, a Hot Spring as a steamy spa, a Diner as a checker-floor greasy spoon, etc.
   const HABBO_THEMES = [
-    [/spring|spa|pool|aquarium|beach|lake|bath|pier|harbour|harbor/, { wall: "#2e6f78", cap: "#4c99a2", skirt: "#1d4a50", ground: "#7fccc4", tile: "#cdeeea", tileAlt: "#b2e0da", side: "#5f9a94", room: "#12262e" }],
-    [/park|garden|forest|farm|zoo|camp|orchard|meadow/, { wall: "#7a5a34", cap: "#96754a", skirt: "#59401f", ground: "#57a344", tile: "#6fbf58", tileAlt: "#5da84a", side: "#3f7531", room: "#161f12" }],
-    [/ski|snow|ice|arctic|lodge|mountain/, { wall: "#5a7a9a", cap: "#7c9cba", skirt: "#3f5a75", ground: "#dce9f4", tile: "#f4f8fc", tileAlt: "#dfe9f2", side: "#a2b6ca", room: "#141c28" }],
-    [/casino|nightclub|club|bar|arcade|theatre|theater|cinema/, { wall: "#3a2a52", cap: "#57407a", skirt: "#241634", ground: "#502e58", tile: "#8a4a94", tileAlt: "#74407e", side: "#3e2044", room: "#120a1a" }],
-    [/rooftop|office|train|airport|station|city|museum|library|laundromat/, { wall: "#5e6472", cap: "#7c828f", skirt: "#41454f", ground: "#8e94a0", tile: "#c2c8d2", tileAlt: "#aeb4c0", side: "#767c88", room: "#141821" }]
+    [/ski|snow|ice|arctic|lodge|mountain/, { wall: "#6a4a2e", cap: "#8a6742", skirt: "#4a3018", ground: "#dce9f4", tile: "#f4f8fc", tileAlt: "#dfe9f2", side: "#a2b6ca", room: "#141c28", rug: "#a83a3a", rug2: "#7e2626", trim: "#e0b04a" }],
+    [/spring|spa|pool|aquarium|bath|sauna/, { wall: "#2e6f78", cap: "#4c99a2", skirt: "#1d4a50", ground: "#7fccc4", tile: "#cdeeea", tileAlt: "#b2e0da", side: "#5f9a94", room: "#12262e", rug: "#1e5a62", rug2: "#174a50", trim: "#7fccc4" }],
+    [/beach|pier|ferry|harbou?r|island/, { wall: "#7fc4e8", cap: "#a8dcf4", skirt: "#4a90b8", ground: "#e8d5a0", tile: "#f0e0b4", tileAlt: "#e2cf98", side: "#b8a068", room: "#173042", rug: "#3a86c8", rug2: "#2e6ea6", trim: "#f0e0b4" }],
+    [/park|garden|greenhouse|farm|zoo|camp|orchard|meadow|yoga/, { wall: "#7a5a34", cap: "#96754a", skirt: "#59401f", ground: "#57a344", tile: "#6fbf58", tileAlt: "#5da84a", side: "#3f7531", room: "#161f12", rug: "#c8703a", rug2: "#a85a2c", trim: "#e8c87a" }],
+    [/casino|nightclub|club|bar\b|arcade|karaoke|cinema|theatre|theater|bowling|record/, { wall: "#3a2a52", cap: "#57407a", skirt: "#241634", ground: "#502e58", tile: "#8a4a94", tileAlt: "#74407e", side: "#3e2044", room: "#120a1a", rug: "#e040a0", rug2: "#b82e84", trim: "#ffd24d" }],
+    [/bakery|cafe|diner|restaurant|kitchen|market|wine/, { wall: "#b0483a", cap: "#cc6a58", skirt: "#84332a", ground: "#e8ddc8", tile: "#f4ecd8", tileAlt: "#d8cbb0", side: "#b0a488", room: "#241812", rug: "#b0483a", rug2: "#963a2e", trim: "#f4ecd8" }],
+    [/rooftop|office|train|airport|station|city|museum|library|bookstore|laundromat|hotel|gym|salon|gallery|tattoo/, { wall: "#5e6472", cap: "#7c828f", skirt: "#41454f", ground: "#8e94a0", tile: "#c2c8d2", tileAlt: "#aeb4c0", side: "#767c88", room: "#141821", rug: "#3a5a8c", rug2: "#2e4870", trim: "#c2c8d2" }]
   ];
   const theme = (HABBO_THEMES.find(([re]) => re.test(locName)) || [null,
-    { wall: "#7d87b8", cap: "#99a2cc", skirt: "#565e88", ground: "#c3ae7e", tile: "#d8c79a", tileAlt: "#cbb888", side: "#93805a", room: "#232a4a" }])[1];
+    { wall: "#7d87b8", cap: "#99a2cc", skirt: "#565e88", ground: "#c3ae7e", tile: "#d8c79a", tileAlt: "#cbb888", side: "#93805a", room: "#232a4a", rug: "#8c3a3a", rug2: "#742e2e", trim: "#d8b45a" }])[1];
   const varName = { tileAlt: "tile-alt" };
   Object.keys(theme).forEach((k) => els.characterBoard.style.setProperty(`--hb-${varName[k] || k}`, theme[k]));
 
@@ -2097,8 +2129,9 @@ const MODE_GLYPHS = ["☣", "◉", "✦", "⚛", "☠", "⬢", "✶", "❂", "�
 function spinModeRoulette(done) {
   const modes = mysteryEffects.map((e, i) => ({ id: e.id, name: e.name, glyph: MODE_GLYPHS[i % MODE_GLYPHS.length], hue: (i * 47) % 360 }));
   modes.push({ id: null, name: "No Effect", glyph: "∅", hue: 210 });
-  // Deterministic landing spot (hash of the salt) - every client's wheel agrees. Matches wheelTarget().
-  const targetId = wheelTarget();
+  // Lands on the no-repeat bag pick (shared via the start message); legacy fallback: salt hash.
+  const targetId = state.wheelPick !== undefined ? state.wheelPick : wheelTarget();
+  markWheelSeen(targetId);
   const target = modes.find((m) => m.id === targetId) || modes[modes.length - 1];
   const targetPos = modes.indexOf(target);
   const CELL = 112, REPS = 9;
@@ -2595,8 +2628,9 @@ function getMysteryCardData(character) {
   if (mystery.id === "prop-panic") {
     // The prop is WIELDED, not a corner badge: big, plonked somewhere on the person at a hashed
     // angle/position, wobbling on its own beat. The panic loop periodically swaps props around.
-    const px = 12 + (stableHash(character.id + ":ppx") % 60);
-    const py = 28 + (stableHash(character.id + ":ppy") % 45);
+    // Hands/torso zone (not plastered over the face): x 14-64%, y 52-78% of the portrait.
+    const px = 14 + (stableHash(character.id + ":ppx") % 50);
+    const py = 52 + (stableHash(character.id + ":ppy") % 26);
     const rot = -28 + (stableHash(character.id + ":ppr") % 57);
     const dl = -(stableHash(character.id + ":ppd") % 2400) / 1000;
     return {
@@ -4552,8 +4586,8 @@ function handleNetMsg(msg) {
   if (!msg || typeof msg !== "object") return;
   if (msg.type === "hello") {
     markPeerOnline();
-    // Tell the newcomer what round we're in; they adopt the salt and the opposite seat.
-    netSend("sync", { salt: state.gameSalt, settings: state.settings });
+    // Tell the newcomer what round we're in; they adopt the salt, wheel pick and the opposite seat.
+    netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick });
     return;
   }
   if (msg.type === "sync") {
@@ -4561,7 +4595,7 @@ function handleNetMsg(msg) {
     if (msg.salt && msg.salt !== state.gameSalt) {
       state.settings = { ...state.settings, ...(msg.settings || {}) };
       state.mySeat = msg.seat === 0 ? 1 : 0;   // take the other seat
-      newGame(msg.salt, { remote: true });
+      newGame(msg.salt, { remote: true, effectId: msg.effectId });
     } else if ((state.mySeat || 0) === (msg.seat || 0)) {
       // Same round (e.g. second tab resumed the same save) but we collided on the seat - the
       // newcomer (that's us: we sent the hello this sync answers) yields to the other one.
@@ -4574,7 +4608,7 @@ function handleNetMsg(msg) {
   if (msg.type === "start") {
     markPeerOnline();
     state.settings = { ...state.settings, ...(msg.settings || {}) };
-    newGame(msg.salt, { remote: true });
+    newGame(msg.salt, { remote: true, effectId: msg.effectId });
     return;
   }
   if (msg.type === "elim") {

@@ -3719,22 +3719,29 @@ body.mode-pixall .secret-card img {
    TOP of the person, not behind the flames/clouds. */
 .character-card.judgement .portrait-wrap { overflow: hidden; }
 .character-card.judgement .portrait-wrap::after { z-index: 1; }
-/* HELL: tall, fast-flickering flames engulfing the person from below + a hot red wash. */
+/* HELL: chaotically flickering flames (irregular steps + skew, so it licks like fire instead of a
+   smooth bottom pulse) with a slow ovoidal sway, over charred bodies. */
 .jd-hell .portrait-wrap::after {
   background:
-    radial-gradient(ellipse 42% 66% at 16% 112%, rgba(255, 190, 40, 0.95), rgba(255, 70, 0, 0.55) 42%, transparent 72%),
-    radial-gradient(ellipse 52% 82% at 50% 114%, rgba(255, 232, 90, 1), rgba(255, 90, 0, 0.72) 40%, transparent 74%),
-    radial-gradient(ellipse 42% 66% at 84% 112%, rgba(255, 190, 40, 0.95), rgba(255, 70, 0, 0.55) 42%, transparent 72%),
-    radial-gradient(ellipse 66% 44% at 50% 120%, rgba(255, 120, 0, 0.85), transparent 70%),
-    linear-gradient(0deg, rgba(150, 12, 0, 0.8), rgba(90, 0, 0, 0.22) 46%, transparent 64%);
+    radial-gradient(ellipse 30% 58% at 30% 110%, rgba(255, 160, 20, 0.9), transparent 60%),
+    radial-gradient(ellipse 30% 58% at 70% 110%, rgba(255, 120, 8, 0.9), transparent 60%),
+    radial-gradient(ellipse 24% 66% at 50% 104%, rgba(255, 244, 130, 0.95), rgba(255, 120, 0, 0.6) 45%, transparent 66%),
+    radial-gradient(ellipse 60% 46% at 50% 116%, rgba(255, 210, 70, 0.95), rgba(255, 80, 0, 0.7) 48%, transparent 76%),
+    linear-gradient(0deg, rgba(150, 12, 0, 0.78), rgba(90, 0, 0, 0.2) 46%, transparent 62%);
   mix-blend-mode: screen; transform-origin: 50% 100%;
-  animation: jd-flames 0.45s ease-in-out infinite alternate;
+  animation: jd-fire 0.85s steps(7, end) infinite;
 }
-@keyframes jd-flames {
-  0%   { transform: translateY(3%) scaleY(0.95) scaleX(1.03); opacity: 0.88; }
-  100% { transform: translateY(-3%) scaleY(1.12) scaleX(0.96); opacity: 1; }
+@keyframes jd-fire {
+  0%   { transform: translateY(2%)  scale(1.02, 0.98) skewX(2deg)  rotate(-2deg); opacity: 0.9; }
+  15%  { transform: translateY(-1%) scale(0.97, 1.07) skewX(-3deg) rotate(-1deg); opacity: 1; }
+  30%  { transform: translateY(1%)  scale(1.05, 1.0)  skewX(1deg)  rotate(1deg); opacity: 0.93; }
+  45%  { transform: translateY(-2%) scale(0.95, 1.09) skewX(-2deg) rotate(2deg); opacity: 1; }
+  60%  { transform: translateY(0%)  scale(1.04, 1.01) skewX(3deg)  rotate(1deg); opacity: 0.92; }
+  75%  { transform: translateY(-1%) scale(0.98, 1.06) skewX(-1deg) rotate(-1deg); opacity: 1; }
+  100% { transform: translateY(2%)  scale(1.02, 0.98) skewX(2deg)  rotate(-2deg); opacity: 0.9; }
 }
-.jd-hell .portrait-wrap img { filter: brightness(1.02) saturate(1.15) contrast(1.05); }
+/* Charred, burnt bodies. */
+.jd-hell .portrait-wrap img { filter: brightness(0.48) contrast(1.4) grayscale(0.4) sepia(0.3); }
 /* HEAVEN: the portrait renders on a transparent background, so a sky + drifting clouds sit BEHIND the
    figure on the wrap; a gentle set of god-rays glows in front. */
 .jd-heaven .portrait-wrap {
@@ -3752,17 +3759,33 @@ body.mode-pixall .secret-card img {
 .jd-heaven .portrait-wrap img { position: relative; z-index: 1; }
 .jd-heaven .portrait-wrap::before {
   content: ""; position: absolute; inset: -25%; z-index: 0; pointer-events: none;
-  background: repeating-conic-gradient(from 0deg at 50% 42%, rgba(255, 248, 214, 0.55) 0deg 5deg, transparent 5deg 17deg);
+  /* Rays of uneven width for a hand-drawn look. */
+  background: conic-gradient(from 0deg at 50% 42%,
+    rgba(255, 248, 214, 0.62) 0 4deg, transparent 4deg 22deg,
+    rgba(255, 248, 214, 0.5) 22deg 31deg, transparent 31deg 54deg,
+    rgba(255, 248, 214, 0.66) 54deg 57deg, transparent 57deg 80deg,
+    rgba(255, 248, 214, 0.46) 80deg 91deg, transparent 91deg 116deg,
+    rgba(255, 248, 214, 0.6) 116deg 120deg, transparent 120deg 146deg,
+    rgba(255, 248, 214, 0.5) 146deg 156deg, transparent 156deg 182deg,
+    rgba(255, 248, 214, 0.64) 182deg 186deg, transparent 186deg 212deg,
+    rgba(255, 248, 214, 0.46) 212deg 222deg, transparent 222deg 248deg,
+    rgba(255, 248, 214, 0.6) 248deg 252deg, transparent 252deg 280deg,
+    rgba(255, 248, 214, 0.5) 280deg 290deg, transparent 290deg 316deg,
+    rgba(255, 248, 214, 0.64) 316deg 320deg, transparent 320deg 348deg,
+    rgba(255, 248, 214, 0.46) 348deg 358deg, transparent 358deg 360deg);
   -webkit-mask: radial-gradient(circle at 50% 42%, #000 26%, transparent 62%);
   mask: radial-gradient(circle at 50% 42%, #000 26%, transparent 62%);
   mix-blend-mode: screen;
-  animation: jd-rays 20s linear infinite;
+  animation: jd-rays 24s linear infinite;
 }
+/* A separate pulsing bloom (its own layer, so the pulse doesn't fight the rays' rotation). */
 .jd-heaven .portrait-wrap::after {
-  background: radial-gradient(circle at 50% 32%, rgba(255, 255, 255, 0.45), transparent 46%);
-  mix-blend-mode: screen; opacity: 0.6;
+  background: radial-gradient(circle at 50% 34%, rgba(255, 255, 255, 0.5), rgba(255, 245, 200, 0.25) 30%, transparent 50%);
+  mix-blend-mode: screen; z-index: 0;
+  animation: jd-bloom-pulse 2.8s ease-in-out infinite;
 }
 @keyframes jd-rays { to { transform: rotate(360deg); } }
+@keyframes jd-bloom-pulse { 0%, 100% { opacity: 0.4; transform: scale(0.95); } 50% { opacity: 0.85; transform: scale(1.08); } }
 .jd-purgatory .portrait-wrap img { filter: grayscale(0.78) contrast(0.92) brightness(0.96); }
 .jd-purgatory .portrait-wrap::after {
   background:
@@ -3901,27 +3924,27 @@ body.mode-pixall .secret-card img {
 /* Pearly drips form along the bottom edge of each orgy card and fall off onto the cards below. The card
    allows overflow so the drops can escape; columns are desynced so it doesn't pulse in unison. */
 .character-card.orgy { overflow: visible; }
+/* A glossy teardrop bulges at the bottom edge, forms a neck, stretches, then detaches and falls onto
+   the card below - a proper viscous drip instead of a row of dots. */
 .character-card.orgy::before {
-  content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 54px; z-index: 8;
+  content: ""; position: absolute; left: 50%; bottom: -2px; width: 11px; height: 15px; margin-left: -5.5px; z-index: 8;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse 4px 6px at 15% 0, rgba(250, 243, 246, 0.98) 60%, transparent 64%),
-    radial-gradient(ellipse 3px 5px at 38% 0, rgba(250, 243, 246, 0.98) 60%, transparent 64%),
-    radial-gradient(ellipse 4.5px 7px at 62% 0, rgba(250, 243, 246, 0.98) 60%, transparent 64%),
-    radial-gradient(ellipse 3.2px 5px at 85% 0, rgba(250, 243, 246, 0.98) 60%, transparent 64%);
-  background-repeat: no-repeat;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-  animation: orgy-drip 2.8s ease-in infinite;
+  background: radial-gradient(ellipse at 50% 32%, #ffffff, #f3d9e6 55%, #e0a8c6 100%);
+  border-radius: 50% 50% 50% 50% / 62% 62% 40% 40%;
+  box-shadow: inset 1px -1px 2px rgba(160, 40, 90, 0.4), 0 0 4px rgba(255, 255, 255, 0.4);
+  transform-origin: 50% 0;
+  animation: orgy-drip 2.7s cubic-bezier(0.5, 0, 0.9, 0.4) infinite;
 }
 @keyframes orgy-drip {
-  0%   { background-position: 15% -8px, 38% -8px, 62% -8px, 85% -8px; opacity: 0; }
-  16%  { opacity: 1; }
-  100% { background-position: 15% 52px, 38% 42px, 62% 54px, 85% 38px; opacity: 0; }
+  0%   { transform: translateY(0) scaleY(0.5) scaleX(0.9); opacity: 0; }
+  18%  { transform: translateY(2px) scaleY(1) scaleX(1); opacity: 1; }     /* bulge forms */
+  34%  { transform: translateY(7px) scaleY(1.35) scaleX(0.82); opacity: 1; } /* stretch a neck */
+  46%  { transform: translateY(13px) scaleY(1.1) scaleX(1); opacity: 1; }  /* pinch off */
+  100% { transform: translateY(52px) scaleY(1.5) scaleX(0.8); opacity: 0; } /* fall away */
 }
-.character-card.orgy:nth-child(4n)::before   { animation-delay: 0.7s; }
-.character-card.orgy:nth-child(4n+1)::before { animation-delay: 1.9s; }
-.character-card.orgy:nth-child(4n+2)::before { animation-delay: 1.2s; }
-.character-card.orgy:nth-child(4n+3)::before { animation-delay: 2.4s; }
+.character-card.orgy:nth-child(3n)::before   { left: 32%; animation-delay: 0.9s; }
+.character-card.orgy:nth-child(3n+1)::before { left: 62%; animation-delay: 2.0s; }
+.character-card.orgy:nth-child(3n+2)::before { left: 48%; animation-delay: 1.4s; }
 @media (prefers-reduced-motion: reduce) { .character-card.orgy::before { animation: none; opacity: 0; } }
 
 /* ===================== Heads Only mode ===================== */
@@ -4255,3 +4278,26 @@ body.mode-pixall .secret-card img {
   background: radial-gradient(circle at 40% 35%, #6fd36a, #2c8a34);
 }
 .hb-pot { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 18px; height: 16px; background: linear-gradient(#c47a3a, #8a4f22); border-radius: 3px 3px 5px 5px; }
+
+/* ===================== Disease: PATIENT ZERO + draggable pain scale ===================== */
+.pz-badge {
+  position: absolute; top: 5px; left: 5px; z-index: 6;
+  padding: 1px 6px; border-radius: 10px; font-size: 0.46rem; font-weight: 900; color: #fff;
+  background: linear-gradient(180deg, #e0341a, #8a0f04); letter-spacing: 0.02em;
+  animation: pz-pulse 1.2s ease-in-out infinite;
+}
+@keyframes pz-pulse { 0%, 100% { box-shadow: 0 0 6px rgba(255, 40, 0, 0.6); } 50% { box-shadow: 0 0 15px rgba(255, 70, 0, 0.95); } }
+.character-card.patient-zero { box-shadow: 0 0 0 2px #e0341a, 0 0 16px -2px #e0341a; }
+.dz-painscale-faces { cursor: ew-resize; touch-action: none; user-select: none; }
+.dz-painscale-faces:hover { outline: 1px solid rgba(255, 255, 255, 0.35); }
+
+/* ===================== Fertility: FRESH MEAT ===================== */
+.ft-fresh {
+  font-size: 0.56rem; font-weight: 900; color: #2a0a12; letter-spacing: 0.04em; text-align: center;
+  background: linear-gradient(180deg, #ff9ab0, #ff5a7d); border-radius: 4px; padding: 1px 5px;
+}
+.character-card.fertility.is-fresh { box-shadow: 0 0 0 2px #ff5a7d, 0 0 14px -3px #ff5a7d; }
+
+/* Isometric wall paintings (skewed to sit on the two receding walls). */
+.hb-wall-l { transform: skewY(16deg); }
+.hb-wall-r { transform: skewY(-16deg); }

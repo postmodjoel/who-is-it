@@ -718,7 +718,8 @@ function makeBaby(A, B, gayby) {
   return {
     id: `baby-${seed}`,
     name: babyName(A.name, B.name),
-    pronouns: Math.random() < 0.5 ? A.pronouns : B.pronouns,
+    // ~1 in 5 come out non-binary (they/them); the rest inherit a parent's pronouns.
+    pronouns: Math.random() < 0.2 ? "they" : (Math.random() < 0.5 ? A.pronouns : B.pronouns),
     feature: gayby ? "a gayby" : "a brand-new baby",
     secret: A.secret,
     role: Math.random() < 0.5 ? A.role : B.role,
@@ -753,14 +754,38 @@ function persistGayby(baby) {
 function parseCum(str) { const m = String(str).match(/([\d.]+)\s*([MB])/i); if (!m) return 0; return parseFloat(m[1]) * (m[2].toUpperCase() === "B" ? 1000 : 1); }
 function formatCum(mils) { return mils >= 1000 ? `${(mils / 1000).toFixed(1)}B` : `${Math.max(0, Math.round(mils))}M`; }
 
+// Breeding only happens in the modes where it makes sense.
+const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease"];
+// Combine two parents' disease sheets into a mutant derivative for a disease-mode baby.
+function combineDiseaseAssignment(A, B) {
+  const asg = state.global.mystery.assignments;
+  const pa = asg[A.id] || {}, pb = asg[B.id] || {};
+  const muts = ["Neo-", "Mutant ", "Super-", "Novel ", "Hyper-", "Ω-"];
+  const bump = { MINOR: "MAJOR", MAJOR: "MEGA", MEGA: "MEGA" };
+  const seen = new Set();
+  const diseases = [...(pa.diseases || []), ...(pb.diseases || [])]
+    .map((d, i) => ({ name: muts[i % muts.length] + d.name, tier: bump[d.tier] || d.tier }))
+    .filter((d) => (seen.has(d.name) ? false : seen.add(d.name)))
+    .slice(0, 4);
+  return {
+    diseases: diseases.length ? diseases : [{ name: "Novel Ailment", tier: "MAJOR" }],
+    cancers: [...(pa.cancers || []), ...(pb.cancers || [])].slice(0, 2),
+    meds: [...new Set([...(pa.meds || []), ...(pb.meds || [])])].slice(0, 3),
+    pregnant: false,
+    autism: Math.min(1, ((pa.autism || 0) + (pb.autism || 0)) / 2 + 0.1),
+    pain: Math.min(pa.pain != null ? pa.pain : 2, pb.pain != null ? pb.pain : 2)
+  };
+}
 // Drop character `aId` onto `bId` -> a baby joins the board for THIS game only (never saved).
 function breedCharacters(aId, bId) {
   const A = characterById(aId), B = characterById(bId);
   if (!A || !B || !window.faceGenerator) return;
+  const mode = state.global.mystery?.id;
+  if (!BREED_MODES.includes(mode)) { flashToast("Breeding only works in Fertility, Orgy, Gay or Disease mode 👶"); return; }
 
   // In FERTILITY mode breeding is gated: you need one egg-producer + one sperm-producer, and it costs
   // each of them some balance. They grind together, then a baby explodes out (parents survive).
-  if (state.global.mystery?.id === "fertility") {
+  if (mode === "fertility") {
     const asg = state.global.mystery.assignments;
     const fa = asg[A.id], fb = asg[B.id];
     if (!fa || !fb) { flashToast("These two can't breed."); return; }
@@ -776,7 +801,8 @@ function breedCharacters(aId, bId) {
     else { flashToast("Need eggs 🥚 + sperm 💦 — no viable gametes!"); return; }
     if (sameSex(A, B)) gayby = true;
     const baby = makeBaby(A, B, gayby);
-    asg[baby.id] = { cum: `${1 + Math.floor(Math.random() * 8)}M`, eggs: 1 + Math.floor(Math.random() * 4), barren: false, hrs: 71, mins: 59, defect: null, hasCount: true, hasEggs: true };
+    // FRESH MEAT: a newborn starts with 0 cummies and a huge fresh clutch of eggs.
+    asg[baby.id] = { cum: "0M", eggs: 300 + Math.floor(Math.random() * 400), barren: false, hrs: 71, mins: 59, defect: null, hasCount: true, hasEggs: true, freshMeat: true };
     renderBoard();                                            // show the deducted balances immediately
     playBirthAnimation(A.image, B.image, baby, true, () => {
       state.board.push(baby);
@@ -789,12 +815,15 @@ function breedCharacters(aId, bId) {
     return;
   }
 
+  // Orgy / Gay / Disease.
   const gayby = sameSex(A, B);
+  const diseaseBaby = mode === "disease" ? combineDiseaseAssignment(A, B) : null;  // compute before the animation
   const baby = makeBaby(A, B, gayby);
   playBirthAnimation(A.image, B.image, baby, false, () => {
     state.board.push(baby);
-    // Regenerate the active mode's per-character data so the baby gets its own stats/card too.
-    if (state.global.mystery) {
+    if (mode === "disease") {
+      state.global.mystery.assignments[baby.id] = diseaseBaby;   // baby inherits mutant combined diseases
+    } else if (state.global.mystery) {
       const eff = mysteryEffects.find((e) => e.id === state.global.mystery.id);
       if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (e) { /* mode has no per-baby data - fine */ } }
     }
@@ -817,7 +846,7 @@ function flashToast(msg) {
 // "IT'S A BOY/GIRL/THEM!" reveal with the baby's name, and finally the baby forms into a card that
 // flies down to the bottom of the stack. `done()` fires at the end (adds the baby to the board).
 function playBirthAnimation(imgA, imgB, baby, grind, done) {
-  const gender = baby.isGayby ? "IT'S A GAYBY!!" : baby.pronouns === "he" ? "IT'S A BOY!" : baby.pronouns === "she" ? "IT'S A GIRL!" : "IT'S A THEM!";
+  const gender = baby.isGayby ? "IT'S A GAYBY!!" : baby.pronouns === "he" ? "IT'S A BOY!" : baby.pronouns === "she" ? "IT'S A GIRL!" : "IT'S A NON-BINARY!";
   const cols = ["#ff4d6d", "#ffd24d", "#5dff8f", "#4dd2ff", "#c46bff", "#ff8a4d", "#fff27a"];
   let burst = "";
   for (let i = 0; i < 18; i++) {
@@ -1402,10 +1431,10 @@ function renderHabboBoard(player) {
   decor.className = "habbo-decor";
   decor.innerHTML =
     `<div class="hb-rug" style="left:${mid.x}px;top:${mid.y}px"></div>` +
-    `<div class="hb-painting hb-p1" style="left:${wallX - 130}px"></div>` +
-    `<div class="hb-painting hb-p2" style="left:${wallX}px"></div>` +
-    `<div class="hb-painting hb-p3" style="left:${wallX + 130}px"></div>` +
-    `<div class="hb-plant" style="left:${wallX - 250}px"><span class="hb-pot"></span></div>`;
+    `<div class="hb-painting hb-p1 hb-wall-l" style="left:${wallX - 150}px"></div>` +
+    `<div class="hb-painting hb-p2 hb-wall-l" style="left:${wallX - 30}px"></div>` +
+    `<div class="hb-painting hb-p3 hb-wall-r" style="left:${wallX + 140}px"></div>` +
+    `<div class="hb-plant" style="left:${wallX - 270}px"><span class="hb-pot"></span></div>`;
   room.appendChild(decor);
   // Give any character without a tile a starting spot, strided so they scatter across the whole floor
   // rather than bunching in the back rows.
@@ -1775,7 +1804,7 @@ function createCharacterCard(character, player) {
       <div class="card-meta">${mystery.html}</div>
     </div>
   `;
-  card.addEventListener("click", () => toggleEliminated(character.id));
+  card.addEventListener("click", (e) => { if (e.target.closest(".dz-painscale")) return; toggleEliminated(character.id); });
   wireBreedDnD(card, character.id);
   return card;
 }
@@ -2026,12 +2055,49 @@ function pathFromPoints(points) {
 // A labelled pain scale from D:< (agony) to :D (fine), over a red-to-green track, with the person's
 // level (pain index 0-4, 0 = most pain) highlighted. Used by Disease mode and the woke disease module.
 const PAIN_SCALE_FACES = ["D:<", ">:(", ":|", ":)", ":D"];
-function renderPainScale(pain) {
+const PAIN_EXPRESSIONS = ["angry", "sad", "neutral", "happy", "happy"];
+function renderPainScale(pain, cid) {
   const faces = PAIN_SCALE_FACES
-    .map((f, i) => `<span class="dz-face${i === pain ? " is-here" : ""}">${escapeHtml(f)}</span>`)
+    .map((f, i) => `<span class="dz-face${i === pain ? " is-here" : ""}" data-pain="${i}">${escapeHtml(f)}</span>`)
     .join("");
-  return `<div class="dz-painscale"><span class="dz-painscale-label">PAIN SCALE</span>`
-    + `<div class="dz-painscale-faces">${faces}</div></div>`;
+  return `<div class="dz-painscale"><span class="dz-painscale-label">PAIN SCALE · drag ↔</span>`
+    + `<div class="dz-painscale-faces" data-cid="${cid || ""}">${faces}</div></div>`;
+}
+// Drag along a pain scale to set that character's pain level - which re-renders their face into the
+// matching expression (agony -> angry ... fine -> happy). Updated in place so the drag isn't broken.
+function setPain(cid, index) {
+  const a = state.global.mystery?.assignments?.[cid];
+  if (!a || a.pain === index) return;
+  a.pain = index;
+  const ch = characterById(cid);
+  const card = document.getElementById(`card-${cid}`);
+  if (ch && ch.traits && window.faceGenerator) {
+    a.image = window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, expression: PAIN_EXPRESSIONS[index] || "neutral" });
+    const img = card?.querySelector(".portrait-wrap > img");
+    if (img) img.src = a.image;
+  }
+  card?.querySelectorAll(".dz-painscale-faces .dz-face").forEach((f, i) => f.classList.toggle("is-here", i === index));
+}
+let painDragCard = null;
+function painPointer(e) {
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const scale = under?.closest(".dz-painscale-faces");
+  if (!scale || !scale.dataset.cid) return;
+  const rect = scale.getBoundingClientRect();
+  const t = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  setPain(scale.dataset.cid, Math.round(t * (PAIN_SCALE_FACES.length - 1)));
+}
+function wirePainScaleDrag() {
+  els.characterBoard.addEventListener("pointerdown", (e) => {
+    const scale = e.target.closest(".dz-painscale-faces");
+    if (!scale) return;
+    e.preventDefault();                                   // stop the card's HTML5 drag / text select
+    painDragCard = e.target.closest(".character-card");
+    if (painDragCard) painDragCard.draggable = false;     // don't let it start a breed-drag mid-pain-drag
+    painPointer(e);
+  });
+  document.addEventListener("pointermove", (e) => { if (painDragCard) painPointer(e); });
+  document.addEventListener("pointerup", () => { if (painDragCard) { painDragCard.draggable = true; painDragCard = null; } });
 }
 
 function getMysteryCardData(character) {
@@ -2226,14 +2292,15 @@ function getMysteryCardData(character) {
   }
   if (mystery.id === "fertility") {
     const a = assignment;
+    const fresh = a.freshMeat ? `<div class="ft-fresh">🥩 FRESH MEAT</div>` : "";
     const defect = a.defect ? `<div class="ft-defect">⚠ ${escapeHtml(a.defect)}</div>` : "";
     const countRow = a.hasCount ? `<div class="ft-row"><b>💦</b><i>${escapeHtml(a.cum)}</i></div>` : "";
     const eggsRow = a.hasEggs ? `<div class="ft-row"><b>🥚</b><i>${a.barren ? '<span class="ft-barren">BARREN</span>' : a.eggs}</i></div>` : "";
     return {
       effectName: mystery.name,
-      cardClass: "fertility",
+      cardClass: `fertility ${a.freshMeat ? "is-fresh" : ""}`.trim(),
       cornerHtml: `<span class="ft-timer" title="next emptying">⏳ ${a.hrs}h ${a.mins}m</span>`,
-      html: `<div class="ft-sheet">${countRow}${eggsRow}${defect}</div>`
+      html: `<div class="ft-sheet">${fresh}${countRow}${eggsRow}${defect}</div>`
     };
   }
   if (mystery.id === "disease") {
@@ -2246,10 +2313,12 @@ function getMysteryCardData(character) {
     const meds = `<div class="dz-meds"><b>💊 Meds:</b> ${a.meds.map(escapeHtml).join(", ")}</div>`;
     return {
       effectName: mystery.name,
-      cardClass: "disease",
+      cardClass: `disease ${a.patientZero ? "patient-zero" : ""}`.trim(),
       dataset: { dzPregnant: String(a.pregnant) },
+      image: a.image || undefined,
+      cornerHtml: a.patientZero ? `<span class="pz-badge">☣ PATIENT ZERO!</span>` : "",
       html: `<div class="dz-sheet">
-        ${renderPainScale(a.pain)}
+        ${renderPainScale(a.pain, character.id)}
         <div class="dz-pills">${pills}</div>
         <div class="dz-bar"><b>AUTISM</b><i><s style="--n:${Math.round(a.autism * 100)}%"></s></i><u>${Math.round(a.autism * 100)}%</u></div>
         ${cancers}${meds}
@@ -2263,6 +2332,7 @@ function getMysteryCardData(character) {
     return {
       effectName: mystery.name,
       cardClass: "drugs",
+      image: a.image || undefined,
       cornerHtml: `<span class="dg-count" title="habits">${a.habits.length}× hooked</span>`,
       html: `<div class="dg-sheet">${rows}<div class="dg-daily">~${a.daily}/day</div></div>`
     };
@@ -2617,11 +2687,13 @@ function applyJudgement(effect) {
     const queuePos = verdict === "PURGATORY" ? 1 + ((h >>> 3) % 900000) : null;
     // Happiness: heaven high, hell rock-bottom, purgatory low. Second meter is verdict-specific.
     const base = verdict === "HEAVEN" ? 72 : verdict === "HELL" ? 2 : 22;
-    // Heaven renders on a TRANSPARENT background so the drifting clouds behind the card show through
-    // around the figure (fire for hell stays in front, over the portrait).
-    const image = (verdict === "HEAVEN" && ch.traits && window.faceGenerator)
-      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: "transparent" })
-      : null;
+    // Heaven: naked souls on a TRANSPARENT background (clouds show through behind). Hell: charred,
+    // ashen skin (the CSS also darkens/cracks it). Both stripped of clothes.
+    let image = null;
+    if (ch.traits && window.faceGenerator) {
+      if (verdict === "HEAVEN") image = window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: "transparent", clothing: "bare", accessory: "none" });
+      else if (verdict === "HELL") image = window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, clothing: "bare", accessory: "none", skinHex: "#4a3f3a", cheekOpacity: 0 });
+    }
     assignments[ch.id] = {
       verdict, image,
       location: pick(D.judgementLocations, verdict, `${ch.id}:loc`),
@@ -2767,6 +2839,10 @@ function applyDisease(effect) {
       pain: (h >>> 11) % D.painFaces.length
     };
   });
+  // Crown 1-2 of them PATIENT ZERO (deterministic: the lowest-hashing on the board).
+  const ranked = state.board.map((c) => [c.id, stableHash(`${state.gameSalt}:pz:${c.id}`)]).sort((a, b) => a[1] - b[1]);
+  const zeros = 1 + (ranked.length > 12 ? 1 : 0);
+  for (let k = 0; k < zeros && k < ranked.length; k++) if (assignments[ranked[k][0]]) assignments[ranked[k][0]].patientZero = true;
   return { id: effect.id, name: effect.name, assignments };
 }
 
@@ -2782,7 +2858,11 @@ function applyDrugs(effect) {
       const d = D.drugs[stableHash(`${state.gameSalt}:dg:${ch.id}:${k}`) % D.drugs.length];
       if (!habits.some((x) => x.name === d[0])) habits.push({ name: d[0], method: d[1] });
     }
-    assignments[ch.id] = { habits, daily: 1 + ((h >>> 5) % 40) };
+    // Everyone's eyes are heavy-lidded and half-shut - sleazy and off their face.
+    const image = ch.traits && window.faceGenerator
+      ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, eyeOpen: 0.28, underEyeOpacity: 0.5, browY: (Number(ch.traits.browY) || 0) + 1 })
+      : null;
+    assignments[ch.id] = { habits, daily: 1 + ((h >>> 5) % 40), image };
   });
   return { id: effect.id, name: effect.name, assignments };
 }
@@ -3635,6 +3715,7 @@ loadTheme();
 installStaticIcons();
 mergeCustomIntoPool();                 // fold saved custom characters into the playable pool
 mergeGaybiesIntoPool();                // and the persistent GAYBYs
+wirePainScaleDrag();                   // drag the disease pain scale to change emotions
 if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
 newGame();
 wireCueCardClick();

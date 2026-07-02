@@ -582,6 +582,7 @@ function newGame(seedSalt, opts = {}) {
   drawPrompt();
   addLog("New game dealt. Nobody looks trustworthy.");
   render();
+  replayBrand();   // WHO? / IS IT? slides back in for the fresh round
   stopOpponentSim();
   if (opts.resume) return;   // resume path applies the effect itself (silently, no wheel animation)
   // The Wheel of Fate spins at the start of the round to pick the chaos mode BOTH seats will share.
@@ -1345,26 +1346,21 @@ function renderSecret() {
     return;
   }
   updateFloatingSecret(secret, true);
-  // Mirror whatever the active special mode shows on this character's board card, so the secret card
-  // carries the exact same dossier (orgy stats, Yu-Gi-Oh card info, badges, etc.).
+  // A clean board tile: the mode may swap the PORTRAIT (disguises, judgement bodies, habbo heads...)
+  // but none of the stats/badges clutter comes along - the player can read all that off the main
+  // board. Just the face and the name.
   const m = state.global.mystery ? getMysteryCardData(secret) : {};
-  els.secretCard.className = `secret-card ${m.cardClass || ""}`.trim();
-  // The card takes the character's own portrait background colour, so the portrait sits directly in
-  // it (no card-in-a-card) and the colours don't double up.
-  const bg = secret.traits?.background || "#cdd6e0";
-  els.secretCard.setAttribute("style", `--secret-bg:${bg};${m.style || ""}`);
   const gayFroggedAssignment = state.global.mystery?.id === "gay-frogged" ? state.global.mystery.assignments?.[secret.id] : null;
+  els.secretCard.className = "secret-card";
+  const bg = secret.traits?.background || "#cdd6e0";
+  els.secretCard.setAttribute("style", `--secret-bg:${bg}`);
   els.secretCard.innerHTML = `
     <div class="secret-portrait">
       <img src="${m.image || gayFroggedAssignment?.image || secret.image}" alt="${escapeHtml(secret.name)}">
     </div>
     <div class="secret-info">
       <p class="secret-name">${displayName(secret)}</p>
-      ${gayFroggedAssignment ? `<p class="secret-meta secret-pronouns">${escapeHtml(gayFroggedAssignment.pronoun || "they/them")}</p>` : ""}
-      ${state.global.mystery?.id === "role-reveal" ? `<p class="secret-meta">${escapeHtml(roleFor(secret.id))}</p>` : ""}
-      ${m.html ? `<div class="secret-mode-meta">${m.html}</div>` : ""}
     </div>
-    ${m.cornerHtml ? `<div class="secret-corner">${m.cornerHtml}</div>` : ""}
   `;
   // Habbo mode: pixelate the player's own portrait too so it matches the room.
   if (state.global.mystery?.id === "habbo") {
@@ -1759,7 +1755,7 @@ function renderHabboBoard(player) {
     [/spring|spa|pool|aquarium|bath|sauna/, { wall: "#2e6f78", cap: "#4c99a2", skirt: "#1d4a50", ground: "#7fccc4", tile: "#cdeeea", tileAlt: "#b2e0da", side: "#5f9a94", room: "#12262e", rug: "#1e5a62", rug2: "#174a50", trim: "#7fccc4" }],
     [/beach|pier|ferry|harbou?r|island/, { wall: "#7fc4e8", cap: "#a8dcf4", skirt: "#4a90b8", ground: "#e8d5a0", tile: "#f0e0b4", tileAlt: "#e2cf98", side: "#b8a068", room: "#173042", rug: "#3a86c8", rug2: "#2e6ea6", trim: "#f0e0b4" }],
     [/park|garden|greenhouse|farm|zoo|camp|orchard|meadow|yoga/, { wall: "#7a5a34", cap: "#96754a", skirt: "#59401f", ground: "#57a344", tile: "#6fbf58", tileAlt: "#5da84a", side: "#3f7531", room: "#161f12", rug: "#c8703a", rug2: "#a85a2c", trim: "#e8c87a" }],
-    [/casino|nightclub|club|bar\b|arcade|karaoke|cinema|theatre|theater|bowling|record/, { wall: "#3a2a52", cap: "#57407a", skirt: "#241634", ground: "#502e58", tile: "#8a4a94", tileAlt: "#74407e", side: "#3e2044", room: "#120a1a", rug: "#e040a0", rug2: "#b82e84", trim: "#ffd24d" }],
+    [/casino|nightclub|club|bar\b|arcade|karaoke|cinema|theatre|theater|bowling|record/, { wall: "#3a2a52", cap: "#57407a", skirt: "#241634", ground: "#502e58", tile: "#8a4a94", tileAlt: "#74407e", side: "#3e2044", room: "#120a1a", rug: "#5a3474", rug2: "#49285f", trim: "#c9a44a" }],
     [/bakery|cafe|diner|restaurant|kitchen|market|wine/, { wall: "#b0483a", cap: "#cc6a58", skirt: "#84332a", ground: "#e8ddc8", tile: "#f4ecd8", tileAlt: "#d8cbb0", side: "#b0a488", room: "#241812", rug: "#b0483a", rug2: "#963a2e", trim: "#f4ecd8" }],
     [/rooftop|office|train|airport|station|city|museum|library|bookstore|laundromat|hotel|gym|salon|gallery|tattoo/, { wall: "#5e6472", cap: "#7c828f", skirt: "#41454f", ground: "#8e94a0", tile: "#c2c8d2", tileAlt: "#aeb4c0", side: "#767c88", room: "#141821", rug: "#3a5a8c", rug2: "#2e4870", trim: "#c2c8d2" }]
   ];
@@ -4730,6 +4726,14 @@ function resumeGame(saved) {
 }
 
 // ===================== End round + title screen =====================
+// Re-run the sidebar logo's slide-in (the same move as the title screen).
+function replayBrand() {
+  document.querySelectorAll(".side-head h1 span").forEach((s) => {
+    s.style.animation = "none";
+    void s.offsetWidth;   // reflow so the animation restarts from frame 0
+    s.style.animation = "";
+  });
+}
 function showRoundOverSplash(done) {
   const ov = document.createElement("div");
   ov.className = "round-over";

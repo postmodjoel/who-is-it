@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Press+Start+2P&family=Cinzel:wght@500;600;700;800;900&family=MedievalSharp&family=Reem+Kufi:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="styles.css?v=91">
+    <link rel="stylesheet" href="styles.css?v=92">
   </head>
   <body>
     <div id="locationBackdrop" class="location-backdrop" aria-hidden="true"></div>
@@ -19,55 +19,52 @@
       </div>
       <div class="game-layout">
         <aside class="game-side">
-          <div class="side-head">
-            <h1>WHO?<br>IS IT?</h1>
-            <span id="roomCode" class="room-code"></span>
-          </div>
-
-          <div class="side-block side-you">
-            <p class="label">You are</p>
-            <div id="secretCard" class="secret-card is-hidden"></div>
-          </div>
-
-          <div class="side-block cue-card" aria-live="polite">
-            <p class="label">The question</p>
-            <p id="questionPrompt" class="question-prompt"></p>
-            <p id="mysteryResult" class="mystery-result"></p>
-          </div>
-
-          <div class="side-block side-actions">
-            <div class="game-bar-actions">
-              <span id="mysteryUseCount" class="counter">0/2</span>
-              <button id="swapSeatButton" class="button compact icon-only" type="button" aria-label="Swap seat" title="Swap seat"></button>
-              <button id="revealSecretButton" class="button secondary compact icon-only" type="button" aria-label="Hide face" title="Hide face"></button>
-              <button id="mysteryButton" class="button mystery compact icon-only" type="button" aria-label="Mystery effect" title="Mystery effect"></button>
+          <div class="side-panel">
+            <div class="side-head">
+              <h1><span class="brand-who">WHO?</span><span class="brand-isit">IS IT?</span></h1>
+              <span id="roomCode" class="room-code"></span>
             </div>
+
+            <div class="side-you">
+              <div id="secretCard" class="secret-card is-hidden"></div>
+            </div>
+
+            <div class="cue-card" aria-live="polite">
+              <p class="label">The question</p>
+              <p id="questionPrompt" class="question-prompt"></p>
+              <p id="mysteryResult" class="mystery-result"></p>
+            </div>
+
+            <div class="side-actions">
+              <div class="game-bar-actions">
+                <span id="mysteryUseCount" class="counter">0/2</span>
+                <button id="swapSeatButton" class="button compact icon-only" type="button" aria-label="Swap seat" title="Swap seat"></button>
+                <button id="revealSecretButton" class="button secondary compact icon-only" type="button" aria-label="Hide face" title="Hide face"></button>
+                <button id="mysteryButton" class="button mystery compact icon-only" type="button" aria-label="Mystery effect" title="Mystery effect"></button>
+              </div>
+            </div>
+
+            <div id="opponentPanel" class="opponent-panel"></div>
+
+            <div id="seatRoster" class="seat-roster" aria-label="Room seats"></div>
+            <span id="roomStatus" class="room-status"></span>
           </div>
-
-          <div class="side-block sort-control">
-            <label class="label" for="sortSelect">Sort board by</label>
-            <select id="sortSelect" class="button ghost">
-              <option value="">Board order</option>
-              <option value="happiness">Happiness 😀</option>
-              <option value="horniness">Horniness 🔥</option>
-              <option value="deathness">Close to death 💀</option>
-              <option value="cum">Cum count 💦</option>
-              <option value="fuck">Fuckability 😏</option>
-              <option value="skin">Skin tone 🎨</option>
-              <option value="name">Name A–Z</option>
-            </select>
-          </div>
-
-          <div id="opponentPanel" class="opponent-panel"></div>
-
-          <div id="seatRoster" class="seat-roster" aria-label="Room seats"></div>
-          <span id="roomStatus" class="room-status"></span>
         </aside>
 
         <main class="game-stage">
           <div class="stage-top">
             <section id="locationBand" class="location-band" aria-live="polite"></section>
             <div class="topbar-actions">
+              <select id="sortSelect" class="button ghost" title="Sort board by" aria-label="Sort board by">
+                <option value="">Board order</option>
+                <option value="happiness">Happiness 😀</option>
+                <option value="horniness">Horniness 🔥</option>
+                <option value="deathness">Close to death 💀</option>
+                <option value="cum">Cum count 💦</option>
+                <option value="fuck">Fuckability 😏</option>
+                <option value="skin">Skin tone 🎨</option>
+                <option value="name">Name A–Z</option>
+              </select>
               <select id="debugEffectPicker" class="button ghost" title="Debug: trigger a mystery effect" aria-label="Debug effect">
                 <option value="">Effect…</option>
               </select>
@@ -159,9 +156,9 @@
       </form>
     </dialog>
 
-    <script src="game-data.js?v=91"></script>
-    <script src="faces-hair.js?v=91"></script>
-    <script src="face-generator.js?v=91"></script>
-    <script src="app.js?v=91"></script>
+    <script src="game-data.js?v=92"></script>
+    <script src="faces-hair.js?v=92"></script>
+    <script src="face-generator.js?v=92"></script>
+    <script src="app.js?v=92"></script>
   </body>
 </html>

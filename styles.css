@@ -4406,8 +4406,8 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 
 /* ===================== Mobile: fit the fixed-size iso room + roomier heads toolbar ===================== */
 @media (max-width: 640px) {
-  .game-stage .character-board.habbo-board { min-height: 56vh; overflow: hidden; }
-  .habbo-room { transform: scale(0.6); transform-origin: top center; width: 167%; margin-left: -33.5%; }
+  .game-stage .character-board.habbo-board { min-height: 40vh; overflow: hidden; }
+  .habbo-room { min-height: 560px; transform: scale(0.6); transform-origin: top center; width: 167%; margin-left: -33.5%; margin-bottom: -224px; }
   .heads-toolbar { gap: 4px; }
   .heads-form-btn { padding: 3px 7px; font-size: 0.56rem; }
   .character-board.heads-board { min-height: 60vh; }

@@ -1383,25 +1383,29 @@ function renderSecret() {
     return;
   }
   updateFloatingSecret(secret, true);
-  // A clean board tile: the mode may swap the PORTRAIT (disguises, judgement bodies, habbo heads...)
-  // but none of the stats/badges clutter comes along - the player can read all that off the main
-  // board. Just the face and the name.
+  // Your own card is the SAME as a board card - full mode dossier (orgy stats, Yu-Gi-Oh info, disease
+  // sheet, badges, corner art, portrait swaps). A media query compacts it to face+name on phones.
   const m = state.global.mystery ? getMysteryCardData(secret) : {};
   const gayFroggedAssignment = state.global.mystery?.id === "gay-frogged" ? state.global.mystery.assignments?.[secret.id] : null;
-  els.secretCard.className = "secret-card";
+  els.secretCard.className = `secret-card character-card ${secret.variant || ""} ${m.cardClass || ""}`.trim();
   const bg = secret.traits?.background || "#cdd6e0";
-  els.secretCard.setAttribute("style", `--secret-bg:${bg}`);
+  els.secretCard.setAttribute("style", `--secret-bg:${bg};${m.style || ""}`);
+  const portraitSrc = m.image || gayFroggedAssignment?.image || secret.image;
   els.secretCard.innerHTML = `
-    <div class="secret-portrait">
-      <img src="${m.image || gayFroggedAssignment?.image || secret.image}" alt="${escapeHtml(secret.name)}">
+    <div class="portrait-wrap">
+      <img src="${portraitSrc}" alt="${escapeHtml(secret.name)}">
+      ${m.cornerHtml || ""}
     </div>
-    <div class="secret-info">
-      <p class="secret-name">${displayName(secret)}</p>
+    <div class="card-plate">
+      <h3>${displayName(secret)}</h3>
+      ${state.global.mystery?.id === "gay-frogged" ? `<p class="card-pronouns">${escapeHtml(m.pronoun || "they/them")}</p>` : ""}
+      ${state.global.mystery?.id === "role-reveal" ? `<p class="card-role">${escapeHtml(roleFor(secret.id))}</p>` : ""}
+      <div class="card-meta">${m.html || ""}</div>
     </div>
   `;
   // Habbo mode: pixelate the player's own portrait too so it matches the room.
   if (state.global.mystery?.id === "habbo") {
-    const simg = els.secretCard.querySelector(".secret-portrait > img");
+    const simg = els.secretCard.querySelector(".portrait-wrap > img");
     if (simg && simg.src) { simg.style.imageRendering = "pixelated"; pixelateSrc(simg.src, 40, (url) => { simg.src = url; }); }
   }
   setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");

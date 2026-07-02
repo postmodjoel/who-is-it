@@ -4901,33 +4901,29 @@ img.pol-mascot {
 @keyframes brand-slide-r { from { transform: translateX(170%) skewX(-12deg); } to { transform: translateX(0) skewX(0); } }
 @media (prefers-reduced-motion: reduce) { .side-head h1 span { animation: none; } }
 
-/* ===================== Secret card = a clean board tile, doubled ===================== */
-/* Desktop: same anatomy as a board card (square portrait + nameplate), roughly 2x tile size,
-   and NONE of the mode clutter - the stats live on the main board. */
-.side-panel .secret-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;   /* nameplate + portrait span the FULL card width */
-  padding: 0;
+/* ===================== Secret card = your own board card (full dossier) ===================== */
+/* Desktop: literally the same as a board card - it carries the class `.character-card`, so every
+   mode's portrait swap, corner art, badges and stat sheet render exactly as they do on the board.
+   Just full-width in the sidebar, non-interactive. */
+.side-panel .secret-card.character-card {
   width: 100%;
-  max-width: none;
-  margin: 0;
   border: 2px solid var(--line);
   border-radius: 12px;
-  overflow: hidden;
-  background: var(--secret-bg, var(--surface));
+  cursor: default;
 }
-.side-panel .secret-portrait { min-height: 0; width: 100%; aspect-ratio: 1; position: relative; }
-.side-panel .secret-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-right: none; }
-/* Full-width dark nameplate bar across the bottom (like a board card footer). */
-.side-panel .secret-info { width: 100%; padding: 9px 10px; background: rgba(14, 12, 20, 0.88); text-align: center; }
-.side-panel .secret-name { margin: 0; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #fffdf7; font-size: 0.92rem; }
-.side-panel .secret-card.is-hidden { aspect-ratio: auto; padding: 22px 10px; text-align: center; font-weight: 700; }
-/* Phones: compact horizontal version - just the face and the name. */
+.side-panel .secret-card.character-card:hover { transform: none; box-shadow: none; }
+.side-panel .secret-card .portrait-wrap { aspect-ratio: 1; }
+.side-panel .secret-card.is-hidden { display: block; padding: 22px 10px; text-align: center; font-weight: 700; }
+/* Phones: collapse to a compact face + name strip (stats stay on the main board). */
 @media (max-width: 640px) {
-  .side-panel .secret-card { flex-direction: row; max-width: none; align-items: stretch; }
-  .side-panel .secret-portrait { width: 88px; aspect-ratio: 1; flex: 0 0 auto; }
-  .side-panel .secret-info { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .side-panel .secret-card.character-card { display: flex; flex-direction: row; align-items: stretch; }
+  .side-panel .secret-card .portrait-wrap { width: 84px; flex: 0 0 auto; aspect-ratio: 1; }
+  .side-panel .secret-card .card-plate { flex: 1; justify-content: center; }
+  .side-panel .secret-card .card-meta,
+  .side-panel .secret-card .card-pronouns,
+  .side-panel .secret-card .card-role { display: none; }   /* face + name only on phones */
+  .side-panel .secret-card .portrait-wrap .prop-overlay,
+  .side-panel .secret-card .portrait-wrap .wp-pixel { display: none; }
 }
 /* Sort select now lives in the gameplay topbar. */
 #sortSelect { max-width: 150px; }

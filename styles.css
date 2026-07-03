@@ -864,9 +864,9 @@ button:disabled {
 }
 .hp-crest { font-size: 0.72rem; }
 /* Character-sheet table: label | value rows, zebra-striped, with a house-tinted rule up top. */
-.hp-sheet { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 0.54rem; border-top: 2px solid var(--hp-color, #3a2a52); }
-.hp-sheet th, .hp-sheet td { text-align: left; vertical-align: top; padding: 2.5px 5px; line-height: 1.2; }
-.hp-sheet th { color: #aeb4bf; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; width: 1%; border-right: 1px solid rgba(255, 255, 255, 0.08); }
+.hp-sheet { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 5px; font-size: 0.54rem; border-top: 2px solid var(--hp-color, #3a2a52); }
+.hp-sheet th, .hp-sheet td { text-align: left; vertical-align: top; padding: 3px 6px; line-height: 1.2; }
+.hp-sheet th { width: 58px; color: #aeb4bf; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; border-right: 1px solid rgba(255, 255, 255, 0.08); }
 .hp-sheet td { color: #eceef2; overflow-wrap: anywhere; }
 .hp-sheet tr:nth-child(even) { background: rgba(255, 255, 255, 0.045); }
 .hp-spell-row td b { color: #e6bb4c; font-weight: 800; }

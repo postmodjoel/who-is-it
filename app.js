@@ -2954,7 +2954,7 @@ function getMysteryCardData(character) {
       html: `<div class="hp-tag"><span class="hp-crest">${assignment.crest}</span> ${escapeHtml(assignment.house)}</div>`
         + `<table class="hp-sheet"><tbody>`
         + `<tr><th>🪄 Wand</th><td>${escapeHtml(assignment.wand)}</td></tr>`
-        + `<tr class="hp-spell-row"><th>✦ Fav Spell</th><td><b>${escapeHtml(assignment.spell)}</b> — ${escapeHtml(assignment.spellHint)}</td></tr>`
+        + `<tr class="hp-spell-row"><th>✨ Fav Spell</th><td><b>${escapeHtml(assignment.spell)}</b> — ${escapeHtml(assignment.spellHint)}</td></tr>`
         + (assignment.horcrux
           ? `<tr class="hp-horcrux-row"><th>💀 Horcrux</th><td>${escapeHtml(assignment.horcrux)}</td></tr>`
           : `<tr><th>🦌 Patronus</th><td>${escapeHtml(assignment.patronus)}</td></tr>`

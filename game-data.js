@@ -2033,6 +2033,49 @@ window.GameData = {
     "makes it a competition", "starts the drama, plays innocent", "emotionally unavailable & proud",
     "blames Mercury for everything", "reads too much into a 'k'", "cannot be criticised", "chronic over-sharer"],
 
+  // Horny Potter: four houses (name, colour, crest, bedroom vibe), wand parts, and REAL spells with
+  // filthy interpretations. Death Eaters get Unforgivable Curses instead.
+  hpHouses: [
+    ["Gryffindor", "#7a0f18", "🦁", "reckless, loud, absolutely will not use a safe word"],
+    ["Slytherin", "#0f5132", "🐍", "a natural dom, ambitious in every position"],
+    ["Hufflepuff", "#c79a1e", "🦡", "unexpectedly filthy, extremely giving, cries after"],
+    ["Ravenclaw", "#1c3f70", "🦅", "read the manual, then wrote a better one"]
+  ],
+  hpWandWoods: ["Elder", "Holly", "Yew", "Vine", "Hawthorn", "Blackthorn", "Cherry", "Willow", "Ebony", "Walnut", "Rosewood", "Cedar", "Cypress", "Hornbeam"],
+  hpWandCores: ["dragon heartstring", "phoenix feather", "unicorn hair", "veela hair", "thestral tail-hair"],
+  hpWandFlex: ["unyielding", "surprisingly girthy", "quite bendy", "rigid", "swishy", "unusually thick", "throbbing"],
+  hpSpells: [
+    ["Engorgio", "makes it noticeably bigger"],
+    ["Erecto", "gets it right up"],
+    ["Reducio", "a delicate size adjustment"],
+    ["Alohomora", "unlocks absolutely anything"],
+    ["Immobulus", "freeze — right there"],
+    ["Silencio", "safe word revoked"],
+    ["Petrificus Totalus", "a full-body bind"],
+    ["Incendio", "starts a fire down below"],
+    ["Rictusempra", "relentless, merciless tickling"],
+    ["Aguamenti", "makes everything very wet"],
+    ["Relashio", "unties the ropes"],
+    ["Descendo", "goes all the way down"],
+    ["Duro", "turns it to solid stone"],
+    ["Lumos", "turns them right on"],
+    ["Accio", "come here. now."],
+    ["Stupefy", "leaves them stunned and limp"],
+    ["Tarantallegra", "uncontrollable leg-spreading"],
+    ["Spongify", "soft, bouncy, forgiving"],
+    ["Episkey", "fixes whatever you broke"],
+    ["Confundo", "dazed, giggly and willing"],
+    ["Finite Incantatem", "okay, okay — we're done"],
+    ["Expecto Patronum", "finishes with a real flourish"]
+  ],
+  hpDarkSpells: [
+    ["Imperio", "total, absolute control"],
+    ["Crucio", "consensual pain play only"],
+    ["Avada Kedavra", "the little death"],
+    ["Sectumsempra", "leaves lasting marks"],
+    ["Morsmordre", "summons the whole party"]
+  ],
+
   // Disguise mode: rough phonetic spellings so you can 'pronounce' the covered name.
   disguisePhonetic: {},
 

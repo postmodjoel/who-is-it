@@ -538,6 +538,12 @@ const mysteryEffects = [
     name: "PANTONE",
     apply: applyPantone,
     exampleQuestion: "Is your person's colour warm-toned?"
+  },
+  {
+    id: "horny-potter",
+    name: "Horny Potter",
+    apply: applyHornyPotter,
+    exampleQuestion: "Is your person in Slytherin?"
   }
 ];
 
@@ -638,7 +644,7 @@ function wheelBag() {
 // current tier the pick is salt-random for variety. Once the whole gauntlet is seen the bag resets.
 const WHEEL_TIERS = [
   ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", null],
-  ["knockoff-manor", "family-tree-disaster", "heads-only", "yugioh", "pixall", "habbo"],
+  ["knockoff-manor", "family-tree-disaster", "heads-only", "yugioh", "pixall", "habbo", "horny-potter"],
   ["hidden-agendas", "monocultural", "witness-protection-filter", "gay-frogged", "swipe", "fireworks", "sims"],
   ["drugs", "disguise", "disease", "fertility", "orgy", "judgement", "work"],
   ["woke"]
@@ -1600,6 +1606,7 @@ function renderBoard() {
   els.characterBoard.classList.toggle("sims-board", modeId === "sims");
   els.characterBoard.classList.toggle("astrology-board", modeId === "astrology");
   els.characterBoard.classList.toggle("pantone-board", modeId === "pantone");
+  els.characterBoard.classList.toggle("hp-board", modeId === "horny-potter");
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
   sortedBoard().forEach((character) => {
@@ -2320,6 +2327,7 @@ const MODE_GLYPHS = {
   "habbo": "⌂",                      // the hotel
   "astrology": "☽",                  // celestial
   "pantone": "❏",                    // colour chip
+  "horny-potter": "☇",               // lightning scar
 };
 const FALLBACK_GLYPHS = ["✦", "⚛", "⬢", "✶", "⟁", "⌖", "☯", "⚙", "❖", "⌬", "☄", "⊛"];
 
@@ -2387,7 +2395,7 @@ function clearMysteryEffectUI() {
   resetSimsLoop();
   stopPropLoop();
   stopPixallLoop();
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board", "pantone-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board", "pantone-board", "hp-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -2934,6 +2942,18 @@ function getMysteryCardData(character) {
       cardClass: "pantone-mode",
       dataset: { pantoneName: assignment.name, pantoneCode: assignment.code },
       html: `<span class="pt-code">${escapeHtml(assignment.code)} TCX</span><span class="pt-name">${escapeHtml(assignment.name)}</span>`
+    };
+  }
+  if (mystery.id === "horny-potter") {
+    return {
+      effectName: mystery.name,
+      cardClass: `hp-mode hp-${assignment.role}`,
+      image: assignment.image || undefined,
+      style: `--hp-color:${assignment.color}`,
+      dataset: { hpHouse: assignment.house, hpSpell: assignment.spell },
+      html: `<div class="hp-house"><span class="hp-crest">${assignment.crest}</span> ${escapeHtml(assignment.house)}</div>`
+        + `<div class="hp-wand">🪄 ${escapeHtml(assignment.wand)}</div>`
+        + `<div class="hp-spell"><b>${escapeHtml(assignment.spell)}</b> — ${escapeHtml(assignment.spellHint)}</div>`
     };
   }
   if (mystery.id === "hidden-agendas") {
@@ -3701,6 +3721,40 @@ function mixPantonePair(A, B) {
   });
   renderBoard();
   [A.id, B.id].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("pantone-mix"); void c.offsetWidth; c.classList.add("pantone-mix"); } });
+}
+
+// HORNY POTTER: Harry Potter, but filthy. Everyone is sorted into a house with a wand + a favourite
+// (real) spell interpreted lewdly. A few are house-less Death Eaters (Unforgivable Curses), and ONE
+// is the Dark Lord - repainted bald and pasty, no house.
+function applyHornyPotter(effect) {
+  const D = window.GameData;
+  const houses = D.hpHouses || [["Gryffindor", "#7a0f18", "🦁", "reckless"]];
+  const spells = D.hpSpells || [["Lumos", "turns them on"]];
+  const dark = D.hpDarkSpells || [["Imperio", "total control"]];
+  const woods = D.hpWandWoods || ["Elder"], cores = D.hpWandCores || ["dragon heartstring"], flexes = D.hpWandFlex || ["rigid"];
+  const order = deterministicOrder(state.board, `${state.gameSalt}:${effect.id}:sort`);
+  const assignments = {};
+  order.forEach((ch, i) => {
+    const h = stableHash(`${state.gameSalt}:hp:${ch.id}`);
+    const wand = `${woods[h % woods.length]}, ${cores[(h >>> 3) % cores.length]} core, ${flexes[(h >>> 6) % flexes.length]}`;
+    if (i === 0) {                                   // the single Dark Lord
+      const image = ch.traits && window.faceGenerator
+        ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, hair: "bald", hairLocks: [], accessory: "none", skinHex: "#e6e7de", browThick: 0.15, noseScale: 0.62, lipColor: "#b7a6a6", background: "#14131c" })
+        : null;
+      const s = dark[(h >>> 9) % dark.length];
+      assignments[ch.id] = { role: "darklord", house: "The Dark Lord", color: "#101018", crest: "☇", wand: "Elder, thestral tail-hair core, unyielding", spell: s[0], spellHint: s[1], image };
+      return;
+    }
+    if (h % 5 === 0) {                               // ~1 in 5 are house-less Death Eaters
+      const s = dark[(h >>> 9) % dark.length];
+      assignments[ch.id] = { role: "deatheater", house: "Death Eater", color: "#1b1420", crest: "☠", wand, spell: s[0], spellHint: s[1] };
+      return;
+    }
+    const house = houses[(h >>> 4) % houses.length];
+    const s = spells[(h >>> 9) % spells.length];
+    assignments[ch.id] = { role: "house", house: house[0], color: house[1], crest: house[2], vibe: house[3], wand, spell: s[0], spellHint: s[1] };
+  });
+  return { id: effect.id, name: effect.name, assignments };
 }
 
 // HABBO HOTEL: an isometric room. Every character becomes a blocky Habbo-style avatar (a pixelated

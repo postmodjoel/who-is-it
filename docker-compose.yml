@@ -1,13 +1,14 @@
-# WHO? IS IT? — Saltbox deployment.
+# WHO? IS IT? — Saltbox deployment (pulls a prebuilt image; no building on the server).
 #
-# Builds the single-container server (game + room-sync WebSocket) and wires it into Saltbox's Traefik
-# so it's served at your subdomain with HTTPS. Traefik proxies both plain HTTP and the WebSocket
-# upgrade over the same router — no extra WS config needed.
+# The image is built by GitHub Actions on every push and published to GHCR. Your server just pulls
+# it. With Watchtower running (below), every push I make auto-deploys — you never copy anything.
 #
-#   1. Put this repo on your server, e.g. /opt/who-is-it
-#   2. Edit DOMAIN below (and check the two labels marked *** if your Saltbox is older — see comments)
-#   3. docker compose up -d --build
+#   1. Set the image name once, in a .env file next to this (see .env.example):
+#        WHO_IMAGE=ghcr.io/<your-github-username>/<repo-name>:latest
+#   2. Edit DOMAIN below (who.onlybbm.com, 3×).
+#   3. docker compose up -d
 #
+# Traefik proxies both HTTP and the WebSocket upgrade over the same router — no extra WS config.
 # ---------------------------------------------------------------------------------------------------
 
 networks:
@@ -16,7 +17,9 @@ networks:
 
 services:
   who-is-it:
-    build: .
+    image: ${WHO_IMAGE:-ghcr.io/CHANGE-ME/who-is-it:latest}
+    # To build locally instead of pulling, comment the line above and uncomment:
+    # build: .
     container_name: who-is-it
     restart: unless-stopped
     environment:
@@ -27,19 +30,22 @@ services:
       com.github.saltbox.saltbox_managed: "true"
       traefik.enable: "true"
 
+      # Auto-update: Watchtower pulls a new image whenever CI publishes one.
+      com.centurylinklabs.watchtower.enable: "true"
+
       # --- HTTP -> HTTPS redirect router ---
       traefik.http.routers.who-is-it-http.entrypoints: "web"          # *** older Saltbox: "http"
       traefik.http.routers.who-is-it-http.rule: "Host(`who.onlybbm.com`)"
       traefik.http.routers.who-is-it-http.middlewares: "globalHeaders@file,redirect-http,cloudflarewarp@docker,gzip@file"
       traefik.http.routers.who-is-it-http.service: "who-is-it"
 
-      # --- HTTPS router (this is the one that serves the site + WebSocket) ---
+      # --- HTTPS router (serves the site + WebSocket) ---
       traefik.http.routers.who-is-it.entrypoints: "websecure"         # *** older Saltbox: "https"
       traefik.http.routers.who-is-it.rule: "Host(`who.onlybbm.com`)"
       traefik.http.routers.who-is-it.middlewares: "globalHeaders@file,secureHeaders@file,cloudflarewarp@docker,gzip@file"
-      traefik.http.routers.who-is-it.tls.certresolver: "cfdns"        # *** matches Saltbox's default; if yours differs, copy from an existing container
+      traefik.http.routers.who-is-it.tls.certresolver: "cfdns"        # *** if yours differs, copy from an existing container
       traefik.http.routers.who-is-it.tls.options: "securetls@file"
       traefik.http.routers.who-is-it.service: "who-is-it"
 
-      # --- the container's internal port ---
+      # --- container's internal port ---
       traefik.http.services.who-is-it.loadbalancer.server.port: "8080"

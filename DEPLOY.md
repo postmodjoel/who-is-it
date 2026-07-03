@@ -1,115 +1,110 @@
 # Putting WHO? IS IT? online
 
-The whole game runs as **one Python process** (`relay.py`) that serves the static game *and* the
-room-sync WebSocket on a single port. No Node, no build step, no database. Deploy it anywhere that
-runs a Dockerfile, share the URL, done — online play auto-connects to the same host.
-
-## Run it locally (one command)
-
-```bash
-python3 relay.py            # -> http://localhost:8765
-```
-
-Two browser tabs on the same machine already sync (they use BroadcastChannel). To test the real
-WebSocket path locally, add `?relay=ws://localhost:8765` to the URL.
-
-## Deploy for real (pick one — all have a free tier)
-
-You need the code on GitHub first:
-
-```bash
-gh repo create who-is-it --public --source=. --push     # or make a repo in the GitHub UI and push
-```
-
-### Render.com  (easiest — no CLI)
-1. Push to GitHub (above).
-2. Render dashboard → **New +** → **Blueprint** → pick this repo. It reads `render.yaml` and builds
-   the Dockerfile automatically.
-3. You get a URL like `https://who-is-it.onrender.com`. Share it. Done.
-   *(Free tier sleeps after ~15 min idle; first visit then takes ~30 s to wake.)*
-
-### Fly.io  (fast, stays snappy)
-```bash
-brew install flyctl          # if you don't have it
-fly launch --now             # reads fly.toml + Dockerfile, deploys
-```
-You get `https://who-is-it.fly.dev`.
-
-### Railway
-New Project → Deploy from GitHub repo → it detects the Dockerfile. Set no env vars ($PORT is
-provided automatically).
-
-## Playing online once it's deployed
-
-1. Both players open the deployed URL.
-2. One taps **ONLINE GAME** and reads out the room number (e.g. `#4821`).
-3. The other types that number into **JOIN**.
-That's it — crossings, babies, tug-o-wars and round changes all sync live.
-
-> Same board on both devices needs the same character pool. Custom characters / saved GAYBYs live in
-> each browser, so for a pixel-identical board use fresh profiles or don't rely on saved customs —
-> the seed handles everything else.
+The whole game is **one Python process** (`relay.py`) that serves the static game *and* the room-sync
+WebSocket on a single port. No Node, no build step, no database.
 
 ---
 
-# Saltbox (self-hosted, behind Traefik) → who.onlybbm.com
+## ⭐ The clean pipeline (set up once, then never copy files again)
 
-Saltbox already runs **Traefik** as its reverse proxy on a Docker network called `saltbox`. You just
-build this as a container, join that network, and hand Traefik the routing labels. The included
-`docker-compose.yml` does all of that. Traefik proxies plain HTTP **and** the WebSocket upgrade over
-the same router, so online play works with zero extra config.
+**Code → GitHub → auto-built image → your server pulls it.** After the one-time setup the loop is:
+I push a commit → GitHub Actions rebuilds the image → your server auto-updates. You do nothing.
 
-### 1. DNS
-In Cloudflare (the DNS Saltbox uses) add a record for the subdomain, **Proxied (orange cloud)**:
+### One-time setup
 
+**1. Make a GitHub repo and push this code.**
+On github.com click **New repository**, name it `who-is-it`, create it empty, then locally:
+```bash
+cd "WHO IS THAT claude"
+git branch -M main
+git remote add origin https://github.com/<your-username>/who-is-it.git
+git push -u origin main
 ```
-Type: CNAME   Name: who   Target: onlybbm.com     (or your server's A-record host)
-```
+The included workflow (`.github/workflows/deploy.yml`) fires on that push and builds the image to
+**`ghcr.io/<your-username>/who-is-it:latest`**.
 
-Cloudflare's proxy supports WebSockets, so leave it orange.
+**2. Make the image pullable without a login (once).**
+GitHub -> your profile -> **Packages** -> `who-is-it` -> **Package settings** -> **Change visibility ->
+Public**. (Or keep it private and run `docker login ghcr.io` once on the server with a read:packages
+token -- public is simpler.)
 
-### 2. Get the code on the server
+**3. On your Saltbox server, one tiny folder:**
 ```bash
 sudo mkdir -p /opt/who-is-it && cd /opt/who-is-it
-# copy this repo here (git clone <your-repo> ., or scp/rsync the folder)
+curl -O https://raw.githubusercontent.com/<your-username>/who-is-it/main/docker-compose.yml
+printf 'WHO_IMAGE=ghcr.io/<your-username>/who-is-it:latest\n' > .env
 ```
-
-### 3. Set your domain
-Edit `docker-compose.yml` → replace `who.onlybbm.com` (appears 3×) with your subdomain.
-
-> **Version check:** the labels use `entrypoints: web/websecure` and `certresolver: cfdns`, which
-> match current Saltbox. If yours is older it may use `http/https` and a different resolver name —
-> the fastest fix is to open an existing Saltbox app's labels and copy the exact
-> `entrypoints`, `certresolver`, and middleware names:
-> ```bash
-> docker inspect $(docker ps --format '{{.Names}}' | grep -m1 -iE 'plex|sonarr|overseerr') \
->   | grep -i 'traefik.http.routers' | sort -u
-> ```
-> Swap those three values into `docker-compose.yml` and you're done.
-
-### 4. Build + run
+Edit `docker-compose.yml` and set your subdomain (`who.onlybbm.com`, 3x). Then:
 ```bash
-cd /opt/who-is-it
-docker compose up -d --build
-docker compose logs -f          # should print: "WHO? IS IT? server on http://0.0.0.0:8080"
+docker compose up -d
 ```
 
-Traefik auto-detects the container on the `saltbox` network and issues the cert. Give it ~30s, then
-open **https://who.onlybbm.com**.
+That is the whole install. See **Saltbox / Traefik** below for DNS + the one label to sanity-check.
 
-### 5. Play
-Both players open the URL → one hits **ONLINE GAME → HOST A ROOM** and reads out the number → the
-other does **JOIN A ROOM** and types it. The game auto-connects to `wss://who.onlybbm.com/<room>`
-through Traefik.
+### After that -- updates are automatic
 
-### Updating later
+The compose file tags the container for **Watchtower**. If you have it (Saltbox: `sb install
+watchtower`, or it may already be running), every push I make gets rebuilt by CI and pulled by
+Watchtower within minutes. Manual update any time:
 ```bash
-cd /opt/who-is-it && git pull && docker compose up -d --build
+cd /opt/who-is-it && docker compose pull && docker compose up -d
 ```
+
+So the ongoing loop for *me* is just `git push`, and for *you* it is nothing (or one `pull`).
+
+---
+
+## Saltbox / Traefik specifics (DNS + the labels)
+
+Saltbox runs **Traefik** on a Docker network called `saltbox`. The `docker-compose.yml` joins that
+network and hands Traefik the routing labels, so the game gets a subdomain + auto HTTPS, and Traefik
+proxies the WebSocket upgrade on the same router (online play needs no extra config).
+
+**DNS (Cloudflare):** add a record for the subdomain, **Proxied (orange cloud)** -- Cloudflare's proxy
+supports WebSockets:
+```
+Type: CNAME   Name: who   Target: onlybbm.com   (or your server's A-record host)
+```
+
+**Version check (the one thing to verify):** the labels use `entrypoints: web/websecure` and
+`certresolver: cfdns`, matching current Saltbox. If yours is older it may use `http/https` or a
+different resolver. Rather than guess, copy the exact values from an app you already run:
+```bash
+docker inspect $(docker ps --format '{{.Names}}' | grep -m1 -iE 'plex|sonarr|overseerr') \
+  | grep -i 'traefik.http.routers' | sort -u
+```
+Swap those three values (`entrypoints`, `certresolver`, middleware names) into `docker-compose.yml`.
+
+**Verify it came up:**
+```bash
+docker compose logs -f            # -> "WHO? IS IT? server on http://0.0.0.0:8080"
+docker network inspect saltbox | grep who-is-it   # should be listed
+```
+Give Traefik ~30s for the cert, then open **https://who.onlybbm.com**.
+
+### Play
+Both open the URL -> one taps **ONLINE GAME -> HOST A ROOM** and reads out the number -> the other
+does **JOIN A ROOM** and types it. The client auto-connects to `wss://who.onlybbm.com/<room>`.
 
 ### Troubleshooting
-- **502 / cert not issued:** wrong `entrypoints`/`certresolver` label — do the version check in step 3.
-- **Site loads but online won't connect:** confirm the Cloudflare record is **Proxied** and that you're
-  on `https://` (the client only upgrades to `wss://` on a real https host).
-- **Container not picked up:** `docker network inspect saltbox` should list `who-is-it`; if not, the
-  external network name differs — set it to whatever `docker network ls | grep -i salt` shows.
+- **502 / no cert:** wrong `entrypoints`/`certresolver` -- do the version check above.
+- **Loads but online won't connect:** confirm the Cloudflare record is **Proxied** and you are on
+  `https://` (the client only upgrades to `wss://` on a real https host).
+- **Container not picked up:** `docker network ls | grep -i salt` -- if the network is not literally
+  `saltbox`, set that name in the compose `networks:` block.
+
+---
+
+## Other hosts (no Saltbox)
+
+The same image runs anywhere that takes a Dockerfile -- **Render** (`render.yaml` blueprint),
+**Fly.io** (`fly launch --now`), **Railway** (detects the Dockerfile). They inject `$PORT`.
+
+## Run it locally (no Docker)
+```bash
+python3 relay.py        # http://localhost:8765
+```
+Two tabs sync via BroadcastChannel; add `?relay=ws://localhost:8765` to test the real WebSocket path.
+
+> Identical boards across two devices need the same character pool. Custom characters / saved GAYBYs
+> live per-browser; the seed handles everything else.

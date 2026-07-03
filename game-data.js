@@ -2075,6 +2075,30 @@ window.GameData = {
     ["Sectumsempra", "leaves lasting marks"],
     ["Morsmordre", "summons the whole party"]
   ],
+  hpPatronuses: [
+    "a wet raccoon mid-breakdown", "an incel pigeon", "a screaming goat", "a single soggy Pringle",
+    "a dolphin with rabies", "a possessed Furby", "a deflating sex doll", "an emotional-support wasp",
+    "a horny manatee", "a seagull that stole your chips", "a feral hamster on meth", "a limp eel",
+    "a crying Chihuahua in a handbag", "a goose with an OnlyFans", "a pigeon with one leg and a plan",
+    "a hairless cat that hates you", "a moth drawn to bad decisions", "a swan that's been through it",
+    "a ferret on its third energy drink", "a possum playing dead to avoid plans"
+  ],
+  hpBoggarts: [
+    "their own search history", "a surprise group FaceTime", "their mum reading their DMs",
+    "the words 'we need to talk'", "a wasp in the car at 70mph", "a read receipt with no reply",
+    "being perceived in public", "an empty vape", "the dead group chat", "a smear test",
+    "their ex's hotter new partner", "a landlord 'inspection'", "running out of data at 40%",
+    "a spider in the shower", "commitment", "'per my last email'", "a full voicemail box",
+    "eye contact", "their childhood bedroom", "a full-length mirror under strip lighting"
+  ],
+  hpHorcruxes: [
+    "a buttplug", "a literal concentration camp", "Tony (the tiger)", "a taxidermied rat",
+    "a cursed Fleshlight", "a single lonely AirPod", "a 'Live Laugh Love' sign", "his childhood retainer",
+    "a jar of assorted teeth", "an inflatable doll named Deborah", "a Funko Pop of himself",
+    "grandma's ashes (in a Pringles tube)", "a haunted Alexa", "a bag of human hair",
+    "a signed Piers Morgan headshot", "the Cybertruck", "a crusty gaming chair", "his own 23andMe results",
+    "a taxidermied ferret in a waistcoat", "a McDonald's ball-pit ball"
+  ],
 
   // Disguise mode: rough phonetic spellings so you can 'pronounce' the covered name.
   disguisePhonetic: {},

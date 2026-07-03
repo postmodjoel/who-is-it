@@ -2954,6 +2954,10 @@ function getMysteryCardData(character) {
       html: `<div class="hp-tag"><span class="hp-crest">${assignment.crest}</span> ${escapeHtml(assignment.house)}</div>`
         + `<div class="hp-wand">🪄 ${escapeHtml(assignment.wand)}</div>`
         + `<div class="hp-spell"><b>${escapeHtml(assignment.spell)}</b> — ${escapeHtml(assignment.spellHint)}</div>`
+        + (assignment.horcrux
+          ? `<div class="hp-line"><b>Horcrux</b> ${escapeHtml(assignment.horcrux)}</div>`
+          : `<div class="hp-line"><b>Patronus</b> ${escapeHtml(assignment.patronus)}</div>`
+            + `<div class="hp-line"><b>Boggart</b> ${escapeHtml(assignment.boggart)}</div>`)
     };
   }
   if (mystery.id === "hidden-agendas") {
@@ -3732,6 +3736,8 @@ function applyHornyPotter(effect) {
   const spells = D.hpSpells || [["Lumos", "turns them on"]];
   const dark = D.hpDarkSpells || [["Imperio", "total control"]];
   const woods = D.hpWandWoods || ["Elder"], cores = D.hpWandCores || ["dragon heartstring"], flexes = D.hpWandFlex || ["rigid"];
+  const patronuses = D.hpPatronuses || ["a wet raccoon"], boggarts = D.hpBoggarts || ["commitment"], horcruxes = D.hpHorcruxes || ["a buttplug"];
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:hp:${salt}`) % arr.length];
   const order = deterministicOrder(state.board, `${state.gameSalt}:${effect.id}:sort`);
   // Exactly one poor soul (never the Dark Lord at index 0) is packing a very cursed "wand".
   const cursedIdx = order.length > 1 ? 1 + (stableHash(`${state.gameSalt}:hp:cursed`) % (order.length - 1)) : -1;
@@ -3745,17 +3751,17 @@ function applyHornyPotter(effect) {
         ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, hair: "bald", hairLocks: [], accessory: "none", skinHex: "#e6e7de", browThick: 0.15, noseScale: 0.62, lipColor: "#b7a6a6", background: "#14131c" })
         : null;
       const s = dark[(h >>> 9) % dark.length];
-      assignments[ch.id] = { role: "darklord", house: "The Dark Lord", color: "#101018", crest: "☇", wand: "Elder, thestral tail-hair core, unyielding", spell: s[0], spellHint: s[1], image };
+      assignments[ch.id] = { role: "darklord", house: "The Dark Lord", color: "#101018", crest: "☇", wand: "Elder, thestral tail-hair core, unyielding", spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`), image };
       return;
     }
     if (h % 5 === 0) {                               // ~1 in 5 are house-less Death Eaters
       const s = dark[(h >>> 9) % dark.length];
-      assignments[ch.id] = { role: "deatheater", house: "Death Eater", color: "#1b1420", crest: "☠", wand, spell: s[0], spellHint: s[1] };
+      assignments[ch.id] = { role: "deatheater", house: "Death Eater", color: "#1b1420", crest: "☠", wand, spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`) };
       return;
     }
     const house = houses[(h >>> 4) % houses.length];
     const s = spells[(h >>> 9) % spells.length];
-    assignments[ch.id] = { role: "house", house: house[0], color: house[1], crest: house[2], vibe: house[3], wand, spell: s[0], spellHint: s[1] };
+    assignments[ch.id] = { role: "house", house: house[0], color: house[1], crest: house[2], vibe: house[3], wand, spell: s[0], spellHint: s[1], patronus: pick(patronuses, `pat:${ch.id}`), boggart: pick(boggarts, `bog:${ch.id}`) };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

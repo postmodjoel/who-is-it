@@ -2952,12 +2952,14 @@ function getMysteryCardData(character) {
       style: `--hp-color:${assignment.color}`,
       dataset: { hpHouse: assignment.house, hpSpell: assignment.spell },
       html: `<div class="hp-tag"><span class="hp-crest">${assignment.crest}</span> ${escapeHtml(assignment.house)}</div>`
-        + `<div class="hp-wand">🪄 ${escapeHtml(assignment.wand)}</div>`
-        + `<div class="hp-spell"><b>${escapeHtml(assignment.spell)}</b> — ${escapeHtml(assignment.spellHint)}</div>`
+        + `<table class="hp-sheet"><tbody>`
+        + `<tr><th>🪄 Wand</th><td>${escapeHtml(assignment.wand)}</td></tr>`
+        + `<tr class="hp-spell-row"><th>✦ Fav Spell</th><td><b>${escapeHtml(assignment.spell)}</b> — ${escapeHtml(assignment.spellHint)}</td></tr>`
         + (assignment.horcrux
-          ? `<div class="hp-line"><b>Horcrux</b> ${escapeHtml(assignment.horcrux)}</div>`
-          : `<div class="hp-line"><b>Patronus</b> ${escapeHtml(assignment.patronus)}</div>`
-            + `<div class="hp-line"><b>Boggart</b> ${escapeHtml(assignment.boggart)}</div>`)
+          ? `<tr class="hp-horcrux-row"><th>💀 Horcrux</th><td>${escapeHtml(assignment.horcrux)}</td></tr>`
+          : `<tr><th>🦌 Patronus</th><td>${escapeHtml(assignment.patronus)}</td></tr>`
+            + `<tr><th>👻 Boggart</th><td>${escapeHtml(assignment.boggart)}</td></tr>`)
+        + `</tbody></table>`
     };
   }
   if (mystery.id === "hidden-agendas") {

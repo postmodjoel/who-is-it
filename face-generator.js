@@ -641,18 +641,20 @@
       const tuft = shadeColor(hairHex, 0.96);
       const tuftLo = shadeColor(hairHex, 0.68);
       return `
-        <path d='M101 98C101 76 155 76 155 98Z' fill='${tuft}'/>
-        <path d='M116 96c2-11 5-15 10-21M128 97c1-12 3-17 7-23M141 96c1-10 3-14 7-18' fill='none' stroke='${tuftLo}' stroke-width='1.5' stroke-linecap='round' opacity='.6'/>
-        <path d='M84 102C56 52 66 34 128 34C190 34 200 52 172 102C166 96 160 95 154 96C154 81 102 81 102 96C96 95 90 96 84 102Z' fill='${green}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
-        <path d='M84 62c22-13 64-13 88-2' fill='none' stroke='${lite}' stroke-width='4' stroke-linecap='round' opacity='.5'/>
-        <path d='M128 37V84' fill='none' stroke='${ink}' stroke-width='1.8' stroke-linecap='round' stroke-dasharray='1.5 5' opacity='.55'/>
+        <path d='M104 96C104 78 152 78 152 96Z' fill='${tuft}'/>
+        <path d='M118 94c2-9 4-13 9-18M128 95c1-10 3-15 6-20M139 94c1-8 3-12 6-15' fill='none' stroke='${tuftLo}' stroke-width='1.5' stroke-linecap='round' opacity='.6'/>
+        <path d='M86 100C78 56 96 34 128 34C160 34 178 56 170 100C164 95 159 94 152 95C152 80 104 80 104 95C97 94 92 95 86 100Z' fill='${green}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+        <path d='M106 42C101 60 99 76 100 91' fill='none' stroke='${ink}' stroke-width='1.6' stroke-linecap='round' opacity='.35'/>
+        <path d='M150 42C155 60 157 76 156 91' fill='none' stroke='${ink}' stroke-width='1.6' stroke-linecap='round' opacity='.35'/>
+        <path d='M92 60c20-15 52-15 72 0' fill='none' stroke='${lite}' stroke-width='4' stroke-linecap='round' opacity='.5'/>
+        <path d='M128 37V82' fill='none' stroke='${ink}' stroke-width='1.8' stroke-linecap='round' stroke-dasharray='1.5 5' opacity='.55'/>
         <circle cx='128' cy='34' r='3.7' fill='${green}' stroke='${ink}' stroke-width='2'/>
-        <rect x='100' y='95' width='56' height='15' rx='5.5' fill='${green}' stroke='${ink}' stroke-width='${stroke.feature}'/>
-        <path d='M106 100h44' stroke='${lite}' stroke-width='2' stroke-linecap='round' opacity='.4'/>
-        <circle cx='113' cy='103' r='1.9' fill='${ink}'/>
-        <circle cx='123' cy='103' r='1.9' fill='${ink}'/>
-        <circle cx='133' cy='103' r='1.9' fill='${ink}'/>
-        <circle cx='143' cy='103' r='1.9' fill='${ink}'/>
+        <rect x='101' y='93' width='54' height='14' rx='6.5' fill='${green}' stroke='${ink}' stroke-width='${stroke.feature}'/>
+        <path d='M107 97.5h42' stroke='${lite}' stroke-width='2' stroke-linecap='round' opacity='.4'/>
+        <circle cx='114' cy='101' r='1.8' fill='${ink}'/>
+        <circle cx='123.5' cy='101' r='1.8' fill='${ink}'/>
+        <circle cx='133' cy='101' r='1.8' fill='${ink}'/>
+        <circle cx='142.5' cy='101' r='1.8' fill='${ink}'/>
       `;
     },
     // Chunky knit scarf wound around the neck with two fringed tails - sage-green & cream
@@ -1320,6 +1322,20 @@
   // Scales/moves the whole head (skin, ears, hair, brows, eyes, nose, mouth, accessories) as one
   // unit so resizing it never desyncs a feature from the skull it's drawn on - that mismatch
   // (eg. a beard floating off a narrowed jaw) is what broke earlier per-feature resize attempts.
+  // Head stretching (headScaleX != headScaleY) used to stretch the FEATURES with it - wide heads got
+  // letterbox eyes, tall heads got egg eyes. featureLock counter-scales a feature's own shape at its
+  // centre so the feature stays uniformly proportioned while its POSITION still rides the stretch.
+  // Identity when the head scale is uniform (rx = ry = 1), so round-trip cost is zero.
+  function featureLock(cx, cy, traits, markup) {
+    const sx = Number(traits.headScaleX) || 1;
+    const sy = Number(traits.headScaleY) || 1;
+    if (Math.abs(sx - sy) < 0.001) return markup;
+    const rx = Math.sqrt(sy / sx);
+    const ry = Math.sqrt(sx / sy);
+    const f = (n) => n.toFixed(4);
+    return `<g transform='translate(${cx} ${cy}) scale(${f(rx)} ${f(ry)}) translate(${-cx} ${-cy})'>${markup}</g>`;
+  }
+
   function headGroup(traits, content) {
     // Global framing: shrink the head and lift it up so the portrait isn't "head-heavy".
     // The reference art frames the head in roughly the top ~60% with a clear neck and
@@ -2286,7 +2302,9 @@
       );
     };
     const fill = browColor(traits);
-    return `<path d='${brow(eyes.left)}${brow(eyes.right)}' fill='${fill}' stroke='${ink}' stroke-width='1.5' stroke-linejoin='round'/>`;
+    const one = (cx) => `<path d='${brow(cx)}' fill='${fill}' stroke='${ink}' stroke-width='1.5' stroke-linejoin='round'/>`;
+    // Per-brow lock (same rule as the eyes): position spreads with the head, shape stays true.
+    return featureLock(eyes.left, by, traits, one(eyes.left)) + featureLock(eyes.right, by, traits, one(eyes.right));
   }
 
   // Brows track the hair colour but deeper, so blondes read with visible (not black) brows while
@@ -2317,7 +2335,8 @@
     const lazy = Number(traits.lazyEye) || 0;
     const left = renderEye(eyes.left, shape, traits.eyeColor, skin, profile, "l", px, py);
     const right = renderEye(eyes.right, shape, traits.eyeColor, skin, profile, "r", px + lazy, py);
-    return `${left}${right}`;
+    // Each eye locks at its own centre: spacing follows the head stretch, the lens shape doesn't.
+    return featureLock(eyes.left, eyes.y, traits, left) + featureLock(eyes.right, eyes.y, traits, right);
   }
 
   function eyeLayout(traits, y = 129) {
@@ -2438,12 +2457,12 @@
     const nostrils =
       `M${f(cx - w + 0.5)} ${f(baseY + 0.5)}c-1.6 1 -2.6 0.3 -3 -1.6` +
       `M${f(cx + w - 0.5)} ${f(baseY + 0.5)}c1.6 1 2.6 0.3 3 -1.6`;
-    return `
+    return featureLock(cx, baseY, traits, `
       <path d='${bridge}' fill='none' stroke='rgba(24,21,18,.16)' stroke-width='1.7' stroke-linecap='round'/>
       <path d='${base}' fill='rgba(24,21,18,.05)' stroke='${ink}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
       <path d='${nostrils}' fill='none' stroke='rgba(24,21,18,.4)' stroke-width='1.3' stroke-linecap='round'/>
       <ellipse cx='${cx}' cy='${f(baseY - 3)}' rx='${f(4 * scale * (profile.noseWidth || 1))}' ry='2.2' fill='rgba(255,255,255,.26)'/>
-    `;
+    `);
   }
 
   function renderExpressionMouth(expression, traits, seed) {
@@ -2464,8 +2483,11 @@
   function transformMouth(svg, traits, anchorY) {
     const y = (Number(traits.mouthY) || 0) + jawDrop(getProfile(traits).jawLength, anchorY);
     const scale = Number(traits.mouthScale) || 1;
-    if (!y && scale === 1) return svg;
-    return `<g transform='translate(0 ${y}) translate(128 ${anchorY}) scale(${scale}) translate(-128 -${anchorY})'>${svg}</g>`;
+    const positioned = (!y && scale === 1)
+      ? svg
+      : `<g transform='translate(0 ${y}) translate(128 ${anchorY}) scale(${scale}) translate(-128 -${anchorY})'>${svg}</g>`;
+    // Same uniform-shape rule as eyes/nose: a stretched head repositions the mouth, not its shape.
+    return featureLock(128, anchorY + y, traits, positioned);
   }
 
   function renderSmileMouth(mouthStyle, traits, seed) {

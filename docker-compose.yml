@@ -29,6 +29,9 @@ services:
     labels:
       com.github.saltbox.saltbox_managed: "true"
       traefik.enable: "true"
+      # Tell Traefik which network to reach the container on (required, else the router silently
+      # isn't built and you get a 404 for the host).
+      traefik.docker.network: "saltbox"
 
       # Auto-update: Watchtower pulls a new image whenever CI publishes one.
       com.centurylinklabs.watchtower.enable: "true"
@@ -36,7 +39,7 @@ services:
       # --- HTTP -> HTTPS redirect router ---
       traefik.http.routers.who-is-it-http.entrypoints: "web"          # *** older Saltbox: "http"
       traefik.http.routers.who-is-it-http.rule: "Host(`who.onlybbm.com`)"
-      traefik.http.routers.who-is-it-http.middlewares: "globalHeaders@file,redirect-http,cloudflarewarp@docker,gzip@file"
+      traefik.http.routers.who-is-it-http.middlewares: "globalHeaders@file,redirect-to-https@docker,cloudflarewarp@docker,gzip@file"
       traefik.http.routers.who-is-it-http.service: "who-is-it"
 
       # --- HTTPS router (serves the site + WebSocket) ---

@@ -390,7 +390,7 @@
       //     thin fringe of upward hairs, plus a band of stubble fading up into bare skin. NOT an
       //     airbrushed/feathered cloud - the fill is opaque with a crisp, hand-drawn edge like the
       //     reference art.
-      const hairHex = hairColors[traits.hairColor] || "#3a2418";
+      const hairHex = (traits.hairHex || hairColors[traits.hairColor]) || "#3a2418";
       const base = shadeColor(hairHex, 0.82);
       const lo = shadeColor(hairHex, 0.58);
       const hi = shadeColor(hairHex, 1.26);
@@ -649,7 +649,7 @@
     capBack: (traits) => {
       const green = traits.accent || "#3f9d4f";
       const lite = shadeColor(green, 1.16);
-      const hairHex = hairColors[traits.hairColor] || "#6b4a2f";
+      const hairHex = (traits.hairHex || hairColors[traits.hairColor]) || "#6b4a2f";
       const tuft = shadeColor(hairHex, 0.96);
       const tuftLo = shadeColor(hairHex, 0.68);
       return `
@@ -1271,7 +1271,7 @@
     // traits.skinHex lets callers force an explicit skin colour (eg. the Monocultural
     // mystery paints every face the same tone); otherwise resolve the named skin tone.
     const skin = traits.skinHex || skinTones[traits.skin] || skinTones.fair;
-    const hair = hairColors[traits.hairColor];
+    const hair = (traits.hairHex || hairColors[traits.hairColor]);
     const expression = expressions[traits.expression];
     const faceShape = warpJaw(faceShapes[traits.faceShape], getProfile(traits).jawLength);
     const hairStyle = hairStyles[traits.hair] || hairStyles.messy;
@@ -1593,7 +1593,7 @@
 
   function renderClothing(outfit, traits, seed) {
     const garment = clothing[traits.clothing] || clothing.tee;
-    const skin = skinTones[traits.skin] || "#c89070";
+    const skin = traits.skinHex || skinTones[traits.skin] || "#c89070";
     const c = traits.shirt;
     const fill = garment.bare ? skin : c;       // bare/singlet show skin shoulders, not the shirt
     const lo = shadeColor(fill, 0.84);
@@ -1986,7 +1986,7 @@
   function renderBeardBlobs(traits, seed) {
     const blobs = traits.beardBlobs;
     if (!Array.isArray(blobs) || !blobs.length) return "";
-    const hairHex = hairColors[traits.hairColor] || "#3a2418";
+    const hairHex = (traits.hairHex || hairColors[traits.hairColor]) || "#3a2418";
     // Beard matches the hair OUTLINE tone (explicit hairOutline wins), so hair + beard read as a set.
     const beard = traits.hairOutline ? traits.hairOutline : shadeColor(hairHex, 0.72);
     const lo = shadeColor(beard, 0.78);
@@ -2247,7 +2247,7 @@
 
   function hairOutlineFor(traits) {
     if (traits.hairOutline) return traits.hairOutline;
-    const hex = hairColors[traits.hairColor];
+    const hex = (traits.hairHex || hairColors[traits.hairColor]);
     return hex ? shadeColor(hex, 0.52) : ink;
   }
 
@@ -2439,7 +2439,7 @@
   // Brows track the hair colour but deeper, so blondes read with visible (not black) brows while
   // darker hair gives a strong defined brow.
   function browColor(traits) {
-    const hair = hairColors[traits.hairColor];
+    const hair = (traits.hairHex || hairColors[traits.hairColor]);
     return hair ? shadeColor(hair, 0.62) : ink;
   }
 
@@ -2456,7 +2456,7 @@
       soft: { y: 131, up: 9, dn: 7 }
     }[expression.eyes];
     const eyes = eyeLayout(traits, shape.y + (profile.eyeY || 0));
-    const skin = skinTones[traits.skin] || traits.skin;
+    const skin = traits.skinHex || skinTones[traits.skin] || traits.skin;
     // Pupil offset within the lens; lazyEye adds an extra horizontal drift to ONE eye only (a lazy
     // eye / asymmetric strabismus look). Both stay clipped to the lens.
     const px = profile.pupilX || 0;
@@ -2664,7 +2664,7 @@
       goofyTeeth: { L: 104, R: 152, y: 167, topDip: 11, botDip: 22 }
     };
     const p = presets[style] || presets.bigSmile;
-    const skin = skinTones[traits.skin] || "#c89070";
+    const skin = traits.skinHex || skinTones[traits.skin] || "#c89070";
     const lipC = traits.lipColor || shadeColor(skin, 0.74);
     const showLips = traits.smileLips !== "off";
     const f = (n) => n.toFixed(1);
@@ -2775,7 +2775,7 @@
     if (style === "line" || !expression.mouth) {
       return `<path d='${expression.mouth}' fill='none' stroke='${ink}' stroke-width='${mw}' stroke-linecap='round'/>`;
     }
-    const skin = skinTones[traits.skin] || "#c89070";
+    const skin = traits.skinHex || skinTones[traits.skin] || "#c89070";
     const lip = traits.lipColor || shadeColor(skin, 0.78);
     const full = style === "full";
     const f = (n) => n.toFixed(1);

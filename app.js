@@ -761,7 +761,11 @@ function mergeTraits(A, B) {
   });
   const tb = window.faceGenerator?.traitBook?.skinToneHex || {};
   const aHex = A.skinHex || tb[A.skin], bHex = B.skinHex || tb[B.skin];
-  if (aHex && bHex) child.skinHex = mixHex(aHex, bHex);
+  if (aHex && bHex) {
+    // Average the parents' skin, then a small jitter (so identical-skin parents still vary slightly).
+    child.skinHex = jitterHex(mixHex(aHex, bHex), 0.045);
+    delete child.skin;   // let the mixed hex render instead of an inherited palette name
+  }
   return child;
 }
 function babyName(a, b) {
@@ -772,17 +776,35 @@ function babyName(a, b) {
 }
 // Random mutations so every baby is visibly its own person (different eyes/ears/nose/etc), not just an
 // average of the parents.
+// Small random brightness/hue jitter on a hex - for genetic 'minor variance' on inherited colours.
+function jitterHex(hex, amt) {
+  const n = parseInt(String(hex).replace("#", ""), 16);
+  if (isNaN(n)) return hex;
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const d = () => Math.round((Math.random() - 0.5) * 2 * amt * 255);
+  const bright = d();
+  const cl = (v, e) => Math.max(0, Math.min(255, Math.round(v + bright + e)));
+  r = cl(r, d() * 0.4); g = cl(g, d() * 0.4); b = cl(b, d() * 0.4);
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
 function mutateBaby(traits) {
   const T = window.faceGenerator?.traitBook || {};
   const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const hairColors = window.faceGenerator?.traitBook?.hairColors || {};
   const eyeCols = ["#5a3d28", "#3a5a8a", "#2e6b4e", "#7a5a2a", "#4a4a55", "#6a3a3a", "#8a6a2a", "#4a8a8a"];
-  if (Math.random() < 0.55) traits.eyeColor = rnd(eyeCols);
-  if (Math.random() < 0.6) traits.eyeScale = +(((traits.eyeScale || 1) * (0.88 + Math.random() * 0.28))).toFixed(2);
+  // Eyes: usually a SHIFT of the inherited/averaged colour (minor variance); rarely a fresh colour.
+  const baseEye = (typeof traits.eyeColor === "string" && traits.eyeColor[0] === "#") ? traits.eyeColor : "#5a3d28";
+  if (Math.random() < 0.8) traits.eyeColor = jitterHex(baseEye, 0.06);
+  else traits.eyeColor = rnd(eyeCols);
+  if (Math.random() < 0.6) traits.eyeScale = +(((traits.eyeScale || 1) * (0.9 + Math.random() * 0.2))).toFixed(2);   // ±10%
   if (Math.random() < 0.5 && T.earVariants) traits.earVariant = rnd(T.earVariants);
-  if (Math.random() < 0.5) traits.earScale = +((0.85 + Math.random() * 0.4)).toFixed(2);
-  if (Math.random() < 0.5) traits.browThick = +(((traits.browThick || 1) * (0.82 + Math.random() * 0.4))).toFixed(2);
-  if (Math.random() < 0.5) traits.noseWidth = +(((traits.noseWidth || 1) * (0.85 + Math.random() * 0.3))).toFixed(2);
-  if (Math.random() < 0.35 && T.hairColors) traits.hairColor = rnd(T.hairColors);
+  if (Math.random() < 0.5) traits.earScale = +((0.88 + Math.random() * 0.3)).toFixed(2);
+  if (Math.random() < 0.5) traits.browThick = +(((traits.browThick || 1) * (0.85 + Math.random() * 0.3))).toFixed(2);
+  if (Math.random() < 0.5) traits.noseWidth = +(((traits.noseWidth || 1) * (0.88 + Math.random() * 0.24))).toFixed(2);
+  // Hair: SHADE-SHIFT the inherited colour a touch (via hairHex) instead of jumping to a random name.
+  const baseHairHex = hairColors[traits.hairColor] || "#3a2418";
+  if (Math.random() < 0.75) traits.hairHex = jitterHex(baseHairHex, 0.07);
+  else if (T.hairColors) traits.hairColor = rnd(T.hairColors);
   if (Math.random() < 0.3 && T.noseTips) traits.noseTip = rnd(T.noseTips);
   return traits;
 }

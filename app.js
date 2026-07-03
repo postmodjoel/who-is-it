@@ -532,6 +532,12 @@ const mysteryEffects = [
     name: "Astrology",
     apply: applyAstrology,
     exampleQuestion: "Is your person a water sign?"
+  },
+  {
+    id: "pantone",
+    name: "PANTONE",
+    apply: applyPantone,
+    exampleQuestion: "Is your person's colour warm-toned?"
   }
 ];
 
@@ -631,7 +637,7 @@ function wheelBag() {
 // and gets progressively more feral, finishing on WOKE (the everything-at-once finale). Within the
 // current tier the pick is salt-random for variety. Once the whole gauntlet is seen the bag resets.
 const WHEEL_TIERS = [
-  ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", null],
+  ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", null],
   ["knockoff-manor", "family-tree-disaster", "heads-only", "yugioh", "pixall", "habbo"],
   ["hidden-agendas", "monocultural", "witness-protection-filter", "gay-frogged", "swipe", "fireworks", "sims"],
   ["drugs", "disguise", "disease", "fertility", "orgy", "judgement", "work"],
@@ -1590,6 +1596,7 @@ function renderBoard() {
   els.characterBoard.classList.toggle("judgement-board", modeId === "judgement");
   els.characterBoard.classList.toggle("sims-board", modeId === "sims");
   els.characterBoard.classList.toggle("astrology-board", modeId === "astrology");
+  els.characterBoard.classList.toggle("pantone-board", modeId === "pantone");
   document.body.classList.toggle("mode-yugioh", modeId === "yugioh");
   document.body.classList.toggle("mode-pixall", modeId === "pixall");
   sortedBoard().forEach((character) => {
@@ -2309,6 +2316,7 @@ const MODE_GLYPHS = {
   "heads-only": "⊚",                 // floating heads
   "habbo": "⌂",                      // the hotel
   "astrology": "☽",                  // celestial
+  "pantone": "❏",                    // colour chip
 };
 const FALLBACK_GLYPHS = ["✦", "⚛", "⬢", "✶", "⟁", "⌖", "☯", "⚙", "❖", "⌬", "☄", "⊛"];
 
@@ -2376,7 +2384,7 @@ function clearMysteryEffectUI() {
   resetSimsLoop();
   stopPropLoop();
   stopPixallLoop();
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board", "pantone-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -2915,6 +2923,14 @@ function getMysteryCardData(character) {
       effectName: mystery.name,
       dataset: { mysteryValue: assignment.value },
       html: addMysteryBadge(assignment.value, "role")
+    };
+  }
+  if (mystery.id === "pantone") {
+    return {
+      effectName: mystery.name,
+      cardClass: "pantone-mode",
+      dataset: { pantoneName: assignment.name, pantoneCode: assignment.code },
+      html: `<span class="pt-code">${escapeHtml(assignment.code)} TCX</span><span class="pt-name">${escapeHtml(assignment.name)}</span>`
     };
   }
   if (mystery.id === "hidden-agendas") {
@@ -3591,6 +3607,74 @@ function applyAstrology(effect) {
       toxic: (D.astrologyToxic || ["ghosts everyone"])[(h >>> 6) % (D.astrologyToxic || [1]).length],
       retro: (h >>> 11) % 3 === 0
     };
+  });
+  return { id: effect.id, name: effect.name, assignments };
+}
+
+// PANTONE: an early, purely-aesthetic mode. Each card is restyled as a Pantone colour chip - the
+// character's (harmonised) background is matched to the nearest real Pantone swatch, and the plate
+// shows the wordmark + code + colour name under their name. Nothing is repainted; it's a lens.
+const PANTONE_COLORS = [
+  // pinks / roses
+  { c: "13-1520", n: "Rose Quartz", h: "#f7cbcb" }, { c: "15-1816", n: "Pink Nectar", h: "#e5a4ac" },
+  { c: "14-1714", n: "Candy Pink", h: "#f4bbc7" }, { c: "15-2215", n: "Sachet Pink", h: "#e8909c" },
+  { c: "16-1720", n: "Confetti", h: "#e58fa1" }, { c: "17-2031", n: "Fandango Pink", h: "#d4517f" },
+  { c: "13-2807", n: "Ballerina", h: "#eec9d2" }, { c: "14-2710", n: "Pink Lavender", h: "#dcb1cc" },
+  { c: "15-2705", n: "Orchid Bloom", h: "#d6a9c6" }, { c: "14-3204", n: "Pink Tint", h: "#e2d3dc" },
+  // reds / corals
+  { c: "16-1546", n: "Living Coral", h: "#ff6f61" }, { c: "16-1548", n: "Coral", h: "#f88379" },
+  { c: "17-1463", n: "Tangerine Tango", h: "#dd4124" }, { c: "19-1664", n: "True Red", h: "#bf1932" },
+  { c: "18-1438", n: "Marsala", h: "#955251" }, { c: "16-1626", n: "Dubarry", h: "#f4737e" },
+  { c: "15-1327", n: "Peach Nougat", h: "#e6a086" },
+  // oranges / peach
+  { c: "14-1231", n: "Peach Cobbler", h: "#f5b183" }, { c: "13-1023", n: "Apricot Ice", h: "#f6c9a6" },
+  { c: "16-1359", n: "Orange Tiger", h: "#f96714" }, { c: "14-1050", n: "Amberglow", h: "#e08e45" },
+  { c: "13-0947", n: "Golden Apricot", h: "#e0a058" },
+  // yellows / butters
+  { c: "12-0824", n: "Pale Banana", h: "#f4e6a0" }, { c: "13-0851", n: "Lemon Drop", h: "#f2df66" },
+  { c: "12-0722", n: "Custard", h: "#e8d99a" }, { c: "13-0755", n: "Primrose Yellow", h: "#efc93b" },
+  { c: "11-0620", n: "Vanilla Custard", h: "#f0e3bb" }, { c: "14-0754", n: "Ceylon Yellow", h: "#d8ab4e" },
+  // greens
+  { c: "13-0317", n: "Green Ash", h: "#c0d3b0" }, { c: "14-0223", n: "Nile Green", h: "#a8c17f" },
+  { c: "15-0343", n: "Greenery", h: "#88b04b" }, { c: "16-0142", n: "Kelly Green", h: "#4a944e" },
+  { c: "12-0225", n: "Lime Cream", h: "#dfe8ad" }, { c: "14-6329", n: "Spearmint", h: "#7bbb8f" },
+  { c: "13-6009", n: "Aqua Foam", h: "#a7cbb6" }, { c: "13-0221", n: "Butterfly", h: "#c8d99a" },
+  // teals / cyans
+  { c: "15-5217", n: "Cockatoo", h: "#58c9b9" }, { c: "14-4816", n: "Aruba Blue", h: "#69cbc9" },
+  { c: "16-5127", n: "Turquoise", h: "#45b8ac" }, { c: "13-5309", n: "Pastel Turquoise", h: "#9dd5cd" },
+  { c: "15-4712", n: "Dusty Aqua", h: "#8fc7c2" },
+  // blues
+  { c: "14-4318", n: "Cloud Blue", h: "#a8c3d1" }, { c: "14-4122", n: "Ballad Blue", h: "#a3bcd4" },
+  { c: "15-3920", n: "Serenity", h: "#92a8d1" }, { c: "16-4132", n: "Little Boy Blue", h: "#6f9bd1" },
+  { c: "18-4141", n: "Classic Blue", h: "#2a4d7b" }, { c: "13-4304", n: "Bit of Blue", h: "#dbe4e6" },
+  { c: "13-4411", n: "Corydalis Blue", h: "#c1d3df" }, { c: "12-4607", n: "Clearwater", h: "#b6d7d5" },
+  // purples / lavender
+  { c: "14-3710", n: "Lavender Fog", h: "#c9bcd4" }, { c: "16-3320", n: "Sheer Lilac", h: "#b294bb" },
+  { c: "18-3838", n: "Ultra Violet", h: "#5f4b8b" }, { c: "15-3817", n: "Lavender", h: "#b7add0" },
+  // neutrals / browns
+  { c: "11-0602", n: "Snow White", h: "#f2f0eb" }, { c: "13-4108", n: "Nimbus Cloud", h: "#d4d5d8" },
+  { c: "15-4101", n: "High-rise Grey", h: "#b8bdc4" }, { c: "11-0107", n: "Almond Buff", h: "#e6dcc8" },
+  { c: "13-1108", n: "Bone Beige", h: "#dccfbb" }, { c: "17-1052", n: "Buckthorn Brown", h: "#b07636" },
+  { c: "19-1218", n: "Chocolate", h: "#5a3a29" }, { c: "19-4005", n: "Pirate Black", h: "#2b2b2c" },
+];
+function pantoneRgb(hex) { const h = hex.replace("#", ""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+function pantoneDist(a, b) {
+  // "redmean" weighted distance - matches perceived colour closeness better than raw RGB.
+  const rm = (a[0] + b[0]) / 2, dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
+  return (2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db;
+}
+function nearestPantone(hex) {
+  const t = pantoneRgb(hex);
+  let best = PANTONE_COLORS[0], bd = Infinity;
+  for (const p of PANTONE_COLORS) { const d = pantoneDist(t, pantoneRgb(p.h)); if (d < bd) { bd = d; best = p; } }
+  return best;
+}
+function applyPantone(effect) {
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const bg = (ch.traits && ch.traits.background) || "#cccccc";
+    const p = nearestPantone(bg);
+    assignments[ch.id] = { code: p.c, name: p.n, hex: p.h };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

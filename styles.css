@@ -807,6 +807,40 @@ button:disabled {
   padding: 5px 4px 6px;
 }
 
+/* PANTONE mode: the white plate becomes a Pantone colour-chip label (wordmark + name + code). */
+.pantone-mode .card-plate {
+  align-items: flex-start;
+  text-align: left;
+  background: #fff;
+  padding: 7px 9px 9px;
+  gap: 0;
+}
+.pantone-mode .card-plate::before {
+  content: "PANTONE\00AE";
+  font-family: "Archivo", sans-serif;
+  font-weight: 900;
+  font-size: 0.56rem;
+  letter-spacing: 0.02em;
+  color: #111;
+  margin-bottom: 4px;
+}
+.pantone-mode.character-card h3 {
+  width: 100%;
+  text-align: left;
+  font-size: clamp(0.72rem, 1vw, 0.9rem);
+  font-weight: 800;
+  color: #111;
+}
+.pantone-mode .card-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  margin-top: 3px;
+}
+.pantone-mode .pt-code { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.05em; color: #6a6a6a; }
+.pantone-mode .pt-name { font-size: 0.66rem; font-weight: 600; color: #1c1c1c; }
+
 .character-card h3 {
   display: block;
   width: 100%;

@@ -1462,16 +1462,15 @@ function renderRoom() {
     });
     return;
   }
-  // LOCAL: one joined pill split down the middle, the active seat lit. Tap a half to switch seats.
+  // LOCAL: one joined segmented toggle, the active seat lit. Tap a half (or the ⇄ badge) to hand off.
   els.seatRoster.className = "seat-roster seat-pill";
   els.seatRoster.innerHTML = state.players.map((player, i) => {
     const label = player.pname || (i === 0 ? "A" : "B");
     return `<button type="button" class="seat-half ${i === state.currentPlayer ? "active" : ""}" data-seat="${i}">
         <span class="seat-glyph">${i === state.currentPlayer ? "YOU" : escapeHtml(label)}</span>
-        <span class="seat-dot ${player.mysteryUsed ? "is-spent" : "is-ready"}" aria-hidden="true"></span>
       </button>`;
-  }).join("");
-  els.seatRoster.querySelectorAll(".seat-half").forEach((b) => b.addEventListener("click", () => {
+  }).join("") + `<button type="button" class="seat-swap" data-seat="${(state.currentPlayer + 1) % state.players.length}" aria-label="Swap turn">⇄</button>`;
+  els.seatRoster.querySelectorAll(".seat-half, .seat-swap").forEach((b) => b.addEventListener("click", () => {
     state.currentPlayer = Number(b.dataset.seat);
     render();
   }));

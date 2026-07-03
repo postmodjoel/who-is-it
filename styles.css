@@ -5098,21 +5098,34 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .button.end-round-btn .er-txt { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; }
 #revealSecretButton { width: auto; }
 
-/* Joined seat pill: two halves in one rounded shell, active half lit, alternating. */
+/* Local seat toggle: one segmented control matching the chunky bordered buttons. Two halves share a
+   shell, the active seat fills brand-yellow, and a centred ⇄ badge over the seam signals "hand off". */
 .seat-roster.seat-pill {
-  display: inline-flex; padding: 3px; gap: 3px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ink) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  position: relative; display: flex; width: 100%; padding: 0; gap: 0;
+  border: 2px solid var(--line); border-radius: 8px;
+  background: var(--panel); box-shadow: 3px 3px 0 var(--line); overflow: hidden;
 }
 .seat-pill .seat-half {
-  display: inline-flex; align-items: center; gap: 7px; justify-content: center;
-  min-height: 30px; padding: 0 16px; border: none; cursor: pointer;
-  border-radius: 999px; background: transparent; color: var(--muted);
-  transition: background 0.15s, color 0.15s;
+  flex: 1; min-width: 0; min-height: 42px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer; background: transparent; color: var(--muted);
+  font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.seat-pill .seat-half.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.35); }
-.seat-pill .seat-glyph { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.03em; }
+.seat-pill .seat-half + .seat-half { border-left: 2px solid var(--line); }
+.seat-pill .seat-half:hover { color: var(--ink); }
+.seat-pill .seat-half.active { background: var(--accent-4); color: var(--card-ink); }
+.seat-pill .seat-half.active:hover { color: var(--card-ink); }
+.seat-pill .seat-glyph { font-size: 0.82rem; font-weight: 900; }
+/* ⇄ badge centred on the seam - a clear "swap turn" affordance. */
+.seat-pill .seat-swap {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 26px; height: 26px; padding: 0; display: grid; place-items: center;
+  border: 2px solid var(--line); border-radius: 999px; cursor: pointer;
+  background: var(--panel-soft); color: var(--ink); font-size: 0.82rem; line-height: 1;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.seat-pill .seat-swap:hover { background: var(--card-surface-2); transform: translate(-50%, -50%) scale(1.12); }
+.seat-pill .seat-swap:active { transform: translate(-50%, -50%) scale(0.94); }
 
 /* ===================== Online lobby / waiting room ===================== */
 .ts-name-input {

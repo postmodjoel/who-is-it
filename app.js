@@ -1482,7 +1482,8 @@ function renderSecret() {
   if (!player.secretVisible) {
     els.secretCard.className = "secret-card is-hidden";
     els.secretCard.textContent = "Face hidden";
-    setButtonIcon(els.revealSecretButton, "eye", "Show face");
+    els.secretCard.title = "Tap to reveal your face";
+    if (els.revealSecretButton) setButtonIcon(els.revealSecretButton, "eye", "Show face");
     updateFloatingSecret(secret, false);
     return;
   }
@@ -1512,7 +1513,8 @@ function renderSecret() {
     const simg = els.secretCard.querySelector(".portrait-wrap > img");
     if (simg && simg.src) { simg.style.imageRendering = "pixelated"; pixelateSrc(simg.src, 40, (url) => { simg.src = url; }); }
   }
-  setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
+  els.secretCard.title = "Tap to hide your face";
+  if (els.revealSecretButton) setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
 }
 
 // A compact "you are" reminder (head + name) that pins to the top on mobile once the real secret card
@@ -4691,10 +4693,13 @@ const aliasNames = [
   "Soup Angela"
 ];
 
-els.revealSecretButton.addEventListener("click", () => {
+// Tapping your own player card toggles it hidden/shown (replaces the old eye button).
+function toggleSecretVisible() {
   currentPlayer().secretVisible = !currentPlayer().secretVisible;
   renderSecret();
-});
+}
+if (els.revealSecretButton) els.revealSecretButton.addEventListener("click", toggleSecretVisible);
+if (els.secretCard) els.secretCard.addEventListener("click", toggleSecretVisible);
 
 // The arrows button ends the round (you tell each other who you were in person - the reveal shows
 // both secrets, then the next round deals). Seat swapping in local mode is the YOU/B chips.

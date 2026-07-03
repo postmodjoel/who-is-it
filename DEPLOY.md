@@ -49,3 +49,67 @@ That's it — crossings, babies, tug-o-wars and round changes all sync live.
 > Same board on both devices needs the same character pool. Custom characters / saved GAYBYs live in
 > each browser, so for a pixel-identical board use fresh profiles or don't rely on saved customs —
 > the seed handles everything else.
+
+---
+
+# Saltbox (self-hosted, behind Traefik) → who.onlybbm.com
+
+Saltbox already runs **Traefik** as its reverse proxy on a Docker network called `saltbox`. You just
+build this as a container, join that network, and hand Traefik the routing labels. The included
+`docker-compose.yml` does all of that. Traefik proxies plain HTTP **and** the WebSocket upgrade over
+the same router, so online play works with zero extra config.
+
+### 1. DNS
+In Cloudflare (the DNS Saltbox uses) add a record for the subdomain, **Proxied (orange cloud)**:
+
+```
+Type: CNAME   Name: who   Target: onlybbm.com     (or your server's A-record host)
+```
+
+Cloudflare's proxy supports WebSockets, so leave it orange.
+
+### 2. Get the code on the server
+```bash
+sudo mkdir -p /opt/who-is-it && cd /opt/who-is-it
+# copy this repo here (git clone <your-repo> ., or scp/rsync the folder)
+```
+
+### 3. Set your domain
+Edit `docker-compose.yml` → replace `who.onlybbm.com` (appears 3×) with your subdomain.
+
+> **Version check:** the labels use `entrypoints: web/websecure` and `certresolver: cfdns`, which
+> match current Saltbox. If yours is older it may use `http/https` and a different resolver name —
+> the fastest fix is to open an existing Saltbox app's labels and copy the exact
+> `entrypoints`, `certresolver`, and middleware names:
+> ```bash
+> docker inspect $(docker ps --format '{{.Names}}' | grep -m1 -iE 'plex|sonarr|overseerr') \
+>   | grep -i 'traefik.http.routers' | sort -u
+> ```
+> Swap those three values into `docker-compose.yml` and you're done.
+
+### 4. Build + run
+```bash
+cd /opt/who-is-it
+docker compose up -d --build
+docker compose logs -f          # should print: "WHO? IS IT? server on http://0.0.0.0:8080"
+```
+
+Traefik auto-detects the container on the `saltbox` network and issues the cert. Give it ~30s, then
+open **https://who.onlybbm.com**.
+
+### 5. Play
+Both players open the URL → one hits **ONLINE GAME → HOST A ROOM** and reads out the number → the
+other does **JOIN A ROOM** and types it. The game auto-connects to `wss://who.onlybbm.com/<room>`
+through Traefik.
+
+### Updating later
+```bash
+cd /opt/who-is-it && git pull && docker compose up -d --build
+```
+
+### Troubleshooting
+- **502 / cert not issued:** wrong `entrypoints`/`certresolver` label — do the version check in step 3.
+- **Site loads but online won't connect:** confirm the Cloudflare record is **Proxied** and that you're
+  on `https://` (the client only upgrades to `wss://` on a real https host).
+- **Container not picked up:** `docker network inspect saltbox` should list `who-is-it`; if not, the
+  external network name differs — set it to whatever `docker network ls | grep -i salt` shows.

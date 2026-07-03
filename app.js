@@ -1480,9 +1480,13 @@ function renderSecret() {
   const player = currentPlayer();
   const secret = characterById(player.secretId);
   if (!player.secretVisible) {
-    els.secretCard.className = "secret-card is-hidden";
-    els.secretCard.textContent = "Face hidden";
+    // Keep the full card footprint (same size as the revealed profile) - just a censored tile.
+    els.secretCard.className = "secret-card character-card is-hidden";
+    els.secretCard.removeAttribute("style");
     els.secretCard.title = "Tap to reveal your face";
+    els.secretCard.innerHTML = `
+      <div class="portrait-wrap"><div class="secret-hidden-tile">🙈</div></div>
+      <div class="card-plate"><h3>Face hidden</h3><p class="card-hint">tap to reveal</p></div>`;
     if (els.revealSecretButton) setButtonIcon(els.revealSecretButton, "eye", "Show face");
     updateFloatingSecret(secret, false);
     return;

@@ -572,8 +572,9 @@ function newGame(seedSalt, opts = {}) {
   state.wheelPick = opts.effectId !== undefined ? opts.effectId : (state.settings.mystery ? wheelTargetFromBag() : null);
   // Networking only runs in ONLINE mode. Local (pass-and-play) never touches the channel.
   if (state.gameMode === "online") {
-    if (!opts.remote) netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick });
-    netConnect();
+    netConnect();   // no-op if already on this room's socket (won't drop the peer)
+    // Announce the new round to the peer, UNLESS the lobby's START handler already sent it.
+    if (!opts.remote && !opts.announced) netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick });
   }
   drawPrompt();
   addLog("New game dealt. Nobody looks trustworthy.");
@@ -4741,6 +4742,9 @@ function syncSettingsToForm() {
 // protocol only needs to carry the salt plus live events (eliminations, babies, conversions,
 // round-end); a future WebSocket relay can speak this exact protocol.
 let net = null;
+let netRoom = null;          // the room the current socket is connected to
+let netReconnectTimer = null;
+function setNetStatus(s) { state.netStatus = s; const el = document.querySelector(".or-status"); if (el && state.gameMode === "online") el.textContent = s === "open" ? (state.onlinePeer ? "🟢 friend connected" : "🟡 connected — waiting for a friend…") : s === "connecting" ? "🟠 connecting…" : "🔴 disconnected — retrying…"; updateLobby(); }
 // Cross-device transport: add ?relay=ws://<host>:8765 to the URL on every device and run
 // `python3 relay.py` on one machine - the relay fans messages out per room. Without the param the
 // transport is a BroadcastChannel (two tabs in the same browser). Same protocol either way.
@@ -4759,24 +4763,44 @@ const NET_RELAY = (() => {
   } catch (e) { /* fall through to BroadcastChannel */ }
   return null;
 })();
-function netConnect() {
+function netConnect(force) {
+  // Already on the right room's socket? Don't tear it down (that would drop the peer mid-game).
+  if (!force && net && netRoom === state.roomCode) return;
+  clearTimeout(netReconnectTimer);
   try { if (net) net.close(); } catch (e) { /* already closed */ }
-  net = null;
+  net = null; netRoom = state.roomCode;
+  const room = state.roomCode;
   if (NET_RELAY) {
-    try {
-      const ws = new WebSocket(`${NET_RELAY}/${state.roomCode}`);
-      ws.onmessage = (e) => { try { handleNetMsg(JSON.parse(e.data)); } catch (err) { /* junk frame */ } };
-      ws.onopen = () => netSend("hello", { pname: state.pname });
-      net = { post: (m) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); }, close: () => { try { ws.close(); } catch (e) { /* fine */ } } };
-    } catch (e) { net = null; }
+    setNetStatus("connecting");
+    let ws;
+    try { ws = new WebSocket(`${NET_RELAY}/${room}`); }
+    catch (e) { setNetStatus("closed"); scheduleReconnect(room); return; }
+    const queue = [];
+    ws.onopen = () => { setNetStatus("open"); netSend("hello", { pname: state.pname }); while (queue.length) ws.send(queue.shift()); };
+    ws.onmessage = (e) => { try { handleNetMsg(JSON.parse(e.data)); } catch (err) { /* junk frame */ } };
+    ws.onerror = () => { /* onclose follows */ };
+    ws.onclose = () => { if (netRoom === room && state.gameMode === "online") { setNetStatus("closed"); scheduleReconnect(room); } };
+    net = {
+      post: (m) => { const s = JSON.stringify(m); if (ws.readyState === 1) ws.send(s); else if (ws.readyState === 0) queue.push(s); },
+      close: () => { try { ws.onclose = null; ws.close(); } catch (e) { /* fine */ } }
+    };
     return;
   }
   try {
-    const bc = new BroadcastChannel(`whoisit-room-${state.roomCode}`);
+    const bc = new BroadcastChannel(`whoisit-room-${room}`);
     bc.onmessage = (e) => handleNetMsg(e.data || {});
     net = { post: (m) => bc.postMessage(m), close: () => bc.close() };
+    setNetStatus("open");
     netSend("hello", { pname: state.pname });
   } catch (e) { net = null; /* no BroadcastChannel - offline only */ }
+}
+// Reconnect to the SAME room after a drop (the room is stable through a game, so this recovers a
+// flaky connection instead of silently going dead).
+function scheduleReconnect(room) {
+  clearTimeout(netReconnectTimer);
+  netReconnectTimer = setTimeout(() => {
+    if (state.gameMode === "online" && state.roomCode === room) { netRoom = null; netConnect(true); }
+  }, 1500);
 }
 function netSend(type, data) {
   if (!net) return;
@@ -5023,6 +5047,7 @@ function showTitleScreen() {
         ${saved ? `<button type="button" class="button ghost ts-resume">↩ RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</button>` : ""}
       </div>
       <div class="ts-step ts-step-online" hidden>
+        <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
         <button type="button" class="button primary ts-host">🎪 HOST A ROOM</button>
         <button type="button" class="button secondary ts-showjoin">🔑 JOIN A ROOM</button>
         <button type="button" class="button ghost ts-back">← back</button>
@@ -5045,7 +5070,8 @@ function showTitleScreen() {
   const show = (name) => Object.entries(steps).forEach(([k, el]) => { el.hidden = k !== name; });
   ov.querySelector(".ts-local").addEventListener("click", () => { close(); startLocalGame(); });
   ov.querySelector(".ts-online").addEventListener("click", () => show("online"));
-  ov.querySelector(".ts-host").addEventListener("click", () => { close(); startOnlineGame(); });
+  const nameOf = () => (ov.querySelector(".ts-name-input")?.value || "").trim();
+  ov.querySelector(".ts-host").addEventListener("click", () => { close(); startOnlineGame(nameOf() || "Host"); });
   ov.querySelector(".ts-showjoin").addEventListener("click", () => { show("join"); setTimeout(() => ov.querySelector(".ts-join-input").focus(), 50); });
   ov.querySelectorAll(".ts-back").forEach((b) => b.addEventListener("click", () => show("main")));
   const joinInput = ov.querySelector(".ts-join-input");
@@ -5103,9 +5129,9 @@ function showLobby() {
   if (startBtn) startBtn.addEventListener("click", () => {
     state.inLobby = false;
     ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 400);
-    netSend("start", { salt: state.gameSalt, settings: state.settings, names: state.lobby });
     state.wheelPickShared = wheelTargetFromBag();
-    newGame(state.gameSalt, { effectId: state.wheelPickShared });
+    netSend("start", { salt: state.gameSalt, settings: state.settings, names: state.lobby, effectId: state.wheelPickShared });
+    newGame(state.gameSalt, { effectId: state.wheelPickShared, announced: true });
   });
   updateLobby();
 }

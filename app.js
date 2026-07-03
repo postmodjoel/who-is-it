@@ -3733,10 +3733,13 @@ function applyHornyPotter(effect) {
   const dark = D.hpDarkSpells || [["Imperio", "total control"]];
   const woods = D.hpWandWoods || ["Elder"], cores = D.hpWandCores || ["dragon heartstring"], flexes = D.hpWandFlex || ["rigid"];
   const order = deterministicOrder(state.board, `${state.gameSalt}:${effect.id}:sort`);
+  // Exactly one poor soul (never the Dark Lord at index 0) is packing a very cursed "wand".
+  const cursedIdx = order.length > 1 ? 1 + (stableHash(`${state.gameSalt}:hp:cursed`) % (order.length - 1)) : -1;
   const assignments = {};
   order.forEach((ch, i) => {
     const h = stableHash(`${state.gameSalt}:hp:${ch.id}`);
-    const wand = `${woods[h % woods.length]}, ${cores[(h >>> 3) % cores.length]} core, ${flexes[(h >>> 6) % flexes.length]}`;
+    let wand = `${woods[h % woods.length]}, ${cores[(h >>> 3) % cores.length]} core, ${flexes[(h >>> 6) % flexes.length]}`;
+    if (i === cursedIdx) wand = "Flesh, human hair, actually his cock";
     if (i === 0) {                                   // the single Dark Lord
       const image = ch.traits && window.faceGenerator
         ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, hair: "bald", hairLocks: [], accessory: "none", skinHex: "#e6e7de", browThick: 0.15, noseScale: 0.62, lipColor: "#b7a6a6", background: "#14131c" })

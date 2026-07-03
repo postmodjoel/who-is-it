@@ -332,7 +332,7 @@ function installStaticIcons() {
   syncThemeButton();
   setButtonIcon(els.setupButton, "settings", "Setup");
   setButtonIcon(els.newGameButton, "refresh", "New game");
-  setButtonIcon(els.swapSeatButton, "swap", "Swap seat");
+  setButtonIcon(els.swapSeatButton, "swap", "End round");
   if (els.drawPromptButton) setButtonIcon(els.drawPromptButton, "prompt", "Draw prompt");
 }
 
@@ -790,7 +790,9 @@ function makeBaby(A, B, gayby) {
   const traits = mutateBaby(mergeTraits(A.traits || {}, B.traits || {}));
   const seed = 90001 + (babyCounter++);
   return {
-    id: `baby-${seed}`,
+    // Globally-unique id: session-scoped counters collided with GAYBYs persisted from earlier
+    // sessions (same baby-9000X id back in the pool -> duplicate board entries).
+    id: `baby-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
     name: babyName(A.name, B.name),
     // ~1 in 5 come out non-binary (they/them); the rest inherit a parent's pronouns.
     pronouns: Math.random() < 0.2 ? "they" : (Math.random() < 0.5 ? A.pronouns : B.pronouns),
@@ -829,7 +831,7 @@ function parseCum(str) { const m = String(str).match(/([\d.]+)\s*([MB])/i); if (
 function formatCum(mils) { return mils >= 1000 ? `${(mils / 1000).toFixed(1)}B` : `${Math.max(0, Math.round(mils))}M`; }
 
 // Breeding only happens in the modes where it makes sense.
-const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims", "woke", "family-tree-disaster"];
+const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims", "woke", "family-tree-disaster", "drugs"];
 
 // ===================== Identity reels (slot-machine pickers for new babies) =====================
 // A row of slot-machine reels that spin through their values and land staggered left-to-right (same
@@ -913,7 +915,7 @@ function breedCharacters(aId, bId) {
     // FRESH MEAT: a newborn starts with 0 cummies and a huge fresh clutch of eggs.
     asg[baby.id] = { cum: "0M", eggs: 300 + Math.floor(Math.random() * 400), barren: false, hrs: 71, mins: 59, defect: null, hasCount: true, hasEggs: true, freshMeat: true };
     renderBoard();                                            // show the deducted balances immediately
-    playBirthAnimation(A.image, B.image, baby, true, () => {
+    playBirthAnimation(A.image, B.image, baby, true, () => offerKeepOrAbort(baby, () => {
       state.board.push(baby);
       if (baby.isGayby) persistGayby(baby);
       netAnnounceBaby(baby); scheduleSave();
@@ -921,7 +923,7 @@ function breedCharacters(aId, bId) {
       renderBoard();
       state.justBorn = null;
       if (typeof addLog === "function") addLog(`${A.name} + ${B.name} bred ${baby.name}!`);
-    });
+    }, () => abortBaby(baby)));
     return;
   }
 
@@ -933,7 +935,7 @@ function breedCharacters(aId, bId) {
     if (!fa || !fb) return;
     const gaybyKid = sameSex(A, B);
     const baby = makeBaby(A, B, gaybyKid);
-    playBirthAnimation(A.image, B.image, baby, true, () => {
+    playBirthAnimation(A.image, B.image, baby, true, () => offerKeepOrAbort(baby, () => {
       state.board.push(baby);
       const clusters = state.global.mystery.clusters || [];
       // The dragged one leaves their old family and joins the drop target's.
@@ -955,16 +957,17 @@ function breedCharacters(aId, bId) {
       if (typeof addLog === "function") addLog(`${A.name} married into ${home ? home.name : "the family"} — ${baby.name} branches off!`);
       renderBoard();
       state.justBorn = null;
-    });
+    }, () => abortBaby(baby)));
     return;
   }
 
-  // Orgy / Gay / Disease / Sims.
+  // Orgy / Gay / Disease / Sims / Drugs.
   const gayby = sameSex(A, B);
   const diseaseBaby = mode === "disease" ? combineDiseaseAssignment(A, B) : null;  // compute before the animation
   const baby = makeBaby(A, B, gayby);
+  if (mode === "drugs") baby.isCrack = true;   // druggie parents make a CRACK BABY / CRACK GAYBY
   const woohoo = mode === "sims";   // Sims "woohoo" before the baby
-  playBirthAnimation(A.image, B.image, baby, woohoo, () => {
+  playBirthAnimation(A.image, B.image, baby, woohoo, () => offerKeepOrAbort(baby, () => {
     state.board.push(baby);
     if (mode === "disease") {
       state.global.mystery.assignments[baby.id] = diseaseBaby;   // baby inherits mutant combined diseases
@@ -1004,7 +1007,7 @@ function breedCharacters(aId, bId) {
         renderBoard();
       });
     }
-  }, { woohoo });
+  }, () => abortBaby(baby)), { woohoo });
 }
 // A transparent-background portrait + the original backdrop colour, so Sims relief animations can
 // move JUST the person while the card background holds still.
@@ -1013,6 +1016,28 @@ function simsPortrait(ch) {
   try {
     return { image: window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: "transparent" }), bg: ch.traits.background };
   } catch (e) { return {}; }
+}
+// After a baby is born the players decide its fate: KEEP adds it to the board, ABORT... doesn't.
+function offerKeepOrAbort(baby, keep, abort) {
+  const ov = document.createElement("div");
+  ov.className = "keep-abort";
+  ov.innerHTML = `<div class="ka-box">
+      <p class="ka-q">A ${baby.isCrack ? (baby.isGayby ? "CRACK GAYBY" : "CRACK BABY") : baby.isGayby ? "GAYBY" : "baby"} has arrived…</p>
+      <img class="ka-face" src="${baby.image}" alt="">
+      <p class="ka-name">${escapeHtml(baby.name)}</p>
+      <div class="ka-btns">
+        <button type="button" class="button primary ka-keep">👶 KEEP</button>
+        <button type="button" class="button secondary ka-abort">🚫 ABORT</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector(".ka-keep").addEventListener("click", () => { ov.remove(); keep(); });
+  ov.querySelector(".ka-abort").addEventListener("click", () => { ov.remove(); abort(); });
+}
+function abortBaby(baby) {
+  flashToast(`👼 ${baby.name} was aborted. Pretend you saw nothing.`);
+  if (typeof addLog === "function") addLog(`${baby.name} did not make it to the board.`);
+  renderBoard();
 }
 // A brief centred toast for breeding feedback.
 function flashToast(msg) {
@@ -1027,7 +1052,9 @@ function flashToast(msg) {
 // flies down to the bottom of the stack. `done()` fires at the end (adds the baby to the board).
 function playBirthAnimation(imgA, imgB, baby, grind, done, opts) {
   const woohoo = opts && opts.woohoo;
-  const gender = baby.isGayby ? "IT'S A GAYBY!!" : baby.pronouns === "he" ? "IT'S A BOY!" : baby.pronouns === "she" ? "IT'S A GIRL!" : "IT'S A NON-BINARY!";
+  const gender = baby.isCrack
+    ? (baby.isGayby ? "IT'S A CRACK GAYBY!!" : "IT'S A CRACK BABY!!")
+    : baby.isGayby ? "IT'S A GAYBY!!" : baby.pronouns === "he" ? "IT'S A BOY!" : baby.pronouns === "she" ? "IT'S A GIRL!" : "IT'S A NON-BINARY!";
   const cols = ["#ff4d6d", "#ffd24d", "#5dff8f", "#4dd2ff", "#c46bff", "#ff8a4d", "#fff27a"];
   let burst = "";
   for (let i = 0; i < 18; i++) {
@@ -2015,8 +2042,9 @@ function renderMurderCenter(mystery) {
 }
 
 function renderMystery() {
+  if (!els.mysteryButton) { els.mysteryResult.textContent = ""; return; }   // button retired - wheel picks the mode
   const used = state.players.filter((player) => player.mysteryUsed).length;
-  els.mysteryUseCount.textContent = `${used}/2`;
+  if (els.mysteryUseCount) els.mysteryUseCount.textContent = `${used}/2`;
   const disabled = !state.settings.mystery || currentPlayer().mysteryUsed;
   els.mysteryButton.disabled = disabled;
   setButtonIcon(els.mysteryButton, "spark", currentPlayer().mysteryUsed ? "Mystery spent" : "Mystery effect");
@@ -2339,9 +2367,11 @@ function createCharacterCard(character, player) {
   if (character.isBaby) card.classList.add("is-baby");
   if (character.isGayby) card.classList.add("is-gayby");
   if (state.justBorn === character.id) card.classList.add("just-born");
-  const babyBadge = character.isGayby
-    ? `<span class="gayby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">🏳️‍🌈 GAYBY</span>`
-    : character.isBaby ? `<span class="baby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">👶 NEW</span>` : "";
+  const babyBadge = character.isCrack
+    ? `<span class="gayby-badge crack-badge" title="${escapeHtml((character.parents || []).join(" + "))}">💉 CRACK ${character.isGayby ? "GAYBY" : "BABY"}</span>`
+    : character.isGayby
+      ? `<span class="gayby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">🏳️‍🌈 GAYBY</span>`
+      : character.isBaby ? `<span class="baby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">👶 NEW</span>` : "";
   card.innerHTML = `
     <div class="portrait-wrap">
       <img src="${portraitSrc}" alt="${escapeHtml(character.name)}">
@@ -2782,8 +2812,7 @@ function getMysteryCardData(character) {
       propEmoji: assignment.emoji,
       primaryText: `${assignment.party} · ${assignment.state} · ${assignment.mood}`,
       dataset: { agendaParty: assignment.party, agendaState: assignment.state, agendaMood: assignment.mood },
-      cornerHtml: `<img class="pol-mascot" src="assets/${side === "rep" ? "pol-elephant" : "pol-donkey"}.png" alt="${assignment.party}">`
-        + (assignment.converted ? `<span class="pol-converted">CONVERTED</span>` : ""),
+      cornerHtml: assignment.converted ? `<span class="pol-converted">CONVERTED</span>` : "",
       html: `${addMysteryBadge(assignment.party, `agenda-${side}`)}${addMysteryBadge(assignment.state, "agenda-state")}`
         + `<div class="ha-stances">`
         + `<div class="ha-for"><b>FOR:</b> ${st.for.map(escapeHtml).join(", ")}</div>`
@@ -4449,21 +4478,16 @@ function pick(items) {
 }
 
 function handleTestTextTrigger(event) {
+  // The old mode-summoning words (manor/murder/ps1/...) are retired. One trigger remains: typing
+  // "debug" toggles the hidden effect dropdown for testing.
   const target = event.target;
   const isTypingField = target?.matches?.("input, textarea, select, [contenteditable='true']");
   if (isTypingField || event.ctrlKey || event.metaKey || event.altKey || event.key.length !== 1) return;
-  const allTriggers = [...KNOCKOFF_MANOR_TEST_TRIGGERS, ...PS1_TEST_TRIGGERS, ...GAY_FROGGED_TEST_TRIGGERS];
-  const maxTriggerLength = Math.max(...allTriggers.map((trigger) => trigger.length));
-  testTriggerBuffer = `${testTriggerBuffer}${event.key.toLowerCase()}`.slice(-maxTriggerLength);
-  if (KNOCKOFF_MANOR_TEST_TRIGGERS.some((trigger) => testTriggerBuffer.endsWith(trigger))) {
+  testTriggerBuffer = `${testTriggerBuffer}${event.key.toLowerCase()}`.slice(-5);
+  if (testTriggerBuffer.endsWith("debug")) {
     testTriggerBuffer = "";
-    triggerKnockoffManorTest();
-  } else if (PS1_TEST_TRIGGERS.some((trigger) => testTriggerBuffer.endsWith(trigger))) {
-    testTriggerBuffer = "";
-    triggerPs1Test();
-  } else if (GAY_FROGGED_TEST_TRIGGERS.some((trigger) => testTriggerBuffer.endsWith(trigger))) {
-    testTriggerBuffer = "";
-    triggerGayFroggedTest();
+    const on = document.body.classList.toggle("debug-mode");
+    flashToast(on ? "🐞 debug picker unlocked" : "debug picker hidden");
   }
 }
 
@@ -4563,14 +4587,12 @@ els.revealSecretButton.addEventListener("click", () => {
   renderSecret();
 });
 
-els.swapSeatButton.addEventListener("click", () => {
-  if (state.gameMode === "online") return;   // online: you only control your own seat
-  state.currentPlayer = state.currentPlayer === 0 ? 1 : 0;
-  render();
-});
+// The arrows button ends the round (you tell each other who you were in person - the reveal shows
+// both secrets, then the next round deals). Seat swapping in local mode is the YOU/B chips.
+els.swapSeatButton.addEventListener("click", endRound);
 
 if (els.drawPromptButton) els.drawPromptButton.addEventListener("click", drawPrompt);
-els.mysteryButton.addEventListener("click", activateMystery);
+if (els.mysteryButton) els.mysteryButton.addEventListener("click", activateMystery);
 els.newGameButton.addEventListener("click", () => newGame());
 if (els.endRoundButton) els.endRoundButton.addEventListener("click", endRound);
 if (els.copySeedButton) els.copySeedButton.addEventListener("click", () => {
@@ -4728,7 +4750,9 @@ function handleNetMsg(msg) {
     const p = state.players[seat];
     if (!p) return;
     if (msg.down) p.eliminated.add(msg.id); else p.eliminated.delete(msg.id);
-    (state.opponentLog = state.opponentLog || []).unshift({ seat, id: msg.id, t: Date.now() });
+    // Feed shows CURRENT crossings only: un-crossing removes the entry (no add/remove/add doubling).
+    state.opponentLog = (state.opponentLog || []).filter((e) => !(e.seat === seat && e.id === msg.id));
+    if (msg.down) state.opponentLog.unshift({ seat, id: msg.id, t: Date.now() });
     renderOpponentPanel();
     return;
   }
@@ -4775,7 +4799,7 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "endround") {
     markPeerOnline();
-    showRoundOverSplash(() => { /* the follow-up "start" message deals the new round */ });
+    showRoundReveal();   // the follow-up "start" message deals the new round
   }
 }
 // Strip a character down to what another client (or a save file) needs to rebuild them.
@@ -4866,9 +4890,32 @@ function showRoundOverSplash(done) {
   document.body.appendChild(ov);
   setTimeout(() => { ov.remove(); if (done) done(); }, 1600);
 }
+// End of round: the big reveal - BOTH secret characters side by side, then the next round deals.
+function showRoundReveal(done) {
+  const secA = characterById(state.players[0].secretId);
+  const secB = characterById(state.players[1].secretId);
+  const my = state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer;
+  const mine = my === 0 ? secA : secB;
+  const theirs = my === 0 ? secB : secA;
+  const ov = document.createElement("div");
+  ov.className = "round-reveal";
+  ov.innerHTML = `
+    <div class="rr-title">ROUND OVER</div>
+    <div class="rr-cards">
+      <div class="rr-card"><span class="rr-label rr-you">YOU WERE</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span></div>
+      <div class="rr-vs">×</div>
+      <div class="rr-card"><span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span></div>
+    </div>`;
+  document.body.appendChild(ov);
+  setTimeout(() => {
+    ov.classList.add("rr-out");
+    setTimeout(() => ov.remove(), 450);
+    if (done) done();
+  }, 4200);
+}
 function endRound() {
   netSend("endround", {});
-  showRoundOverSplash(() => newGame());
+  showRoundReveal(() => newGame());
 }
 function showTitleScreen() {
   const saved = loadGameSave();

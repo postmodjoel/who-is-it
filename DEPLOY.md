@@ -31,7 +31,10 @@ token -- public is simpler.)
 **3. On your Saltbox server, one tiny folder:**
 ```bash
 sudo mkdir -p /opt/who-is-it && cd /opt/who-is-it
+# Public repo: grab just the compose file.
 curl -O https://raw.githubusercontent.com/<your-username>/who-is-it/main/docker-compose.yml
+# Private repo instead: clone it (you have access) or scp the two files up:
+#   git clone https://github.com/<your-username>/who-is-it.git . && rm -rf .git
 printf 'WHO_IMAGE=ghcr.io/<your-username>/who-is-it:latest\n' > .env
 ```
 Edit `docker-compose.yml` and set your subdomain (`who.onlybbm.com`, 3x). Then:
@@ -51,6 +54,47 @@ cd /opt/who-is-it && docker compose pull && docker compose up -d
 ```
 
 So the ongoing loop for *me* is just `git push`, and for *you* it is nothing (or one `pull`).
+
+---
+
+## Private repo (keep the code + image private)
+
+Same pipeline -- the only change is the image is **private**, so the server must log in once to pull
+it. CI still builds fine (its `GITHUB_TOKEN` can push to GHCR for a private repo). You **skip step 2**
+(don't make the package public) and add this:
+
+**a. Create a token to pull with.** GitHub -> **Settings -> Developer settings -> Personal access
+tokens -> Tokens (classic) -> Generate** with the single scope **`read:packages`**. Copy it.
+
+**b. Log the server in to GHCR once** (as the user Docker runs as -- on Saltbox that's usually root):
+```bash
+echo 'PASTE_THE_TOKEN' | docker login ghcr.io -u <your-github-username> --password-stdin
+```
+That writes `~/.docker/config.json`; `docker compose pull` now works for the private image. Do the
+rest of the setup exactly as above (`.env`, `docker compose up -d`).
+
+**c. Auto-updates on a private image.** Pick one:
+
+- **Cron (simplest, always works):** the stored login is reused, so a plain poll deploys new images.
+  ```bash
+  ( crontab -l 2>/dev/null; echo '*/10 * * * * cd /opt/who-is-it && /usr/bin/docker compose pull -q && /usr/bin/docker compose up -d' ) | crontab -
+  ```
+- **Watchtower with creds:** Watchtower only pulls private images if it can see your login. Run it
+  (or configure Saltbox's) with the docker config mounted:
+  ```bash
+  docker run -d --name watchtower --restart unless-stopped \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v /root/.docker/config.json:/config.json:ro \
+    containrrr/watchtower --label-enable --interval 300
+  ```
+  (`--label-enable` makes it only touch containers with the `watchtower.enable` label -- which the
+  compose already sets, so it won't disturb your other apps.)
+
+Either way the loop stays: I `git push`, and your private image redeploys itself.
+
+> **Even-more-private option (no registry creds on the server at all):** have CI SSH into the box and
+> load the image it just built. It's more moving parts (an SSH key stored as a repo secret); the
+> `docker login` + cron path above is simpler and is what I'd start with. Ask if you want the SSH one.
 
 ---
 

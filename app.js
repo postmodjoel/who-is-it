@@ -947,6 +947,9 @@ function breedCharacters(aId, bId) {
   const A = characterById(aId), B = characterById(bId);
   if (!A || !B || !window.faceGenerator) return;
   const mode = state.global.mystery?.id;
+  // PANTONE: dragging two people together doesn't breed - it MIXES them like paint. Both take the
+  // averaged background AND the averaged skin tone, and their Pantone chips re-derive from the blend.
+  if (mode === "pantone") { mixPantonePair(A, B); return; }
   // Hidden Agendas: an opposite-party drag is a TUG-O-WAR; same-party comrades BREED instead,
   // and the baby develops its own unhinged ideology remixed from its parents' platforms.
   if (mode === "hidden-agendas") {
@@ -3677,6 +3680,27 @@ function applyPantone(effect) {
     assignments[ch.id] = { code: p.c, name: p.n, hex: p.h };
   });
   return { id: effect.id, name: effect.name, assignments };
+}
+function skinHexOf(ch) {
+  const tb = window.faceGenerator && window.faceGenerator.traitBook;
+  if (ch.traits && ch.traits.skinHex) return ch.traits.skinHex;
+  const name = ch.traits && ch.traits.skin;
+  return (tb && tb.skinToneHex && tb.skinToneHex[name]) || "#c88968";
+}
+// Mix two suspects like paint: both adopt the averaged background + averaged skin, re-render, and
+// their Pantone chips re-derive from the new blend. Repeatable, so you can keep blending the board.
+function mixPantonePair(A, B) {
+  const newBg = mixHex((A.traits && A.traits.background) || "#cccccc", (B.traits && B.traits.background) || "#cccccc");
+  const newSkin = mixHex(skinHexOf(A), skinHexOf(B));
+  const asg = state.global.mystery && state.global.mystery.assignments;
+  [A, B].forEach((ch) => {
+    ch.traits = { ...ch.traits, background: newBg, skinHex: newSkin };
+    delete ch.traits.skin;          // let the mixed hex render instead of the named palette tone
+    ch.image = window.faceGenerator.renderPortrait(ch.seed, ch.traits);
+    if (asg) { const p = nearestPantone(newBg); asg[ch.id] = { code: p.c, name: p.n, hex: p.h }; }
+  });
+  renderBoard();
+  [A.id, B.id].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("pantone-mix"); void c.offsetWidth; c.classList.add("pantone-mix"); } });
 }
 
 // HABBO HOTEL: an isometric room. Every character becomes a blocky Habbo-style avatar (a pixelated

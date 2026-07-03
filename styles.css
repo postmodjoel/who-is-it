@@ -840,6 +840,13 @@ button:disabled {
 }
 .pantone-mode .pt-code { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.05em; color: #6a6a6a; }
 .pantone-mode .pt-name { font-size: 0.66rem; font-weight: 600; color: #1c1c1c; }
+/* Paint-mix pulse when two chips are dragged together. */
+.character-card.pantone-mix { animation: pantoneMix 0.5s ease-out; }
+@keyframes pantoneMix {
+  0% { transform: scale(0.9); filter: saturate(1.8) brightness(1.15); }
+  45% { transform: scale(1.05); }
+  100% { transform: scale(1); filter: none; }
+}
 
 .character-card h3 {
   display: block;

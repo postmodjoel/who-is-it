@@ -2433,6 +2433,7 @@ function createCharacterCard(character, player) {
       ${fireworks}
       ${prop}
       ${babyBadge}
+      ${state.sortKey === "abortions" ? `<span class="abortion-count" title="abortions">👼 ${character.abortions || 0}</span>` : ""}
       ${mystery.cornerHtml || ""}
     </div>
     <div class="card-plate">

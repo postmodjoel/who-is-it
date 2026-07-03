@@ -5130,3 +5130,11 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .lobby-status { font-size: 0.82rem; color: rgba(255,255,255,0.6); margin: 2px 0 4px; text-align: center; }
 .lobby-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .lobby-actions .button { min-width: 240px; font-weight: 800; }
+
+/* Abortion tally badge (shown only while sorting by Abortions). */
+.abortion-count {
+  position: absolute; left: 5px; top: 5px; z-index: 5;
+  padding: 2px 7px; border-radius: 999px;
+  font-size: 0.62rem; font-weight: 900; letter-spacing: 0.02em;
+  color: #fff; background: rgba(20, 10, 18, 0.82); border: 1px solid rgba(255,255,255,0.25);
+}

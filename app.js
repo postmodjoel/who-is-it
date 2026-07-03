@@ -694,6 +694,7 @@ function skinLuminance(ch) {
 function characterStat(ch, key) {
   if (key === "name") return ch.name;
   if (key === "skin") return skinLuminance(ch);
+  if (key === "abortions") return ch.abortions || 0;
   // Where the active mode actually tracks the stat, sort by the REAL value.
   const a = state.global.mystery?.assignments?.[ch.id];
   if (a) {
@@ -719,7 +720,7 @@ function characterStat(ch, key) {
 }
 // Baseline stats every character "holds"; extra options appear only for the modes that track them, and
 // the chosen sort persists across rounds (unless it's not valid for the new mode).
-const BASE_SORTS = [["", "Board order"], ["name", "Name A–Z"], ["skin", "Skin tone 🎨"], ["fuck", "Fuckability 😏"]];
+const BASE_SORTS = [["", "Board order"], ["name", "Name A–Z"], ["skin", "Skin tone 🎨"], ["fuck", "Fuckability 😏"], ["abortions", "Abortions 👼"]];
 const MODE_SORTS = {
   orgy: [["horniness", "Horniness 🔥"], ["cum", "Cum count 💦"], ["bodycount", "Body count 🍆"], ["deathness", "Close to death 💀"]],
   woke: [["horniness", "Horniness 🔥"], ["cum", "Cum count 💦"], ["deathness", "Close to death 💀"]],
@@ -946,7 +947,7 @@ function breedCharacters(aId, bId) {
       renderBoard();
       state.justBorn = null;
       if (typeof addLog === "function") addLog(`${A.name} + ${B.name} bred ${baby.name}!`);
-    }, () => abortBaby(baby)));
+    }, () => abortBaby(baby, A, B)));
     return;
   }
 
@@ -980,7 +981,7 @@ function breedCharacters(aId, bId) {
       if (typeof addLog === "function") addLog(`${A.name} married into ${home ? home.name : "the family"} — ${baby.name} branches off!`);
       renderBoard();
       state.justBorn = null;
-    }, () => abortBaby(baby)));
+    }, () => abortBaby(baby, A, B)));
     return;
   }
 
@@ -1034,7 +1035,7 @@ function breedCharacters(aId, bId) {
         renderBoard();
       });
     }
-  }, () => abortBaby(baby)), { woohoo });
+  }, () => abortBaby(baby, A, B)), { woohoo });
 }
 // A transparent-background portrait + the original backdrop colour, so Sims relief animations can
 // move JUST the person while the card background holds still.
@@ -1061,10 +1062,13 @@ function offerKeepOrAbort(baby, keep, abort) {
   ov.querySelector(".ka-keep").addEventListener("click", () => { ov.remove(); keep(); });
   ov.querySelector(".ka-abort").addEventListener("click", () => { ov.remove(); abort(); });
 }
-function abortBaby(baby) {
+function abortBaby(baby, parentA, parentB) {
+  // Each aborted baby adds to a hidden tally on both parents - sortable as "Abortions".
+  [parentA, parentB].forEach((p) => { if (p) p.abortions = (p.abortions || 0) + 1; });
   flashToast(`👼 ${baby.name} was aborted. Pretend you saw nothing.`);
   if (typeof addLog === "function") addLog(`${baby.name} did not make it to the board.`);
   renderBoard();
+  scheduleSave();
 }
 // A brief centred toast for breeding feedback.
 function flashToast(msg) {
@@ -1301,7 +1305,8 @@ function sortedBoard() {
   if (!key) return state.board;
   const arr = [...state.board];
   if (key === "name") return arr.sort((a, b) => a.name.localeCompare(b.name));
-  return arr.sort((a, b) => characterStat(b, key) - characterStat(a, key));
+  if (key === "skin") return arr.sort((a, b) => skinLuminance(a) - skinLuminance(b) || a.name.localeCompare(b.name));
+  return arr.sort((a, b) => (characterStat(b, key) - characterStat(a, key)) || a.name.localeCompare(b.name));
 }
 
 // ===================== Opponent view (simulated online play) =====================

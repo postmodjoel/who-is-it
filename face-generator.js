@@ -345,11 +345,23 @@
     },
     catEyeGlasses: (traits) => {
       const eyes = eyeLayout(traits);
+      const y = eyes.y;
+      // A cat-eye lens: rounded bottom, and the OUTER-top corner sweeps UP into a wing. Built as a
+      // left lens then mirrored, so both wings point up-and-outward (the old paths drooped down).
+      const lens = (cx, sgn) => {
+        // sgn = +1 outer wing to the right (right lens), -1 to the left (left lens)
+        const inner = cx - sgn * 20, outer = cx + sgn * 20;
+        const wingX = cx + sgn * 26, wingY = y - 13;   // the raised outer wing tip
+        return `M${inner} ${y - 4}`
+          + `C${inner} ${y + 12} ${outer - sgn * 4} ${y + 13} ${outer} ${y + 3}`   // rounded bottom
+          + `C${outer + sgn * 3} ${y - 2} ${wingX - sgn * 2} ${wingY + 5} ${wingX} ${wingY}`  // up into the wing
+          + `C${cx + sgn * 12} ${y - 12} ${inner + sgn * 4} ${y - 10} ${inner} ${y - 4}Z`;      // top back to inner
+      };
       return `
-        <path d='M${eyes.left - 21} ${eyes.y + 3}c6-21 35-21 43-4-5 12-36 14-43 4Z' fill='rgba(255,255,255,.08)' stroke='#171512' stroke-width='3.1' stroke-linejoin='round'/>
-        <path d='M${eyes.right - 22} ${eyes.y - 1}c8-17 37-17 43 4-7 10-38 8-43-4Z' fill='rgba(255,255,255,.08)' stroke='#171512' stroke-width='3.1' stroke-linejoin='round'/>
-        <path d='M${eyes.left + 18} ${eyes.y - 1}h${eyes.right - eyes.left - 36}' stroke='#171512' stroke-width='2.7' stroke-linecap='round'/>
-        <path d='M${eyes.left - 5} ${eyes.y - 10}h11M${eyes.right - 5} ${eyes.y - 10}h11' fill='none' stroke='rgba(255,255,255,.52)' stroke-width='1.6' stroke-linecap='round'/>
+        <path d='${lens(eyes.left, -1)}' fill='rgba(255,255,255,.08)' stroke='#171512' stroke-width='3.1' stroke-linejoin='round'/>
+        <path d='${lens(eyes.right, 1)}' fill='rgba(255,255,255,.08)' stroke='#171512' stroke-width='3.1' stroke-linejoin='round'/>
+        <path d='M${eyes.left + 20} ${y - 4}h${eyes.right - eyes.left - 40}' stroke='#171512' stroke-width='2.7' stroke-linecap='round'/>
+        <path d='M${eyes.left - 8} ${y - 8}q6 -4 12 -2M${eyes.right - 4} ${y - 8}q6 -2 12 2' fill='none' stroke='rgba(255,255,255,.52)' stroke-width='1.6' stroke-linecap='round'/>
       `;
     },
     hoops: () => `
@@ -661,9 +673,10 @@
     // horizontal stripes modelled on the Umar gold-standard reference. Renders OVER the
     // clothing/neck so the collar disappears into the wrap. Each portrait is its own isolated
     // SVG document, so the fixed `scarfclip` id never collides between characters.
-    scarf: () => {
-      const green = "#7e9d57", greenLo = "#67844a", greenHi = "#92ad68";
-      const cream = "#ece6c8", creamLo = "#d6cda0";
+    scarf: (traits) => {
+      const base = (traits && traits.accessoryColor) || "#7e9d57";
+      const green = base, greenLo = shadeColor(base, 0.82), greenHi = shadeColor(base, 1.16);
+      const cream = shadeColor(base, 1.7), creamLo = shadeColor(base, 1.4);
       const knit = "rgba(31,35,48,.20)";
       // Chunky cowl wound around the neck. It reads as a round TUBE rather than a flat
       // front-on panel because: the stripes ARC (sag in the middle) following the cylinder
@@ -727,7 +740,7 @@
     ["javier", "Javier", "he", "tan", "longWaves", "darkBrown", "jacket", "#ddba78", "sad", "moustache", "bartender"],
     ["tiana", "Arnold", "she", "deep", "locs", "black", "tee", "#df8f20", "happy", "necklace", "teacher", "bigSmile"],
     ["diego", "Diego", "he", "tan", "curls", "darkBrown", "collared", "#f6b334", "angry", "beard", "mechanic"],
-    ["sophia", "Sophia", "she", "fair", "longWaves", "blonde", "tee", "#f077a6", "happy", "headband", "florist", "buckTeeth"],
+    ["sophia", "Brenkle", "she", "fair", "longWaves", "blonde", "tee", "#f077a6", "happy", "headband", "florist", "buckTeeth"],
     ["zeke", "Zeke", "he", "brown", "locs", "black", "tee", "#f1e4c5", "neutral", "chain", "musician"],
     ["meilin", "Meilin", "she", "fair", "bob", "black", "tee", "#f5d5e8", "happy", "roundGlasses", "student", "goofyTeeth"],
     ["gianni", "Gianni", "he", "tan", "cropped", "silver", "turtleneck", "#6d5b43", "sad", "beard", "pharmacist"],
@@ -753,7 +766,7 @@
     ["kai", "Kai", "he", "fair", "cropped", "black", "collared", "#0d66a5", "angry", "none", "pilot"],
     ["lucy", "Lucy", "she", "fair", "bob", "brown", "tee", "#d84e40", "sad", "beret", "artist"],
     ["romeo", "Romeo", "he", "deep", "cropped", "blonde", "collared", "#276f37", "neutral", "hoops", "tailor"],
-    ["adeline", "Adeline", "she", "fair", "curls", "copper", "turtleneck", "#f1e4c5", "neutral", "roundGlasses", "professor"],
+    ["adeline", "Merly", "she", "fair", "curls", "copper", "turtleneck", "#f1e4c5", "neutral", "roundGlasses", "professor"],
     ["felix", "Felix", "he", "fair", "curls", "brown", "hoodie", "#f4c02e", "happy", "cap", "student"],
     ["ines", "Ines", "she", "fair", "longWaves", "darkBrown", "tee", "#ed78a9", "angry", "headband", "shop owner"],
     ["priya", "Priya", "she", "brown", "longWaves", "black", "tee", "#7f42b5", "happy", "hoops", "dentist", "wideSmile"],
@@ -817,6 +830,7 @@
   // Per-character design overrides folded in from the studio (exported corrections). Keyed by the
   // base seed id (not the "gen-" portrait id). Drop an exported character's correction block here to
   // make its studio look the permanent default.
+  const studioBakes = {"javier": {"backHairY": -4, "hair": "locs", "hairOutline": "#3d1f10", "beardBlobs": [{"dx": 11, "y": 209, "r": 19}, {"dx": 12, "y": 199, "r": 8}, {"dx": 21, "y": 210, "r": 6}, {"dx": 24, "y": 201, "r": 9}], "beardLength": 0.16, "moustacheScale": 1.38, "build": 69, "shoulderSlope": 0.3, "bodyWidth": 0.94, "mouthStyle": "goofyTeeth", "mouthY": 2, "mouthScale": 1.14, "lips": "soft", "lipLowerSize": 0.5, "lipLower": "wide", "lipUpper": "cupid", "lipUpperSize": 0.7, "chinY": 4, "headY": -8, "hairLocks": [{"lock": "longSideLock", "x": 47, "y": 22, "scale": 0.3, "rot": 108, "lines": true, "outline": "none", "mirror": true}, {"lock": "sideSwoop", "x": 52, "y": 21, "scale": 0.3, "rot": 107, "lines": true, "outline": "none"}], "earScale": 0.86, "earY": -3, "earVariant": "attached", "chinShape": "round", "jawShadowY": -3.5, "animMode": "calm", "eyeColor": "#11263c", "irisScale": 0.76, "eyeOpen": 0.66}, "yara": {"accessory": "beard", "beardLength": 0.16, "beardY": -13, "beardScale": 1.04, "beardSkewX": 5, "mouthStyle": "buckTeeth", "mouthScale": 1.14, "teethGap": 2, "teethOverhang": 6.5, "chinShape": "round", "chinY": -7, "chinWidth": 0.84, "foreheadLineOpacity": 0.4, "nasoOpacity": 0.65, "crowsFeetOpacity": 0.45, "marionetteOpacity": 0.3, "frontHairY": -5, "hairLocks": [{"lock": "messyTufts", "x": 51, "y": 77, "scale": 0.3, "rot": 180, "lines": true, "behind": true, "outline": "none"}, {"lock": "curlyForelock", "x": 41, "y": 31, "scale": 0.3, "rot": 99, "lines": true, "outline": "none", "fill": "#998880", "dark": "#231d1a"}], "hairColor": "silver", "noseY": 3, "noseScale": 0.88, "noseTip": "straight", "lipUpperSize": 1.5, "lipLowerSize": 1.4, "lipLower": "pillow", "mouthY": 5}, "naomi": {"accessoryScale": 1.34, "accessoryX": 23, "accessoryY": -1, "hair": "cropped", "backHairY": 14, "hairColor": "silver", "hairLocks": [{"lock": "rightCascade", "x": 56, "y": 58, "scale": 1, "rot": 0, "lines": true, "behind": true}, {"lock": "longSStrand", "x": 64, "y": 30, "scale": 0.5, "rot": 97, "lines": true, "mirror": true}, {"lock": "leftCascade", "x": 52, "y": 48, "scale": 0.6, "rot": 71, "lines": true}], "eyeDart": 0.08, "eyeY": -3.5, "irisScale": 0.74, "eyeScale": 1.22, "eyeOpen": 1.2, "mouthStyle": "bigSmile", "skin": "porcelain", "browThick": 0.5, "browScaleX": 0.92, "browY": 2, "jawLength": 0.4, "headScaleX": 0.9, "headY": -10, "eyeGap": 53, "lips": "full", "lipUpper": "cupid", "lipLower": "flat", "lipUpperSize": 0.7, "lipLowerSize": 0.7, "lipColor": "#5c2f6a", "mouthY": 4, "mouthScale": 1.22, "chinY": 6, "chinWidth": 1.2, "clothing": "singlet", "shirt": "#73497e", "build": 62, "shoulderSlope": 1, "bust": 0.15, "bodyWidth": 1.06, "blinkRate": 11, "earY": 4, "earVariant": "narrow", "earScale": 0.96, "accessoryColor": "#2d2a51", "cheekY": 1, "cheekOpacity": 0.01, "foreheadLineOpacity": 0.25, "underEyeOpacity": 0.25, "crowsFeetOpacity": 0.35, "marionetteOpacity": 0.05, "cheekLineOpacity": 0.3, "tattooText": "🗡 ", "tattooX": -14, "tattooWarp": 0.12, "tattooSkewX": -19, "tattooY": -33, "tattooRot": -50, "tattooScale": 0.8}, "felix": {"accessory": "necklace", "chainLink": 1.05, "hair": "bald", "accessoryY": -16, "accessoryScale": 0.68, "accessoryColor": "#151c23", "hairLocks": [{"lock": "highPonytail", "x": 47, "y": 33, "scale": 0.42, "rot": -3, "lines": false, "outline": "none"}], "hairColor": "blonde", "browShape": "soft", "browY": -2.5, "browScaleX": 0.82, "browThick": 0.7, "eyeOpen": 0.72, "irisScale": 0.7, "pupilY": -4, "lazyEye": 3, "eyeDart": 0.1, "noseY": -5.5, "noseScale": 0.84, "noseWidth": 0.91, "teethGap": 1.5, "teethStyle": "spaced", "teethOverhang": 0.5, "teethX": -1, "teethScale": 1.08, "jawLength": -0.13, "jawShadowY": -2, "chinY": -12, "chinWidth": 1.34, "chinShape": "pointed", "chinScale": 0.82, "build": 67, "shoulderSlope": 0.06, "bodyWidth": 1.04, "skin": "tan", "headScaleX": 0.94, "headScaleY": 0.98, "headY": 8, "eyeGap": 49, "cheekY": 1.5}, "aaron": {"beardLength": 0.22, "build": 78, "shoulderSlope": 0.62, "bust": 0.1, "lips": "soft", "lipUpperSize": 0.6, "lipLowerSize": 0.8, "mouthScale": 1.08, "mouthY": 9, "lipColor": "#d25184", "irisScale": 0.86, "eyeOpen": 0.86, "eyeScale": 0.98, "eyeY": 2, "pupilY": -1, "noseY": 6.5, "noseScale": 1.02, "noseTip": "button", "noseWidth": 1.03, "foreheadLineOpacity": 0.35, "frownLineOpacity": 0.4, "underEyeOpacity": 0.1, "crowsFeetOpacity": 0.2, "marionetteOpacity": 0.1, "cheekLineOpacity": 0.2, "cheekY": 4.5, "cheekOpacity": 0.14}, "amira": {"backHairY": 7}, "adeline": {"accessoryScale": 1.16, "hairLocks": [{"lock": "centerPartWaves", "x": 50, "y": 36, "scale": 0.3, "rot": -180, "lines": false, "mirror": true, "outline": "none"}, {"lock": "shortCrop", "x": 34, "y": 39, "scale": 0.3, "rot": 143, "lines": false, "outline": "none"}, {"lock": "longSStrand", "x": 67, "y": 39, "scale": 0.3, "rot": 109, "lines": false, "outline": "none", "mirror": true}, {"lock": "splitSideLocks", "x": 53, "y": 49, "scale": 0.96, "rot": -2, "lines": true, "behind": true}, {"lock": "leftCascade", "x": 44, "y": 100, "scale": 1, "rot": 0, "lines": true, "behind": true}], "hair": "bob", "lipUpperSize": 0.6, "lipLowerSize": 0.8, "mouthY": 4, "mouthScale": 0.92, "lipColor": "#bd847a", "chinY": 3, "jawLength": -0.03, "hairColor": "darkBrown"}, "sophia": {"shirt": "#000000", "build": 68, "shoulderSlope": 0.88, "bodyWidth": 1.18, "animMode": "smug"}, "jamal": {"accessoryScale": 0.96, "accessoryColor": "#303840", "background": "#51905b", "eyeScale": 0.86, "eyeOpen": 0.64, "irisScale": 0.78, "eyeY": 2, "pupilX": -0.5, "pupilY": -1, "lazyEye": -6.5, "eyeDart": 0.36, "noseScale": 0.92, "noseY": 6.5, "noseWidth": 0.99, "lips": "soft", "lipUpper": "flat", "lipLower": "flat", "lipUpperSize": 0.65, "lipLowerSize": 0.8, "mouthY": 3, "chinShape": "dimple", "chinWidth": 0.86, "chinScale": 0.8, "shirt": "#ddc978", "build": 69, "shoulderSlope": 0.84, "bodyWidth": 1.21, "bust": 0.35, "earY": 9, "earScale": 1.06, "earVariant": "lobe", "tattooText": "❤︎", "tattooPlace": "face", "tattooY": -25, "tattooX": 41, "tattooScale": 0.75, "tattooRot": -14, "tattooSkewX": -17, "tattooWarp": 0.2, "eyeColor": "#0b0a0a"}, "bruno": {"shirt": "#ffffff", "shoulderSlope": 0.72, "build": 97, "bodyWidth": 1.28, "hairLocks": [{"lock": "sideSwoop", "x": 51, "y": 31, "scale": 0.3, "rot": -70, "lines": false, "outline": "none"}], "frontHairY": -5, "backHairY": 4, "skin": "brown", "beardBlobs": [{"dx": 47, "y": 174, "r": 12}, {"dx": 30, "y": 184, "r": 17}, {"dx": 14, "y": 197, "r": 15}, {"dx": 34, "y": 196, "r": 23}, {"dx": 8, "y": 210, "r": 27}, {"dx": 44, "y": 188, "r": 15}], "accessory": "necklace", "accessoryY": 22, "accessoryMetal": "gold", "accessoryColor": "#161d1a", "accessoryScale": 1.36, "chainLink": 0.65, "browShape": "bushy", "browY": 4.5, "browScaleX": 1.24, "browThick": 2, "eyeOpen": 0.54, "eyeScale": 0.98, "irisScale": 0.8, "eyeY": -2.5}, "noor": {"skin": "ebony", "hair": "bald", "hairOutline": "#090606", "frontHairY": -6, "backHairY": -5, "hairLocks": [{"lock": "curtainBangs", "x": 50, "y": 24, "scale": 0.46, "rot": 180, "lines": true}, {"lock": "angularArc", "x": 53, "y": 24, "scale": 0.4, "rot": -55, "lines": true, "outline": "none"}], "eyeScale": 1.08, "eyeOpen": 1.2, "irisScale": 0.88, "eyeY": 1, "pupilX": 1, "pupilY": -0.5, "lazyEye": 0, "eyeDart": 0.18, "noseY": 4, "background": "#0f4342", "cheekOpacity": 0.05, "earScale": 0.84, "earY": 1, "mouthStyle": "buckTeeth", "lipUpperSize": 0.45, "lipLowerSize": 1.25, "mouthY": 11, "mouthScale": 1.08, "teethStyle": "gappy", "teethX": 6, "teethGap": 5, "chinShape": "round", "chinWidth": 1.32, "accessory": "beard", "accessoryScale": 0.88, "beardLength": 0.14, "beardX": -3, "beardY": -7, "beardScale": 1.24, "beardBlobs": [{"dx": 27, "y": 131, "r": 10}], "animMode": "shifty", "blinkRate": 12, "clothing": "bare", "bust": 0.05, "shoulderSlope": 0.92, "bodyWidth": 0.98}};
   const characterOverrides = {
     aaron: {
       hair: "coily", faceShape: "long", clothing: "bare", accessory: "choker",
@@ -1199,7 +1213,7 @@
       // Studio-tuned per-character overrides (folded in from exported corrections). Flat keys win over
       // the seed/profile defaults; getProfile() picks up any profileOverrideKeys (eyeScale, jawLength…)
       // and hairLocks/categorical traits are read straight off traits.
-      Object.assign(traits, characterOverrides[id] || {});
+      Object.assign(traits, characterOverrides[id] || {}, studioBakes[id] || {});
       const feature = describeVisibleTraits(traits);
       return {
         id: `gen-${id}`,
@@ -1285,19 +1299,20 @@
         </defs>
         ${traits.headOnly ? "" : `<rect width='256' height='256' fill='${traits.background}'/>`}
         ${animCSS(traits, seed)}
-        ${traits.headOnly ? "" : renderClothing(outfit, traits, seed)}
         ${traits.headOnly ? "" : renderNeckBase(traits, skin)}
-        ${traits.headOnly ? "" : renderCollar(traits)}
         ${traits.headOnly ? "" : renderTattoo(traits, "body")}
+        ${traits.headOnly ? "" : renderClothing(outfit, traits, seed)}
+        ${traits.headOnly ? "" : renderCollar(traits)}
         ${traits.noHead ? renderNeckStump(traits, skin) : ""}
         ${traits.noHead ? "" : headGroup(traits, `
           ${renderHairLocks(traits, seed, hair, true)}
           ${useFacesHair ? "" : renderBackHair(hairStyle, `url(#hair-${seed})`, traits)}
           ${renderEars(traits, skin)}
-          <path d='${faceShape}' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+          <path d='${faceShape}' fill='${skin}' stroke='${skinInk(skin)}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
           ${renderFaceShading(seed, skin, faceShape)}
           ${renderFaceModeling(seed, skin, traits)}
           ${renderFaceLines(seed, skin, traits)}
+          ${renderMakeup(traits, skin)}
           ${renderChin(traits, skin)}
           ${renderBeardBlobs(traits, seed)}
           ${accessorySvg.behindHair || ""}
@@ -1550,6 +1565,8 @@
     if (!text) return "";
     const where = traits.tattooPlace || "body";
     if (where !== place) return "";
+    const fade = traits.tattooOpacity != null && traits.tattooOpacity !== "" ? Math.max(0, Math.min(1, Number(traits.tattooOpacity))) : 1;
+    if (fade <= 0) return "";
     const baseX = 128;
     const baseY = place === "face" ? 178 : 236;
     const x = baseX + (Number(traits.tattooX) || 0);
@@ -1571,7 +1588,7 @@
       : "";
     const filterAttr = warp > 0 ? ` filter='url(#${fid})'` : "";
     return `<g transform='translate(${x} ${y}) rotate(${rot}) skewX(${skew}) scale(${scale})'>${filt}`
-      + `<text x='0' y='0'${filterAttr} text-anchor='middle' font-family="${font}" font-size='17' font-weight='700' fill='${color}' opacity='0.9'>${esc}</text></g>`;
+      + `<text x='0' y='0'${filterAttr} text-anchor='middle' font-family="${font}" font-size='17' font-weight='700' fill='${color}' opacity='${(0.9 * fade).toFixed(2)}'>${esc}</text></g>`;
   }
 
   function renderClothing(outfit, traits, seed) {
@@ -2000,10 +2017,21 @@
   function renderFaceModeling(seed, skin, traits) {
     const profile = getProfile(traits);
     const cheekY = 150 + (profile.cheekY || 0);
-    const cheekOpacity = (profile.cheekOpacity || 0.09).toFixed(2);
-    const cheek = seed % 2
-      ? `<ellipse cx='88' cy='${cheekY}' rx='13' ry='6' fill='#dc6f6a' opacity='${cheekOpacity}'/><ellipse cx='168' cy='${cheekY}' rx='13' ry='6' fill='#dc6f6a' opacity='${cheekOpacity}'/>`
-      : `<ellipse cx='89' cy='${cheekY + 1}' rx='11' ry='5' fill='#dc6f6a' opacity='${Math.max((profile.cheekOpacity || 0.09) - 0.02, 0.04).toFixed(2)}'/><ellipse cx='167' cy='${cheekY + 1}' rx='11' ry='5' fill='#dc6f6a' opacity='${Math.max((profile.cheekOpacity || 0.09) - 0.02, 0.04).toFixed(2)}'/>`;
+    const cheekOp = Math.max(0, Number(profile.cheekOpacity != null ? profile.cheekOpacity : 0.09));
+    // Real blush: a SOFT radial gradient (solid core fading to nothing), not a hard-edged ellipse.
+    // Colour, size and vertical position are all controllable (blushColor / blushScale / cheekY).
+    const blushCol = traits.blushColor || "#e2726c";
+    const bScale = Math.max(0.4, Number(traits.blushScale) || 1);
+    const gid = `blush-${seed}`;
+    const rx = (16 * bScale).toFixed(1), ry = (11 * bScale).toFixed(1);
+    const cheek = cheekOp <= 0 ? "" : `
+      <defs><radialGradient id='${gid}' cx='50%' cy='50%' r='50%'>
+        <stop offset='0%' stop-color='${blushCol}' stop-opacity='${(cheekOp * 1.15).toFixed(2)}'/>
+        <stop offset='55%' stop-color='${blushCol}' stop-opacity='${(cheekOp * 0.7).toFixed(2)}'/>
+        <stop offset='100%' stop-color='${blushCol}' stop-opacity='0'/>
+      </radialGradient></defs>
+      <ellipse cx='90' cy='${cheekY}' rx='${rx}' ry='${ry}' fill='url(#${gid})'/>
+      <ellipse cx='166' cy='${cheekY}' rx='${rx}' ry='${ry}' fill='url(#${gid})'/>`;
     // Nasolabial fold: a soft crease from each nostril wing down to just outside the mouth corner.
     // The reference art (penny/jade/kevin) always carries this faint pair on a smile - its absence is
     // the #1 "flat/AI" tell. Gated to smiling expressions and kept very soft (skin-shadow tone, low
@@ -2014,6 +2042,34 @@
       <path d='M84 ${134 + (profile.eyeSocketY || 0)}c6-4 16-6 27-3M145 ${131 + (profile.eyeSocketY || 0)}c12-3 22-1 28 4' fill='none' stroke='rgba(255,255,255,.09)' stroke-width='2' stroke-linecap='round'/>
       <path d='M104 ${201 + (profile.jawShadowY || 0) + jawDrop(profile.jawLength, 201)}c10 6 38 6 48 0' fill='none' stroke='rgba(24,21,18,.05)' stroke-width='3' stroke-linecap='round'/>
     `;
+  }
+
+  // Makeup layer: eyeshadow (over the lid), contour (under the cheekbone). Lashes live in the eye
+  // group so they blink with it - see renderEye. All opt-in via traits.
+  function renderMakeup(traits, skin) {
+    const eyes = eyeLayout(traits);
+    const p = getProfile(traits);
+    const ey = (p.eyeY || 0);
+    let out = "";
+    const shadowCol = traits.eyeshadowColor || "#7a4a6a";
+    const so = Math.max(0, Math.min(1, Number(traits.eyeshadowOpacity) || 0));
+    if (so > 0) {
+      // A soft wash on the upper lid arcing from the inner corner out past the outer corner.
+      const lid = (cx) => `<path d='M${cx - 15} ${eyes.y - 4 + ey}q${15} ${-13} ${30} ${-1}q${-6} ${9} ${-15} ${9}q${-9} ${0} ${-15} ${-8}Z' fill='${shadowCol}' opacity='${(so * 0.55).toFixed(2)}'/>`;
+      out += lid(eyes.left) + lid(eyes.right);
+    }
+    const uo = Math.max(0, Math.min(1, Number(traits.undershadowOpacity) || 0));
+    if (uo > 0) {
+      const under = (cx) => `<ellipse cx='${cx}' cy='${eyes.y + 12 + ey}' rx='13' ry='5' fill='${shadeColor(skin, 0.7)}' opacity='${(uo * 0.5).toFixed(2)}'/>`;
+      out += under(eyes.left) + under(eyes.right);
+    }
+    const co = Math.max(0, Math.min(1, Number(traits.contourOpacity) || 0));
+    if (co > 0) {
+      const dk = shadeColor(skin, 0.68);
+      out += `<path d='M84 148c3 12 10 20 20 24' fill='none' stroke='${dk}' stroke-width='6' stroke-linecap='round' opacity='${(co * 0.4).toFixed(2)}'/>`
+        + `<path d='M172 148c-3 12 -10 20 -20 24' fill='none' stroke='${dk}' stroke-width='6' stroke-linecap='round' opacity='${(co * 0.4).toFixed(2)}'/>`;
+    }
+    return out;
   }
 
   // Customisable face lines/creases. Every line type has its own 0..1 opacity (faceLineOpacity scales
@@ -2172,6 +2228,23 @@
 
   // Default hair outline: a deep shade of the hair colour itself (not the global navy ink) - hair
   // reads as hair, and beards borrow the same tone so they match. Explicit hairOutline still wins.
+  // The body/face outline: navy ink normally, but for DARK skin tones a deep shade of the skin
+  // itself (pure navy on ebony read as an insane black blob). Luminance-gated + blended so the
+  // transition across the palette is smooth.
+  function skinInk(skinHex) {
+    const n = parseInt(String(skinHex).replace("#", ""), 16);
+    if (isNaN(n)) return ink;
+    const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+    if (lum > 120) return ink;                       // fair..tan: keep the navy ink
+    const t = Math.max(0, Math.min(1, (120 - lum) / 90));  // 0 at lum120 -> 1 at lum30
+    return mixHexColor(ink, shadeColor(skinHex, 0.34), t);
+  }
+  function mixHexColor(a, b, t) {
+    const pa = parseInt(a.replace("#", ""), 16), pb = parseInt(b.replace("#", ""), 16);
+    const ch = (s) => { const va = (pa >> s) & 255, vb = (pb >> s) & 255; return Math.round(va + (vb - va) * t).toString(16).padStart(2, "0"); };
+    return `#${ch(16)}${ch(8)}${ch(0)}`;
+  }
+
   function hairOutlineFor(traits) {
     if (traits.hairOutline) return traits.hairOutline;
     const hex = hairColors[traits.hairColor];
@@ -2389,8 +2462,8 @@
     const px = profile.pupilX || 0;
     const py = profile.pupilY || 0;
     const lazy = Number(traits.lazyEye) || 0;
-    const left = renderEye(eyes.left, shape, traits.eyeColor, skin, profile, "l", px, py);
-    const right = renderEye(eyes.right, shape, traits.eyeColor, skin, profile, "r", px + lazy, py);
+    const left = renderEye(eyes.left, shape, traits.eyeColor, skin, profile, "l", px, py, traits);
+    const right = renderEye(eyes.right, shape, traits.eyeColor, skin, profile, "r", px + lazy, py, traits);
     // Each eye locks at its own centre: spacing follows the head stretch, the lens shape doesn't.
     return featureLock(eyes.left, eyes.y, traits, left) + featureLock(eyes.right, eyes.y, traits, right);
   }
@@ -2404,7 +2477,7 @@
     };
   }
 
-  function renderEye(cx, shape, eyeColor, skin, profile, side, pupilDX, pupilDY) {
+  function renderEye(cx, shape, eyeColor, skin, profile, side, pupilDX, pupilDY, traits) {
     // eyeY shifts the whole eye up/down. (Previously this offset was only baked into eyeLayout's y,
     // which renderEye ignored - so the Eye Height control did nothing.)
     const y = shape.y + (profile.eyeY || 0);
@@ -2446,6 +2519,23 @@
     const crease = `M${f(cx - w * 0.66)} ${f(creaseY)}Q${f(cx)} ${f(creaseY - up * 0.32)} ${f(cx + w * 0.66)} ${f(creaseY)}`;
     // lower lid: a warm, lighter line (a soft skin shadow) instead of full-weight ink
     const lowerLid = shadeColor(skin, 0.52);
+    // Dramatic lashes (opt-in): flicks fanning UP-and-OUT along the upper lash line. They're INSIDE
+    // the .fa-eye group so they scale/close naturally with the blink & wink. The outer flick is
+    // longest (the winged 'whore lash' look). tc points toward the temple (outer side).
+    const lashLen = Number(traits.lashes) || 0;   // 0 = none; ~1 normal; up to ~1.6 dramatic
+    let lashes = "";
+    if (lashLen > 0) {
+      const tc = cx < 128 ? -1 : 1;               // outer direction
+      const L = 7 * lashLen;
+      const tip = (t, len, curl) => {
+        const bx = cx + tc * (w * (0.35 + t * 0.55));
+        const by = y - up * (0.9 - t * 0.15);
+        const ex = bx + tc * len * 0.5;
+        const ey2 = by - len;
+        return `M${f(bx)} ${f(by)}Q${f(bx + tc * len * 0.3)} ${f(by - len * 0.7)} ${f(ex)} ${f(ey2 - curl)}`;
+      };
+      lashes = `<path d='${tip(0, L * 0.8, 0)}${tip(0.5, L * 1.05, 1)}${tip(1, L * 1.35, 2)}' fill='none' stroke='${ink}' stroke-width='2' stroke-linecap='round'/>`;
+    }
     // The iris/pupil/highlight sit in a `.fa-iris` group (eye-darts translate it within the clipped
     // lens). The whole eye is wrapped in `.fa-eye`/`.fa-eye-{side}` (blink scales it); the right eye
     // gets an extra `.fa-wink` group so a wink can close just that eye. Animations are opt-in via the
@@ -2476,6 +2566,7 @@
       <path d='${bottomArc}' fill='none' stroke='${lowerLid}' stroke-width='1.9' stroke-linecap='round'/>
       <path d='${topArc}' fill='none' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linecap='round' stroke-linejoin='round'/>
       <path d='${crease}' fill='none' stroke='${softInk}' stroke-width='1.4' stroke-linecap='round'/>
+      ${lashes}
     `;
     return `<g class='fa-eye fa-eye-${side || "l"}'>${eye}</g>`;
   }

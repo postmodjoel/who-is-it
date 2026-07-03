@@ -39,6 +39,10 @@ const editorFields = [
   { group: "Eyes", key: "pupilY", label: "Pupil Y", min: -5, max: 5, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "lazyEye", label: "Lazy Eye", min: -8, max: 8, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "eyeDart", label: "Eye Movement (dart range)", min: 0, max: 1, step: 0.02, fallback: 0.6 },
+  { group: "Eyes", key: "lashes", label: "Eyelashes", min: 0, max: 1.6, step: 0.05, fallback: 0 },
+  { group: "Eyes", key: "eyeshadowOpacity", label: "Eyeshadow", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Eyes", key: "eyeshadowColor", label: "Eyeshadow Colour", type: "color", fallback: "" },
+  { group: "Eyes", key: "undershadowOpacity", label: "Under-eye Shadow", min: 0, max: 1, step: 0.05, fallback: 0 },
   // Nose
   { group: "Nose", key: "noseY", label: "Nose Height", min: -8, max: 10, step: 0.5, fallback: 0 },
   { group: "Nose", key: "noseScale", label: "Nose Size", min: 0.6, max: 1.5, step: 0.02, fallback: 1 },
@@ -55,7 +59,10 @@ const editorFields = [
   { group: "Face Lines", key: "cheekLineOpacity", label: "Cheek Hollows", min: 0, max: 1, step: 0.05, fallback: 0 },
   // Cheeks
   { group: "Cheeks", key: "cheekY", label: "Cheek Height", min: -8, max: 8, step: 0.5, fallback: 0 },
-  { group: "Cheeks", key: "cheekOpacity", label: "Blush", min: 0, max: 0.3, step: 0.01, fallback: 0.09 },
+  { group: "Cheeks", key: "cheekOpacity", label: "Blush", min: 0, max: 0.5, step: 0.01, fallback: 0.09 },
+  { group: "Cheeks", key: "blushColor", label: "Blush Colour", type: "color", fallback: "" },
+  { group: "Cheeks", key: "blushScale", label: "Blush Size", min: 0.4, max: 2, step: 0.05, fallback: 1 },
+  { group: "Cheeks", key: "contourOpacity", label: "Cheek Contour", min: 0, max: 1, step: 0.05, fallback: 0 },
   // Ears
   { group: "Ears", key: "earVariant", label: "Ear Shape", type: "select", options: () => selectOptions(traitBook.earVariants), fallback: "round" },
   { group: "Ears", key: "earScale", label: "Ear Size", min: 0.7, max: 1.3, step: 0.02, fallback: 1 },
@@ -131,7 +138,8 @@ const editorFields = [
   { group: "Tattoo", key: "tattooScale", label: "Size", min: 0.4, max: 3, step: 0.05, fallback: 1 },
   { group: "Tattoo", key: "tattooRot", label: "Rotate", min: -60, max: 60, step: 1, fallback: 0 },
   { group: "Tattoo", key: "tattooSkewX", label: "Skew", min: -45, max: 45, step: 1, fallback: 0 },
-  { group: "Tattoo", key: "tattooWarp", label: "Warp", min: 0, max: 1, step: 0.02, fallback: 0 }
+  { group: "Tattoo", key: "tattooWarp", label: "Warp", min: 0, max: 1, step: 0.02, fallback: 0 },
+  { group: "Tattoo", key: "tattooOpacity", label: "Fade", min: 0, max: 1, step: 0.05, fallback: 1 }
 ];
 
 const hotspots = [

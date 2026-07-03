@@ -831,7 +831,7 @@ function parseCum(str) { const m = String(str).match(/([\d.]+)\s*([MB])/i); if (
 function formatCum(mils) { return mils >= 1000 ? `${(mils / 1000).toFixed(1)}B` : `${Math.max(0, Math.round(mils))}M`; }
 
 // Breeding only happens in the modes where it makes sense.
-const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims", "woke", "family-tree-disaster", "drugs"];
+const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims", "woke", "family-tree-disaster", "drugs", "hidden-agendas"];
 
 // ===================== Identity reels (slot-machine pickers for new babies) =====================
 // A row of slot-machine reels that spin through their values and land staggered left-to-right (same
@@ -881,13 +881,36 @@ function combineDiseaseAssignment(A, B) {
     pain: Math.min(pa.pain != null ? pa.pain : 2, pb.pain != null ? pb.pain : 2)
   };
 }
+// A political baby's platform: party inherited, everything else remixed from BOTH parents' stances -
+// each inherited stance lands randomly in FOR or AGAINST (kids love inverting their parents >:)).
+function mixAgendaAssignment(A, B) {
+  const asg = state.global.mystery.assignments;
+  const pa = asg[A.id] || {}, pb = asg[B.id] || {};
+  const pool = [...new Set([...(pa.stances?.for || []), ...(pa.stances?.against || []), ...(pb.stances?.for || []), ...(pb.stances?.against || [])])]
+    .sort(() => Math.random() - 0.5);
+  const nFor = Math.min(pool.length, 2 + Math.floor(Math.random() * 2));
+  const nAg = Math.min(Math.max(0, pool.length - nFor), 2 + Math.floor(Math.random() * 2));
+  return {
+    party: pa.party || pb.party || "Democrat",
+    state: Math.random() < 0.5 ? pa.state : pb.state,
+    mood: Math.random() < 0.5 ? pa.mood : pb.mood,
+    emoji: Math.random() < 0.5 ? pa.emoji : pb.emoji,
+    stances: { for: pool.slice(0, nFor), against: pool.slice(nFor, nFor + nAg) }
+  };
+}
 // Drop character `aId` onto `bId` -> a baby joins the board for THIS game only (never saved).
 function breedCharacters(aId, bId) {
   const A = characterById(aId), B = characterById(bId);
   if (!A || !B || !window.faceGenerator) return;
   const mode = state.global.mystery?.id;
-  // Hidden Agendas: an opposite-party drag is a TUG-O-WAR, not a breed.
-  if (mode === "hidden-agendas") { politicsTug(A, B); return; }
+  // Hidden Agendas: an opposite-party drag is a TUG-O-WAR; same-party comrades BREED instead,
+  // and the baby develops its own unhinged ideology remixed from its parents' platforms.
+  if (mode === "hidden-agendas") {
+    const asgHA = state.global.mystery.assignments;
+    const nrm = (p) => (/^rep/i.test(p || "") ? "REP" : "DEM");
+    if (asgHA[A.id] && asgHA[B.id] && nrm(asgHA[A.id].party) !== nrm(asgHA[B.id].party)) { politicsTug(A, B); return; }
+    // same party -> fall through to the generic breed below
+  }
   if (!BREED_MODES.includes(mode)) {
     // No nagging message - just jiggle the pair to say "not here".
     [aId, bId].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("no-breed-jiggle"); void c.offsetWidth; c.classList.add("no-breed-jiggle"); } });
@@ -964,6 +987,7 @@ function breedCharacters(aId, bId) {
   // Orgy / Gay / Disease / Sims / Drugs.
   const gayby = sameSex(A, B);
   const diseaseBaby = mode === "disease" ? combineDiseaseAssignment(A, B) : null;  // compute before the animation
+  const agendaBaby = mode === "hidden-agendas" ? mixAgendaAssignment(A, B) : null; // remixed ideology
   const baby = makeBaby(A, B, gayby);
   if (mode === "drugs") baby.isCrack = true;   // druggie parents make a CRACK BABY / CRACK GAYBY
   const woohoo = mode === "sims";   // Sims "woohoo" before the baby
@@ -971,6 +995,9 @@ function breedCharacters(aId, bId) {
     state.board.push(baby);
     if (mode === "disease") {
       state.global.mystery.assignments[baby.id] = diseaseBaby;   // baby inherits mutant combined diseases
+    } else if (mode === "hidden-agendas") {
+      state.global.mystery.assignments[baby.id] = agendaBaby;    // fresh ideology remixed from the parents
+      addLog(`${baby.name} has developed NEW political opinions.`);
     } else if (mode === "sims") {
       state.global.mystery.assignments[baby.id] = { mood: "green", needs: { hunger: 92, social: 95, bladder: 70, fun: 98 }, action: "Being a fresh newborn", career: "Unemployed", simoleons: 0, ...simsPortrait(baby) };
     } else if (state.global.mystery) {

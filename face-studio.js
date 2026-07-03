@@ -22,7 +22,8 @@ const editorFields = [
   { group: "Hair", key: "hairColor", label: "Hair Color", type: "select", options: () => selectOptions(traitBook.hairColors), fallback: "brown" },
   { group: "Hair", key: "hairOutline", label: "Hair Outline Colour", type: "color", fallback: "" },
   { group: "Hair", key: "frontHairY", label: "Front Hair Y", min: -18, max: 18, step: 1, fallback: 0 },
-  { group: "Hair", key: "backHairY", label: "Back Hair Y", min: -14, max: 14, step: 1, fallback: 0 },
+  { group: "Hair", key: "backHairY", label: "Back Hair Y", min: -14, max: 14, step: 1, fallback: 0,
+    when: (t) => ["longWaves", "bun", "hijab"].includes(t.hair) || !(window.facesHair && window.facesHair.has(t.hair)) },
   // Brows
   { group: "Brows", key: "browShape", label: "Brow Shape", type: "select", options: () => selectOptions(traitBook.browShapes), fallback: "soft" },
   { group: "Brows", key: "browY", label: "Brow Height", min: -6, max: 6, step: 0.5, fallback: 0 },
@@ -68,6 +69,10 @@ const editorFields = [
   { group: "Mouth", key: "lipUpperSize", label: "Upper Lip Size", min: 0.4, max: 1.8, step: 0.05, fallback: 1 },
   { group: "Mouth", key: "lipLowerSize", label: "Lower Lip Size", min: 0.4, max: 1.8, step: 0.05, fallback: 1 },
   { group: "Mouth", key: "lipColor", label: "Lip Colour", type: "color", fallback: "" },
+  { group: "Mouth", key: "mouthOpenW", label: "Open Mouth Width", min: 0.5, max: 1.7, step: 0.05, fallback: 1,
+    when: (t) => { const e = (window.faceGenerator && window.faceGenerator.traitBook.expressions) || {}; return !!(e[t.expression] && e[t.expression].openMouth) || ["surprised", "shocked"].includes(t.expression); } },
+  { group: "Mouth", key: "mouthOpenH", label: "Open Mouth Height", min: 0.5, max: 1.9, step: 0.05, fallback: 1,
+    when: (t) => { const e = (window.faceGenerator && window.faceGenerator.traitBook.expressions) || {}; return !!(e[t.expression] && e[t.expression].openMouth) || ["surprised", "shocked"].includes(t.expression); } },
   { group: "Mouth", key: "mouthY", label: "Mouth Y", min: -16, max: 18, step: 1, fallback: 0 },
   { group: "Mouth", key: "mouthScale", label: "Mouth Size", min: 0.72, max: 1.28, step: 0.02, fallback: 1 },
   // Teeth
@@ -91,6 +96,7 @@ const editorFields = [
   { group: "Clothing", key: "build", label: "Build (shoulder width)", min: 60, max: 100, step: 1, fallback: 82 },
   { group: "Clothing", key: "shoulderSlope", label: "Shoulder Slope", min: 0, max: 1, step: 0.02, fallback: 0.5 },
   { group: "Clothing", key: "bodyWidth", label: "Body Width (torso)", min: 0.7, max: 1.4, step: 0.01, fallback: 1 },
+  { group: "Clothing", key: "belly", label: "Belly", min: 0, max: 1, step: 0.05, fallback: 0 },
   { group: "Clothing", key: "bust", label: "Bust", min: 0, max: 1.5, step: 0.05, fallback: 0 },
   // Accessory
   { group: "Accessory", key: "accessory", label: "Accessory", type: "select", options: () => selectOptions(accessoryChoices), fallback: "none" },
@@ -432,6 +438,7 @@ function renderEditor(character) {
 
   const rows = editorFields
     .filter((field) => field.group === state.activeGroup)
+    .filter((field) => !field.when || field.when({ ...character.traits, ...correction }))
     .map((field) => {
     const base = baseValueFor(character, field);
     const value = correction[field.key] ?? base;

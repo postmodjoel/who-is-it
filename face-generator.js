@@ -220,9 +220,9 @@
   // Back mass: tapers from a high rounded crown, falls down both sides past the shoulders (to the
   // canvas bottom) with a gently waved outer edge — wider up top than at the ends, never a closed oval.
   const longWaveBack = catmull([
-    [128, 30], [170, 38], [198, 64], [212, 106], [216, 150], [210, 184], [212, 214], [202, 244], [192, 256],
-    [150, 250], [128, 250], [106, 250],
-    [64, 256], [54, 244], [46, 214], [48, 184], [42, 150], [46, 106], [60, 64], [86, 38]
+    [128, 32], [166, 40], [190, 64], [202, 104], [205, 148], [199, 182], [201, 210], [193, 238], [184, 250],
+    [150, 246], [128, 246], [106, 246],
+    [72, 250], [63, 238], [55, 210], [57, 182], [51, 148], [54, 104], [66, 64], [90, 40]
   ], true);
   const longWaveFront = catmull([
     // left lock: outer edge from the temple down with S-waves to the tip at the bottom edge
@@ -998,7 +998,7 @@
     niko: {
       faceShape: "long", chainLink: 0.85, accessoryY: 5, accessory: "squareGlasses", accessoryScale: 1.22,
       eyeScale: 0.98, eyeOpen: 1.02, eyeColor: "#283158", lips: "soft", mouthScale: 0.88, lipColor: "#d27f6a",
-      earScale: 0.9, earVariant: "lobe", earY: 3, animMode: "serious", winkRate: 8, blinkRate: 10.5,
+      earScale: 0.9, earVariant: "lobe", earY: 3, animMode: "serious", blinkRate: 10.5,
       headY: -6, headScaleY: 1.03, headScaleX: 0.97, eyeGap: 47,
       browScaleX: 0.92, browThick: 0.85, browShape: "arched",
       noseY: 4, noseTip: "button", noseWidth: 0.63, noseScale: 1.26,
@@ -1029,16 +1029,37 @@
     // --- Refinement pass on the previously-untouched roster: animations on, quirkier faces, and a
     // --- bit more hair character. Inspired by the baked cast without copying their exact looks.
     maya: {
-      animMode: "curious", blinkRate: 4, winkRate: 12, browShape: "arched", browY: -1, browThick: 1.05,
-      eyeScale: 1.06, irisScale: 0.96, eyeColor: "#5a3d28", cheekOpacity: 0.13, lipColor: "#a14d5a",
-      lips: "full", lipUpper: "cupid", noseTip: "narrow", noseWidth: 0.9, frontHairY: -3, eyeDart: 0.8
+      // Studio-sculpted look (baked from corrections export).
+      frontHairY: -18, backHairY: -3, hair: "messy", hairOutline: "#251818", hairColor: "darkBrown",
+      teethStyle: "perfect", mouthStyle: "wideSmile",
+      lipUpperSize: 0.9, lipLowerSize: 0.8, mouthY: 6, mouthScale: 1.2, lipColor: "#584237",
+      teethX: -1, teethScale: 0.78,
+      jawLength: 0.11, jawShadowY: -1.5,
+      headScaleX: 0.94, headScaleY: 0.99, headY: -10,
+      eyeGap: 61, faceShape: "long", skin: "brown",
+      browShape: "bushy", browY: -3.5, browScaleX: 1.24, browThick: 1.65,
+      eyeScale: 0.86, eyeOpen: 0.7, irisScale: 0.74, eyeColor: "#186830", eyeY: -3, pupilY: -1, eyeDart: 0.32,
+      noseY: 5, noseTip: "round", noseScale: 0.8, noseWidth: 0.77,
+      nasoOpacity: 0.25, foreheadLineOpacity: 0.25, crowsFeetOpacity: 0.4, marionetteOpacity: 0.15, cheekLineOpacity: 0.05, faceLineOpacity: 0.6,
+      cheekY: 3.5, cheekOpacity: 0.08,
+      earVariant: "lobe", earScale: 0.94,
+      build: 95, clothing: "vneck", shoulderSlope: 0.84, bodyWidth: 1.12, bust: 0.25,
+      accessoryColor: "#784559", accessoryX: 1, accessoryY: 9, accessoryScale: 0.94,
+      animMode: "calm", winkRate: 0,
+      hairLocks: [
+        { lock: "curtainBangs", x: 66, y: 35, scale: 0.46, rot: 0, lines: false, outline: "none" },
+        { lock: "curtainBangs", x: 33, y: 39, scale: 0.38, rot: 0, lines: false, outline: "none", mirror: true },
+        { lock: "softWaveCap", x: 50, y: 35, scale: 0.46, rot: -16, lines: false, outline: "none", shine: "#3a2318", dark: "#342016" },
+        { lock: "curtainBangs", x: 56, y: 48, scale: 0.72, rot: 0, lines: true, behind: true },
+        { lock: "curtainBangs", x: 42, y: 45, scale: 0.68, rot: 0, lines: true, behind: true, mirror: true }
+      ]
     },
     leon: {
       animMode: "serious", blinkRate: 6.5, browThick: 1.25, browY: 0.5, eyeOpen: 0.84, eyeScale: 0.95,
       jawShadowY: -2.5, mouthScale: 1.05, noseScale: 1.04, chinShape: "square", chinWidth: 1.05, beardLength: 0.1
     },
     naomi: {
-      animMode: "shifty", blinkRate: 3.5, winkRate: 18, browShape: "thin", browY: 1, browScaleX: 1.05,
+      animMode: "shifty", blinkRate: 3.5, browShape: "thin", browY: 1, browScaleX: 1.05,
       eyeScale: 0.94, lazyEye: 2, pupilX: -1, irisScale: 0.84, lipColor: "#3a2f3a", lips: "soft",
       noseTip: "narrow", noseWidth: 0.78, eyeDart: 0.95, frontHairY: -2
     },
@@ -1047,8 +1068,23 @@
       chinShape: "round", cheekOpacity: 0.05, mouthScale: 0.98, hairColor: "darkBrown"
     },
     stella: {
-      animMode: "googly", blinkRate: 3, browShape: "arched", browY: 0.5, browThick: 1.05, eyeScale: 1.06,
-      eyeOpen: 1.04, lipColor: "#7a3b46", lips: "full", lipLower: "pillow", cheekOpacity: 0.1, frontHairY: -4
+      // Studio-sculpted look (baked from corrections export).
+      hairLocks: [
+        { lock: "longSideLock", x: 76, y: 61, scale: 0.72, rot: 0, lines: true, behind: true },
+        { lock: "longSideLock", x: 24, y: 62, scale: 0.72, rot: 0, lines: true, mirror: true, behind: true }
+      ],
+      accessory: "squareGlasses", accessoryColor: "#000000", accessoryScale: 1.36, accessoryY: 1,
+      skin: "fakeTan", background: "#e4ef65",
+      headScaleX: 1.04, headScaleY: 1.18, headY: -10,
+      eyeGap: 44, browY: 5.5, browScaleX: 0.9, browThick: 1.7,
+      lipUpperSize: 0.45, lipLowerSize: 0.45, mouthY: -6,
+      jawLength: -0.07, jawShadowY: -4,
+      chinShape: "round", chinY: -15, chinWidth: 0.78, chinScale: 0.74,
+      clothing: "singlet", shoulderSlope: 0.66, build: 68, bodyWidth: 1.04, bust: 0.75,
+      tattooText: "whore", tattooX: 38, tattooY: -8, tattooScale: 0.85, tattooRot: -48, tattooSkewX: -18, tattooPlace: "face", tattooFont: "gothic",
+      animMode: "curious",
+      foreheadLineOpacity: 0.15, frownLineOpacity: 0.2, crowsFeetOpacity: 0.2, cheekLineOpacity: 0.9, nasoOpacity: 0.15, faceLineOpacity: 0.7,
+      lipColor: "#7a3b46", lips: "full", lipLower: "pillow", cheekOpacity: 0.1
     },
     jamal: {
       animMode: "sleepy", blinkRate: 2.2, eyeOpen: 0.7, browY: 1.5, browThick: 1.1, jawShadowY: -2,
@@ -1059,11 +1095,11 @@
       noseScale: 1.05, noseTip: "straight", chinShape: "square", chinWidth: 1.08, frownLineOpacity: 0.35
     },
     matilda: {
-      animMode: "crosseyed", blinkRate: 4, winkRate: 16, browShape: "thick", browY: 1, browThick: 1.2,
+      animMode: "crosseyed", blinkRate: 4, browShape: "thick", browY: 1, browThick: 1.2,
       eyeScale: 1.0, cheekOpacity: 0.16, noseTip: "button", noseWidth: 1.12, lipColor: "#9a5048", frontHairY: -2
     },
     celeste: {
-      animMode: "smug", blinkRate: 4.5, winkRate: 9, eyeScale: 1.08, irisScale: 0.95, lipColor: "#b85d68",
+      animMode: "smug", blinkRate: 4.5, eyeScale: 1.08, irisScale: 0.95, lipColor: "#b85d68",
       lips: "full", lipUpper: "peaked", cheekOpacity: 0.13, browShape: "arched", browY: -0.5, noseTip: "narrow"
     },
     amira: {
@@ -1083,11 +1119,11 @@
       lipColor: "#6a4a44", noseTip: "narrow", underEyeOpacity: 0.45
     },
     asher: {
-      animMode: "bobble", blinkRate: 4.5, winkRate: 14, eyeScale: 1.02, browThick: 0.95, browY: -0.5,
+      animMode: "bobble", blinkRate: 4.5, eyeScale: 1.02, browThick: 0.95, browY: -0.5,
       noseTip: "button", cheekOpacity: 0.06, mouthScale: 1.02, hairColor: "copper", frontHairY: -6
     },
     elena: {
-      animMode: "smug", blinkRate: 4, winkRate: 10, eyeScale: 1.06, cheekOpacity: 0.14, lipColor: "#a8505a",
+      animMode: "smug", blinkRate: 4, eyeScale: 1.06, cheekOpacity: 0.14, lipColor: "#a8505a",
       lips: "full", lipLower: "pillow", browShape: "arched", browY: -0.5, noseTip: "narrow", frontHairY: -3
     },
     kai: {
@@ -1099,7 +1135,7 @@
       lips: "soft", noseTip: "narrow", noseWidth: 0.82, cheekOpacity: 0.07, frontHairY: -4
     },
     romeo: {
-      animMode: "lean", blinkRate: 4.5, winkRate: 8, eyeScale: 1.0, browThick: 1.05, browY: -0.5,
+      animMode: "lean", blinkRate: 4.5, eyeScale: 1.0, browThick: 1.05, browY: -0.5,
       noseTip: "pointed", lipColor: "#5a3a30", lips: "soft", chinShape: "dimple", chinY: -2
     },
     adeline: {
@@ -1107,11 +1143,11 @@
       noseTip: "button", noseWidth: 1.0, lipColor: "#9a5560", hairColor: "auburn"
     },
     felix: {
-      animMode: "curious", blinkRate: 4, winkRate: 11, eyeScale: 1.05, browThick: 0.95, cheekOpacity: 0.07,
+      animMode: "curious", blinkRate: 4, eyeScale: 1.05, browThick: 0.95, cheekOpacity: 0.07,
       noseTip: "button", noseWidth: 1.05, mouthScale: 1.04, frontHairY: -5, hairColor: "auburn"
     },
     ines: {
-      animMode: "shifty", blinkRate: 3.6, winkRate: 17, browShape: "arched", browY: 1, browThick: 1.08,
+      animMode: "shifty", blinkRate: 3.6, browShape: "arched", browY: 1, browThick: 1.08,
       eyeScale: 0.98, lazyEye: 1, lipColor: "#7a3b46", lips: "full", noseTip: "narrow", frontHairY: -2
     },
     hugo: {
@@ -1231,7 +1267,7 @@
     // this project's original back/front hair.
     const useFacesHair = typeof window !== "undefined" && window.facesHair && window.facesHair.has(traits.hair);
     const facesHairSvg = useFacesHair
-      ? `<g transform='translate(0 ${Number(traits.frontHairY) || 0})'>${window.facesHair.render(traits.hair, `url(#hair-${seed})`, traits.hairOutline || ink, { ...hairStrandTones(hair), hairHex: hair, seed })}</g>`
+      ? `<g transform='translate(0 ${Number(traits.frontHairY) || 0})'>${window.facesHair.render(traits.hair, `url(#hair-${seed})`, hairOutlineFor(traits), { ...hairStrandTones(hair), hairHex: hair, seed })}</g>`
       : "";
     const svg = `
       <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>
@@ -1366,11 +1402,11 @@
     const mode = traits.animMode || "still";
     const cfg = {
       calm:    { blink: 5,   dart: 0,   sway: 0,   wink: 0,  brow: 0,  breathe: 7 },
-      curious: { blink: 4,   dart: 6,   sway: 0,   wink: 14, brow: 9,  breathe: 0 },
+      curious: { blink: 4,   dart: 6,   sway: 0,   wink: 0,  brow: 9,  breathe: 0 },
       serious: { blink: 7,   dart: 0,   sway: 6,   wink: 0,  brow: 0,  breathe: 0 },
       shifty:  { blink: 3,   dart: 3.5, sway: 0,   wink: 0,  brow: 0,  breathe: 0 },
       alert:   { blink: 2.6, dart: 5,   sway: 0,   wink: 0,  brow: 6,  breathe: 0 },
-      smug:    { blink: 4.5, dart: 0,   sway: 4.5, wink: 8,  brow: 7,  breathe: 0 },
+      smug:    { blink: 4.5, dart: 0,   sway: 4.5, wink: 0,  brow: 7,  breathe: 0 },
       sleepy:  { blink: 2.2, dart: 0,   sway: 9,   wink: 0,  brow: 0,  breathe: 0 },
       // --- extra eye + body animation presets ---
       googly:  { blink: 3.4, roll: 5,    wink: 0,  brow: 0,  breathe: 6 },   // eyes roll around
@@ -1378,9 +1414,9 @@
       crosseyed:{ blink: 4,  cross: 6.5, wink: 0,  brow: 0 },                // eyes briefly converge
       nervous: { blink: 2.3, dart: 2.6,  wink: 0,  brow: 5,  shiver: 1.1 },  // darting + body jitter
       nod:     { blink: 5,   wink: 0,    brow: 0,  nod: 3.2 },               // agreeable head-nod
-      bobble:  { blink: 4.5, wink: 9,    brow: 0,  bobble: 2.8 },            // bobblehead sway
+      bobble:  { blink: 4.5, wink: 0,    brow: 0,  bobble: 2.8 },            // bobblehead sway
       dreamy:  { blink: 3,   side: 8,    wink: 0,  brow: 0,  breathe: 6.5 }, // languid drift + breathe
-      lean:    { blink: 5.5, wink: 6,    brow: 0,  lean: 7 },               // slow lean to one side
+      lean:    { blink: 5.5, wink: 0,    brow: 0,  lean: 7 },               // slow lean to one side
       squint:  { blink: 0,   squint: 5,  wink: 0,  brow: 4,  sway: 7 }       // suspicious squint (no blink)
     }[mode];
     if (!cfg) return ""; // still / unknown
@@ -1625,12 +1661,14 @@
     const nl = 128 - neckHalf, nr = 128 + neckHalf;
     const tl = 128 - sh, tr = 128 + sh;
     const bl = 128 - botHalf, br = 128 + botHalf;
+    // Belly: bows the torso sides outward around the midriff (0 = straight, 1 = a proper gut).
+    const belly = Math.max(0, Math.min(1, Number(traits.belly) || 0)) * 18;
     const dropY = neckY + 4 + slope * 7;
     return `M${nl} ${neckY}`
       + ` C ${nl - 7} ${dropY} ${(tl + r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${tl} ${tipY.toFixed(1)}`
-      + ` C ${(tl - r + 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${bl - 1} ${(tipY + 13).toFixed(1)} ${bl} 256`
-      + ` L ${br} 256`
-      + ` C ${br + 1} ${(tipY + 13).toFixed(1)} ${(tr + r - 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${tr} ${tipY.toFixed(1)}`
+      + ` C ${(tl - r + 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${(bl - 1 - belly).toFixed(1)} ${(tipY + 13).toFixed(1)} ${(bl - belly * 0.8).toFixed(1)} 256`
+      + ` L ${(br + belly * 0.8).toFixed(1)} 256`
+      + ` C ${(br + 1 + belly).toFixed(1)} ${(tipY + 13).toFixed(1)} ${(tr + r - 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${tr} ${tipY.toFixed(1)}`
       + ` C ${(tr - r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${nr + 7} ${dropY} ${nr} ${neckY} Z`;
   }
 
@@ -1932,8 +1970,9 @@
     const blobs = traits.beardBlobs;
     if (!Array.isArray(blobs) || !blobs.length) return "";
     const hairHex = hairColors[traits.hairColor] || "#3a2418";
-    const beard = shadeColor(hairHex, 0.8);
-    const lo = shadeColor(hairHex, 0.62);
+    // Beard matches the hair OUTLINE tone (explicit hairOutline wins), so hair + beard read as a set.
+    const beard = traits.hairOutline ? traits.hairOutline : shadeColor(hairHex, 0.72);
+    const lo = shadeColor(beard, 0.78);
     const ow = 3.4; // outline thickness (the dilation amount)
     const circles = [];
     blobs.forEach((b) => {
@@ -1991,28 +2030,37 @@
       return Math.max(0, Math.min(1, v * mult));
     };
     const line = (d, o, w) => o > 0 ? `<path d='${d}' fill='none' stroke='${dk}' stroke-width='${w || 1.6}' stroke-linecap='round' opacity='${o.toFixed(2)}'/>` : "";
+    const shift = (dx, dy, m) => m ? `<g transform='translate(${dx.toFixed(1)} ${dy.toFixed(1)})'>${m}</g>` : "";
+    // The creases FOLLOW the face: mouth-area lines ride the jaw/mouth offsets, brow-area lines ride
+    // the brows, eye-area lines ride the eyes (incl. eye spacing) - they no longer float when the
+    // face is resculpted.
+    const jd = jawDrop(profile.jawLength, 170);
+    const my = Number(traits.mouthY) || 0;
+    const by2 = profile.browY || 0;
+    const ey = profile.eyeY || 0;
+    const gapDx = ((traits.eyeGap || 47) - 47) / 2;
     let out = "";
     // Nasolabial folds (nostril wing -> outside mouth corner)
-    const ny = 150 + (profile.nasoY || 0);
-    out += line(`M119 ${ny}C114 157 110 162 106 167M137 ${ny}C142 157 146 162 150 167`, op("nasoOpacity", smiling ? 0.55 : 0), 1.8);
+    const ny = 150 + (profile.nasoY || 0) + (profile.noseY || 0) * 0.6;
+    out += shift(0, jd * 0.5 + my * 0.4, line(`M119 ${ny}C114 157 110 162 106 167M137 ${ny}C142 157 146 162 150 167`, op("nasoOpacity", smiling ? 0.55 : 0), 1.8));
     // Forehead horizontal wrinkles
     const fo = op("foreheadLineOpacity", 0);
-    out += line("M99 105q29 -6 58 0", fo) + line("M97 112q31 -7 62 0", fo) + line("M100 119q28 -5 56 0", fo);
+    out += shift(0, by2, line("M99 105q29 -6 58 0", fo) + line("M97 112q31 -7 62 0", fo) + line("M100 119q28 -5 56 0", fo));
     // Frown lines (glabella, between the brows)
     const fr = op("frownLineOpacity", 0);
     out += line("M124 117q-1 6 0 11", fr, 1.4) + line("M132 117q1 6 0 11", fr, 1.4);
     // Under-eye lines / eye bags
     const ue = op("underEyeOpacity", 0);
-    out += line("M99 145q10 4 22 1", ue, 1.3) + line("M135 146q12 3 22 -1", ue, 1.3);
-    // Crow's feet (outer eye corners)
+    out += shift(-gapDx, ey, line("M99 145q10 4 22 1", ue, 1.3)) + shift(gapDx, ey, line("M135 146q12 3 22 -1", ue, 1.3));
+    // Crow's feet (outer eye corners) - track eye height AND spacing
     const cf = op("crowsFeetOpacity", 0);
-    out += line("M92 133l-7 -4M92 137l-8 1M93 141l-6 4", cf, 1.2) + line("M164 133l7 -4M164 137l8 1M163 141l6 4", cf, 1.2);
-    // Marionette lines (mouth corners curving down)
+    out += shift(-gapDx, ey, line("M92 133l-7 -4M92 137l-8 1M93 141l-6 4", cf, 1.2)) + shift(gapDx, ey, line("M164 133l7 -4M164 137l8 1M163 141l6 4", cf, 1.2));
+    // Marionette lines (mouth corners curving down) - ride the mouth/jaw
     const mo = op("marionetteOpacity", 0);
-    out += line("M106 169c-3 8 -3 14 -1 21", mo, 1.4) + line("M150 169c3 8 3 14 1 21", mo, 1.4);
+    out += shift(0, jd * 0.9 + my * 0.8, line("M106 169c-3 8 -3 14 -1 21", mo, 1.4) + line("M150 169c3 8 3 14 1 21", mo, 1.4));
     // Cheek hollows (a soft curve under each cheekbone)
     const ch = op("cheekLineOpacity", 0);
-    out += line("M90 150c2 9 7 15 14 18", ch, 1.4) + line("M166 150c-2 9 -7 15 -14 18", ch, 1.4);
+    out += shift(0, jd * 0.4, line("M90 150c2 9 7 15 14 18", ch, 1.4) + line("M166 150c-2 9 -7 15 -14 18", ch, 1.4));
     return out;
   }
 
@@ -2122,18 +2170,26 @@
     return `<defs><clipPath id='${clipId}'><path d='${clipShape}'/></clipPath></defs><g clip-path='url(#${clipId})'>${inner}</g>`;
   }
 
+  // Default hair outline: a deep shade of the hair colour itself (not the global navy ink) - hair
+  // reads as hair, and beards borrow the same tone so they match. Explicit hairOutline still wins.
+  function hairOutlineFor(traits) {
+    if (traits.hairOutline) return traits.hairOutline;
+    const hex = hairColors[traits.hairColor];
+    return hex ? shadeColor(hex, 0.52) : ink;
+  }
+
   function renderBackHair(style, hair, traits) {
     if (!style.back) return "";
     const fill = style.covered ? traits.shirt : hair;
     const strokeWidth = style.sidePart ? 4 : 4.3;
     const y = Number(traits.backHairY) || 0;
-    const hi = traits.hairOutline || ink;
+    const hi = hairOutlineFor(traits);
     return `<g transform='translate(0 ${y})'><path d='${style.back}' fill='${fill}' stroke='${hi}' stroke-width='${strokeWidth}' stroke-linejoin='round'/>${renderHairTexture(style, hair, traits)}</g>`;
   }
 
   function renderFrontHair(style, hair, traits) {
     if (!style.front) return "";
-    const hi = traits.hairOutline || ink;
+    const hi = hairOutlineFor(traits);
     const y = Number(traits.frontHairY) || 0;
     const wrap = (svg) => y ? `<g transform='translate(0 ${y})'>${svg}</g>` : svg;
     if (style.covered) {
@@ -2470,6 +2526,10 @@
     let anchorY = 171;
     if (expression.openMouth) {
       output = `<path d='${expression.mouth}' fill='#3a1d18' stroke='${ink}' stroke-width='3'/><ellipse cx='128' cy='177' rx='4.2' ry='2.4' fill='#e76f72' opacity='.62'/>`;
+      // Open-mouth aperture is adjustable: width/height scale independently (gasp vs "ooh" vs yell).
+      const ow = Number(traits.mouthOpenW) || 1;
+      const oh = Number(traits.mouthOpenH) || 1;
+      if (ow !== 1 || oh !== 1) output = `<g transform='translate(128 172) scale(${ow} ${oh}) translate(-128 -172)'>${output}</g>`;
       anchorY = 174;
     } else if (expression.teeth) {
       output = renderSmileMouth(traits.mouthStyle, traits, seed);
@@ -2543,10 +2603,11 @@
       ${lowerLip}
       <path d='${opening}' fill='#3a1d18'/>
       <g clip-path='url(#${clipId})'>${teeth}</g>
-      <g clip-path='url(#${clipExtId})'>${incisors}</g>
+      ${overhang > 0 ? "" : `<g clip-path='url(#${clipExtId})'>${incisors}</g>`}
       ${upperLip}
       ${sheen}
       <path d='${opening}' fill='none' stroke='${ink}' stroke-width='3' stroke-linejoin='round'/>
+      ${overhang > 0 ? `<g clip-path='url(#${clipExtId})'>${incisors}</g>` : ""}
     `;
   }
 

@@ -2951,7 +2951,7 @@ function getMysteryCardData(character) {
       image: assignment.image || undefined,
       style: `--hp-color:${assignment.color}`,
       dataset: { hpHouse: assignment.house, hpSpell: assignment.spell },
-      html: `<div class="hp-house"><span class="hp-crest">${assignment.crest}</span> ${escapeHtml(assignment.house)}</div>`
+      html: `<div class="hp-tag"><span class="hp-crest">${assignment.crest}</span> ${escapeHtml(assignment.house)}</div>`
         + `<div class="hp-wand">🪄 ${escapeHtml(assignment.wand)}</div>`
         + `<div class="hp-spell"><b>${escapeHtml(assignment.spell)}</b> — ${escapeHtml(assignment.spellHint)}</div>`
     };

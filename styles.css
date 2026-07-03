@@ -724,8 +724,9 @@ button:disabled {
 
 .character-board {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--card-min, 108px), 1fr));
-  gap: 6px;
+  /* At most 4 columns: each column's min width is >= a quarter of the row, so auto-fill can't pack a 5th. */
+  grid-template-columns: repeat(auto-fill, minmax(max(var(--card-min, 108px), calc((100% - 3 * 10px) / 4)), 1fr));
+  gap: 10px;
   padding: 14px;
   border: 2px solid var(--line);
   border-radius: 12px;
@@ -3987,25 +3988,29 @@ body.mode-pixall .secret-card img {
 .character-card.orgy { overflow: visible; }
 /* A glossy teardrop bulges at the bottom edge, forms a neck, stretches, then detaches and falls onto
    the card below - a proper viscous drip instead of a row of dots. */
-.character-card.orgy::before {
-  content: ""; position: absolute; left: 50%; bottom: -2px; width: 11px; height: 15px; margin-left: -5.5px; z-index: 8;
+/* Subtle now: only SOME cards drip (not every one), smaller, slower, and the drop drifts a touch
+   sideways as gravity pulls it - reads as a real slow bead rather than a constant pearl fountain. */
+.character-card.orgy::before { content: none; }
+.character-card.orgy:nth-child(4n+1)::before,
+.character-card.orgy:nth-child(7n+3)::before {
+  content: ""; position: absolute; left: 46%; bottom: -1px; width: 8px; height: 11px; margin-left: -4px; z-index: 8;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 32%, #ffffff, #f3d9e6 55%, #e0a8c6 100%);
+  background: radial-gradient(ellipse at 50% 30%, #ffffff, #f3d9e6 55%, #e0a8c6 100%);
   border-radius: 50% 50% 50% 50% / 62% 62% 40% 40%;
-  box-shadow: inset 1px -1px 2px rgba(160, 40, 90, 0.4), 0 0 4px rgba(255, 255, 255, 0.4);
-  transform-origin: 50% 0;
-  animation: orgy-drip 2.7s cubic-bezier(0.5, 0, 0.9, 0.4) infinite;
+  box-shadow: inset 1px -1px 2px rgba(160, 40, 90, 0.35);
+  transform-origin: 50% 0; opacity: 0;
+  animation: orgy-drip 5.4s cubic-bezier(0.45, 0, 0.9, 0.5) infinite;
 }
 @keyframes orgy-drip {
-  0%   { transform: translateY(0) scaleY(0.5) scaleX(0.9); opacity: 0; }
-  18%  { transform: translateY(2px) scaleY(1) scaleX(1); opacity: 1; }     /* bulge forms */
-  34%  { transform: translateY(7px) scaleY(1.35) scaleX(0.82); opacity: 1; } /* stretch a neck */
-  46%  { transform: translateY(13px) scaleY(1.1) scaleX(1); opacity: 1; }  /* pinch off */
-  100% { transform: translateY(52px) scaleY(1.5) scaleX(0.8); opacity: 0; } /* fall away */
+  0%, 12%   { transform: translate(0, 0) scaleY(0.5) scaleX(0.9); opacity: 0; }
+  24%  { transform: translate(0, 2px) scaleY(1) scaleX(1); opacity: 0.85; }        /* bead forms */
+  38%  { transform: translate(-1px, 8px) scaleY(1.4) scaleX(0.8); opacity: 0.85; } /* neck stretches */
+  48%  { transform: translate(0, 15px) scaleY(1.1) scaleX(1); opacity: 0.8; }      /* pinch off */
+  70%  { transform: translate(2px, 34px) scaleY(1.35) scaleX(0.82); opacity: 0.5; }
+  100% { transform: translate(-1px, 58px) scaleY(1.5) scaleX(0.78); opacity: 0; }  /* falls away */
 }
-.character-card.orgy:nth-child(3n)::before   { left: 32%; animation-delay: 0.9s; }
-.character-card.orgy:nth-child(3n+1)::before { left: 62%; animation-delay: 2.0s; }
-.character-card.orgy:nth-child(3n+2)::before { left: 48%; animation-delay: 1.4s; }
+.character-card.orgy:nth-child(4n+1)::before { animation-delay: 0.8s; left: 40%; }
+.character-card.orgy:nth-child(7n+3)::before { animation-delay: 3.1s; left: 58%; }
 @media (prefers-reduced-motion: reduce) { .character-card.orgy::before { animation: none; opacity: 0; } }
 
 /* ===================== Heads Only mode ===================== */
@@ -5076,3 +5081,52 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .rr-name { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.3rem; text-transform: uppercase; color: #fffdf7; }
 .rr-vs { font-size: clamp(1.6rem, 5vw, 3rem); font-weight: 900; color: #e0341a; animation: ts-fade 0.5s 0.45s both; }
 @media (max-width: 560px) { .rr-cards { gap: 10px; } .rr-name { font-size: 0.95rem; } }
+
+
+/* ===================== Sidebar chrome tweaks ===================== */
+/* Nudge the WHO?/IS IT? logo up a touch (it read too snug against the card). */
+.side-head { margin-top: -4px; margin-bottom: 10px; }
+.side-head h1 { line-height: 0.86; }
+
+/* Game-bar: END ROUND (half) + eye (half), matching the dark box aesthetic. */
+.game-bar-actions { width: 100%; display: flex; gap: 8px; justify-content: stretch; margin-left: 0; }
+.game-bar-actions .button { flex: 1; min-width: 0; }
+.button.end-round-btn {
+  width: auto; min-width: 0; padding: 0 10px; gap: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.button.end-round-btn .er-txt { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; }
+#revealSecretButton { width: auto; }
+
+/* Joined seat pill: two halves in one rounded shell, active half lit, alternating. */
+.seat-roster.seat-pill {
+  display: inline-flex; padding: 3px; gap: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.seat-pill .seat-half {
+  display: inline-flex; align-items: center; gap: 7px; justify-content: center;
+  min-height: 30px; padding: 0 16px; border: none; cursor: pointer;
+  border-radius: 999px; background: transparent; color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+.seat-pill .seat-half.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.seat-pill .seat-glyph { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.03em; }
+
+/* ===================== Online lobby / waiting room ===================== */
+.ts-name-input {
+  width: min(320px, 82vw); padding: 12px 14px; border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08);
+  color: #fffdf7; font-weight: 700; font-size: 1rem; text-align: center;
+}
+.ts-name-input::placeholder { color: rgba(255,255,255,0.4); font-weight: 500; }
+.lobby-code { font-size: 1.1rem; font-weight: 700; color: #fffdf7; letter-spacing: 0.04em; margin: 6px 0 2px; }
+.lobby-code b { color: #ffbe0b; font-size: 1.5rem; }
+.lobby-players { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; min-width: min(300px, 78vw); }
+.lobby-player { padding: 12px 16px; border-radius: 12px; font-weight: 800; text-align: center; font-size: 0.95rem; }
+.lobby-player.here { background: rgba(62, 196, 106, 0.16); color: #7fe0a0; border: 1px solid rgba(62,196,106,0.4); }
+.lobby-player.empty { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.45); border: 1px dashed rgba(255,255,255,0.2); }
+.lobby-status { font-size: 0.82rem; color: rgba(255,255,255,0.6); margin: 2px 0 4px; text-align: center; }
+.lobby-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.lobby-actions .button { min-width: 240px; font-weight: 800; }

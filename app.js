@@ -331,8 +331,7 @@ function setButtonIcon(button, icon, label) {
 function installStaticIcons() {
   syncThemeButton();
   setButtonIcon(els.setupButton, "settings", "Setup");
-  setButtonIcon(els.newGameButton, "refresh", "New game");
-  setButtonIcon(els.swapSeatButton, "swap", "End round");
+  if (els.swapSeatButton) { setButtonIcon(els.swapSeatButton, "swap", "End round"); els.swapSeatButton.classList.add("end-round-btn"); els.swapSeatButton.querySelector(".ib-label")?.remove(); els.swapSeatButton.insertAdjacentHTML("beforeend", "<span class=\"er-txt\">END ROUND</span>"); }
   if (els.drawPromptButton) setButtonIcon(els.drawPromptButton, "prompt", "Draw prompt");
 }
 
@@ -663,6 +662,7 @@ function markWheelSeen(id) {
 function makePlayer(index) {
   return {
     name: `Seat ${String.fromCharCode(65 + index)}`,
+    pname: (state.lobby && state.lobby[index]) || (state.gameMode === "online" && index === (state.mySeat || 0) ? state.pname : null),
     // Deterministic per seat, so both online clients agree on BOTH secrets.
     secretId: state.board[stableHash(`${state.gameSalt}:secret:${index}`) % state.board.length].id,
     eliminated: new Set(),
@@ -787,8 +787,22 @@ function mutateBaby(traits) {
   return traits;
 }
 let babyCounter = 0;
+// A gayby that inherits hairLocks gets EVERY part mirrored + a tiny per-part jitter (scale +/-5%,
+// x/y +/-2%) so siblings don't look identical - just enough variety without breaking the style.
+function jitterGaybyHair(traits) {
+  if (!Array.isArray(traits.hairLocks) || !traits.hairLocks.length) return traits;
+  traits.hairLocks = traits.hairLocks.map((lk) => ({
+    ...lk,
+    mirror: !lk.mirror,
+    scale: +((Number(lk.scale) || 1) * (1 + (Math.random() - 0.5) * 0.1)).toFixed(3),
+    x: +((Number(lk.x) || 50) + (Math.random() - 0.5) * 4).toFixed(2),
+    y: +((Number(lk.y) || 50) + (Math.random() - 0.5) * 4).toFixed(2)
+  }));
+  return traits;
+}
 function makeBaby(A, B, gayby) {
-  const traits = mutateBaby(mergeTraits(A.traits || {}, B.traits || {}));
+  let traits = mutateBaby(mergeTraits(A.traits || {}, B.traits || {}));
+  if (gayby) traits = jitterGaybyHair(traits);
   const seed = 90001 + (babyCounter++);
   return {
     // Globally-unique id: session-scoped counters collided with GAYBYs persisted from earlier
@@ -1062,11 +1076,26 @@ function offerKeepOrAbort(baby, keep, abort) {
   ov.querySelector(".ka-keep").addEventListener("click", () => { ov.remove(); keep(); });
   ov.querySelector(".ka-abort").addEventListener("click", () => { ov.remove(); abort(); });
 }
+const ABORT_LINES = [
+  "was terminated. Only the strongest survive.",
+  "was brought to a close. Dessert anyone?",
+  "met the guillotine. ABBA was in attendance.",
+  "was returned to sender. No refund.",
+  "did not clear customs.",
+  "was un-alived before the vibe check.",
+  "was sent back to the drawing board. Literally.",
+  "yeeted into the void. Godspeed.",
+  "was politely declined by management.",
+  "was recalled for safety reasons.",
+  "took the L. Better luck next conception.",
+  "was composted. Very eco-friendly."
+];
 function abortBaby(baby, parentA, parentB) {
   // Each aborted baby adds to a hidden tally on both parents - sortable as "Abortions".
   [parentA, parentB].forEach((p) => { if (p) p.abortions = (p.abortions || 0) + 1; });
-  flashToast(`👼 ${baby.name} was aborted. Pretend you saw nothing.`);
-  if (typeof addLog === "function") addLog(`${baby.name} did not make it to the board.`);
+  const line = ABORT_LINES[Math.floor(Math.random() * ABORT_LINES.length)];
+  flashToast(`👼 ${baby.name} ${line}`);
+  if (typeof addLog === "function") addLog(`${baby.name} ${line}`);
   renderBoard();
   scheduleSave();
 }
@@ -1410,25 +1439,19 @@ function renderRoom() {
     });
     return;
   }
-  // LOCAL: the pass-and-play seat toggle.
-  els.seatRoster.className = "seat-roster";
-  state.players.forEach((player, index) => {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "seat-chip";
-    if (index === state.currentPlayer) chip.classList.add("active");
-    chip.innerHTML = `
-      <span class="seat-glyph">${index === state.currentPlayer ? "YOU" : player.name.slice(-1)}</span>
-      <span class="seat-dot ${player.mysteryUsed ? "is-spent" : "is-ready"}" aria-hidden="true"></span>
-    `;
-    chip.setAttribute("aria-label", `${player.name}, ${player.mysteryUsed ? "mystery spent" : "mystery ready"}`);
-    chip.setAttribute("title", `${player.name}, ${player.mysteryUsed ? "mystery spent" : "mystery ready"}`);
-    chip.addEventListener("click", () => {
-      state.currentPlayer = index;
-      render();
-    });
-    els.seatRoster.appendChild(chip);
-  });
+  // LOCAL: one joined pill split down the middle, the active seat lit. Tap a half to switch seats.
+  els.seatRoster.className = "seat-roster seat-pill";
+  els.seatRoster.innerHTML = state.players.map((player, i) => {
+    const label = player.pname || (i === 0 ? "A" : "B");
+    return `<button type="button" class="seat-half ${i === state.currentPlayer ? "active" : ""}" data-seat="${i}">
+        <span class="seat-glyph">${i === state.currentPlayer ? "YOU" : escapeHtml(label)}</span>
+        <span class="seat-dot ${player.mysteryUsed ? "is-spent" : "is-ready"}" aria-hidden="true"></span>
+      </button>`;
+  }).join("");
+  els.seatRoster.querySelectorAll(".seat-half").forEach((b) => b.addEventListener("click", () => {
+    state.currentPlayer = Number(b.dataset.seat);
+    render();
+  }));
 }
 
 function renderSecret() {
@@ -4625,7 +4648,6 @@ els.swapSeatButton.addEventListener("click", endRound);
 
 if (els.drawPromptButton) els.drawPromptButton.addEventListener("click", drawPrompt);
 if (els.mysteryButton) els.mysteryButton.addEventListener("click", activateMystery);
-els.newGameButton.addEventListener("click", () => newGame());
 if (els.endRoundButton) els.endRoundButton.addEventListener("click", endRound);
 if (els.copySeedButton) els.copySeedButton.addEventListener("click", () => {
   const code = currentSeedCode();
@@ -4721,7 +4743,7 @@ function netConnect() {
     try {
       const ws = new WebSocket(`${NET_RELAY}/${state.roomCode}`);
       ws.onmessage = (e) => { try { handleNetMsg(JSON.parse(e.data)); } catch (err) { /* junk frame */ } };
-      ws.onopen = () => netSend("hello", {});
+      ws.onopen = () => netSend("hello", { pname: state.pname });
       net = { post: (m) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); }, close: () => { try { ws.close(); } catch (e) { /* fine */ } } };
     } catch (e) { net = null; }
     return;
@@ -4730,7 +4752,7 @@ function netConnect() {
     const bc = new BroadcastChannel(`whoisit-room-${state.roomCode}`);
     bc.onmessage = (e) => handleNetMsg(e.data || {});
     net = { post: (m) => bc.postMessage(m), close: () => bc.close() };
-    netSend("hello", {});
+    netSend("hello", { pname: state.pname });
   } catch (e) { net = null; /* no BroadcastChannel - offline only */ }
 }
 function netSend(type, data) {
@@ -4750,7 +4772,17 @@ function handleNetMsg(msg) {
   if (!msg || typeof msg !== "object") return;
   if (msg.type === "hello") {
     markPeerOnline();
-    // Tell the newcomer what round we're in; they adopt the salt, wheel pick and the opposite seat.
+    const seat = msg.seat === 0 ? 0 : 1;
+    if (state.inLobby) {
+      // Lobby: record the newcomer's name, announce their arrival, reply once so they learn us too.
+      state.lobby = state.lobby || {};
+      if (msg.pname && state.lobby[seat] !== msg.pname) { state.lobby[seat] = msg.pname; addLog(`${msg.pname} has arrived.`); }
+      updateLobby();
+      state.seenPeers = state.seenPeers || new Set();
+      if (!state.seenPeers.has(seat)) { state.seenPeers.add(seat); netSend("hello", { pname: state.pname }); }
+      return;
+    }
+    // Mid-game newcomer: sync them into the current round.
     netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick });
     return;
   }
@@ -4772,6 +4804,9 @@ function handleNetMsg(msg) {
   if (msg.type === "start") {
     markPeerOnline();
     state.settings = { ...state.settings, ...(msg.settings || {}) };
+    if (msg.names) { state.lobby = msg.names; state.pname = msg.names[state.mySeat || 0] || state.pname; }
+    state.inLobby = false;
+    document.querySelector(".lobby-screen")?.remove();
     newGame(msg.salt, { remote: true, effectId: msg.effectId });
     return;
   }
@@ -4991,7 +5026,7 @@ function showTitleScreen() {
   ov.querySelector(".ts-showjoin").addEventListener("click", () => { show("join"); setTimeout(() => ov.querySelector(".ts-join-input").focus(), 50); });
   ov.querySelectorAll(".ts-back").forEach((b) => b.addEventListener("click", () => show("main")));
   const joinInput = ov.querySelector(".ts-join-input");
-  const doJoin = () => { const code = (joinInput.value || "").trim(); if (/^\d{3,4}$/.test(code)) { close(); joinRoom(code); } else { joinInput.classList.add("shake"); setTimeout(() => joinInput.classList.remove("shake"), 400); } };
+  const doJoin = () => { const code = (joinInput.value || "").trim(); if (/^\d{3,4}$/.test(code)) { close(); joinRoom(code, nameOf() || "Guest"); } else { joinInput.classList.add("shake"); setTimeout(() => joinInput.classList.remove("shake"), 400); } };
   ov.querySelector(".ts-join-go").addEventListener("click", doJoin);
   joinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doJoin(); });
   const res = ov.querySelector(".ts-resume");
@@ -4999,21 +5034,71 @@ function showTitleScreen() {
 }
 
 // LOCAL: pass-and-play on one screen - the YOU/B seat toggle is how you swap turns.
-function startLocalGame() { state.gameMode = "local"; state.mySeat = 0; newGame(); }
-// ONLINE (host): deal a round and open the room so a friend can join with the room number.
-function startOnlineGame() { state.gameMode = "online"; state.mySeat = 0; newGame(); }
-// ONLINE (guest): connect to someone else's room number and wait for their round to sync in.
-function joinRoom(code) {
-  state.gameMode = "online";
-  state.mySeat = 1;
-  // Deal a throwaway local round so the UI is populated, then point the transport at the host's room
-  // and announce ourselves - the host's "sync" reply adopts their salt and swaps everything over.
-  newGame(undefined, { silentEffect: true });
-  state.roomCode = code;
-  renderRoom();
+function startLocalGame() { state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; newGame(); }
+
+// ONLINE host: open a LOBBY (no round dealt yet). The room's salt is fixed now so the room code is
+// stable through the eventual deal; players gather, then the host presses START.
+function startOnlineGame(name) {
+  state.gameMode = "online"; state.mySeat = 0; state.inLobby = true;
+  state.pname = name || "Player 1";
+  state.gameSalt = `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
+  state.lobby = { 0: state.pname };
+  state.seenPeers = new Set();
   netConnect();
-  addLog(`Connecting to room #${code}…`);
-  els.roomStatus.textContent = `Connecting to room #${code}…`;
+  showLobby();
+}
+// ONLINE guest: connect to the host's room and wait in the lobby for them to start.
+function joinRoom(code, name) {
+  state.gameMode = "online"; state.mySeat = 1; state.inLobby = true;
+  state.pname = name || "Player 2";
+  state.roomCode = code;
+  state.lobby = { 1: state.pname };
+  state.seenPeers = new Set();
+  netConnect();
+  showLobby();
+}
+
+// The waiting room: room number, who's arrived, and (host only) a START button once a friend joins.
+function showLobby() {
+  document.querySelector(".lobby-screen")?.remove();
+  const host = (state.mySeat || 0) === 0;
+  const ov = document.createElement("div");
+  ov.className = "lobby-screen title-screen";
+  ov.innerHTML = `
+    <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">IS IT?</span></div>
+    <p class="lobby-code">ROOM <b>#${escapeHtml(state.roomCode)}</b></p>
+    <div class="lobby-players"></div>
+    <p class="lobby-status"></p>
+    <div class="lobby-actions">
+      ${host ? `<button type="button" class="button primary lobby-start" disabled>START</button>` : ""}
+      <button type="button" class="button ghost lobby-leave">← leave</button>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector(".lobby-leave").addEventListener("click", () => { state.inLobby = false; try { net && net.close(); } catch (e) {} ov.remove(); showTitleScreen(); });
+  const startBtn = ov.querySelector(".lobby-start");
+  if (startBtn) startBtn.addEventListener("click", () => {
+    state.inLobby = false;
+    ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 400);
+    netSend("start", { salt: state.gameSalt, settings: state.settings, names: state.lobby });
+    state.wheelPickShared = wheelTargetFromBag();
+    newGame(state.gameSalt, { effectId: state.wheelPickShared });
+  });
+  updateLobby();
+}
+function updateLobby() {
+  const ov = document.querySelector(".lobby-screen");
+  if (!ov) return;
+  const names = state.lobby || {};
+  const both = names[0] && names[1];
+  ov.querySelector(".lobby-players").innerHTML = [0, 1].map((s) => {
+    const nm = names[s];
+    const me = s === (state.mySeat || 0);
+    return `<div class="lobby-player ${nm ? "here" : "empty"}">${nm ? `✅ ${escapeHtml(nm)}${me ? " (you)" : ""}` : "⏳ waiting for a friend…"}</div>`;
+  }).join("");
+  ov.querySelector(".lobby-status").textContent = both ? ((state.mySeat || 0) === 0 ? "Everyone's here — press START." : "Waiting for the host to start…") : `Share room #${state.roomCode} with a friend.`;
+  const startBtn = ov.querySelector(".lobby-start");
+  if (startBtn) startBtn.disabled = !both;
 }
 
 // ===================== SEED codes (share a whole setup) =====================

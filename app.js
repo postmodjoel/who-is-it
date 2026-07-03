@@ -2273,13 +2273,44 @@ function triggerGayFroggedTest() {
   render();
 }
 
-// Abstract glyphs for the roulette - deliberately give nothing away about the mode.
-const MODE_GLYPHS = ["☣", "◉", "✦", "⚛", "☠", "⬢", "✶", "❂", "⟁", "◈", "⌖", "☯", "⚙", "♆", "⚕", "✺", "⊛", "❖", "⌬", "☄"];
+// Roulette glyphs, one per mode - each is a MONOCHROME symbol chosen to hint at its mode's theme
+// (never a full-colour emoji: the cells tint the glyph via `color: hsl(--hue)` + glow, and colour
+// emoji would ignore that and break the neon aesthetic). Unknown ids fall back to an abstract set.
+const MODE_GLYPHS = {
+  "prop-panic": "☂",                 // random props
+  "family-tree-disaster": "⚭",       // tangled bloodlines
+  "knockoff-manor": "☠",             // MURDER TIME
+  "emotional-audit": "♥",            // feelings on trial
+  "witness-protection-filter": "⊘",  // identity redacted
+  "role-reveal": "❂",                // roles come to light
+  "hidden-agendas": "⚿",             // secret motives
+  "monocultural": "⧉",               // everyone the same
+  "gay-frogged": "⚧",                // turned gay
+  "face-first": "☻",                 // all about the face
+  "ps1-mode": "△",                   // low-poly / PlayStation
+  "yugioh": "◈",                     // duel cards
+  "orgy": "⚯",                       // entangled bodies
+  "fireworks": "✸",                  // explosive finish
+  "pixall": "▦",                     // pixel grid
+  "disease": "☣",                    // biohazard
+  "drugs": "☤",                      // caduceus / substances
+  "fertility": "☥",                  // ankh / life
+  "disguise": "⬗",                   // half-hidden face
+  "work": "⚒",                       // labour
+  "woke": "◉",                       // eyes open
+  "swipe": "☞",                      // swipe right
+  "judgement": "⚖",                  // scales of justice
+  "sims": "⬦",                       // plumbob
+  "heads-only": "⊚",                 // floating heads
+  "habbo": "⌂",                      // the hotel
+  "astrology": "☽",                  // celestial
+};
+const FALLBACK_GLYPHS = ["✦", "⚛", "⬢", "✶", "⟁", "⌖", "☯", "⚙", "❖", "⌬", "☄", "⊛"];
 
 // Spin a slot-machine of abstract symbols at the start of a round; it decelerates onto a random mode,
 // flashes chaotically, then reveals + applies it. done(id) fires with the chosen mode id (or null).
 function spinModeRoulette(done) {
-  const modes = mysteryEffects.map((e, i) => ({ id: e.id, name: e.name, glyph: MODE_GLYPHS[i % MODE_GLYPHS.length], hue: (i * 47) % 360 }));
+  const modes = mysteryEffects.map((e, i) => ({ id: e.id, name: e.name, glyph: MODE_GLYPHS[e.id] || FALLBACK_GLYPHS[i % FALLBACK_GLYPHS.length], hue: (i * 47) % 360 }));
   modes.push({ id: null, name: "No Effect", glyph: "∅", hue: 210 });
   // Lands on the no-repeat bag pick (shared via the start message); legacy fallback: salt hash.
   const targetId = state.wheelPick !== undefined ? state.wheelPick : wheelTarget();

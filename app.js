@@ -1757,7 +1757,17 @@ const HABBO_GW = 7, HABBO_GH = 7, HABBO_TW = 84, HABBO_TH = 42;
 let habboPos = new Map();     // char id -> {col,row}, persisted so walking survives re-renders
 let habboSelected = null;
 let habboCtx = null;
-function resetHabbo() { habboPos = new Map(); habboSelected = null; habboCtx = null; }
+let habboWanderTimer = null;  // idle NPCs strolling around, like a populated Habbo room
+function resetHabbo() {
+  habboPos = new Map(); habboSelected = null; habboCtx = null;
+  clearInterval(habboWanderTimer); habboWanderTimer = null;
+  document.getElementById("habboCam")?.remove();
+  document.getElementById("habboChat")?.remove();
+  // The void UI is Habbo-only too: an open DE-VOID panel left over a NEW round would fire stale
+  // toggleEliminated(oldId) handlers. Both are recreated by the next Habbo render.
+  document.getElementById("voidPanel")?.remove();
+  document.getElementById("deVoidBtn")?.remove();
+}
 
 // ===================== Sims bladder cycle =====================
 // The BLADDER need drains over time; when it bottoms out the Sim pisses (a stream off the bottom of
@@ -1826,11 +1836,96 @@ function selectHabbo(id) {
     habboSelected = null;
     habboCtx?.figEls.forEach((el) => el.classList.remove("selected"));
     habboCamera(null);
+    renderHabboSelectionUI();
     return;
   }
   habboSelected = id;
   if (habboCtx) habboCtx.figEls.forEach((el, cid) => el.classList.toggle("selected", cid === id));
   habboCamera(id);
+  renderHabboSelectionUI(true);   // a fresh pick is the one moment the chat input grabs focus
+}
+// The ROOM CAM (a close-up feed of whoever is selected, crunched far softer than the room heads so
+// you can actually tell who it is) + the chat bar that lets you talk AS them. Both live OUTSIDE the
+// zooming room so they stay put while the camera flies around. Chat needs a real keyboard - phones
+// don't get the bar (the room is cramped enough on a phone without an on-screen keyboard on top).
+const HABBO_HAS_KEYBOARD = !!(window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+function renderHabboSelectionUI(focusChat = false) {
+  const wrap = document.querySelector(".board-wrap");
+  // Re-renders rebuild the bar (room DOM is fully rebuilt anyway) - carry the typed draft and focus
+  // across so a mid-sentence net-sync render doesn't eat the message or yank the caret.
+  const oldBar = document.getElementById("habboChat");
+  const oldInput = oldBar?.querySelector("input");
+  const draft = oldBar?.dataset.forId === habboSelected ? (oldInput?.value || "") : "";
+  const hadFocus = !!oldInput && document.activeElement === oldInput;
+  document.getElementById("habboCam")?.remove();
+  document.getElementById("habboChat")?.remove();
+  if (!wrap || !habboSelected || state.global.mystery?.id !== "habbo") return;
+  const ch = characterById(habboSelected);
+  if (!ch) return;
+  const a = state.global.mystery.assignments[ch.id] || {};
+  const cam = document.createElement("div");
+  cam.id = "habboCam"; cam.className = "hb-cam";
+  cam.innerHTML = `<p class="hb-cam-top"><span class="hb-rec">● REC</span><span>ROOM CAM</span></p>`
+    + `<div class="hb-cam-screen"><img src="${a.head || ch.image}" alt=""></div>`
+    + `<p class="hb-cam-name">${displayName(ch)}</p>`
+    + `<button type="button" class="hb-cam-void">🕳 INTO THE VOID</button>`;
+  wrap.appendChild(cam);
+  // Gentler crunch (84px vs the room's 30) - recognisable, still pixel-art.
+  if (a.head) pixelateSrc(a.head, 84, (url) => { const img = cam.querySelector(".hb-cam-screen img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
+  cam.querySelector(".hb-cam-void").addEventListener("click", () => voidHabbo(ch.id));
+  if (HABBO_HAS_KEYBOARD) {
+    const bar = document.createElement("div");
+    bar.id = "habboChat"; bar.className = "hb-chatbar";
+    bar.dataset.forId = ch.id;
+    bar.innerHTML = `<img src="${a.head || ch.image}" alt="">`
+      + `<input type="text" maxlength="90" placeholder="Chat as ${displayName(ch)}…" aria-label="Chat as ${displayName(ch)}">`
+      + `<button type="button">SAY</button>`;
+    wrap.appendChild(bar);
+    if (a.head) pixelateSrc(a.head, 30, (url) => { const img = bar.querySelector("img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
+    const input = bar.querySelector("input");
+    if (draft) input.value = draft;
+    const say = () => { const t = input.value.trim(); if (t) { habboSay(ch.id, t); input.value = ""; } input.focus(); };
+    bar.querySelector("button").addEventListener("click", say);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") say(); if (e.key === "Escape") selectHabbo(habboSelected); });
+    if (focusChat || hadFocus) setTimeout(() => { if (input.isConnected) input.focus({ preventScroll: true }); }, 60);
+  }
+}
+// Habbo chat: the new bubble lands at the head; older ones float upward and expire.
+function habboSay(id, text) {
+  const el = habboCtx?.figEls.get(id);
+  if (!el) return;
+  el.querySelectorAll(".hb-bubble").forEach((b) => {
+    const lift = (Number(b.dataset.lift) || 0) + 1;
+    if (lift > 2) { b.remove(); return; }
+    b.dataset.lift = String(lift);
+    b.style.setProperty("--lift", lift);
+  });
+  const bub = document.createElement("span");
+  bub.className = "hb-bubble";
+  bub.innerHTML = `<b>${escapeHtml(characterById(id)?.name || "???")}:</b> ${escapeHtml(text)}`;
+  el.appendChild(bub);
+  setTimeout(() => { bub.classList.add("hb-bubble-out"); setTimeout(() => bub.remove(), 350); }, 12000);
+}
+// Dropping someone into the void: spin-shrink-fall on the spot, then the re-render removes them from
+// the room (the DE-VOID panel can pull them back). Lives on the ROOM CAM now - no ✕ over the room.
+function voidHabbo(id) {
+  const el = habboCtx?.figEls.get(id);
+  const pos = habboPos.get(id);
+  if (!el || !pos || el.classList.contains("hb-voiding")) return;
+  if (habboSelected === id) selectHabbo(id);      // deselect: zooms out + clears the cam/chat
+  el._walk = (el._walk || 0) + 1;                 // cancel any in-flight walk (its steps would clobber the fall)
+  el.classList.remove("walking");
+  // Fall from wherever they visibly are (mid-walk they're not on their habboPos tile yet).
+  const m = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(el.style.transform || "");
+  const here = m ? { x: Number(m[1]), y: Number(m[2]) } : habboIso(pos.col, pos.row);
+  el.classList.add("hb-voiding");
+  el.style.transition = "transform 0.55s cubic-bezier(0.5, 0, 0.9, 0.5), opacity 0.55s ease-in";
+  el.style.transform = `translate(${here.x.toFixed(0)}px, ${(here.y + 60).toFixed(0)}px) rotate(420deg) scale(0.03)`;
+  el.style.opacity = "0";
+  // Guard the delayed toggle against a round change landing inside the window (online: a peer's
+  // "start" can deal a new round mid-fall - a stale toggle would corrupt + net-sync it).
+  const salt = state.gameSalt;
+  setTimeout(() => { if (state.gameSalt === salt && state.global.mystery?.id === "habbo") toggleEliminated(id); }, 560);
 }
 // An L-shaped path along the grid (columns first, then rows). Each hop is to an ADJACENT tile, which
 // on screen is a pure isometric diagonal - so the avatar walks the grid like a real Habbo, turning at
@@ -1841,22 +1936,26 @@ function habboPath(c0, r0, c1, r1) {
   while (r !== r1) { r += Math.sign(r1 - r); path.push({ col: c, row: r }); }
   return path;
 }
-function habboMoveTo(col, row) {
-  if (!habboSelected || !habboCtx) return;
-  for (const [id, p] of habboPos) if (id !== habboSelected && p.col === col && p.row === row) return; // tile taken
-  const el = habboCtx.figEls.get(habboSelected);
-  const cur = habboPos.get(habboSelected);
-  if (!el || !cur) return;
+function habboWalk(id, col, row) {
+  if (!habboCtx) return;
+  for (const [oid, p] of habboPos) if (oid !== id && p.col === col && p.row === row) return; // tile taken
+  const el = habboCtx.figEls.get(id);
+  const cur = habboPos.get(id);
+  if (!el || !cur || el.classList.contains("hb-voiding")) return;
   const path = habboPath(cur.col, cur.row, col, row);
   if (!path.length) return;
-  habboPos.set(habboSelected, { col, row });          // final tile (kept for persistence)
+  habboPos.set(id, { col, row });                      // final tile (kept for persistence)
   const token = (el._walk = (el._walk || 0) + 1);      // cancels any walk already in progress
-  const STEP = 300;
+  const STEP = 360;                                    // one Habbo beat per tile
   el.classList.add("walking");
-  let i = 0;
+  let i = 0, prevX = habboIso(cur.col, cur.row).x;
   const stepTo = () => {
-    if (el._walk !== token || i >= path.length) return;
+    if (el._walk !== token) return;
+    if (i >= path.length) { el.classList.remove("walking"); return; }   // arrived: stop the gait
     const s = path[i]; const p = habboIso(s.col, s.row);
+    // Habbos face the way they're walking - flip at every turn of the L-path.
+    if (p.x !== prevX) { el.classList.toggle("hb-face-l", p.x < prevX); el.classList.toggle("hb-face-r", p.x > prevX); }
+    prevX = p.x;
     el.style.transitionDuration = `${STEP}ms`;
     el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
     el.style.zIndex = String(100 + s.col + s.row);
@@ -1865,6 +1964,25 @@ function habboMoveTo(col, row) {
     setTimeout(stepTo, STEP);
   };
   stepTo();
+}
+function habboMoveTo(col, row) { if (habboSelected) habboWalk(habboSelected, col, row); }
+// Idle wander: every few seconds a random unselected habbo strolls a tile or two, so the room reads
+// as a real populated Habbo hotel instead of a museum of statues.
+function habboWander() {
+  if (state.global.mystery?.id !== "habbo" || !habboCtx) return;
+  const ids = [...habboCtx.figEls.keys()].filter((id) => id !== habboSelected);
+  if (!ids.length) return;
+  const id = ids[Math.floor(Math.random() * ids.length)];
+  const el = habboCtx.figEls.get(id);
+  const cur = habboPos.get(id);
+  if (!el || !cur || el.classList.contains("walking") || el.classList.contains("hb-voiding")) return;
+  const taken = new Set([...habboPos.entries()].filter(([oid]) => oid !== id).map(([, p]) => `${p.col},${p.row}`));
+  const opts = [];
+  for (let dc = -2; dc <= 2; dc++) for (let dr = -2; dr <= 2; dr++) {
+    const c = cur.col + dc, r = cur.row + dr;
+    if ((dc || dr) && Math.abs(dc) + Math.abs(dr) <= 2 && c >= 0 && c < HABBO_GW && r >= 0 && r < HABBO_GH && !taken.has(`${c},${r}`)) opts.push({ c, r });
+  }
+  if (opts.length) { const t = opts[Math.floor(Math.random() * opts.length)]; habboWalk(id, t.c, t.r); }
 }
 // In Habbo mode the location banner gets crunched down to chunky pixels + quantised colours so the
 // whole top of the screen reads as one pixel-art scene. Restored when the mode ends.
@@ -2039,26 +2157,19 @@ function renderHabboBoard(player) {
     el.dataset.id = ch.id;
     el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
     el.style.zIndex = String(100 + pos.col + pos.row);
+    // Proper Habbo anatomy: big pixel head on a little torso with arms (skin-tone hands), legs and
+    // shoes - the parts animate a real step-gait while walking. Pants hashed per character.
+    const HB_PANTS = ["#3c4a5c", "#54402e", "#233a28", "#4a2a3c", "#2b2b31", "#5c3a24"];
+    const pants = HB_PANTS[stableHash(ch.id + ":pants") % HB_PANTS.length];
     el.innerHTML = `<span class="hb-name">${escapeHtml(displayName(ch))}</span>`
-      + `<span class="hb-kill" title="into the void">✕</span>`
       + `<img class="hb-head" src="${a.head || ch.image}" alt="">`
-      + `<span class="hb-body" style="--shirt:${a.shirt || "#4a90e2"}"></span>`
+      + `<span class="hb-body" style="--shirt:${a.shirt || "#4a90e2"};--skin:${skinHexOf(ch)};--pants:${pants}">`
+      + `<i class="hb-arm hb-arm-l"></i><i class="hb-arm hb-arm-r"></i><i class="hb-torso"></i>`
+      + `<i class="hb-leg hb-leg-l"></i><i class="hb-leg hb-leg-r"></i></span>`
       + `<span class="hb-shadow"></span>`;
-    el.addEventListener("click", (e) => {
-      // The ✕ drops them into the void: spin-shrink-fall on the spot, camera zooms back out, then the
-      // re-render removes them from the room (the DE-VOID panel can pull them back).
-      if (e.target.classList.contains("hb-kill")) {
-        if (el.classList.contains("hb-voiding")) return;
-        if (habboSelected === ch.id) { habboSelected = null; habboCtx?.figEls.forEach((f) => f.classList.remove("selected")); habboCamera(null); }
-        el.classList.add("hb-voiding");
-        el.style.transition = "transform 0.55s cubic-bezier(0.5, 0, 0.9, 0.5), opacity 0.55s ease-in";
-        el.style.transform = `translate(${p.x.toFixed(0)}px, ${(p.y + 60).toFixed(0)}px) rotate(420deg) scale(0.03)`;
-        el.style.opacity = "0";
-        setTimeout(() => toggleEliminated(ch.id), 560);
-        return;
-      }
-      selectHabbo(ch.id);
-    });
+    // Click an avatar to select: the room camera zooms onto them, the ROOM CAM shows their face
+    // properly, and (with a keyboard) the chat bar lets you talk as them.
+    el.addEventListener("click", () => selectHabbo(ch.id));
     figs.appendChild(el);
     figEls.set(ch.id, el);
     // Pixelate the head into chunky Habbo pixels once it loads. Crop tight to the head first so the
@@ -2066,7 +2177,10 @@ function renderHabboBoard(player) {
     if (a.head) pixelateSrc(a.head, 30, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
   });
   habboCtx = { figEls, room };
+  if (habboSelected && !figEls.has(habboSelected)) habboSelected = null;   // selection voided/gone
   if (habboSelected) habboCamera(habboSelected);   // keep the camera on re-render
+  renderHabboSelectionUI();                        // rebuild the ROOM CAM + chat bar for the selection
+  if (!habboWanderTimer) habboWanderTimer = setInterval(habboWander, 2600);   // idle strolling
   renderVoidControls(player);                      // the void + DE-VOID panel is a Habbo-only feature
 }
 

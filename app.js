@@ -3713,18 +3713,22 @@ function skinHexOf(ch) {
   const name = ch.traits && ch.traits.skin;
   return (tb && tb.skinToneHex && tb.skinToneHex[name]) || "#c88968";
 }
-// Mix two suspects like paint: both adopt the averaged background + averaged skin, re-render, and
-// their Pantone chips re-derive from the new blend. Repeatable, so you can keep blending the board.
+// Bleed two suspects into each other like wet paint: each one shifts PART-way toward the other (not
+// all the way to a shared midpoint), so they end up related-but-distinct instead of identical. Their
+// Pantone chips re-derive from each new shade. Repeatable, so you can keep nudging the board together.
+const PANTONE_MIX_T = 0.4;          // how far each moves toward the other (0 = no change, 0.5 = identical)
 function mixPantonePair(A, B) {
-  const newBg = mixHex((A.traits && A.traits.background) || "#cccccc", (B.traits && B.traits.background) || "#cccccc");
-  const newSkin = mixHex(skinHexOf(A), skinHexOf(B));
+  const bgA = (A.traits && A.traits.background) || "#cccccc", bgB = (B.traits && B.traits.background) || "#cccccc";
+  const skinA = skinHexOf(A), skinB = skinHexOf(B);
   const asg = state.global.mystery && state.global.mystery.assignments;
-  [A, B].forEach((ch) => {
-    ch.traits = { ...ch.traits, background: newBg, skinHex: newSkin };
+  const shift = (ch, ownBg, otherBg, ownSkin, otherSkin) => {
+    ch.traits = { ...ch.traits, background: mixHex(ownBg, otherBg, PANTONE_MIX_T), skinHex: mixHex(ownSkin, otherSkin, PANTONE_MIX_T) };
     delete ch.traits.skin;          // let the mixed hex render instead of the named palette tone
     ch.image = window.faceGenerator.renderPortrait(ch.seed, ch.traits);
-    if (asg) { const p = nearestPantone(newBg); asg[ch.id] = { code: p.c, name: p.n, hex: p.h }; }
-  });
+    if (asg) { const p = nearestPantone(ch.traits.background); asg[ch.id] = { code: p.c, name: p.n, hex: p.h }; }
+  };
+  shift(A, bgA, bgB, skinA, skinB);
+  shift(B, bgB, bgA, skinB, skinA);
   renderBoard();
   [A.id, B.id].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("pantone-mix"); void c.offsetWidth; c.classList.add("pantone-mix"); } });
 }

@@ -2043,7 +2043,7 @@ window.GameData = {
   ],
   hpWandWoods: ["Elder", "Holly", "Yew", "Vine", "Hawthorn", "Blackthorn", "Cherry", "Willow", "Ebony", "Walnut", "Rosewood", "Cedar", "Cypress", "Hornbeam"],
   hpWandCores: ["dragon heartstring", "phoenix feather", "unicorn hair", "veela hair", "thestral tail-hair"],
-  hpWandFlex: ["unyielding", "surprisingly girthy", "quite bendy", "rigid", "swishy", "unusually thick", "throbbing"],
+  hpWandFlex: ["unyielding", "surprisingly girthy", "quite bendy", "rigid", "swishy", "unusually thick", "throbbing", "a little soft — give it a moment"],
   hpSpells: [
     ["Engorgio", "makes it noticeably bigger"],
     ["Erecto", "gets it right up"],
@@ -2084,12 +2084,14 @@ window.GameData = {
     "a ferret on its third energy drink", "a possum playing dead to avoid plans"
   ],
   hpBoggarts: [
-    "their own search history", "a surprise group FaceTime", "their mum reading their DMs",
-    "the words 'we need to talk'", "a wasp in the car at 70mph", "a read receipt with no reply",
-    "being perceived in public", "an empty vape", "the dead group chat", "a smear test",
-    "their ex's hotter new partner", "a landlord 'inspection'", "running out of data at 40%",
-    "a spider in the shower", "commitment", "'per my last email'", "a full voicemail box",
-    "eye contact", "their childhood bedroom", "a full-length mirror under strip lighting"
+    "dry cum on their leg", "getting hard at a funeral", "moaning their own name by accident",
+    "finishing in under nine seconds", "a boner during a hug", "cumming and immediately crying",
+    "calling the teacher 'mummy'", "a wet patch on a first date", "the phrase 'is it in yet?'",
+    "their nan finding the toys", "sexting the wrong Dave", "queefing during yoga",
+    "getting caught mid-wank by the Amazon guy", "a condom that simply vanished",
+    "clapping cheeks loud enough that the neighbours knew", "forgetting the safe word AND their name",
+    "an unsolicited nude in the family group chat", "moaning on an unmuted Zoom",
+    "getting friendzoned by a sex worker", "a Pornhub tab open on the shared screen"
   ],
   hpHorcruxes: [
     "a buttplug", "a literal concentration camp", "Tony (the tiger)", "a taxidermied rat",

@@ -4738,7 +4738,6 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 }
 .ts-pg b { padding: 2px 7px; border-radius: 4px; background: #e01b1b; color: #fffdf7; font-size: 0.74rem; }
 .ts-pg.on b { background: #178a47; }
-.ts-discovered { margin: 0; font-weight: 800; font-size: 0.78rem; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.72); text-align: center; animation: ts-fade 0.5s 1.15s both; }
 
 /* First-play onboarding nudges (one-time). Non-interactive layer; any tap dismisses them. */
 .onboard-tips { position: fixed; inset: 0; z-index: 2050; pointer-events: none; transition: opacity 0.3s ease; }
@@ -5402,7 +5401,8 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 
 /* Team labels on the local seat pill + online room team line. */
 .seat-roster.seat-teams .seat-half { flex-direction: column; gap: 2px; padding-top: 6px; padding-bottom: 6px; }
-.seat-teams .seat-sub { font-size: 0.62rem; font-weight: 700; opacity: 0.7; max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Team rosters list one name per line (taller pill, no truncated name-mush). */
+.seat-teams .seat-sub { font-size: 0.62rem; font-weight: 700; opacity: 0.7; max-width: 42vw; line-height: 1.5; text-align: center; }
 .or-team { font-weight: 800; color: #ffbe0b; font-size: 0.9rem; margin-top: 2px; }
 
 
@@ -5693,7 +5693,7 @@ body.mode-linkedin .cue-card { background: #ffffff; border: 1px solid #d6d6d6; c
 
 /* ===================== Last words: the eliminated protest ===================== */
 .lastwords-bubble {
-  position: absolute; left: 50%; top: 8px; z-index: 30;
+  position: absolute; left: 50%; top: 8px; z-index: 80;
   transform: translateX(-50%);
   max-width: 92%; padding: 6px 10px;
   background: #fffdf7; color: #171512;
@@ -5926,3 +5926,20 @@ body.mode-linkedin .cue-card { background: #ffffff; border: 1px solid #d6d6d6; c
 /* Gallery rows hang level: plaques share a minimum height so the wall reads as one exhibition. */
 .gal-plaque { min-height: 86px; display: flex; flex-direction: column; justify-content: center; }
 .rc-foot { margin: 6px 0 0; text-align: center; font-size: 0.52rem; font-style: italic; opacity: 0.55; }
+.al-discovered { margin: 4px 0 0; font-size: 0.68rem; font-weight: 800; opacity: 0.8; }
+
+/* ===================== Session end: FINISH SESSION -> the receipt prints ===================== */
+.round-reveal .rr-finish { margin-top: 10px; opacity: 0.85; }
+.session-end {
+  position: fixed; inset: 0; z-index: 350;
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(8, 8, 14, 0.94);
+  overflow-y: auto; animation: loreIn 0.4s ease;
+}
+.se-head { text-align: center; margin: 6vh 16px 4px; }
+.se-title { margin-bottom: 6px; }
+.se-sub { margin: 0 0 8px; font-size: 0.8rem; font-weight: 700; color: rgba(255, 253, 247, 0.75); }
+.session-end .rc-printer { margin-top: 14px; }
+.se-home { margin: 20px 0 48px; }
+/* The complete universe: gold-crowned title. */
+.session-end.se-complete .se-title { text-shadow: 4px 4px 0 #b8860b, 8px 8px 0 #6e5620; }

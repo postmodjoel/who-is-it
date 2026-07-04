@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Clothing Lab</title>
+    <link rel="stylesheet" href="clothing-lab.css?v=1">
+  </head>
+  <body>
+    <main class="lab-shell">
+      <header class="lab-topbar">
+        <div>
+          <p class="eyebrow">Wardrobe sandbox</p>
+          <h1>Clothing Lab</h1>
+        </div>
+        <nav class="topbar-actions" aria-label="Other workbenches">
+          <a class="button" href="face-studio.html">Face Studio</a>
+          <a class="button ghost" href="index.html">Game</a>
+        </nav>
+      </header>
+
+      <section class="toolbar" aria-label="Clothing lab controls">
+        <label>
+          <span>View</span>
+          <select id="viewFilter">
+            <option value="all">All outfits</option>
+            <option value="new">New concepts</option>
+            <option value="current">Current only</option>
+          </select>
+        </label>
+        <label>
+          <span>Body</span>
+          <select id="bodyPreset"></select>
+        </label>
+        <label>
+          <span>Skin</span>
+          <select id="skinPreset"></select>
+        </label>
+        <label>
+          <span>Colour</span>
+          <input id="colourInput" type="color" value="#2f7a78">
+        </label>
+        <div id="swatches" class="swatches" aria-label="Colour swatches"></div>
+      </section>
+
+      <section class="lab-layout">
+        <aside class="preview-panel" aria-label="Selected outfit preview">
+          <div id="previewArt" class="preview-art"></div>
+          <div class="preview-meta">
+            <p id="previewStatus" class="status-pill">New concept</p>
+            <h2 id="previewName">Outfit</h2>
+            <p id="previewNotes" class="notes"></p>
+            <div id="previewTags" class="tag-row"></div>
+          </div>
+          <section class="shape-controls" aria-label="Body shape controls">
+            <label>
+              <span>Shoulders</span>
+              <input id="buildRange" type="range" min="62" max="104" step="1">
+            </label>
+            <label>
+              <span>Slope</span>
+              <input id="slopeRange" type="range" min="0.15" max="0.9" step="0.01">
+            </label>
+            <label>
+              <span>Torso</span>
+              <input id="bodyWidthRange" type="range" min="0.72" max="1.35" step="0.01">
+            </label>
+            <label>
+              <span>Belly</span>
+              <input id="bellyRange" type="range" min="0" max="1" step="0.01">
+            </label>
+          </section>
+          <label class="spec-box">
+            <span>Selected spec</span>
+            <textarea id="specOutput" readonly spellcheck="false"></textarea>
+          </label>
+        </aside>
+
+        <section class="catalog-panel" aria-label="Outfit catalogue">
+          <div class="catalog-head">
+            <div>
+              <p class="eyebrow">Wardrobe audit</p>
+              <h2 id="catalogTitle">0 outfits</h2>
+            </div>
+            <div id="catalogStats" class="stats-row"></div>
+          </div>
+          <div id="outfitGrid" class="outfit-grid"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="clothing-lab.js?v=1"></script>
+  </body>
+</html>

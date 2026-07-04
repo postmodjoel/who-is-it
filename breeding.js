@@ -82,6 +82,7 @@ function jitterGaybyHair(traits) {
   return traits;
 }
 function makeBaby(A, B, gayby) {
+  if (typeof bumpStat === "function") bumpStat(gayby ? "gaybys" : "babies");
   let traits = mutateBaby(mergeTraits(A.traits || {}, B.traits || {}));
   if (gayby) traits = jitterGaybyHair(traits);
   const seed = 90001 + (babyCounter++);
@@ -419,6 +420,7 @@ const ABORT_LINES = [
 function abortBaby(baby, parentA, parentB) {
   // Each aborted baby adds to a hidden tally on both parents - sortable as "Abortions".
   [parentA, parentB].forEach((p) => { if (p) p.abortions = (p.abortions || 0) + 1; });
+  if (typeof bumpStat === "function") bumpStat("abortions");
   // The soul lingers: it haunts Judgement Day's purgatory for the rest of the session (persisted).
   state.abortedBabies = state.abortedBabies || [];
   if (!state.abortedBabies.some((g) => g.id === baby.id)) {

@@ -736,6 +736,8 @@ function renderHabboSelectionUI(focusChat = false) {
       const t = input.value.trim();
       if (t) {
         const filtered = bobbaize(t);
+        const bobbas = (filtered.match(/bobba/g) || []).length;
+        if (bobbas) bumpStat("bobbas", bobbas);
         habboSay(ch.id, filtered);
         netSend("chat", { charId: ch.id, text: filtered });
         input.value = "";
@@ -748,6 +750,7 @@ function renderHabboSelectionUI(focusChat = false) {
   }
 }
 function banHabbo(id) {
+  if (!currentPlayer().eliminated.has(id)) bumpStat("habboBans");
   toggleEliminated(id);
   if (habboSelected !== id) habboSelected = id;
 }
@@ -1974,8 +1977,14 @@ function showLastWords(charId) {
   const bub = document.createElement("span");
   bub.className = "lastwords-bubble";
   bub.textContent = modeLastWords(ch);
+  // Lift the speaking card above its neighbours (and their shadows) while the bubble is up.
+  const prevZ = el.style.zIndex;
+  el.style.zIndex = "60";
   el.appendChild(bub);
-  setTimeout(() => { bub.classList.add("lw-out"); setTimeout(() => bub.remove(), 380); }, 3200);
+  setTimeout(() => {
+    bub.classList.add("lw-out");
+    setTimeout(() => { bub.remove(); el.style.zIndex = prevZ; }, 380);
+  }, 3200);
 }
 
 function getMysteryCardData(character) {
@@ -2861,11 +2870,13 @@ function simsMarried(A, B, a, b) {
   if (success) {
     [a, b].forEach((s) => { s.simoleons = Math.round((s.simoleons || 0) * 0.04); s.mood = "red"; s.action = "Regretting the vows"; s.needs = { ...s.needs, fun: Math.min(s.needs?.fun ?? 20, 8), social: Math.min(s.needs?.social ?? 20, 12) }; });
     flashToast("⛓️ Married — til debt do us part"); sfx("buzzer");
+    bumpStat("weddings");
   } else {
     const pot = (a.simoleons || 0) + (b.simoleons || 0);
     a.simoleons = Math.round(pot / 2); b.simoleons = pot - a.simoleons;
     [a, b].forEach((s) => { s.mood = "green"; s.action = "Living their best divorced life"; s.needs = { ...s.needs, fun: Math.max(s.needs?.fun ?? 80, 90), social: Math.max(s.needs?.social ?? 80, 88) }; });
     flashToast("🕊️ Divorce — happily ever after"); sfx("coin");
+    bumpStat("divorces");
   }
   const bank = simBankGet(); bank[A.id] = a.simoleons; bank[B.id] = b.simoleons; simBankSet(bank);
   renderBoard();
@@ -3224,6 +3235,7 @@ function avadaKedavra(ch) {
   }
   flashToast(alreadyDown ? `✨ Finite — ${ch.name} rises again.` : `☠ Avada Kedavra — ${ch.name} is no more.`);
   sfx(alreadyDown ? "sparkle" : "boom");
+  if (!alreadyDown) bumpStat("avadas");
   setTimeout(() => toggleEliminated(ch.id), alreadyDown ? 60 : 500);
 }
 

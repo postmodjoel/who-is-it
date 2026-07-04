@@ -256,6 +256,7 @@ const state = {
   gameSalt: "",
   abortedBabies: [],   // session-level: aborted souls that later haunt Judgement Day's purgatory
   lore: [],            // session lore ledger: one entry per finished round, feeds the "Previously…" callbacks
+  stats: {},           // session tally of unlocked absurdities (avadas, divorces…) — receipt lines when > 0
   log: [],
   global: {
     mystery: null,
@@ -283,7 +284,6 @@ const els = {
   setupButton: document.querySelector("#setupButton"),
   editorButton: document.querySelector("#editorButton"),
   almanacButton: document.querySelector("#almanacButton"),
-  receiptButton: document.querySelector("#receiptButton"),
   soundButton: document.querySelector("#soundButton"),
   settingSeed: document.querySelector("#settingSeed"),
   copySeedButton: document.querySelector("#copySeedButton"),
@@ -713,7 +713,7 @@ function renderRoom() {
   els.seatRoster.innerHTML = [0, 1].map((i) => {
     const active = i === state.currentPlayer;
     const label = teamMode ? teamLabel(i) : (state.players[i].pname || (i === 0 ? "A" : "B"));
-    const sub = teamMode ? `<span class="seat-sub">${escapeHtml(teamMembers(i).map((m) => m.name).join(", "))}</span>` : "";
+    const sub = teamMode ? `<span class="seat-sub">${teamMembers(i).map((m) => escapeHtml(m.name)).join("<br>")}</span>` : "";
     return `<button type="button" class="seat-half ${active ? "active" : ""}" data-seat="${i}">
         <span class="seat-glyph">${active ? "YOU" : escapeHtml(label)}</span>${sub}
       </button>`;
@@ -837,6 +837,7 @@ function toggleEliminated(id) {
   state.justEliminated = null;
   state.justRestored = null;
   const down = player.eliminated.has(id);
+  if (down && state.global.mystery?.id === "fireworks") bumpStat("headsPopped");
   // Last words: the freshly-flipped character sometimes protests (~40%, local-only theatre).
   if (down && Math.random() < 0.4 && typeof showLastWords === "function") showLastWords(id);
   sfx(down ? "eliminate" : "revive");
@@ -1145,6 +1146,46 @@ function rebuildDebugPicker() {
     opt.textContent = effect.name;
     els.debugEffectPicker.appendChild(opt);
   });
+  // Debug test profiles: seed a session state so end-game flows can be tested without a 30-round night.
+  const grp = document.createElement("optgroup");
+  grp.label = "🧪 Test profiles";
+  [["profile-endgame", "Endgame (1 mode left)"], ["profile-stats", "Stats-heavy session"]].forEach(([v, t]) => {
+    const opt = document.createElement("option");
+    opt.value = v; opt.textContent = t;
+    grp.appendChild(opt);
+  });
+  els.debugEffectPicker.appendChild(grp);
+}
+// Seed the persistent + session state for testing the finale/receipt flows.
+function applyDebugProfile(kind) {
+  const seedLore = () => {
+    state.lore = [
+      { modeId: "disease", modeName: "Disease Mode", names: ["Felix", "Hugo"], you: "Felix" },
+      { modeId: "habbo", modeName: "Habbo Hotel", names: ["Stella", "Niko"], you: "Niko" },
+      { modeId: "linkedin", modeName: "LINKEDIN", names: ["Elena", "Bruno"], you: "Elena" },
+      { modeId: "gallery", modeName: "THE GALLERY", names: ["Aisha", "Kai"], you: "Kai" },
+      { modeId: "horny-potter", modeName: "Horny Potter", names: ["Olivia", "Leon"], you: "Olivia" },
+      { modeId: "sims", modeName: "The Sims", names: ["Maya", "Tyler"], you: "Maya" }
+    ];
+    state.stats = { abortions: 3, divorces: 2, weddings: 1, avadas: 5, habboBans: 4, headsPopped: 7, bobbas: 23, babies: 2, gaybys: 1 };
+    state.roundAge = 7;
+  };
+  if (kind === "profile-stats") {
+    seedLore();
+    flashToast("🧪 Stats profile loaded — end the round and FINISH SESSION to see the receipt.");
+  } else if (kind === "profile-endgame") {
+    seedLore();
+    // Mark everything but ONE mode as both discovered and wheel-seen: the next spin completes
+    // the lap (season finale) and the discovery counter sits at total-1.
+    const ids = mysteryEffects.map((e) => e.id);
+    const allButOne = ids.slice(0, -1);
+    try {
+      localStorage.setItem(DISCOVERED_KEY, JSON.stringify(allButOne));
+      localStorage.setItem(WHEEL_BAG_KEY, JSON.stringify(allButOne.concat([null])));
+    } catch (e) { /* fine */ }
+    flashToast(`🧪 Endgame profile — only "${MysteryModes.byId(ids[ids.length - 1])?.name}" left. Next round finishes the lap.`);
+  }
+  scheduleSave();
 }
 function setPgMode(on) {
   state.settings.pg = !!on;
@@ -1177,6 +1218,7 @@ if (els.debugEffectPicker) {
   els.debugEffectPicker.addEventListener("change", () => {
     const id = els.debugEffectPicker.value;
     els.debugEffectPicker.value = "";
+    if (id.startsWith("profile-")) { applyDebugProfile(id); return; }
     const effect = MysteryModes.byId(id);
     if (!effect) return;
     if (currentPlayer()) currentPlayer().mysteryUsed = true;
@@ -1285,6 +1327,7 @@ function saveGameState() {
       currentPlayer: state.currentPlayer,
       roundAge: state.roundAge || 0,
       lore: state.lore || [],
+      stats: state.stats || {},
       playerCount: state.playerCount || 2,
       roster: (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side })),
       clientId: state.clientId || "",
@@ -1368,6 +1411,7 @@ function resumeGame(saved) {
   }
   state.roundAge = saved.roundAge || 0;   // restored before newGame's resume path (which preserves it)
   state.lore = Array.isArray(saved.lore) ? saved.lore : [];
+  state.stats = saved.stats && typeof saved.stats === "object" ? saved.stats : {};
   state.abortedBabies = saved.abortedBabies || [];
   // Restore the roster BEFORE newGame so assignRosterTeams re-derives the same sides from the same
   // salt + roster (and the seat pill / team labels come back intact).
@@ -1474,7 +1518,8 @@ function showRoundReveal(done) {
       <div class="rr-vs">×</div>
       <div class="rr-card"><span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span>${epiTheirs ? `<span class="rr-epilogue">${escapeHtml(epiTheirs)}</span>` : ""}</div>
     </div>
-    <button type="button" class="button primary rr-next">NEXT ROUND →</button>`;
+    <button type="button" class="button primary rr-next">NEXT ROUND →</button>
+    <button type="button" class="button ghost rr-finish">🧾 FINISH SESSION</button>`;
   document.body.appendChild(ov);
   // No auto-advance: players click NEXT ROUND when they're ready (time to pass the device / react).
   // Online: whoever clicks deals + broadcasts; a remote deal also clears any lingering reveal (newGame).
@@ -1486,10 +1531,24 @@ function showRoundReveal(done) {
     setTimeout(() => { ov.remove(); if (done) done(); }, 380);
   };
   ov.querySelector(".rr-next").addEventListener("click", finish);
+  // FINISH SESSION: the night ends here - the receipt prints on the session-end screen.
+  ov.querySelector(".rr-finish").addEventListener("click", () => {
+    if (finished) return;
+    finished = true;
+    ov.remove();
+    showSessionEnd();
+  });
 }
 function endRound() {
   netSend("endround", {});
   showRoundReveal(() => newGame());
+}
+
+// Session stat tally: modes report their unlocked absurdities here; the receipt prints any > 0.
+function bumpStat(key, n = 1) {
+  if (!state.stats) state.stats = {};
+  state.stats[key] = (state.stats[key] || 0) + n;
+  scheduleSave();
 }
 
 // ===================== Session lore: the universe remembers =====================
@@ -1547,8 +1606,19 @@ function almanacRecord(secA, secB, eff) {
 // Feeds out of a printer slot, thermal-paper style: every round as a line item with a stamped
 // verdict, the cast you played as, dubious totals, a barcode, NO REFUNDS.
 const RECEIPT_TAGS = ["[OK]", "[INCIDENT]", "[UNDER REVIEW]", "[NO SURVIVORS]", "[SEALED]", "[DO NOT ASK]", "[RESOLVED*]", "[ONGOING]"];
-function showReceipt() {
-  document.querySelector(".receipt-overlay")?.remove();
+// Human labels for the stat tally — a stat only prints when its count is > 0.
+const RECEIPT_STAT_LABELS = {
+  abortions: "ABORTIONS",
+  babies: "BABIES BRED",
+  gaybys: "GAYBYS",
+  divorces: "DIVORCES (SIMS)",
+  weddings: "WEDDINGS (REGRETTED)",
+  avadas: "AVADA KEDAVRAS",
+  habboBans: "HABBO POOL BANS",
+  headsPopped: "HEADS POPPED",
+  bobbas: "BOBBAS SAID"
+};
+function buildReceiptPaper() {
   const lore = state.lore || [];
   const season = (() => { try { return parseInt(localStorage.getItem("whoisit_season_v1") || "1", 10) || 1; } catch (e) { return 1; } })();
   const items = lore.length
@@ -1559,10 +1629,10 @@ function showReceipt() {
     : `<div class="rc-line"><span>0x ROUNDS ON RECORD</span><b>[SUSPICIOUS]</b></div>`;
   const you = [...new Set(lore.map((e) => e.you).filter(Boolean))];
   const secretsBurned = lore.reduce((n, e) => n + e.names.length, 0);
-  const ov = document.createElement("div");
-  ov.className = "receipt-overlay";
-  ov.innerHTML = `
-    <div class="rc-printer" aria-hidden="true"><i></i></div>
+  const statLines = Object.entries(RECEIPT_STAT_LABELS)
+    .filter(([key]) => (state.stats && state.stats[key]) > 0)
+    .map(([key, label]) => `<div class="rc-line"><span>${label}</span><b>${state.stats[key]}</b></div>`).join("");
+  return `
     <div class="receipt-paper" role="document">
       <p class="rc-logo">WHO? IS IT?</p>
       <p class="rc-sub">UNIVERSE RECEIPT</p>
@@ -1575,6 +1645,8 @@ function showReceipt() {
       <div class="rc-rule"></div>
       <div class="rc-line"><span>ROUNDS PLAYED</span><b>${lore.length}</b></div>
       <div class="rc-line"><span>SECRETS BURNED</span><b>${secretsBurned}</b></div>
+      ${statLines ? `<div class="rc-rule"></div><p class="rc-head">INCIDENT TALLY:</p>${statLines}` : ""}
+      <div class="rc-rule"></div>
       <div class="rc-line"><span>WINNERS</span><b>N/A</b></div>
       <div class="rc-line"><span>REFUNDS</span><b>NONE</b></div>
       <div class="rc-rule"></div>
@@ -1583,10 +1655,36 @@ function showReceipt() {
       <p class="rc-serial">#${escapeHtml(String(stableHash(state.gameSalt || "void")).slice(0, 10))}</p>
       <p class="rc-foot">*nothing was resolved</p>
     </div>`;
+}
+// The end-of-session screen: FINISH SESSION (on the round reveal) leads here. The receipt prints;
+// if every single mode has been discovered, the full THE COMPLETE UNIVERSE celebration crowns it.
+function showSessionEnd() {
+  document.querySelector(".session-end")?.remove();
+  const found = loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length;
+  const total = mysteryEffects.length;
+  const complete = found >= total;
+  const ov = document.createElement("div");
+  ov.className = "session-end" + (complete ? " se-complete" : "");
+  ov.innerHTML = `
+    <div class="se-head">
+      ${complete
+        ? `<p class="sf-eyebrow">EVERY MODE. EVERY INCIDENT. EVERYONE.</p><h2 class="sf-title se-title">THE COMPLETE<br>UNIVERSE</h2>`
+        : `<h2 class="sf-title se-title">SESSION ENDED</h2><p class="se-sub">🎡 ${found} / ${total} modes discovered — the universe isn't finished with you.</p>`}
+    </div>
+    <div class="rc-printer" aria-hidden="true"><i></i></div>
+    ${buildReceiptPaper()}
+    <button type="button" class="button primary se-home">BACK TO TITLE</button>`;
   document.body.appendChild(ov);
-  // Printer chatter while the paper feeds out.
   try { if (window.Sound && Sound.spinTicks) Sound.spinTicks(1500, 55, 55); } catch (e) { /* silent printer */ }
-  ov.addEventListener("click", (e) => { if (e.target === ov) { ov.classList.add("lore-out"); setTimeout(() => ov.remove(), 380); } });
+  if (complete) sfx("win");
+  ov.querySelector(".se-home").addEventListener("click", () => {
+    // The session is over: clear the round save + ledger so the next night starts fresh.
+    try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }
+    state.lore = [];
+    state.stats = {};
+    ov.remove();
+    showTitleScreen();
+  });
 }
 
 function showAlmanac() {
@@ -1614,7 +1712,11 @@ function showAlmanac() {
   ov.innerHTML = `
     <div class="almanac-box">
       <div class="al-head">
-        <div><p class="al-eyebrow">THE ALMANAC</p><p class="al-sub">Everything this universe has ever established. It keeps growing.</p></div>
+        <div>
+          <p class="al-eyebrow">THE ALMANAC</p>
+          <p class="al-sub">Everything this universe has ever established. It keeps growing.</p>
+          <p class="al-discovered" title="Mystery modes you've encountered">🎡 ${loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length} / ${mysteryEffects.length} modes discovered</p>
+        </div>
         <button type="button" class="icon-button al-close" aria-label="Close">X</button>
       </div>
       <div class="al-list">${entries.length ? entries.map(row).join("") : `<p class="al-empty">Nothing on record. Finish a round — the universe will start taking notes.</p>`}</div>
@@ -1778,8 +1880,6 @@ function askAdultGate(cb, required = 3) {
 
 function showTitleScreen() {
   const saved = loadGameSave();
-  const modeTotal = (typeof mysteryEffects !== "undefined") ? mysteryEffects.length : 0;
-  const modeFound = loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length;
   const ov = document.createElement("div");
   ov.className = "title-screen";
   ov.innerHTML = `
@@ -1818,8 +1918,7 @@ function showTitleScreen() {
         <button type="button" class="button ghost ts-back">← back</button>
       </div>
     </div>
-    <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>
-    <p class="ts-discovered" title="Mystery modes you've encountered">🎡 ${modeFound} / ${modeTotal} modes discovered</p>`;
+    <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>`;
   document.body.appendChild(ov);
   const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
   // PG toggle: turning it ON is free; turning it OFF is gated behind an adults-only riddle.
@@ -2006,7 +2105,6 @@ mergeGaybiesIntoPool();                // and the persistent GAYBYs
 wirePainScaleDrag();                   // drag the disease pain scale to change emotions
 if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
 if (els.almanacButton) els.almanacButton.addEventListener("click", showAlmanac);
-if (els.receiptButton) els.receiptButton.addEventListener("click", showReceipt);
 showTitleScreen();                     // WHO? / IS IT? slides in; deal or resume from there
 wireCueCardClick();
 wireFloatingSecret();

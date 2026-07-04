@@ -607,8 +607,9 @@ let habboPos = new Map();     // char id -> {col,row}, persisted so walking surv
 let habboSelected = null;
 let habboCtx = null;
 let habboWanderTimer = null;  // idle NPCs strolling around, like a populated Habbo room
+let habboBlocked = new Set(); // "col,row" tiles occupied by furni - nobody stands or walks there
 function resetHabbo() {
-  habboPos = new Map(); habboSelected = null; habboCtx = null;
+  habboPos = new Map(); habboSelected = null; habboCtx = null; habboBlocked = new Set();
   clearInterval(habboWanderTimer); habboWanderTimer = null;
   document.getElementById("habboCam")?.remove();
   document.getElementById("habboChat")?.remove();
@@ -795,14 +796,29 @@ function habboPath(c0, r0, c1, r1) {
   while (r !== r1) { r += Math.sign(r1 - r); path.push({ col: c, row: r }); }
   return path;
 }
+// An L-path that respects furni: try columns-first then rows-first; use the first route whose
+// every step is unblocked. Returns null when the sofa really is in the way.
+function habboPathAvoiding(c0, r0, c1, r1) {
+  const routes = [habboPath(c0, r0, c1, r1), (() => {
+    const path = []; let c = c0, r = r0;
+    while (r !== r1) { r += Math.sign(r1 - r); path.push({ col: c, row: r }); }
+    while (c !== c1) { c += Math.sign(c1 - c); path.push({ col: c, row: r }); }
+    return path;
+  })()];
+  for (const path of routes) {
+    if (path.length && path.every((s) => !habboBlocked.has(`${s.col},${s.row}`))) return path;
+  }
+  return null;
+}
 function habboWalk(id, col, row) {
   if (!habboCtx) return;
+  if (habboBlocked.has(`${col},${row}`)) return;   // that tile's got furni on it
   for (const [oid, p] of habboPos) if (oid !== id && p.col === col && p.row === row) return; // tile taken
   const el = habboCtx.figEls.get(id);
   const cur = habboPos.get(id);
   if (!el || !cur || el.classList.contains("is-down")) return;
-  const path = habboPath(cur.col, cur.row, col, row);
-  if (!path.length) return;
+  const path = habboPathAvoiding(cur.col, cur.row, col, row);
+  if (!path || !path.length) return;
   habboPos.set(id, { col, row });                      // final tile (kept for persistence)
   const token = (el._walk = (el._walk || 0) + 1);      // cancels any walk already in progress
   const STEP = 360;                                    // one Habbo beat per tile
@@ -839,7 +855,7 @@ function habboWander() {
   const opts = [];
   for (let dc = -2; dc <= 2; dc++) for (let dr = -2; dr <= 2; dr++) {
     const c = cur.col + dc, r = cur.row + dr;
-    if ((dc || dr) && Math.abs(dc) + Math.abs(dr) <= 2 && c >= 0 && c < HABBO_GW && r >= 0 && r < HABBO_GH && !taken.has(`${c},${r}`)) opts.push({ c, r });
+    if ((dc || dr) && Math.abs(dc) + Math.abs(dr) <= 2 && c >= 0 && c < HABBO_GW && r >= 0 && r < HABBO_GH && !taken.has(`${c},${r}`) && !habboBlocked.has(`${c},${r}`)) opts.push({ c, r });
   }
   if (opts.length) { const t = opts[Math.floor(Math.random() * opts.length)]; habboWalk(id, t.c, t.r); }
 }
@@ -917,6 +933,72 @@ function habboizeBanner(on) {
   im.src = decodeURI(m[1]);
 }
 
+// ===== Furni: scraped icon props placed deterministically around the room =====
+// 7-12 floor props + 1-3 wall props, seeded from the salt + location so every client (and every
+// re-render) hangs the same room. Floor props claim their tile in habboBlocked - figures can't
+// stand there and walks route around them. If habbo-assets.js isn't present the room simply stays
+// its classic CSS-art self.
+function renderHabboFurni(room, wallL, wallR) {
+  habboBlocked = new Set();
+  const props = window.HabboFurniProps;
+  if (!Array.isArray(props) || !props.length) return;
+  const locName = ((state.location && state.location.name) || "").toLowerCase();
+  const seedBase = `${state.gameSalt}:habbofurni:${locName}`;
+  const floorProps = props.filter((p) => p.kind === "floor");
+  const wallPool = props.filter((p) => p.kind === "wall");
+  if (!floorProps.length) return;
+  // The room's furniture suits the venue: gardens get plants, clubs get neon, cafes get food.
+  const prefTags = /park|garden|greenhouse|farm|beach|camp|orchard|meadow/.test(locName) ? ["garden", "plant"]
+    : /casino|nightclub|club|arcade|karaoke|record|cinema|bowling/.test(locName) ? ["night", "lamp", "rare"]
+    : /bakery|cafe|diner|restaurant|kitchen|wine|market/.test(locName) ? ["food", "table", "chair"]
+    : /spa|spring|pool|bath|sauna|yoga|gym/.test(locName) ? ["plant", "lamp", "rug"]
+    : /library|bookstore|museum|gallery|office|hotel/.test(locName) ? ["table", "chair", "lamp", "misc"]
+    : ["chair", "sofa", "table", "plant", "lamp"];
+  const preferred = floorProps.filter((p) => p.tags.some((t) => prefTags.includes(t)));
+  const pool = preferred.length >= 10 ? preferred : preferred.concat(floorProps);
+  const layer = document.createElement("div");
+  layer.className = "habbo-furni-layer";
+  const nFloor = 7 + (stableHash(`${seedBase}:n`) % 6);   // 7..12 props
+  for (let i = 0; i < nFloor; i++) {
+    const prop = pool[stableHash(`${seedBase}:f${i}`) % pool.length];
+    let c = stableHash(`${seedBase}:fc${i}`) % HABBO_GW;
+    let r = stableHash(`${seedBase}:fr${i}`) % HABBO_GH;
+    let tries = 0;
+    while (habboBlocked.has(`${c},${r}`) && tries < HABBO_GW * HABBO_GH) {
+      c = (c + 1) % HABBO_GW;
+      if (c === 0) r = (r + 1) % HABBO_GH;
+      tries++;
+    }
+    if (habboBlocked.has(`${c},${r}`)) continue;
+    habboBlocked.add(`${c},${r}`);
+    const p = habboIso(c, r);
+    const img = document.createElement("img");
+    img.className = "hb-furni hb-furni-floor";
+    img.src = prop.path;
+    img.alt = ""; img.draggable = false;
+    img.style.left = `${p.x.toFixed(0)}px`;
+    img.style.top = `${p.y.toFixed(0)}px`;
+    img.style.zIndex = String(100 + c + r);   // same sort space as the figures, so overlap stacks right
+    layer.appendChild(img);
+  }
+  // Wall art hangs INSIDE the skewed wall panels, so it follows the room's perspective for free.
+  if (wallPool.length) {
+    const nWall = 1 + (stableHash(`${seedBase}:w`) % 3);   // 1..3 pieces
+    for (let i = 0; i < nWall; i++) {
+      const prop = wallPool[stableHash(`${seedBase}:wp${i}`) % wallPool.length];
+      const host = (stableHash(`${seedBase}:ws${i}`) % 2) ? wallR : wallL;
+      const img = document.createElement("img");
+      img.className = "hb-furni hb-furni-wall";
+      img.src = prop.path;
+      img.alt = ""; img.draggable = false;
+      img.style.left = `${8 + (stableHash(`${seedBase}:wx${i}`) % 62)}%`;
+      img.style.top = `${16 + (stableHash(`${seedBase}:wy${i}`) % 28)}px`;
+      host.appendChild(img);
+    }
+  }
+  room.appendChild(layer);
+}
+
 function renderHabboBoard(player) {
   els.characterBoard.classList.add("habbo-board");
   els.characterBoard.setAttribute("aria-label", "Habbo Hotel room");
@@ -975,7 +1057,8 @@ function renderHabboBoard(player) {
   // Clicking empty room (not an avatar, not a walkable tile) drops the camera back out.
   room.addEventListener("click", (e) => {
     if (habboSelected && (e.target === room || e.target === floor || e.target.closest(".hb-ground")
-      || e.target.classList.contains("hb-wallpanel") || e.target.classList.contains("habbo-decor"))) selectHabbo(habboSelected);
+      || e.target.classList.contains("hb-wallpanel") || e.target.classList.contains("habbo-decor")
+      || e.target.classList.contains("hb-furni"))) selectHabbo(habboSelected);
   });
   for (let r = 0; r < HABBO_GH; r++) for (let c = 0; c < HABBO_GW; c++) {
     const p = habboIso(c, r);
@@ -985,10 +1068,15 @@ function renderHabboBoard(player) {
     tile.addEventListener("click", () => habboMoveTo(c, r));
     floor.appendChild(tile);
   }
+  // Furnish the room BEFORE anyone picks a spot: floor props claim tiles in habboBlocked.
+  renderHabboFurni(room, wallL, wallR);
   // Give any character without a tile a starting spot, strided so they scatter across the whole floor
-  // rather than bunching in the back rows.
+  // rather than bunching in the back rows. Furni tiles are off-limits; anyone persisted onto a tile
+  // that now holds furni (stale pre-furni position) gets re-seated.
   const total = HABBO_GW * HABBO_GH;
+  habboPos.forEach((p, id) => { if (habboBlocked.has(`${p.col},${p.row}`)) habboPos.delete(id); });
   const taken = new Set([...habboPos.values()].map((p) => `${p.col},${p.row}`));
+  habboBlocked.forEach((key) => taken.add(key));
   const stride = Math.max(1, Math.floor(total / Math.max(1, list.length)));
   let slot = 0;
   list.forEach((ch) => {
@@ -1024,22 +1112,28 @@ function renderHabboBoard(player) {
     el.dataset.id = ch.id;
     el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)${isDown ? " rotate(-8deg)" : ""}`;
     el.style.zIndex = String(100 + pos.col + pos.row);
-    // Proper Habbo anatomy: big pixel head on a little torso with arms (skin-tone hands), legs and
-    // shoes - the parts animate a real step-gait while walking. The bottom half wears the SAME
-    // outfit as the top: pants are a darker shade of the shirt, not a random colour.
-    const pants = mixHex(a.shirt || "#4a90e2", "#14161c", 0.45);
-    el.innerHTML = `<span class="hb-name">${escapeHtml(displayName(ch))}</span>`
-      + `<img class="hb-head" src="${a.head || ch.image}" alt="">`
-      + `<span class="hb-body" style="--shirt:${a.shirt || "#4a90e2"};--skin:${skinHexOf(ch)};--pants:${pants}">`
-      + `<i class="hb-arm hb-arm-l"></i><i class="hb-arm hb-arm-r"></i><i class="hb-torso"></i>`
-      + `<i class="hb-leg hb-leg-l"></i><i class="hb-leg hb-leg-r"></i></span>`
-      + `<span class="hb-shadow"></span>`;
+    // The figure: one local Habbo-style pixel sprite (habbo-avatar.js) built from the character's
+    // traits. Facing is handled by CSS scaleX on .hb-avatar - never re-rendered mid-walk. Falls back
+    // to the classic pixelated-head + CSS-body anatomy if the sprite generator isn't loaded.
+    if (a.avatar) {
+      el.innerHTML = `<span class="hb-name">${escapeHtml(displayName(ch))}</span>`
+        + `<img class="hb-avatar" src="${a.avatar}" alt="" draggable="false">`
+        + `<span class="hb-shadow"></span>`;
+    } else {
+      const pants = mixHex(a.shirt || "#4a90e2", "#14161c", 0.45);
+      el.innerHTML = `<span class="hb-name">${escapeHtml(displayName(ch))}</span>`
+        + `<img class="hb-head" src="${a.head || ch.image}" alt="">`
+        + `<span class="hb-body" style="--shirt:${a.shirt || "#4a90e2"};--skin:${skinHexOf(ch)};--pants:${pants}">`
+        + `<i class="hb-arm hb-arm-l"></i><i class="hb-arm hb-arm-r"></i><i class="hb-torso"></i>`
+        + `<i class="hb-leg hb-leg-l"></i><i class="hb-leg hb-leg-r"></i></span>`
+        + `<span class="hb-shadow"></span>`;
+    }
     el.addEventListener("click", (e) => { e.stopPropagation(); selectHabbo(ch.id); });
     figs.appendChild(el);
     figEls.set(ch.id, el);
-    // Pixelate the head into chunky Habbo pixels once it loads. Crop tight to the head first so the
-    // whole pixel budget lands on the face (not transparent margins) - readable AND properly pixel-art.
-    if (a.head) pixelateSrc(a.head, 36, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
+    // Fallback path only: pixelate the head into chunky Habbo pixels once it loads. Crop tight to
+    // the head so the pixel budget lands on the face - readable AND properly pixel-art.
+    if (!a.avatar && a.head) pixelateSrc(a.head, 36, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
   });
   habboCtx = { figEls, room };
   if (habboSelected && !figEls.has(habboSelected)) habboSelected = null;
@@ -3249,7 +3343,16 @@ function applyHabbo(effect) {
       ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, headOnly: true })
       : ch.image;
     const shirt = ch.traits?.shirt || (tb?.skinToneHex?.[ch.traits?.skin]) || "#4a90e2";
-    assignments[ch.id] = { head, shirt };
+    // The room figure: a local Habbo-style pixel sprite built from the same traits (hair/skin/
+    // shirt/accessories). Falls back to the classic head+CSS-body figure if the generator's absent.
+    let avatar = null, avatarHead = null;
+    if (window.habboAvatar && ch.traits) {
+      try {
+        avatar = window.habboAvatar.render(ch);
+        avatarHead = window.habboAvatar.renderHead(ch);
+      } catch (e) { /* fall back to the classic figure */ }
+    }
+    assignments[ch.id] = { head, shirt, avatar, avatarHead };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

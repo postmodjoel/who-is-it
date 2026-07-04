@@ -106,8 +106,8 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 /* Same colours + shadows as the splash: yellow WHO?, white IS IT? with a blue drop. */
-.side-head h1 .brand-who { color: #ffbe0b; text-shadow: 0.04em 0.04em 0 #171512; }
-.side-head h1 .brand-isit { color: #fffdf7; text-shadow: 0.04em 0.04em 0 #3a86ff; }
+.side-head h1 .brand-who { color: #ffbe0b; text-shadow: 0.045em 0.05em 0 #1533cc; }
+.side-head h1 .brand-isit { color: #fffdf7; text-shadow: 0.045em 0.05em 0 #e01b1b; }
 .side-head .room-code {
   font-size: 0.72rem;
   opacity: 0.55;
@@ -4675,6 +4675,10 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .wed-overlay.act-married .wed-slot { box-shadow: inset 0 0 0 2px #ffd24d; } .wed-overlay.act-married .wed-slot-label { color: #ffe08a; }
 .wed-overlay.act-slap .wed-slot { box-shadow: inset 0 0 0 2px #ff6a6a; } .wed-overlay.act-slap .wed-slot-label { color: #ff9a9a; }
 .wed-overlay.act-woohoo .wed-slot { box-shadow: inset 0 0 0 2px #5fe06a; } .wed-overlay.act-woohoo .wed-slot-label { color: #8affa8; }
+.wed-overlay.act-hug .wed-slot { box-shadow: inset 0 0 0 2px #6ad0a0; } .wed-overlay.act-hug .wed-slot-label { color: #9dffcf; }
+.wed-overlay.act-gossip .wed-slot { box-shadow: inset 0 0 0 2px #c08fe0; } .wed-overlay.act-gossip .wed-slot-label { color: #dcb6ff; }
+.wed-overlay.act-rob .wed-slot { box-shadow: inset 0 0 0 2px #e0b34d; } .wed-overlay.act-rob .wed-slot-label { color: #ffdd8a; }
+.wed-overlay.act-fight .wed-slot { box-shadow: inset 0 0 0 2px #ff7a4a; } .wed-overlay.act-fight .wed-slot-label { color: #ffb08a; }
 @keyframes wed-lock { from { transform: scale(0.7); } }
 /* A slapped Sim's card jolts sideways. */
 .character-card.sim-slapped { animation: sim-slap 0.5s ease-out; }
@@ -5101,11 +5105,11 @@ img.pol-mascot {
   font-size: clamp(4rem, 16vw, 9.5rem); color: #fffdf7;
 }
 .ts-who {
-  color: #ffbe0b; text-shadow: 0.04em 0.04em 0 #171512;
+  color: #ffbe0b; text-shadow: 0.05em 0.055em 0 #1533cc;   /* De Stijl primary BLUE drop */
   animation: ts-slide-l 0.65s cubic-bezier(0.2, 1.2, 0.3, 1) both;
 }
 .ts-isit {
-  text-shadow: 0.04em 0.04em 0 #3a86ff;
+  text-shadow: 0.05em 0.055em 0 #e01b1b;                    /* De Stijl primary RED drop */
   animation: ts-slide-r 0.65s 0.35s cubic-bezier(0.2, 1.2, 0.3, 1) both;
 }
 @keyframes ts-slide-l { from { transform: translateX(-120vw) skewX(12deg); } to { transform: translateX(0) skewX(0); } }

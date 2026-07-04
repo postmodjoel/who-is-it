@@ -659,7 +659,7 @@ const WOKE_PREREQS = ["gay-frogged", "orgy", "drugs", "disease", "fertility", "w
 // PG mode: only these wholesome, "explain-to-a-10-year-old" modes are ever picked. Everything sexual/
 // drug/breeding/politically-charged (horny-potter, woke, gay-frogged, orgy, fertility, drugs, disease,
 // swipe, work, monocultural, judgement, murder, hidden-agendas, family-tree) is excluded.
-const PG_SAFE_MODES = ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "heads-only", "yugioh", "pixall", "habbo", "witness-protection-filter", "fireworks", "sims", "disguise", "family-tree-disaster"];
+const PG_SAFE_MODES = ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "heads-only", "yugioh", "pixall", "habbo", "witness-protection-filter", "sims", "family-tree-disaster"];
 function wheelPgOk(id) { return !state.settings.pg || id === null || PG_SAFE_MODES.includes(id); }
 function wheelTargetFromBag() {
   const known = new Set(mysteryEffects.map((e) => e.id));
@@ -3957,14 +3957,17 @@ function applySims(effect) {
   simBankSet(bank);
   return { id: effect.id, name: effect.name, assignments };
 }
-// Drag two Sims together => a SLOT MACHINE cycles the possible interactions (like the identity reels)
-// and lands on one: MARRIED, SLAP, or WOOHOO. WOOHOO (making a baby) is dropped in PG mode.
+// Drag two Sims together => a SLOT MACHINE cycles the possible interactions and lands on one. The
+// PG-safe set is wholesome (hug/gossip/rob/married/slap); adult games add WOOHOO + FIGHT.
+const SIM_ICON = { MARRIED: "💍", SLAP: "👋", HUG: "🤗", GOSSIP: "🗣️", ROB: "🦝", FIGHT: "🥊", WOOHOO: "🛏️" };
+function simReface(ch, expr) { try { return window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, expression: expr, background: "transparent" }); } catch (e) { return null; } }
 function simsInteract(A, B) {
   const asg = state.global.mystery?.assignments;
   const a = asg && asg[A.id], b = asg && asg[B.id];
   if (!a || !b) return;
   if (document.querySelector(".wed-overlay")) return;      // one interaction at a time
-  const ACTIONS = state.settings.pg ? ["MARRIED", "SLAP"] : ["MARRIED", "SLAP", "WOOHOO"];
+  const PG_ACTS = ["MARRIED", "SLAP", "HUG", "GOSSIP", "ROB"];
+  const ACTIONS = state.settings.pg ? PG_ACTS : [...PG_ACTS, "WOOHOO", "FIGHT"];
   const action = ACTIONS[stableHash(`${state.gameSalt}:simact:${A.id}:${B.id}`) % ACTIONS.length];
   const ov = document.createElement("div");
   ov.className = "wed-overlay";
@@ -3979,7 +3982,7 @@ function simsInteract(A, B) {
     </div>`;
   document.body.appendChild(ov);
   const label = ov.querySelector(".wed-slot-label");
-  const face = (act) => `${{ MARRIED: "💍", SLAP: "👋", WOOHOO: "🛏️" }[act]} ${act}`;
+  const face = (act) => `${SIM_ICON[act] || "🎲"} ${act}`;
   // Rattle through the options, then lock on the chosen one.
   const stopTk = window.Sound ? window.Sound.spinTicks(1900, 95, 160) : null;
   let t = 0;
@@ -3992,9 +3995,12 @@ function simsInteract(A, B) {
   }, 1900);
   setTimeout(() => {
     ov.remove();
-    if (action === "WOOHOO") return simsWoohoo(A, B);
-    if (action === "SLAP") return simsSlap(A, B, a, b);
-    return simsMarried(A, B, a, b);
+    const H = {
+      WOOHOO: () => simsWoohoo(A, B), SLAP: () => simsSlap(A, B, a, b), HUG: () => simsHug(A, B, a, b),
+      GOSSIP: () => simsGossip(A, B, a, b), ROB: () => simsRob(A, B, a, b), FIGHT: () => simsFight(A, B, a, b),
+      MARRIED: () => simsMarried(A, B, a, b)
+    };
+    (H[action] || H.MARRIED)();
   }, 2900);
 }
 // MARRIED: SUCCESS (stay together, estate wiped, both miserable) or FAILURE (divorce, split the estate
@@ -4023,6 +4029,33 @@ function simsSlap(A, B, a, b) {
   renderBoard();
   const card = document.getElementById(`card-${B.id}`);
   if (card) { card.classList.remove("sim-slapped"); void card.offsetWidth; card.classList.add("sim-slapped"); }
+}
+const simBank = (A, B, a, b) => { const bank = simBankGet(); bank[A.id] = a.simoleons; bank[B.id] = b.simoleons; simBankSet(bank); };
+// HUG: both social soars, both blissful.
+function simsHug(A, B, a, b) {
+  [{ ch: A, s: a }, { ch: B, s: b }].forEach(({ ch, s }) => { s.mood = "green"; s.needs = { ...s.needs, social: Math.max(s.needs?.social ?? 80, 97), fun: Math.max(s.needs?.fun ?? 70, 84) }; s.action = "Sharing a lovely hug"; const im = simReface(ch, "happy"); if (im) s.image = im; });
+  flashToast(`🤗 ${escapeHtml(A.name)} + ${escapeHtml(B.name)} share a hug.`); sfx("sparkle"); renderBoard();
+}
+// FIGHT: both social craters, both furious.
+function simsFight(A, B, a, b) {
+  [{ ch: A, s: a }, { ch: B, s: b }].forEach(({ ch, s }) => { s.mood = "red"; s.needs = { ...s.needs, social: 4, fun: 6 }; s.action = "In a screaming match"; const im = simReface(ch, "angry"); if (im) s.image = im; });
+  flashToast(`🥊 ${escapeHtml(A.name)} and ${escapeHtml(B.name)} throw hands!`); sfx("buzzer"); renderBoard();
+  [A.id, B.id].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("sim-slapped"); void c.offsetWidth; c.classList.add("sim-slapped"); } });
+}
+// GOSSIP: A spills the tea and thrives; B just got dragged and wilts.
+function simsGossip(A, B, a, b) {
+  a.mood = "green"; a.needs = { ...a.needs, social: Math.max(a.needs?.social ?? 70, 93), fun: Math.max(a.needs?.fun ?? 70, 88) }; a.action = "Spilling the tea"; const ai = simReface(A, "happy"); if (ai) a.image = ai;
+  b.mood = "red"; b.needs = { ...b.needs, social: Math.min(b.needs?.social ?? 40, 14) }; b.action = "Just got dragged"; const bi = simReface(B, "sad"); if (bi) b.image = bi;
+  flashToast(`🗣️ ${escapeHtml(A.name)} spread a rumour about ${escapeHtml(B.name)}.`); sfx("laugh"); renderBoard();
+}
+// ROB: A cleans B out - all of B's simoleons transfer to A.
+function simsRob(A, B, a, b) {
+  const loot = Math.max(0, b.simoleons || 0);
+  a.simoleons = (a.simoleons || 0) + loot; b.simoleons = 0;
+  a.mood = "green"; a.action = "Just came into money"; const ai = simReface(A, "happy"); if (ai) a.image = ai;
+  b.mood = "red"; b.needs = { ...b.needs, fun: 8 }; b.action = "Been completely cleaned out"; const bi = simReface(B, "sad"); if (bi) b.image = bi;
+  simBank(A, B, a, b);
+  flashToast(`🦝 ${escapeHtml(A.name)} robbed ${escapeHtml(B.name)} of §${loot.toLocaleString()}!`); sfx("coin"); renderBoard();
 }
 // WOOHOO: the classic Sims baby-maker (adult mode only). Reuses the shared birth animation + KEEP/ABORT.
 function simsWoohoo(A, B) {
@@ -4122,6 +4155,45 @@ const PANTONE_COLORS = [
   { c: "15-4101", n: "High-rise Grey", h: "#b8bdc4" }, { c: "11-0107", n: "Almond Buff", h: "#e6dcc8" },
   { c: "13-1108", n: "Bone Beige", h: "#dccfbb" }, { c: "17-1052", n: "Buckthorn Brown", h: "#b07636" },
   { c: "19-1218", n: "Chocolate", h: "#5a3a29" }, { c: "19-4005", n: "Pirate Black", h: "#2b2b2c" },
+  // Expanded library - a dense spread across the full wheel so any mixed colour maps to a distinct name.
+  { c: "18-1763", n: "Poinsettia", h: "#cd202c" }, { c: "17-1664", n: "Poppy Red", h: "#dc343b" }, { c: "18-1660", n: "Tomato", h: "#c63b2f" },
+  { c: "19-1557", n: "Chili Pepper", h: "#9b1b30" }, { c: "18-1550", n: "Aurora Red", h: "#b13b3b" }, { c: "17-1927", n: "Bubblegum", h: "#ee9dc0" },
+  { c: "15-1912", n: "Quartz Pink", h: "#e4a0a8" }, { c: "14-2311", n: "Prism Pink", h: "#e6a4c4" }, { c: "16-2118", n: "Aurora Pink", h: "#e5779b" },
+  { c: "18-2436", n: "Raspberry", h: "#b3325a" }, { c: "19-2434", n: "Beaujolais", h: "#80304c" }, { c: "18-1633", n: "Baroque Rose", h: "#b05f6d" },
+  { c: "16-1526", n: "Terra Cotta", h: "#e28b7a" }, { c: "15-1523", n: "Peach Beige", h: "#e5b09c" }, { c: "14-1420", n: "Peach Pink", h: "#f4b6a0" },
+  { c: "17-1937", n: "Hot Pink", h: "#e55982" }, { c: "15-2217", n: "Carmine Rose", h: "#e35a8d" }, { c: "18-2333", n: "Fuchsia Red", h: "#ab3373" },
+  { c: "19-1663", n: "Racing Red", h: "#bd2635" }, { c: "16-1520", n: "Rose Tan", h: "#e0a89a" }, { c: "16-1364", n: "Vibrant Orange", h: "#ff7420" },
+  { c: "15-1263", n: "Autumn Sunset", h: "#f88f47" }, { c: "14-1139", n: "Iceland Poppy", h: "#f2ad4a" }, { c: "16-1449", n: "Orange Ochre", h: "#e58637" },
+  { c: "15-1247", n: "Tangerine", h: "#f79256" }, { c: "13-1114", n: "Sun Kiss", h: "#f0cfa0" }, { c: "12-0915", n: "Cornhusk", h: "#f2dfb2" },
+  { c: "13-1030", n: "Impala", h: "#f4d29a" }, { c: "16-1145", n: "Nugget Gold", h: "#c08a3e" }, { c: "16-1546", n: "Coral Rose", h: "#f0876a" },
+  { c: "15-1340", n: "Mock Orange", h: "#f6a04d" }, { c: "14-1064", n: "Saffron", h: "#f4a838" }, { c: "13-0858", n: "Empire Yellow", h: "#f6c500" },
+  { c: "14-0847", n: "Freesia", h: "#e5b93a" }, { c: "12-0736", n: "Buttercup", h: "#f4d444" }, { c: "11-0710", n: "Transparent Yellow", h: "#f4eeb2" },
+  { c: "13-0632", n: "Limelight", h: "#e3e08b" }, { c: "12-0740", n: "Aspen Gold", h: "#f6d55b" }, { c: "14-0952", n: "Spectra Yellow", h: "#f0b323" },
+  { c: "12-0642", n: "Blazing Yellow", h: "#fce300" }, { c: "14-0446", n: "Bright Chartreuse", h: "#a5b736" }, { c: "15-0533", n: "Green Oasis", h: "#a4ab5a" },
+  { c: "16-0435", n: "Peapod", h: "#8ba14b" }, { c: "15-6442", n: "Online Lime", h: "#79993a" }, { c: "16-0439", n: "Macaw Green", h: "#6f8f3a" },
+  { c: "18-0135", n: "Online Green", h: "#3f7d3f" }, { c: "17-6229", n: "Fairway", h: "#3f915e" }, { c: "16-6444", n: "Vibrant Green", h: "#4fa64f" },
+  { c: "15-6340", n: "Classic Green", h: "#4a9d5b" }, { c: "14-0156", n: "Green Flash", h: "#78bb44" }, { c: "13-0220", n: "Paradise Green", h: "#b6d97a" },
+  { c: "12-0322", n: "Seafoam Green", h: "#c3d5a4" }, { c: "14-6408", n: "Desert Sage", h: "#a3ad8e" }, { c: "16-0110", n: "Turf Green", h: "#5a7247" },
+  { c: "18-0130", n: "Garden Green", h: "#3a6b35" }, { c: "13-0648", n: "Sulphur Spring", h: "#d5d717" }, { c: "17-5641", n: "Emerald", h: "#009874" },
+  { c: "16-5533", n: "Arcadia", h: "#00a28a" }, { c: "15-5519", n: "Turquoise", h: "#3bc6b8" }, { c: "14-4522", n: "Blue Curacao", h: "#37b6c4" },
+  { c: "15-4825", n: "Scuba Blue", h: "#00a3c6" }, { c: "16-4535", n: "Bluebird", h: "#009bbf" }, { c: "14-4620", n: "Aqua Sky", h: "#7bc4c4" },
+  { c: "13-4909", n: "Bleached Aqua", h: "#c1dcd8" }, { c: "12-5209", n: "Bimini Blue", h: "#b7dbdd" }, { c: "16-5121", n: "Lagoon", h: "#4c9a94" },
+  { c: "18-4936", n: "Deep Lake", h: "#0f6d78" }, { c: "13-5412", n: "Aquifer", h: "#9dd0cf" }, { c: "18-4045", n: "Directoire Blue", h: "#1f4b99" },
+  { c: "19-4052", n: "Classic Blue", h: "#0f4c81" }, { c: "18-4148", n: "Diva Blue", h: "#0079b5" }, { c: "17-4247", n: "Cendre Blue", h: "#3a7ca5" },
+  { c: "16-4020", n: "Blue Bell", h: "#93aac7" }, { c: "15-3919", n: "Placid Blue", h: "#8aaad4" }, { c: "14-4115", n: "Cerulean", h: "#9bb7d4" },
+  { c: "13-4308", n: "Ballad Blue", h: "#c1cdd6" }, { c: "14-4318", n: "Cerulean Sky", h: "#a7c1d2" }, { c: "18-3949", n: "Deep Ultramarine", h: "#39477f" },
+  { c: "19-3952", n: "Surf the Web", h: "#2a4b9b" }, { c: "16-4032", n: "Little Boy Blue", h: "#7aa2d6" }, { c: "19-4029", n: "True Navy", h: "#33455f" },
+  { c: "18-3224", n: "Radiant Orchid", h: "#ad5e99" }, { c: "17-3617", n: "Dahlia Purple", h: "#7f6497" }, { c: "16-3521", n: "Bougainvillea", h: "#9a6d9e" },
+  { c: "15-3620", n: "Lavendula", h: "#a58fc0" }, { c: "14-3711", n: "Lavender Blue", h: "#b7b9d8" }, { c: "17-3628", n: "Amethyst Orchid", h: "#9866b0" },
+  { c: "19-3536", n: "Imperial Palace", h: "#5c3a63" }, { c: "18-3418", n: "Purple Passion", h: "#66507a" }, { c: "19-3542", n: "Prism Violet", h: "#59315f" },
+  { c: "13-3405", n: "Orchid Ice", h: "#d9c6d6" }, { c: "18-1048", n: "Monks Robe", h: "#6d4832" }, { c: "17-1230", n: "Mocha Mousse", h: "#a47864" },
+  { c: "16-1235", n: "Tawny Birch", h: "#c08552" }, { c: "15-1315", n: "Warm Sand", h: "#d6b89a" }, { c: "14-1116", n: "Sand", h: "#dcc9a8" },
+  { c: "13-1008", n: "Oatmeal", h: "#dccdb4" }, { c: "16-1414", n: "Cork", h: "#b79d80" }, { c: "17-1418", n: "Cognac", h: "#9c6b4a" },
+  { c: "19-1220", n: "Coffee Bean", h: "#4a3327" }, { c: "18-0625", n: "Olive Drab", h: "#6a6338" }, { c: "16-0928", n: "Prairie Sand", h: "#c19a52" },
+  { c: "15-1216", n: "Cuban Sand", h: "#c9a889" }, { c: "11-4001", n: "Brilliant White", h: "#edf1f4" }, { c: "12-4302", n: "Cloud Dancer", h: "#f0eee9" },
+  { c: "14-4002", n: "Silver", h: "#bcbdc0" }, { c: "15-4003", n: "Dawn Blue", h: "#a2a9ab" }, { c: "17-4405", n: "Neutral Grey", h: "#8f9192" },
+  { c: "18-0601", n: "Pewter", h: "#67686a" }, { c: "19-4007", n: "Anthracite", h: "#28292b" }, { c: "18-1306", n: "Fossil", h: "#79736b" },
+  { c: "16-1305", n: "Aluminum", h: "#a29c94" }, { c: "19-0303", n: "Jet Black", h: "#2a2a2c" },
 ];
 function pantoneRgb(hex) { const h = hex.replace("#", ""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
 function pantoneDist(a, b) {
@@ -4158,14 +4230,22 @@ function mixPantonePair(A, B) {
   const bgA = (A.traits && A.traits.background) || "#cccccc", bgB = (B.traits && B.traits.background) || "#cccccc";
   const skinA = skinHexOf(A), skinB = skinHexOf(B);
   const asg = state.global.mystery && state.global.mystery.assignments;
-  const shift = (ch, ownBg, otherBg, ownSkin, otherSkin) => {
-    ch.traits = { ...ch.traits, background: mixHex(ownBg, otherBg, PANTONE_MIX_T), skinHex: mixHex(ownSkin, otherSkin, PANTONE_MIX_T) };
+  // A touch of per-character random jitter on the blend so the two never round to the SAME Pantone tag
+  // (retry the jitter a few times until their nearest chips differ).
+  const shift = (ch, ownBg, otherBg, ownSkin, otherSkin, avoidCode) => {
+    const baseBg = mixHex(ownBg, otherBg, PANTONE_MIX_T);
+    let bg = baseBg, p = nearestPantone(bg);
+    for (let tries = 0; avoidCode && p.c === avoidCode && tries < 6; tries++) { bg = jitterHex(baseBg, 0.05); p = nearestPantone(bg); }
+    if (!avoidCode) bg = jitterHex(baseBg, 0.03);   // still nudge the first one a little
+    p = nearestPantone(bg);
+    ch.traits = { ...ch.traits, background: bg, skinHex: jitterHex(mixHex(ownSkin, otherSkin, PANTONE_MIX_T), 0.03) };
     delete ch.traits.skin;          // let the mixed hex render instead of the named palette tone
     ch.image = window.faceGenerator.renderPortrait(ch.seed, ch.traits);
-    if (asg) { const p = nearestPantone(ch.traits.background); asg[ch.id] = { code: p.c, name: p.n, hex: p.h }; }
+    if (asg) asg[ch.id] = { code: p.c, name: p.n, hex: p.h };
+    return p.c;
   };
-  shift(A, bgA, bgB, skinA, skinB);
-  shift(B, bgB, bgA, skinB, skinA);
+  const codeA = shift(A, bgA, bgB, skinA, skinB, null);
+  shift(B, bgB, bgA, skinB, skinA, codeA);          // B avoids landing on A's exact Pantone
   renderBoard();
   [A.id, B.id].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("pantone-mix"); void c.offsetWidth; c.classList.add("pantone-mix"); } });
 }

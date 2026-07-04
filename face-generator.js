@@ -1349,13 +1349,57 @@
     const locks = traits.hairLocks;
     if (!Array.isArray(locks) || !locks.length) return "";
     if (!(typeof window !== "undefined" && window.facesHair && window.facesHair.renderLock)) return "";
-    return locks
+    const items = locks
       .map((inst, i) => ({ inst, i }))
       // Drawn (pen-tool) locks carry a raw `d` in portrait space and are rendered at top level by
       // renderDrawnLocks (outside the head group), so they're skipped in these in-head passes.
-      .filter(({ inst }) => !inst.d && Boolean(inst.behind) === Boolean(behind))
-      .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink, seed: `${seed}-l${i}` }))
+      .filter(({ inst }) => !inst.d && Boolean(inst.behind) === Boolean(behind));
+    if (!items.length) return "";
+
+    if (!window.facesHair.renderLockPart) {
+      return items
+        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink, seed: `${seed}-l${i}` }))
+        .join("");
+    }
+
+    const outline = hairOutlineFor(traits);
+    const strand = hairStrandTones(hair).low;
+    const layer = behind ? "behind" : "front";
+    const rim = renderHairLockRim(items, seed, hair, outline, layer, behind ? 3.4 : 4.2);
+    const fill = renderHairLockPartGroup(items, seed, hair, outline, "fill");
+    const seam = behind
+      ? ""
+      : renderHairLockPartGroup(items, seed, hair, outline, "seam", { seam: strand, seamWidth: 2.8, seamOpacity: 0.28 });
+    return `${rim}${fill}${seam}`;
+  }
+
+  function renderHairLockPartGroup(items, seed, hair, outline, mode, extraCtx) {
+    return items
+      .map(({ inst, i }) => window.facesHair.renderLockPart(inst, {
+        hair,
+        fill: `url(#hair-${seed})`,
+        ink: outline,
+        seed: `${seed}-l${i}`,
+        ...(extraCtx || {})
+      }, mode))
       .join("");
+  }
+
+  function renderHairLockRim(items, seed, hair, outline, layer, radius) {
+    const mass = renderHairLockPartGroup(items, seed, hair, outline, "mass", { massFill: "#000" });
+    if (!mass) return "";
+    const id = `hairlock-rim-${String(seed).replace(/[^a-zA-Z0-9_-]/g, "_")}-${layer}`;
+    return `
+      <defs>
+        <filter id='${id}' x='-128' y='-128' width='512' height='512' filterUnits='userSpaceOnUse'>
+          <feMorphology in='SourceAlpha' operator='dilate' radius='${radius}' result='expanded'/>
+          <feComposite in='expanded' in2='SourceAlpha' operator='out' result='rim'/>
+          <feFlood flood-color='${outline}' result='rimColor'/>
+          <feComposite in='rimColor' in2='rim' operator='in'/>
+        </filter>
+      </defs>
+      <g filter='url(#${id})'>${mass}</g>
+    `;
   }
 
   // Pen-tool hair: locks whose `d` is a raw path drawn in portrait (256x256) coordinates. Rendered at

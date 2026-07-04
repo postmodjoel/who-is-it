@@ -89,6 +89,72 @@
       shine: ["M141 142c50-34 106-51 168-50-58 9-106 29-146 59-17 13-39 6-22-9z"],
       lines: ["M145 215c47-44 99-71 156-80", "M283 117c-38 46-55 92-52 139", "M354 189c-52 26-91 67-118 125"]
     },
+    crescentSweep: {
+      hair: ["M88 210c30-76 91-121 183-134 77-11 143 16 181 78-62-17-123-14-181 10-57 24-108 63-152 114-18-22-28-45-31-68z"],
+      dark: ["M126 203c46-57 100-89 164-97 65-8 119 9 162 48-39-67-116-92-205-75-79 15-134 59-159 131 6 23 16 45 31 68 2-26 4-51 7-75z"],
+      shine: ["M135 165c45-36 101-55 168-58-59 12-108 34-146 68-18 16-41 7-22-10z"],
+      lines: ["M142 220c55-49 116-79 184-90", "M227 124c49 4 88 24 116 60", "M185 246c65-35 134-46 207-31"]
+    },
+    taperedCurtain: {
+      hair: ["M181 74c66-2 125 19 176 64-19 42-39 89-59 140-18 47-29 99-33 156-24-75-54-135-90-180-35-44-48-84-39-121 5-24 20-44 45-59z"],
+      dark: ["M200 83c60 1 112 22 157 55-51-21-99-22-145-2-33 15-53 41-59 78-7-36-14-63-17-81 7-25 28-43 64-50z"],
+      shine: ["M190 101c38-12 78-8 119 12-40-7-75-2-105 14-24 13-37-17-14-26z"],
+      lines: ["M214 95c-19 57-11 117 24 179", "M281 120c-34 62-47 133-40 213", "M170 151c43 48 68 105 74 171"]
+    },
+    splitFangBang: {
+      hair: ["M120 120c48-53 98-65 151-36 43 24 73 72 90 146-36-30-70-41-101-32-14 43-27 86-40 130-22-64-54-112-96-145-10-27-11-48-4-63z", "M304 104c36 22 62 61 80 117-31-22-58-29-82-19-8 34-17 68-28 103-20-56-48-99-84-128 23-45 61-69 114-73z"],
+      dark: ["M140 122c48-40 92-48 132-25 34 19 61 58 80 119-33-46-71-70-113-72-40-2-78 12-115 42-9-30-4-51 16-64z"],
+      shine: ["M158 113c35-18 73-19 114-2-38-4-70 3-97 21-18 12-35-9-17-19z"],
+      lines: ["M161 147c34 36 57 80 68 132", "M272 132c-34 47-51 101-52 162", "M318 144c24 28 42 63 54 106"]
+    },
+    cheekCurl: {
+      hair: ["M336 88c69 29 104 95 84 170-18 67-77 112-143 103-51-7-85-43-79-88 5-39 38-66 80-63 27 2 49 18 61 43-39-15-68-9-86 17-16 24 2 54 36 60 44 8 88-22 100-70 14-56-16-112-86-145 8-14 19-23 33-27z"],
+      dark: ["M344 113c48 33 66 87 45 140-20 51-68 83-116 73-33-7-51-31-42-58-6 15-4 31 6 47 18 30 55 49 96 42 45-8 80-45 91-95 17-78-19-145-88-174-10 6-21 15-33 27 14-3 27-4 41-2z"],
+      shine: ["M326 107c36 11 62 32 78 64-24-25-51-41-81-48-20-5-22-21 3-16z"],
+      lines: ["M352 133c35 37 45 82 29 134", "M264 225c35-9 62 3 80 36", "M256 306c43 23 88 13 118-28"]
+    },
+    napeFlip: {
+      hair: ["M164 146c-51 45-73 105-59 180 10 55 48 97 111 126-33-54-30-107 9-158 36-47 33-100-9-136-17-15-34-19-52-12z"],
+      dark: ["M180 161c-37 43-51 91-41 145 8 43 32 79 73 108-29-54-23-102 16-145 27-31 23-78-12-111-14-7-26-6-36 3z"],
+      shine: ["M153 180c18-22 41-34 69-36-27 11-47 26-60 45-10 15-25 7-9-9z"],
+      lines: ["M161 178c-31 52-37 109-18 172", "M206 183c27 43 25 88-6 136", "M150 333c6 44 28 77 66 100"]
+    },
+    scallopBangRow: {
+      hair: ["M88 182c20-66 78-104 166-105 85-1 145 36 171 104-31-13-56-10-75 8-22 20-45 20-69 0-24-20-49-20-73 1-23 20-46 20-68 1-17-16-34-19-52-9z"],
+      dark: ["M112 169c34-41 82-62 145-64 70-2 126 23 168 76-26-69-86-105-171-104-88 1-146 39-166 105 8-7 16-11 24-13z"],
+      shine: ["M141 122c40-20 88-26 144-17-50 2-92 13-126 32-21 12-41-3-18-15z"],
+      lines: ["M138 184c16-38 43-62 81-72", "M224 189c15-44 45-70 90-78", "M315 184c25-31 56-48 93-51"]
+    },
+    ribbonTail: {
+      hair: ["M284 42c-71 38-107 96-97 173 6 49 38 84 61 127 28 54-10 101-119 133 66 9 125-7 174-47 51-42 63-91 35-146-25-49-42-86-28-126 10-31 36-59 75-86-25-17-58-27-101-28z"],
+      dark: ["M252 61c-48 34-69 82-62 144 6 49 37 83 58 124 20 39 2 75-55 108 44-14 77-35 100-62 29-35 31-72 6-111-45-71-35-141 31-209-27-8-53-6-78 6z"],
+      shine: ["M265 62c25-14 54-19 86-14-31 13-56 31-74 54-12 15-34-5-12-40z"],
+      lines: ["M293 54c-55 48-75 102-61 163", "M238 246c45 49 38 101-22 156", "M290 115c-32 44-38 85-18 124"]
+    },
+    hookSideLock: {
+      hair: ["M192 60c77-8 145 30 179 101 32 68 13 144-57 201-36 29-55 62-49 101-51-22-77-58-71-103 5-37 33-66 68-95 39-33 48-82 18-121-30-38-79-39-133-2-8-34 7-66 45-82z"],
+      dark: ["M212 80c63 1 114 33 141 87 26 52 14 111-37 163-26 27-43 55-51 83-13-54 6-96 57-136 36-29 42-79 14-115-36-47-96-57-180-30 1-24 20-42 56-52z"],
+      shine: ["M209 80c50-4 95 11 136 45-47-23-91-28-133-15-23 7-31-20-3-30z"],
+      lines: ["M270 111c39 34 48 79 27 135", "M262 315c-19 45-10 84 28 119", "M180 117c58-24 110-18 156 17"]
+    },
+    cowlickSprout: {
+      hair: ["M220 181c5-58 29-104 72-138 6 52-4 98-31 138 43-27 90-33 141-17-38 36-84 50-137 42 30 34 40 76 31 125-41-31-62-71-64-119-29 36-67 58-116 68 19-45 54-78 104-99z"],
+      dark: ["M239 179c28-39 44-84 49-136-40 36-63 82-68 138-50 21-85 54-104 99 37-16 72-40 106-72 9 48 34 89 74 123-16-60-35-109-57-152z"],
+      shine: ["M231 159c16-36 37-65 65-88-17 38-37 71-59 98-14 17-26 10-6-10z"],
+      lines: ["M233 185c2-46 17-85 46-118", "M261 198c42-18 82-21 120-10", "M231 211c-25 31-57 51-96 61"]
+    },
+    roundedPuffSide: {
+      hair: ["M116 199c-11-57 19-108 78-130 67-25 142-3 181 54 36 53 30 125-15 174-51 55-141 65-205 18-40-30-53-69-39-116z"],
+      dark: ["M143 194c11-64 54-103 129-116-27-15-54-18-81-9-56 20-86 72-75 130-14 47-1 86 39 116-15-39-19-79-12-121z"],
+      shine: ["M176 104c42-21 89-23 141-5-48-3-88 6-121 27-24 16-44-6-20-22z"],
+      lines: ["M145 216c18-55 53-91 105-108", "M228 101c52 13 91 46 117 99", "M187 284c50 28 103 25 159-10"]
+    },
+    underWave: {
+      hair: ["M91 279c43-39 94-56 153-51 66 6 121 39 166 99-56-24-110-25-162-3-51 22-101 57-150 105-18-54-20-104-7-150z"],
+      dark: ["M115 283c48-26 100-35 157-26 54 9 100 32 138 70-45-60-100-93-166-99-59-5-110 12-153 51-13 46-11 96 7 150 2-52 8-101 17-146z"],
+      shine: ["M136 268c42-20 90-25 144-14-50 1-91 11-125 31-23 13-43-5-19-17z"],
+      lines: ["M126 312c43-33 91-52 145-58", "M205 329c57-24 117-21 179 8", "M105 360c45-44 99-75 164-92"]
+    },
     // ---- Long framing locks (hair-shadow folded into dark, soft-line into lines) ----
     fullLongFrame: {
       hair: ["M81 206c-3-58 20-107 68-147 52-43 128-53 191-25 63 28 97 83 97 156 0 54-18 114-52 178-25 46-48 82-70 108 17-71 13-129-12-174-11 60-39 110-85 151 19-73 15-134-12-183-29 36-65 63-108 82 24-67 19-123-17-146z", "M431 204c17 72 11 139-18 201-17 36-42 61-75 74 35-60 45-118 30-174-17-61-10-107 21-138 18 6 32 18 42 37z"],
@@ -157,6 +223,10 @@
     ["longSideLock", "Long Side Lock"], ["softWaveCap", "Soft Wave Cap"], ["curlyForelock", "Curly Forelock"],
     ["shortCrop", "Short Crop"], ["spikyFringe", "Spiky Fringe"], ["highPonytail", "High Ponytail"],
     ["angularArc", "Angular Arc"],
+    ["crescentSweep", "Crescent Sweep"], ["taperedCurtain", "Tapered Curtain"], ["splitFangBang", "Split Fang Bang"],
+    ["cheekCurl", "Cheek Curl"], ["napeFlip", "Nape Flip"], ["scallopBangRow", "Scallop Bang Row"],
+    ["ribbonTail", "Ribbon Tail"], ["hookSideLock", "Hook Side Lock"], ["cowlickSprout", "Cowlick Sprout"],
+    ["roundedPuffSide", "Rounded Puff Side"], ["underWave", "Under Wave"],
     ["fullLongFrame", "Long Wavy Frame"], ["leftCascade", "Left Cascade"], ["rightCascade", "Right Cascade"],
     ["centerPartWaves", "Center-Part Waves"], ["longSStrand", "Long S-Strand"], ["splitSideLocks", "Split Side Locks"],
     ["ribbonWaveLeft", "Ribbon Wave L"], ["ribbonWaveRight", "Ribbon Wave R"], ["longCapLocks", "Long Cap + Locks"],
@@ -191,34 +261,81 @@
   // x/y are 0-100 (% of the 256 head box) -> the lock's centre; null colours derive from hair.
   // mirror flips it horizontally; outline = 'none' (no outline), a hex (custom), or unset (= ink).
   const LOCK_BASE_K = 0.42; // scale=1 -> a roughly head-sized lock
-  function renderLock(inst, ctx) {
-    // Pen-tool / freehand lock: inst.d is a raw path string authored in portrait (256x256) space.
-    // inst.strokes (optional) are interior strand lines. dx/dy nudge it; no lock-box transform.
-    if (inst && inst.d) return renderDrawnLock(inst, ctx);
-    const lock = inst && LOCKS[inst.lock];
-    if (!lock) return "";
-    const hair = (ctx && ctx.hair) || "#3a2418";
-    const fill = inst.fill || (ctx && ctx.fill) || hair;
-    const ink = (ctx && ctx.ink) || "#1f2330";
-    const outline = inst.outline === "none" ? "none" : (inst.outline || ink);
+  function lockTransform(inst) {
     const kNum = LOCK_BASE_K * (Number(inst.scale) || 1);
     const sx = ((inst.mirror ? -1 : 1) * kNum).toFixed(3);
     const sy = kNum.toFixed(3);
     const hx = (((Number(inst.x)) || 50) / 100 * 256).toFixed(1);
     const hy = ((inst.y == null ? 32 : Number(inst.y)) / 100 * 256).toFixed(1);
     const rot = Number(inst.rot) || 0;
+    return `translate(${hx} ${hy}) scale(${sx} ${sy}) rotate(${rot}) translate(-256 -256)`;
+  }
+
+  function renderLockPart(inst, ctx, mode) {
+    const partMode = mode || "full";
+    // Pen-tool / freehand lock: inst.d is a raw path string authored in portrait (256x256) space.
+    // inst.strokes (optional) are interior strand lines. dx/dy nudge it; no lock-box transform.
+    if (inst && inst.d) return renderDrawnLockPart(inst, ctx, partMode);
+    const lock = inst && LOCKS[inst.lock];
+    if (!lock) return "";
+    inst = inst || {};
+    const hair = (ctx && ctx.hair) || "#3a2418";
+    const fill = inst.fill || (ctx && ctx.fill) || hair;
+    const massFill = (ctx && ctx.massFill) || "#000";
+    const ink = (ctx && ctx.ink) || "#1f2330";
+    const outline = inst.outline === "none" ? "none" : (inst.outline || ink);
     const darkC = inst.dark || lockShade(hair, 0.5);
     const shineC = inst.shine || lockShade(hair, 1.3);
-    const lineC = inst.line || lockShade(hair, 0.62);
+    const lineC = inst.line || (ctx && ctx.seam) || lockShade(hair, 0.62);
     let body = "";
-    (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${fill}' stroke='${outline}' stroke-width='8' stroke-linejoin='round'/>`; });
-    (lock.dark || []).forEach((d) => { body += `<path d='${d}' fill='${darkC}' opacity='0.22'/>`; });
-    (lock.shine || []).forEach((d) => { body += `<path d='${d}' fill='${shineC}' opacity='0.2'/>`; });
-    if (inst.lines !== false) (lock.lines || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`; });
-    return `<g transform='translate(${hx} ${hy}) scale(${sx} ${sy}) rotate(${rot}) translate(-256 -256)'>${body}</g>`;
+
+    if (partMode === "mass") {
+      (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${massFill}' stroke='none'/>`; });
+    } else if (partMode === "fill") {
+      (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${fill}' stroke='none'/>`; });
+      (lock.dark || []).forEach((d) => { body += `<path d='${d}' fill='${darkC}' opacity='0.22'/>`; });
+      (lock.shine || []).forEach((d) => { body += `<path d='${d}' fill='${shineC}' opacity='0.2'/>`; });
+      if (inst.lines !== false) (lock.lines || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`; });
+    } else if (partMode === "seam") {
+      if (inst.outline === "none") return "";
+      const seamWidth = (ctx && ctx.seamWidth) || 3.2;
+      const seamOpacity = (ctx && ctx.seamOpacity) || 0.22;
+      (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='${seamWidth}' stroke-linejoin='round' stroke-linecap='round' opacity='${seamOpacity}'/>`; });
+    } else {
+      (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${fill}' stroke='${outline}' stroke-width='8' stroke-linejoin='round'/>`; });
+      (lock.dark || []).forEach((d) => { body += `<path d='${d}' fill='${darkC}' opacity='0.22'/>`; });
+      (lock.shine || []).forEach((d) => { body += `<path d='${d}' fill='${shineC}' opacity='0.2'/>`; });
+      if (inst.lines !== false) (lock.lines || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`; });
+    }
+
+    return body ? `<g transform='${lockTransform(inst)}'>${body}</g>` : "";
   }
+
+  function renderLock(inst, ctx) {
+    return renderLockPart(inst, ctx, "full");
+  }
+
   // Renders a hand-drawn (pen-tool) lock: its `d` is already in portrait coordinates, so we just
   // fill + outline it and lay optional interior strand lines (`strokes`) on top.
+  function renderDrawnLockPart(inst, ctx, mode) {
+    const partMode = mode || "full";
+    if (partMode === "full") return renderDrawnLock(inst, ctx);
+    const hair = (ctx && ctx.hair) || "#3a2418";
+    const fill = inst.fill || (ctx && ctx.fill) || hair;
+    const massFill = (ctx && ctx.massFill) || "#000";
+    const lineC = inst.line || (ctx && ctx.seam) || lockShade(hair, 0.62);
+    const dx = Number(inst.dx) || 0;
+    const dy = Number(inst.dy) || 0;
+    let body = "";
+    if (partMode === "mass") body = `<path d='${inst.d}' fill='${massFill}' stroke='none'/>`;
+    if (partMode === "fill") body = `<path d='${inst.d}' fill='${fill}' stroke='none'/>`;
+    if (partMode === "seam" && inst.outline !== "none") {
+      body = `<path d='${inst.d}' fill='none' stroke='${lineC}' stroke-width='1.5' stroke-linejoin='round' stroke-linecap='round' opacity='0.22'/>`;
+    }
+    if (!body) return "";
+    return dx || dy ? `<g transform='translate(${dx} ${dy})'>${body}</g>` : body;
+  }
+
   function renderDrawnLock(inst, ctx) {
     const hair = (ctx && ctx.hair) || "#3a2418";
     const fill = inst.fill || (ctx && ctx.fill) || hair;
@@ -343,6 +460,7 @@
     styles: Object.keys(HAIR).filter((k) => !EXCLUDE.has(k)),
     // Lock designer API
     renderLock,
+    renderLockPart,
     lockCatalog: LOCK_CATALOG.map(([key, label]) => ({ key, label })),
     lockShade
   };

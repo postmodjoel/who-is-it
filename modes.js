@@ -4313,6 +4313,18 @@ function applyPs1Mode(effect) {
 
 // Full-frame announcement: a white flash plus the effect's name, each letter flung in from
 // off-screen along its own path to slam together in the centre.
+// Per-mode title entrances: each effect's name arrives its own way (neon flicker, typewriter,
+// woodblock zoom, séance blur…). Anything unmapped keeps the classic letters-slam.
+const TITLE_ANIMS = {
+  "witness-protection-filter": "flicker", disguise: "flicker", drugs: "flicker",
+  "knockoff-manor": "typewriter", work: "typewriter", "neighbourhood-watch": "typewriter", linkedin: "typewriter",
+  habbo: "riseup", sims: "riseup", "family-tree-disaster": "riseup",
+  yugioh: "zoomdrop", fireworks: "zoomdrop", "prop-panic": "zoomdrop",
+  "gay-frogged": "wave", woke: "wave", orgy: "wave", swipe: "wave",
+  pixall: "glitch", "ps1-mode": "glitch",
+  gallery: "elegant", pantone: "elegant", astrology: "elegant", "horny-potter": "elegant",
+  judgement: "spooky", disease: "spooky", fertility: "spooky"
+};
 function playEffectAnnouncement(name) {
   sfx("reveal");
   const prev = document.getElementById("effectBlast");
@@ -4320,7 +4332,7 @@ function playEffectAnnouncement(name) {
 
   const overlay = document.createElement("div");
   overlay.id = "effectBlast";
-  overlay.className = "effect-blast";
+  overlay.className = `effect-blast anim-${TITLE_ANIMS[currentMysteryEffect()?.id] || "slam"}`;
 
   // Full-screen colour flash behind the letters, tinted to the active mode.
   const col = flashForCurrentMode();

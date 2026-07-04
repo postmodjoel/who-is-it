@@ -444,9 +444,14 @@ function newGame(seedSalt, opts = {}) {
     }
     // The Wheel of Fate spins at the start of the round to pick the chaos mode BOTH seats will share.
     // The landing spot is a hash of the salt, so every client's wheel lands on the SAME mode.
-    // Roughly every third round a "PREVIOUSLY, IN THIS UNIVERSE…" callback plays first.
+    // Roughly every third round a "PREVIOUSLY, IN THIS UNIVERSE…" callback plays first — unless the
+    // wheel bag just completed a full lap, in which case the SEASON FINALE takes the slot.
     if (state.settings.mystery) {
-      maybeShowLoreCallback(() => spinModeRoulette((id) => {
+      const preShow = (go) => {
+        if (state.pendingFinale) { const s = state.pendingFinale; state.pendingFinale = null; showSeasonFinale(s, go); }
+        else maybeShowLoreCallback(go);
+      };
+      preShow(() => spinModeRoulette((id) => {
         if (id) {
           const eff = MysteryModes.byId(id);
           applyMysteryEffect(id);
@@ -1510,6 +1515,33 @@ const LORE_TEMPLATES = [
   (e, n) => `${e.modeName} changed ${n}. Everyone's too polite to mention it.`,
   (e, n) => `${n} maintains that ${e.modeName} "wasn't even that bad". The others disagree.`
 ];
+// SEASON FINALE: the wheel bag just completed a full lap of every mode (flagged in
+// wheelTargetFromBag). Play the recap montage of the season's lore, then roll the next season.
+function showSeasonFinale(season, next) {
+  const lore = (state.lore || []).slice(-8);
+  const recap = lore.length
+    ? lore.map((e, i) => `<p class="sf-line" style="--i:${i}">▸ ${escapeHtml(e.modeName || "A quiet round")}${e.names.length ? ` — ${escapeHtml(e.names.join(" & "))}` : ""}</p>`).join("")
+    : `<p class="sf-line" style="--i:0">▸ A season of incidents nobody wrote down. Probably for the best.</p>`;
+  const ov = document.createElement("div");
+  ov.className = "finale-overlay";
+  ov.innerHTML = `
+    <div class="finale-box">
+      <p class="sf-eyebrow">EVERY MODE. EVERY INCIDENT. EVERYONE.</p>
+      <h2 class="sf-title">THAT'S A WRAP ON<br>SEASON ${season}</h2>
+      <div class="sf-recap">${recap}</div>
+      <button type="button" class="button primary sf-next">ROLL SEASON ${season + 1} →</button>
+    </div>`;
+  document.body.appendChild(ov);
+  sfx("reveal");
+  let doneOnce = false;
+  const finish = () => {
+    if (doneOnce) return;
+    doneOnce = true;
+    ov.classList.add("lore-out");
+    setTimeout(() => { ov.remove(); next(); }, 420);
+  };
+  ov.querySelector(".sf-next").addEventListener("click", finish);
+}
 function maybeShowLoreCallback(next) {
   const lore = (state.lore || []).filter((entry) => entry.modeName && entry.names.length);
   const show = lore.length && stableHash(`${state.gameSalt}:lorecb`) % 3 === 0;

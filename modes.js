@@ -312,11 +312,18 @@ function wheelTargetFromBag() {
     pool = pool.filter((id) => id !== "woke" || WOKE_PREREQS.every((p) => seen.includes(p)));
     if (pool.length) return pool[stableHash(`${state.gameSalt}:wheel`) % pool.length];
   }
-  // Whole gauntlet complete - reset and start a fresh, escalating lap.
+  // Whole gauntlet complete - reset and start a fresh, escalating lap. That's a SEASON FINALE:
+  // flag it so the round flow plays the recap montage before this round's wheel spin.
   try { localStorage.setItem(WHEEL_BAG_KEY, "[]"); } catch (e) { /* fine */ }
+  try {
+    const season = 1 + (parseInt(localStorage.getItem(SEASON_KEY) || "1", 10) || 1);
+    localStorage.setItem(SEASON_KEY, String(season));
+    state.pendingFinale = season - 1;   // the season that just wrapped
+  } catch (e) { /* fine */ }
   const first = WHEEL_TIERS[0].filter((id) => (id === null || known.has(id)) && wheelPgOk(id));
   return (first.length ? first[stableHash(`${state.gameSalt}:wheel`) % first.length] : null);
 }
+const SEASON_KEY = "whoisit_season_v1";
 function markWheelSeen(id) {
   try {
     const seen = wheelBag();

@@ -1388,6 +1388,7 @@ function renderEditorControls() {
     color("lipColor", "Lip colour", "#a55a52") +
     slide("mouthScale", "Mouth size", 0.85, 1.25, 0.01, num("mouthScale", 1)) +
     slide("mouthY", "Mouth height", -6, 14, 0.5, num("mouthY", 0)) +
+    slide("lipLineWidth", "Lip line width", 0.3, 3, 0.05, num("lipLineWidth", 1)) +
     group("Body") +
     field("Clothing", sel("clothing", T.clothing, t.clothing)) +
     color("shirt", "Shirt", "#3a86ff") +

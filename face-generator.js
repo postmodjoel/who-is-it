@@ -2650,7 +2650,8 @@
 
     // closed-mouth smile: a curved lip with a soft glint, no open cavity (no teeth to mask)
     if (style === "warmSmile") {
-      return `<path d='M106 166c12 14 32 14 44 0' fill='none' stroke='${ink}' stroke-width='3.8' stroke-linecap='round'/>`
+      const lw = Math.max(0, Number(traits.lipLineWidth) || 1);
+      return `<path d='M106 166c12 14 32 14 44 0' fill='none' stroke='${ink}' stroke-width='${(3.8 * lw).toFixed(2)}' stroke-linecap='round'/>`
         + `<path d='M114 169c8 3 20 3 28 0' fill='none' stroke='rgba(255,255,255,.6)' stroke-width='1.8' stroke-linecap='round'/>`;
     }
 
@@ -2682,8 +2683,9 @@
     // consistent whether they're smiling or not.
     const upSize = Math.max(0.3, Number(traits.lipUpperSize) || 1);
     const loSize = Math.max(0.3, Number(traits.lipLowerSize) || 1);
-    const lowerLip = showLips ? `<path d='${arc(p.botDip - 4, p.botDip + 12 * loSize)}' fill='${lipC}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
-    const upperLip = showLips ? `<path d='${arc(p.topDip - 8 * upSize, p.topDip)}' fill='${shadeColor(lipC, 0.9)}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>` : "";
+    const lw = Math.max(0, Number(traits.lipLineWidth) || 1);   // multiplier on the lip outline weight
+    const lowerLip = showLips ? `<path d='${arc(p.botDip - 4, p.botDip + 12 * loSize)}' fill='${lipC}' stroke='${ink}' stroke-width='${(2.8 * lw).toFixed(2)}' stroke-linejoin='round'/>` : "";
+    const upperLip = showLips ? `<path d='${arc(p.topDip - 8 * upSize, p.topDip)}' fill='${shadeColor(lipC, 0.9)}' stroke='${ink}' stroke-width='${(2.8 * lw).toFixed(2)}' stroke-linejoin='round'/>` : "";
     // A small highlight on the LOWER LIP only (the old sheen arced across the whole mouth, reading as
     // a stray pink curve over the teeth).
     const sheen = showLips ? `<path d='M${f(128 - 9)} ${f(p.y + p.botDip + 5)}q9 2 18 0' fill='none' stroke='${shadeColor(lipC, 1.14)}' stroke-width='1.6' stroke-linecap='round' opacity='.4'/>` : "";
@@ -2773,8 +2775,9 @@
     // Lips are independent of emotion: a soft/full lip shows on any closed-mouth expression (angry,
     // sad, neutral) - the mood is carried by the brows/eyes, not by collapsing the mouth to a line.
     // Only "line" (or an expression with no closed mouth path) falls back to the stroked line.
+    const lw = Math.max(0, Number(traits.lipLineWidth) || 1);   // multiplier on the lip outline weight
     if (style === "line" || !expression.mouth) {
-      return `<path d='${expression.mouth}' fill='none' stroke='${ink}' stroke-width='${mw}' stroke-linecap='round'/>`;
+      return `<path d='${expression.mouth}' fill='none' stroke='${ink}' stroke-width='${(mw * lw).toFixed(2)}' stroke-linecap='round'/>`;
     }
     const skin = traits.skinHex || skinTones[traits.skin] || "#c89070";
     const lip = traits.lipColor || shadeColor(skin, 0.78);
@@ -2807,9 +2810,9 @@
       + `C${f(cx - loW)} ${f(my + loH)} ${f(L + 5)} ${f(my + loH - 2)} ${f(L)} ${f(my)}Z`;
     const seam = `M${f(L)} ${f(my)}${seamTo(R)}`;
     return `
-      <path d='${lower}' fill='${lip}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
-      <path d='${upper}' fill='${shadeColor(lip, 0.92)}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
-      <path d='${seam}' fill='none' stroke='${ink}' stroke-width='2.2' stroke-linecap='round'/>
+      <path d='${lower}' fill='${lip}' stroke='${ink}' stroke-width='${(2.4 * lw).toFixed(2)}' stroke-linejoin='round'/>
+      <path d='${upper}' fill='${shadeColor(lip, 0.92)}' stroke='${ink}' stroke-width='${(2.4 * lw).toFixed(2)}' stroke-linejoin='round'/>
+      <path d='${seam}' fill='none' stroke='${ink}' stroke-width='${(2.2 * lw).toFixed(2)}' stroke-linecap='round'/>
       <path d='M${f(cx - 8)} ${f(my + loH * 0.5)}q8 2 16 0' fill='none' stroke='rgba(255,255,255,.3)' stroke-width='1.4' stroke-linecap='round'/>
     `;
   }

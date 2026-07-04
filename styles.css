@@ -5465,6 +5465,11 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 /* LinkedIn mode owns the whole plate: the base UPPERCASE name h3 is hidden; the Sentence Case
    "First Surname" is rendered inside the sheet (.li-name) so every card has an identical layout. */
 .character-card.linkedin h3 { display: none; }
+/* Base .card-meta is a centred flex-row-wrap, which collapses the banner to 0 width and lets the
+   sheet overflow (clipping the secret card's left edge). LinkedIn wants a plain block: full-width
+   banner stacked above a left-aligned sheet, identical on every card. */
+.character-card.linkedin .card-meta { display: block; width: 100%; text-align: left; }
+.character-card.linkedin .li-sheet { width: 100%; }
 .li-name { font-size: 0.74rem; font-weight: 800; color: #0a0a0a; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .li-location { font-size: 0.5rem; color: #8a8a8a; margin-bottom: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .character-card.linkedin.li-power .li-name { color: #0a66c2; }
@@ -5490,14 +5495,15 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .li-connections { font-size: 0.5rem; color: #8a8a8a; margin-bottom: 2px; overflow-wrap: anywhere; }
 
 /* Mini profile banner strip at the top of the info plate. */
-.li-banner { height: 26px; margin: -5px -7px 4px; background-size: cover; background-position: center; }
+.li-banner { height: 26px; box-sizing: border-box; margin: -5px -7px 4px; background-size: cover; background-position: center; }
 /* The inline background-image:url() always wins; this base colour shows through if that art 404s,
    so a missing banner still reads as an intentional (if plain) profile banner. */
 .li-banner-img { filter: blur(3px) saturate(0.9); transform: scale(1.15); background-color: #2f5d86; }
 .li-banner-plain { background: linear-gradient(90deg, #0a66c2, #378fe9); }
 .li-banner-grey { background: repeating-linear-gradient(45deg, #d9d9d9, #d9d9d9 6px, #cfcfcf 6px, #cfcfcf 12px); }
-/* POWER tier: an elite, richer blurred banner — taller, more saturated, a gold bottom rule. */
-.li-banner-power { height: 34px; filter: blur(3px) saturate(1.1); border-bottom: 2px solid #f5c518; }
+/* POWER tier: an elite, richer blurred banner. Same HEIGHT as every other tier (so the plate below
+   lines up identically across the board), but richer saturation + a gold bottom rule for prestige. */
+.li-banner-power { filter: blur(3px) saturate(1.1); border-bottom: 2px solid #f5c518; }
 
 /* Premium (POWER tier) flex + verified sheen. */
 .li-premium {

@@ -248,7 +248,8 @@
       front: "M66 118c16-44 49-63 89-50 22 7 35 24 39 51-12-8-25-12-38-12-10 0-18 2-28 7-10-5-19-7-29-7-13 0-24 4-33 11Z"
     },
     longWaves: {
-      back: longWaveBack,
+      // Front layer only - the back blob behind the head read badly, so long waves now render as
+      // just the flowing front silhouette (renderHairBack returns nothing when `back` is absent).
       front: longWaveFront,
       longFlow: true
     },

@@ -851,9 +851,8 @@ button:disabled {
 /* ===================== Horny Potter mode ===================== */
 .character-board.hp-board { background: #14101c; border-color: #3a2a52 !important; }
 .hp-mode { border-color: var(--hp-color, #3a2a52) !important; }
-/* Crop the portrait shorter so the house + wand + spell + patronus/boggart all breathe. */
-.hp-board .character-card > .portrait-wrap { aspect-ratio: 1 / 0.72; }
-.hp-board .character-card > .portrait-wrap img { width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; object-position: center 24%; }
+/* Keep the photo SQUARE - the card just grows taller to fit the stat table below it. */
+.hp-board .character-card > .portrait-wrap { aspect-ratio: 1; }
 .hp-mode .card-plate { background: none; gap: 2px; padding: 5px 7px 8px; }
 .hp-mode .card-plate h3 { color: var(--ink); }
 .hp-tag {
@@ -865,8 +864,9 @@ button:disabled {
 .hp-crest { font-size: 0.72rem; }
 /* Character-sheet table: label | value rows, zebra-striped, with a house-tinted rule up top. */
 .hp-sheet { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 5px; font-size: 0.54rem; border-top: 2px solid var(--hp-color, #3a2a52); }
-.hp-sheet th, .hp-sheet td { text-align: left; vertical-align: top; padding: 3px 6px; line-height: 1.2; }
-.hp-sheet th { width: 58px; color: #aeb4bf; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; border-right: 1px solid rgba(255, 255, 255, 0.08); }
+.hp-sheet th, .hp-sheet td { vertical-align: top; padding: 3px 6px; line-height: 1.2; }
+.hp-sheet th { width: 52px; text-align: right; color: #aeb4bf; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; border-right: 1px solid rgba(255, 255, 255, 0.08); }
+.hp-sheet td { text-align: left; }
 .hp-sheet td { color: #eceef2; overflow-wrap: anywhere; }
 .hp-sheet tr:nth-child(even) { background: rgba(255, 255, 255, 0.045); }
 .hp-spell-row td b { color: #e6bb4c; font-weight: 800; }
@@ -877,6 +877,15 @@ button:disabled {
 .hp-darklord { border-color: #6a6a78 !important; box-shadow: 0 0 0 1px #2a2a34, 0 0 18px rgba(120,140,160,0.25); }
 .hp-darklord .hp-tag { background: #101018; border: 1px solid #454560; letter-spacing: 0.08em; }
 .hp-darklord .card-plate h3 { letter-spacing: 0.06em; }
+/* Avada Kedavra: a green killing-curse flash + jolt when the Dark Lord is dragged onto a victim. */
+.hp-avada-hit { animation: hp-avada-shake 0.5s ease-out; }
+@keyframes hp-avada-shake { 0%,100% { transform: translateX(0); } 15% { transform: translateX(-4px); } 30% { transform: translateX(4px); } 45% { transform: translateX(-3px); } 60% { transform: translateX(3px); } 80% { transform: translateX(-1px); } }
+.hp-avada-flash {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: radial-gradient(circle at 50% 46%, rgba(120, 255, 120, 0.95), rgba(30, 200, 60, 0.5) 40%, transparent 72%);
+  animation: hp-avada-flash 0.5s ease-out forwards;
+}
+@keyframes hp-avada-flash { 0% { opacity: 0; transform: scale(0.3); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.1); } }
 
 .character-card h3 {
   display: block;
@@ -3960,6 +3969,19 @@ body.mode-pixall .secret-card img {
   border-radius: 50%; background: rgba(190, 190, 200, 0.92); color: #26262c; font-weight: 900; font-size: 0.9rem;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.45);
 }
+/* MEGA HELL: the deepest circle burns hotter than the rest. */
+.character-card.jd-mega { border-color: #ff2a00 !important; box-shadow: 0 0 0 1px #ff2a00, 0 0 22px -2px #ff3a10 !important; }
+.jd-mega .jd-verdict { background: linear-gradient(180deg, #ff5a1a, #b31000) !important; color: #ffe7d8 !important; text-shadow: 0 0 6px #ff3a10; }
+.jd-mega .portrait-wrap img { filter: brightness(0.42) contrast(1.5) grayscale(0.5) sepia(0.42) !important; }
+/* Purgatory ghost strip: aborted souls lingering in limbo below the board. */
+.jd-purgatory-strip { grid-column: 1 / -1; margin-top: 10px; padding: 10px 12px; border-radius: 12px; border: 1px dashed #7a7a86; background: linear-gradient(180deg, rgba(150, 150, 165, 0.14), rgba(28, 28, 36, 0.5)); }
+.jd-purg-label { margin-bottom: 8px; text-align: center; font-weight: 900; font-size: 0.72rem; letter-spacing: 0.04em; color: #d8d8e2; }
+.jd-purg-souls { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.jd-ghost { margin: 0; width: 74px; text-align: center; }
+.jd-ghost img { width: 64px; height: 64px; object-fit: contain; opacity: 0.72; filter: grayscale(0.75) brightness(1.15) drop-shadow(0 0 6px rgba(200, 200, 220, 0.5)); animation: jd-ghost-float 3.5s ease-in-out infinite; }
+@keyframes jd-ghost-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.jd-ghost figcaption { margin-top: 2px; font-size: 0.5rem; font-weight: 700; color: #cfcfda; line-height: 1.2; }
+.jd-ghost figcaption span { display: block; font-size: 0.44rem; color: #9a9aa6; }
 /* On the secret ("YOU ARE") card the portrait sits in the ~90px left column, so head-overlays must move
    off-centre to sit over it rather than over the name. */
 .secret-card .jd-crown { left: 46px; top: 20px; }
@@ -4048,7 +4070,9 @@ body.mode-pixall .secret-card img {
 .sim-action { font-size: 0.56rem; font-style: italic; color: #bfe6ff; line-height: 1.25; }
 /* Fixed label column + a full-width, clearly-visible track so every bar is the SAME length and only the
    coloured fill varies (a low need used to look like a stray floating pill). */
-.sim-bar { display: grid; grid-template-columns: 56px 1fr; align-items: center; gap: 6px; }
+/* Fixed-width track (not 1fr) so every need bar is identical on both the wide board card AND the
+   narrow secret card, where 1fr used to collapse the bars to nubs. */
+.sim-bar { display: grid; grid-template-columns: 54px 84px; align-items: center; gap: 5px; justify-content: center; }
 .sim-bar b { font-size: 0.47rem; font-weight: 800; color: #9fd0e8; letter-spacing: 0.02em; }
 .sim-bar i { display: block; width: 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.2); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
 .sim-bar s { display: block; height: 100%; width: var(--n, 50%); border-radius: 4px 0 0 4px; }
@@ -4596,9 +4620,34 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
     repeating-conic-gradient(#3ec46a 0% 25%, #2aa050 0% 50%) 0 0 / 14px 14px,
     rgba(10, 30, 18, 0.7);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
-  animation: woohoo-bob 0.5s ease-in-out infinite alternate;
+  /* Bob during the woohoo, then clear OFF before the baby reveal (banner/card land at ~1.35s) so the
+     "IT'S A GAYBY!!" banner and card aren't hidden behind the still-present cover. */
+  animation: woohoo-bob 0.5s ease-in-out infinite alternate, woohoo-cover-out 0.3s ease-in 1.05s forwards;
 }
 @keyframes woohoo-bob { from { transform: translate(-50%, -52%) rotate(-2deg); } to { transform: translate(-50%, -48%) rotate(2deg); } }
+@keyframes woohoo-cover-out { to { opacity: 0; visibility: hidden; } }
+
+/* ===================== Sims marriage minigame ===================== */
+.wed-overlay { position: fixed; inset: 0; z-index: 1002; display: grid; place-items: center; background: rgba(6, 14, 22, 0.74); animation: wed-in 0.2s ease-out; }
+@keyframes wed-in { from { opacity: 0; } }
+.wed-stage { text-align: center; }
+.wed-title { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 2rem; color: #7fe0ff; text-shadow: 0 2px 0 #1a6f8f; letter-spacing: 0.04em; }
+.wed-couple { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0; }
+.wed-face { width: 116px; height: 116px; border-radius: 14px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+.wed-heart { font-size: 2.4rem; animation: wed-beat 0.7s ease-in-out infinite; }
+@keyframes wed-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+.wed-reel { position: relative; height: 42px; width: 230px; margin: 0 auto; overflow: hidden; border-radius: 9px; background: #10202c; box-shadow: inset 0 0 0 2px #2e9ec7; animation: wed-spin 0.16s linear infinite; }
+.wed-reel b { display: block; height: 42px; line-height: 42px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.35rem; letter-spacing: 0.06em; }
+.wed-reel b:nth-child(1) { color: #ff6a6a; }   /* SUCCESS - the trap */
+.wed-reel b:nth-child(2) { color: #5fe06a; }   /* FAILURE - the good ending */
+@keyframes wed-spin { from { transform: translateY(0); } to { transform: translateY(-42px); } }
+.wed-overlay.wed-spun .wed-reel { animation: none; }
+.wed-overlay.wed-success .wed-reel { transform: translateY(0); box-shadow: inset 0 0 0 2px #ff6a6a; }
+.wed-overlay.wed-fail .wed-reel { transform: translateY(-42px); box-shadow: inset 0 0 0 2px #5fe06a; }
+.wed-banner { margin-top: 16px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.4rem; color: #fff; animation: wed-pop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.wed-overlay.wed-success .wed-banner { color: #ff9a9a; }
+.wed-overlay.wed-fail .wed-banner { color: #8affa8; }
+@keyframes wed-pop { from { transform: scale(0.5); opacity: 0; } }
 
 /* ===================== Astrology mode ===================== */
 .character-board.astrology-board {

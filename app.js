@@ -247,6 +247,7 @@ const state = {
   locationVariant: "day",
   roomCode: "0000",
   gameSalt: "",
+  abortedBabies: [],   // session-level: aborted souls that later haunt Judgement Day's purgatory
   log: [],
   global: {
     mystery: null,
@@ -881,7 +882,7 @@ function parseCum(str) { const m = String(str).match(/([\d.]+)\s*([MB])/i); if (
 function formatCum(mils) { return mils >= 1000 ? `${(mils / 1000).toFixed(1)}B` : `${Math.max(0, Math.round(mils))}M`; }
 
 // Breeding only happens in the modes where it makes sense.
-const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "sims", "woke", "family-tree-disaster", "drugs", "hidden-agendas"];
+const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "woke", "family-tree-disaster", "drugs", "hidden-agendas"];
 
 // ===================== Identity reels (slot-machine pickers for new babies) =====================
 // A row of slot-machine reels that spin through their values and land staggered left-to-right (same
@@ -956,6 +957,17 @@ function breedCharacters(aId, bId) {
   // PANTONE: dragging two people together doesn't breed - it MIXES them like paint. Both take the
   // averaged background AND the averaged skin tone, and their Pantone chips re-derive from the blend.
   if (mode === "pantone") { mixPantonePair(A, B); return; }
+  // SIMS: dragging two sims together doesn't breed - they get MARRIED, then a spinner lands on
+  // SUCCESS (stay together, broke + miserable) or FAILURE (divorce, split the money, blissful).
+  if (mode === "sims") { simsMarriage(A, B); return; }
+  // HORNY POTTER: the only "drag" is the Dark Lord onto a victim - he Avada Kedavras them (marks them
+  // as a NO). Anyone else dragging just jiggles ("not here").
+  if (mode === "horny-potter") {
+    const asgHP = state.global.mystery.assignments || {};
+    if (asgHP[A.id]?.role === "darklord" && A.id !== B.id) { avadaKedavra(B); return; }
+    [aId, bId].forEach((id) => { const c = document.getElementById(`card-${id}`); if (c) { c.classList.remove("no-breed-jiggle"); void c.offsetWidth; c.classList.add("no-breed-jiggle"); } });
+    return;
+  }
   // Hidden Agendas: an opposite-party drag is a TUG-O-WAR; same-party comrades BREED instead,
   // and the baby develops its own unhinged ideology remixed from its parents' platforms.
   if (mode === "hidden-agendas") {
@@ -1131,6 +1143,11 @@ const ABORT_LINES = [
 function abortBaby(baby, parentA, parentB) {
   // Each aborted baby adds to a hidden tally on both parents - sortable as "Abortions".
   [parentA, parentB].forEach((p) => { if (p) p.abortions = (p.abortions || 0) + 1; });
+  // The soul lingers: it haunts Judgement Day's purgatory for the rest of the session (persisted).
+  state.abortedBabies = state.abortedBabies || [];
+  if (!state.abortedBabies.some((g) => g.id === baby.id)) {
+    state.abortedBabies.push({ id: baby.id, name: baby.name, seed: baby.seed, traits: baby.traits, isGayby: !!baby.isGayby, parents: baby.parents || [] });
+  }
   const line = ABORT_LINES[Math.floor(Math.random() * ABORT_LINES.length)];
   flashToast(`👼 ${baby.name} ${line}`);
   if (typeof addLog === "function") addLog(`${baby.name} ${line}`);
@@ -1612,9 +1629,22 @@ function renderBoard() {
   sortedBoard().forEach((character) => {
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
+  if (modeId === "judgement") renderJudgementPurgatory();   // aborted souls lingering in limbo
   if (modeId === "pixall") startPixallLoop(); else stopPixallLoop();
   if (modeId === "sims") startSimsLoop(); else stopSimsLoop();
   if (modeId === "prop-panic") startPropLoop(); else stopPropLoop();
+}
+// A ghost strip below the Judgement board: every soul you aborted this session, stuck in limbo.
+function renderJudgementPurgatory() {
+  const souls = state.global.mystery?.purgatory || [];
+  if (!souls.length) return;
+  const strip = document.createElement("div");
+  strip.className = "jd-purgatory-strip";
+  strip.innerHTML = `<div class="jd-purg-label">🕯️ PURGATORY · ${souls.length} aborted soul${souls.length > 1 ? "s" : ""} in limbo</div>`
+    + `<div class="jd-purg-souls">`
+    + souls.map((g) => `<figure class="jd-ghost"><img src="${g.image}" alt=""><figcaption>${escapeHtml(g.name)}<span>#${g.queuePos.toLocaleString()} in queue</span></figcaption></figure>`).join("")
+    + `</div>`;
+  els.characterBoard.appendChild(strip);
 }
 
 // ===================== Prop Panic: the periodic PROP SWAP =====================
@@ -2158,9 +2188,9 @@ function renderHabboBoard(player) {
     el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
     el.style.zIndex = String(100 + pos.col + pos.row);
     // Proper Habbo anatomy: big pixel head on a little torso with arms (skin-tone hands), legs and
-    // shoes - the parts animate a real step-gait while walking. Pants hashed per character.
-    const HB_PANTS = ["#3c4a5c", "#54402e", "#233a28", "#4a2a3c", "#2b2b31", "#5c3a24"];
-    const pants = HB_PANTS[stableHash(ch.id + ":pants") % HB_PANTS.length];
+    // shoes - the parts animate a real step-gait while walking. The bottom half wears the SAME
+    // outfit as the top: pants are a darker shade of the shirt, not a random colour.
+    const pants = mixHex(a.shirt || "#4a90e2", "#14161c", 0.45);
     el.innerHTML = `<span class="hb-name">${escapeHtml(displayName(ch))}</span>`
       + `<img class="hb-head" src="${a.head || ch.image}" alt="">`
       + `<span class="hb-body" style="--shirt:${a.shirt || "#4a90e2"};--skin:${skinHexOf(ch)};--pants:${pants}">`
@@ -3067,12 +3097,12 @@ function getMysteryCardData(character) {
       dataset: { hpHouse: assignment.house, hpSpell: assignment.spell },
       html: `<div class="hp-tag"><span class="hp-crest">${assignment.crest}</span> ${escapeHtml(assignment.house)}</div>`
         + `<table class="hp-sheet"><tbody>`
-        + `<tr><th>🪄 Wand</th><td>${escapeHtml(assignment.wand)}</td></tr>`
-        + `<tr class="hp-spell-row"><th>✨ Fav Spell</th><td><b>${escapeHtml(assignment.spell)}</b> — ${escapeHtml(assignment.spellHint)}</td></tr>`
+        + `<tr><th>Wand</th><td>${escapeHtml(assignment.wand)}</td></tr>`
+        + `<tr class="hp-spell-row"><th>Fav Spell</th><td><b>${escapeHtml(assignment.spell)}</b> — ${escapeHtml(assignment.spellHint)}</td></tr>`
         + (assignment.horcrux
-          ? `<tr class="hp-horcrux-row"><th>💀 Horcrux</th><td>${escapeHtml(assignment.horcrux)}</td></tr>`
-          : `<tr><th>🦌 Patronus</th><td>${escapeHtml(assignment.patronus)}</td></tr>`
-            + `<tr><th>👻 Boggart</th><td>${escapeHtml(assignment.boggart)}</td></tr>`)
+          ? `<tr class="hp-horcrux-row"><th>Horcrux</th><td>${escapeHtml(assignment.horcrux)}</td></tr>`
+          : `<tr><th>Patronus</th><td>${escapeHtml(assignment.patronus)}</td></tr>`
+            + `<tr><th>Boggart</th><td>${escapeHtml(assignment.boggart)}</td></tr>`)
         + `</tbody></table>`
     };
   }
@@ -3349,19 +3379,18 @@ function getMysteryCardData(character) {
   }
   if (mystery.id === "judgement") {
     const a = assignment;
-    const glyph = { HEAVEN: "😇", HELL: "😈", PURGATORY: "🤷" }[a.verdict];
-    // Short badge label so it never collides with the centred crown (PURGATORY -> LIMBO).
-    const label = { HEAVEN: "HEAVEN", HELL: "HELL", PURGATORY: "LIMBO" }[a.verdict];
+    const glyph = a.mega ? "👹" : { HEAVEN: "😇", HELL: "😈" }[a.verdict];
+    const label = a.mega ? "MEGA HELL" : { HEAVEN: "HEAVEN", HELL: "HELL" }[a.verdict];
     const crown = {
       HEAVEN: '<svg class="jd-halo" viewBox="0 0 64 22"><ellipse cx="32" cy="11" rx="27" ry="7.5"/></svg>',
-      HELL: '<svg class="jd-horns" viewBox="0 0 62 34"><path class="horn" d="M21 34 C 8 25 5 9 14 2 C 13 13 17 25 25 31 Z"/><path class="horn" d="M41 34 C 54 25 57 9 48 2 C 49 13 45 25 37 31 Z"/></svg>',
-      PURGATORY: '<span class="jd-limbo">?</span>'
+      HELL: '<svg class="jd-horns" viewBox="0 0 62 34"><path class="horn" d="M21 34 C 8 25 5 9 14 2 C 13 13 17 25 25 31 Z"/><path class="horn" d="M41 34 C 54 25 57 9 48 2 C 49 13 45 25 37 31 Z"/></svg>'
     }[a.verdict];
-    const meter2Label = { HEAVEN: "BLISS", HELL: "TORMENT", PURGATORY: "BOREDOM" }[a.verdict];
-    const meter2Cls = { HEAVEN: "rct-good", HELL: "rct-bad", PURGATORY: "rct-mid" }[a.verdict];
-    const where = a.verdict === "PURGATORY"
-      ? `${escapeHtml(a.location)} · <b>#${a.queuePos.toLocaleString()} in queue</b>`
-      : `${escapeHtml(a.location)} · <b>${a.verdict === "HELL" ? "Circle" : "Tier"} ${a.layer}</b>`;
+    const meter2Label = { HEAVEN: "BLISS", HELL: "TORMENT" }[a.verdict];
+    const meter2Cls = { HEAVEN: "rct-good", HELL: "rct-bad" }[a.verdict];
+    const money = a.wealth != null ? `${a.wealth < 0 ? "-§" + Math.abs(a.wealth).toLocaleString() : "§" + a.wealth.toLocaleString()}` : "";
+    const where = a.verdict === "HELL"
+      ? `${escapeHtml(a.location)} · <b>${a.mega ? "🔥 MEGA HELL" : "Circle " + a.layer}</b>`
+      : `${escapeHtml(a.location)} · <b>Tier ${a.layer}${money ? " · " + money : ""}</b>`;
     const bar = (lbl, n, cls) => `<span class="rct-bar"><b>${lbl}</b><i><s class="${cls}" style="--n:${n}%"></s></i></span>`;
     // HELL: individual flame tongues, each with its own position / height / flicker timing (hashed
     // per character+index so no two demons burn alike), split behind and in front of the body.
@@ -3384,7 +3413,7 @@ function getMysteryCardData(character) {
     }
     return {
       effectName: mystery.name,
-      cardClass: `judgement jd-${a.verdict.toLowerCase()}`,
+      cardClass: `judgement jd-${a.verdict.toLowerCase()}${a.mega ? " jd-mega" : ""}`,
       dataset: { verdict: a.verdict },
       image: a.image || undefined,
       cornerHtml: flames
@@ -3527,6 +3556,18 @@ function applyFertility(effect) {
 // can be rendered with each mode's own visual treatment (LBGT letter chips, orgy bars, disease pills,
 // pain-face corner, fertility timer, work sentence, disguise). Not Yu-Gi-Oh.
 const WOKE_MODULES = ["gay", "orgy", "drugs", "disease", "fertility", "work", "disguise"];
+// Rainbow-dye a portrait's hair for the woke "gay" module: every hair lock takes a different pride
+// colour (with matching shade/shine so it still reads as hair), and the base silhouette is dyed too.
+const WOKE_RAINBOW = ["#e40303", "#ff8c00", "#ffd400", "#28a745", "#3a86ff", "#8338ec"];
+function wokeRainbowHair(traits) {
+  const base = { hairHex: WOKE_RAINBOW[0] };
+  if (!Array.isArray(traits.hairLocks) || !traits.hairLocks.length) return base;
+  base.hairLocks = traits.hairLocks.map((l, i) => {
+    const c = WOKE_RAINBOW[i % WOKE_RAINBOW.length];
+    return { ...l, fill: c, dark: mixHex(c, "#180418", 0.42), shine: mixHex(c, "#ffffff", 0.42) };
+  });
+  return base;
+}
 function applyWoke(effect) {
   const D = window.GameData;
   const positions = ["TOP", "BOTTOM", "SIDE", "GAGGED", "CHOKING", "VERS", "POWER BOTTOM", "STARFISH"];
@@ -3610,8 +3651,10 @@ function applyWoke(effect) {
     }
 
     // Image: a disguised covering when that module rolled, otherwise the bare-shouldered woke portrait.
+    // Gay module => full RAINBOW HAIR (each hair lock a different pride colour, base dyed too).
     if (ch.traits && window.faceGenerator) {
       const R = (extra) => window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, ...extra });
+      const pride = has("gay") ? wokeRainbowHair(ch.traits) : {};
       a.image = has("disguise")
         ? (ch.pronouns === "she"
           ? R({ disguise: true })
@@ -3619,7 +3662,7 @@ function applyWoke(effect) {
             accessoryY: 0, accessoryScale: 1,
             clothing: (ch.traits.clothing === "bare" || ch.traits.clothing === "singlet") ? "tee" : ch.traits.clothing,
             shirt: "#f2f2f2" }))
-        : R({ clothing: "bare", accessory: "none" });
+        : R({ clothing: "bare", accessory: "none", ...pride });
     } else {
       a.image = ch.image;
     }
@@ -3660,42 +3703,59 @@ function applySwipe(effect) {
 // guest "thought", and Happiness + a themed mood meter.
 function applyJudgement(effect) {
   const D = window.GameData;
-  const verdicts = ["HEAVEN", "HELL", "PURGATORY"];
   const pick = (obj, verdict, salt) => {
     const arr = (obj && obj[verdict]) || ["—"];
     return arr[stableHash(`${state.gameSalt}:jd:${salt}`) % arr.length];
   };
+  // The living are sorted HEAVEN or HELL only (purgatory is now reserved for aborted souls), skewed
+  // toward hell. Heaven TIERS track each soul's last Sims net worth - the rich float higher.
+  const bank = simBankGet();
+  const wealthOf = (ch) => (bank[ch.id] != null ? bank[ch.id] : ((stableHash(`${state.gameSalt}:jdw:${ch.id}`) % 65000) - 5000));
+  const verdictOf = {};
+  state.board.forEach((ch) => { verdictOf[ch.id] = ["HELL", "HELL", "HELL", "HEAVEN", "HEAVEN"][stableHash(`${state.gameSalt}:judge:${ch.id}`) % 5]; });
+  const heavenIds = state.board.filter((c) => verdictOf[c.id] === "HEAVEN").sort((x, y) => wealthOf(y) - wealthOf(x)).map((c) => c.id);
+  const heavenTier = {};
+  heavenIds.forEach((id, i) => { heavenTier[id] = heavenIds.length <= 1 ? 9 : 9 - Math.round((i / (heavenIds.length - 1)) * 8); });
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:judge:${ch.id}`);
-    // Skew slightly toward hell/heaven over purgatory (0,1 = heaven/hell twice as likely each).
-    const verdict = verdicts[[0, 1, 0, 1, 2][h % 5]];
-    const layer = verdict === "PURGATORY" ? null : 1 + ((h >>> 3) % 9);      // Dante circles / heaven tiers
-    const queuePos = verdict === "PURGATORY" ? 1 + ((h >>> 3) % 900000) : null;
-    // Happiness: heaven high, hell rock-bottom, purgatory low. Second meter is verdict-specific.
-    const base = verdict === "HEAVEN" ? 72 : verdict === "HELL" ? 2 : 22;
-    // Heaven: naked souls on a TRANSPARENT background (clouds show through behind). Hell: charred,
-    // ashen skin (the CSS also darkens/cracks it). Both stripped of clothes.
+    const verdict = verdictOf[ch.id];
+    const wealth = Math.round(wealthOf(ch));
+    const layer = verdict === "HEAVEN" ? heavenTier[ch.id] : 1 + ((h >>> 3) % 9);
+    const mega = verdict === "HELL" && layer === 9;         // the deepest circle = MEGA HELL
+    const base = verdict === "HEAVEN" ? 72 : 2;
+    // Heaven: naked souls on a TRANSPARENT background (clouds show through). Hell: charred, ashen skin.
     let image = null;
     if (ch.traits && window.faceGenerator) {
-      if (verdict === "HEAVEN") image = window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: "transparent", clothing: "bare", accessory: "none" });
-      else if (verdict === "HELL") image = window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, clothing: "bare", accessory: "none", skinHex: "#4a3f3a", cheekOpacity: 0 });
+      image = verdict === "HEAVEN"
+        ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: "transparent", clothing: "bare", accessory: "none" })
+        : window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, clothing: "bare", accessory: "none", skinHex: mega ? "#3a2b28" : "#4a3f3a", cheekOpacity: 0 });
     }
     assignments[ch.id] = {
-      verdict, image,
+      verdict, image, wealth, layer, mega,
       location: pick(D.judgementLocations, verdict, `${ch.id}:loc`),
       thought: pick(D.judgementThoughts, verdict, `${ch.id}:th`),
-      layer, queuePos,
       happiness: Math.min(100, base + ((h >>> 5) % 26)),
-      meter2: verdict === "HELL" ? 70 + ((h >>> 7) % 30) : verdict === "PURGATORY" ? 58 + ((h >>> 7) % 42) : 4 + ((h >>> 7) % 24)
+      meter2: verdict === "HELL" ? 70 + ((h >>> 7) % 30) : 4 + ((h >>> 7) % 24)
     };
   });
-  return { id: effect.id, name: effect.name, assignments };
+  // Aborted souls linger in PURGATORY - rendered as a separate ghost strip on the board.
+  const purgatory = (state.abortedBabies || []).map((g) => {
+    let image = g.image;
+    if (g.traits && window.faceGenerator) { try { image = window.faceGenerator.renderPortrait(g.seed, { ...g.traits, background: "transparent" }); } catch (e) { /* keep stored */ } }
+    return { id: g.id, name: g.name, image, queuePos: 1 + (stableHash(`${state.gameSalt}:jdq:${g.id}`) % 900000) };
+  });
+  return { id: effect.id, name: effect.name, assignments, purgatory };
 }
 
 // SIMS Mode: every character is a Sim - a plumbob mood (green/yellow/red) floating over the head, four
 // depleting need bars, whatever autonomous action they're currently doing, a career, and a simoleon
 // balance.
+// A tiny cross-round ledger of each character's last Sims net worth - Judgement Day reads it to rank
+// heaven tiers (the rich ascend higher). Persisted so a Sims round earlier in the session still counts.
+const SIM_BANK_KEY = "whoisit_sim_bank_v1";
+function simBankGet() { try { return JSON.parse(localStorage.getItem(SIM_BANK_KEY) || "{}") || {}; } catch (e) { return {}; } }
+function simBankSet(map) { try { localStorage.setItem(SIM_BANK_KEY, JSON.stringify(map)); } catch (e) { /* storage off */ } }
 function applySims(effect) {
   const D = window.GameData;
   const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:sim:${salt}`) % arr.length];
@@ -3714,7 +3774,57 @@ function applySims(effect) {
       ...simsPortrait(ch)   // transparent-bg portrait so relief animations move only the person
     };
   });
+  const bank = simBankGet();
+  state.board.forEach((ch) => { bank[ch.id] = assignments[ch.id].simoleons; });
+  simBankSet(bank);
   return { id: effect.id, name: effect.name, assignments };
+}
+// Drag two Sims together => a MARRIAGE minigame (à la the politics tug). A spinner rattles between
+// SUCCESS and FAILURE, then lands: SUCCESS = they stay together, both simoleons wiped and moods sink
+// to miserable ("til debt do us part"); FAILURE = they DIVORCE, the combined estate is split 50/50
+// and both come out blissfully happy. Deterministic per pair so online seats agree.
+function simsMarriage(A, B) {
+  const asg = state.global.mystery?.assignments;
+  const a = asg && asg[A.id], b = asg && asg[B.id];
+  if (!a || !b) return;
+  if (document.querySelector(".wed-overlay")) return;      // one ceremony at a time
+  const ov = document.createElement("div");
+  ov.className = "wed-overlay";
+  ov.innerHTML = `<div class="wed-stage">
+      <div class="wed-title">💍 MARRIED</div>
+      <div class="wed-couple">
+        <img class="wed-face" src="${A.image}" alt="">
+        <span class="wed-heart">💞</span>
+        <img class="wed-face" src="${B.image}" alt="">
+      </div>
+      <div class="wed-reel"><b>SUCCESS</b><b>FAILURE</b></div>
+    </div>`;
+  document.body.appendChild(ov);
+  const success = stableHash(`${state.gameSalt}:wed:${A.id}:${B.id}:${(a.simoleons || 0) + (b.simoleons || 0)}`) % 2 === 0;
+  // Spin the reel, then lock onto the outcome.
+  setTimeout(() => {
+    ov.classList.add("wed-spun", success ? "wed-success" : "wed-fail");
+    const banner = document.createElement("div");
+    banner.className = "wed-banner";
+    banner.innerHTML = success
+      ? `⛓️ <b>SUCCESS</b> — til debt do us part`
+      : `🕊️ <b>DIVORCE</b> — happily ever after`;
+    ov.querySelector(".wed-stage").appendChild(banner);
+  }, 2300);
+  setTimeout(() => {
+    if (success) {
+      // Stay together: estate wiped, moods crater to miserable.
+      [a, b].forEach((s) => { s.simoleons = Math.round((s.simoleons || 0) * 0.04); s.mood = "red"; s.action = "Regretting the vows"; s.needs = { ...s.needs, fun: Math.min(s.needs?.fun ?? 20, 8), social: Math.min(s.needs?.social ?? 20, 12) }; });
+    } else {
+      // Divorce: split the combined estate down the middle, both come out happy.
+      const pot = (a.simoleons || 0) + (b.simoleons || 0);
+      a.simoleons = Math.round(pot / 2); b.simoleons = pot - a.simoleons;
+      [a, b].forEach((s) => { s.mood = "green"; s.action = "Living their best divorced life"; s.needs = { ...s.needs, fun: Math.max(s.needs?.fun ?? 80, 90), social: Math.max(s.needs?.social ?? 80, 88) }; });
+    }
+    const bank = simBankGet(); bank[A.id] = a.simoleons; bank[B.id] = b.simoleons; simBankSet(bank);   // wealth carries to Judgement
+    ov.remove();
+    renderBoard();
+  }, 3900);
 }
 
 // HEADS ONLY: no cards at all - just every character's floating head (+ name) drifting around the
@@ -3862,28 +3972,50 @@ function applyHornyPotter(effect) {
   // Exactly one poor soul (never the Dark Lord at index 0) is packing a very cursed "wand".
   const cursedIdx = order.length > 1 ? 1 + (stableHash(`${state.gameSalt}:hp:cursed`) % (order.length - 1)) : -1;
   const assignments = {};
+  // Re-render a portrait onto a per-character-VARIED tint of a base colour, so every card's background
+  // reads as its house (or its dark faction) without two cards sharing the exact same shade.
+  const tinted = (ch, base, toward, lo, hi, extra) => {
+    if (!(ch.traits && window.faceGenerator)) return null;
+    const h = stableHash(`${state.gameSalt}:hp:tint:${ch.id}`);
+    const t = lo + ((h % 1000) / 1000) * (hi - lo);
+    return window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, ...(extra || {}), background: mixHex(base, toward, t) });
+  };
   order.forEach((ch, i) => {
     const h = stableHash(`${state.gameSalt}:hp:${ch.id}`);
     let wand = `${woods[h % woods.length]}, ${cores[(h >>> 3) % cores.length]} core, ${flexes[(h >>> 6) % flexes.length]}`;
     if (i === cursedIdx) wand = "Flesh, human hair, actually his cock";
-    if (i === 0) {                                   // the single Dark Lord
-      const image = ch.traits && window.faceGenerator
-        ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, hair: "bald", hairLocks: [], accessory: "none", skinHex: "#e6e7de", browThick: 0.15, noseScale: 0.62, lipColor: "#b7a6a6", background: "#14131c" })
-        : null;
+    if (i === 0) {                                   // the single Dark Lord - pasty repaint on a dark tint
+      const image = tinted(ch, "#101018", "#2b2740", 0.1, 0.5, { hair: "bald", hairLocks: [], accessory: "none", skinHex: "#e6e7de", browThick: 0.15, noseScale: 0.62, lipColor: "#b7a6a6" });
       const s = dark[(h >>> 9) % dark.length];
-      assignments[ch.id] = { role: "darklord", house: "The Dark Lord", color: "#101018", crest: "☇", wand: "Elder, thestral tail-hair core, unyielding", spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`), image };
+      assignments[ch.id] = { role: "darklord", house: "The Dark Lord", color: "#3a3358", crest: "☇", wand: "Elder, thestral tail-hair core, unyielding", spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`), image };
       return;
     }
-    if (h % 5 === 0) {                               // ~1 in 5 are house-less Death Eaters
+    if (h % 5 === 0) {                               // ~1 in 5 are house-less Death Eaters - dark tint
       const s = dark[(h >>> 9) % dark.length];
-      assignments[ch.id] = { role: "deatheater", house: "Death Eater", color: "#1b1420", crest: "☠", wand, spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`) };
+      const image = tinted(ch, "#241a2e", "#4a2f52", 0.15, 0.6);
+      assignments[ch.id] = { role: "deatheater", house: "Death Eater", color: "#5a3a6e", crest: "☠", wand, spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`), image };
       return;
     }
     const house = houses[(h >>> 4) % houses.length];
     const s = spells[(h >>> 9) % spells.length];
-    assignments[ch.id] = { role: "house", house: house[0], color: house[1], crest: house[2], vibe: house[3], wand, spell: s[0], spellHint: s[1], patronus: pick(patronuses, `pat:${ch.id}`), boggart: pick(boggarts, `bog:${ch.id}`) };
+    const image = tinted(ch, house[1], "#f4f1ea", 0.68, 0.84);   // light, house-tinted, per-char varied
+    assignments[ch.id] = { role: "house", house: house[0], color: house[1], crest: house[2], vibe: house[3], wand, spell: s[0], spellHint: s[1], patronus: pick(patronuses, `pat:${ch.id}`), boggart: pick(boggarts, `bog:${ch.id}`), image };
   });
   return { id: effect.id, name: effect.name, assignments };
+}
+// Dark Lord's kill: a green killing-curse flash over the victim's card, then they're crossed off (the
+// HP way to mark a NO). If already down, un-cross them (drag the Dark Lord on again to revive).
+function avadaKedavra(ch) {
+  const card = document.getElementById(`card-${ch.id}`);
+  const alreadyDown = currentPlayer().eliminated.has(ch.id);
+  if (card && !alreadyDown) {
+    card.classList.remove("hp-avada-hit"); void card.offsetWidth; card.classList.add("hp-avada-hit");
+    const flash = document.createElement("div");
+    flash.className = "hp-avada-flash";
+    card.querySelector(".portrait-wrap")?.appendChild(flash);
+  }
+  flashToast(alreadyDown ? `✨ Finite — ${ch.name} rises again.` : `☠ Avada Kedavra — ${ch.name} is no more.`);
+  setTimeout(() => toggleEliminated(ch.id), alreadyDown ? 60 : 500);
 }
 
 // HABBO HOTEL: an isometric room. Every character becomes a blocky Habbo-style avatar (a pixelated
@@ -5271,6 +5403,7 @@ function saveGameState() {
       boardIds: state.board.map((c) => c.id),   // pin the exact deal: the pool can grow mid-round (fresh GAYBYs)
       effectId: state.global.mystery ? state.global.mystery.id : null,   // debug-picked/mystery-swapped modes survive too
       babies: state.board.filter((c) => c.isBaby || (c.isGayby && !c.persistedGayby)).map(serializeCharacter),
+      abortedBabies: state.abortedBabies || [],   // purgatory souls carry across rounds this session
       players: state.players.map((p) => ({ secretId: p.secretId, eliminated: [...p.eliminated], mysteryUsed: p.mysteryUsed }))
     }));
   } catch (e) { /* storage full/blocked - play on */ }
@@ -5283,6 +5416,7 @@ function resumeGame(saved) {
   state.settings = { ...state.settings, ...(saved.settings || {}) };
   state.gameMode = saved.gameMode || "local";
   state.mySeat = saved.mySeat || 0;
+  state.abortedBabies = saved.abortedBabies || [];
   newGame(saved.salt, { resume: true, remote: true });
   // Rebuild the EXACT dealt board from the save: re-dealing from the salt isn't enough because the
   // pool can have grown mid-round (a fresh GAYBY persists into it instantly and would displace

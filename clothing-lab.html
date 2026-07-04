@@ -26,7 +26,15 @@
             <option value="all">All outfits</option>
             <option value="new">New concepts</option>
             <option value="current">Current only</option>
+            <option value="layers">Layerable</option>
+            <option value="unreviewed">Unreviewed</option>
+            <option value="yay">Yay</option>
+            <option value="nay">Nay</option>
           </select>
+        </label>
+        <label>
+          <span>Under</span>
+          <select id="underLayer"></select>
         </label>
         <label>
           <span>Body</span>
@@ -51,6 +59,11 @@
             <h2 id="previewName">Outfit</h2>
             <p id="previewNotes" class="notes"></p>
             <div id="previewTags" class="tag-row"></div>
+            <div class="review-actions" aria-label="Review selected outfit">
+              <button id="yayButton" class="review-button yay" type="button">Yay</button>
+              <button id="nayButton" class="review-button nay" type="button">Nay</button>
+              <button id="clearVoteButton" class="review-button clear" type="button">Clear</button>
+            </div>
           </div>
           <section class="shape-controls" aria-label="Body shape controls">
             <label>

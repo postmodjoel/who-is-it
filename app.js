@@ -295,7 +295,6 @@ const els = {
   settingLocations: document.querySelector("#settingLocations"),
   settingRoles: document.querySelector("#settingRoles"),
   settingPG: document.querySelector("#settingPG"),
-  settingBoardSize: document.querySelector("#settingBoardSize")
 };
 
 els.houseMap = document.createElement("section");
@@ -1242,7 +1241,6 @@ els.saveSetupButton.addEventListener("click", () => {
   state.settings.locations = els.settingLocations.checked;
   state.settings.roles = els.settingRoles.checked;
   if (els.settingPG) state.settings.pg = els.settingPG.checked;
-  state.settings.boardSize = Number(els.settingBoardSize.value);
   // A pasted seed code replays that exact round (board, location, wheel outcome, secrets).
   const code = els.settingSeed ? els.settingSeed.value.trim() : "";
   const parsed = code && code !== currentSeedCode() ? parseSeedCode(code) : null;
@@ -1305,7 +1303,6 @@ function syncSettingsToForm() {
   els.settingLocations.checked = state.settings.locations;
   els.settingRoles.checked = state.settings.roles;
   if (els.settingPG) els.settingPG.checked = state.settings.pg;
-  els.settingBoardSize.value = String(state.settings.boardSize);
   if (els.settingSeed) els.settingSeed.value = state.gameSalt ? currentSeedCode() : "";
 }
 
@@ -1878,6 +1875,45 @@ function askAdultGate(cb, required = 3) {
   paint();
 }
 
+// Device prefs that outlive rounds (board size, sound) - set from the TITLE screen only, so
+// nobody can quietly resize the board mid-game and desync everyone else.
+const PREFS_KEY = "whoisit_prefs_v1";
+function loadPrefs() {
+  try { return JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") || {}; } catch (e) { return {}; }
+}
+function savePrefs(patch) {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ ...loadPrefs(), ...patch })); } catch (e) { /* fine */ }
+}
+function showTitleSettings() {
+  document.querySelector(".ts-settings-panel")?.remove();
+  const S = window.Sound;
+  const panel = document.createElement("div");
+  panel.className = "ts-settings-panel";
+  const sizeBtns = [18, 24, 30].map((n) =>
+    `<button type="button" class="tsp-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
+  const trackOpts = (S ? S.trackNames() : []).map((t, i) =>
+    `<option value="${i}" ${S && S.currentTrack() === i ? "selected" : ""}>${escapeHtml(t)}</option>`).join("");
+  panel.innerHTML = `
+    <div class="tsp-box">
+      <div class="tsp-head"><b>SETTINGS</b><button type="button" class="icon-button tsp-close" aria-label="Close">X</button></div>
+      <div class="tsp-row"><span>Board size</span><span class="tsp-sizes">${sizeBtns}</span></div>
+      <div class="tsp-row"><span>Sound</span><label class="tsp-toggle"><input type="checkbox" class="tsp-sound" ${S && S.isEnabled() ? "checked" : ""}><i></i></label></div>
+      <div class="tsp-row"><span>Music</span><label class="tsp-toggle"><input type="checkbox" class="tsp-music" ${S && S.isMusicOn() ? "checked" : ""}><i></i></label></div>
+      <div class="tsp-row"><span>Track</span><select class="tsp-track button ghost">${trackOpts}</select></div>
+      <p class="tsp-note">Board size applies from the next deal. It can't be changed mid-game.</p>
+    </div>`;
+  document.body.appendChild(panel);
+  panel.addEventListener("click", (e) => { if (e.target === panel || e.target.closest(".tsp-close")) panel.remove(); });
+  panel.querySelectorAll(".tsp-size").forEach((b) => b.addEventListener("click", () => {
+    state.settings.boardSize = Number(b.dataset.n);
+    savePrefs({ boardSize: state.settings.boardSize });
+    panel.querySelectorAll(".tsp-size").forEach((x) => x.classList.toggle("on", x === b));
+    sfx("blip");
+  }));
+  panel.querySelector(".tsp-sound").addEventListener("change", (e) => { if (S) S.setEnabled(e.target.checked); savePrefs({ sound: e.target.checked }); });
+  panel.querySelector(".tsp-music").addEventListener("change", (e) => { if (S) { S.resume(); S.setMusic(e.target.checked); } savePrefs({ music: e.target.checked }); });
+  panel.querySelector(".tsp-track").addEventListener("change", (e) => { if (S) { S.setTrack(Number(e.target.value)); } savePrefs({ track: Number(e.target.value) }); });
+}
 function showTitleScreen() {
   const saved = loadGameSave();
   const ov = document.createElement("div");
@@ -1918,7 +1954,10 @@ function showTitleScreen() {
         <button type="button" class="button ghost ts-back">← back</button>
       </div>
     </div>
-    <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>`;
+    <div class="ts-bottom-row">
+      <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>
+      <button type="button" class="button secondary ts-gear" aria-label="Settings" title="Settings">⚙</button>
+    </div>`;
   document.body.appendChild(ov);
   const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
   // PG toggle: turning it ON is free; turning it OFF is gated behind an adults-only riddle.
@@ -1928,6 +1967,7 @@ function showTitleScreen() {
     if (!state.settings.pg) { setPgMode(true); paintPg(); sfx("blip"); return; }
     askAdultGate((ok) => { if (ok) { setPgMode(false); paintPg(); sfx("coin"); } else { setPgMode(true); paintPg(); sfx("buzzer"); } });
   });
+  ov.querySelector(".ts-gear").addEventListener("click", () => { sfx("click"); showTitleSettings(); });
   const steps = {
     main: ov.querySelector(".ts-step-main"),
     names: ov.querySelector(".ts-step-names"),
@@ -2100,6 +2140,16 @@ function parseSeedCode(code) {
 
 loadTheme();
 installStaticIcons();
+// Device prefs (board size, sound/music) set from the title-screen settings panel.
+{
+  const prefs = loadPrefs();
+  if ([18, 24, 30].includes(prefs.boardSize)) state.settings.boardSize = prefs.boardSize;
+  if (window.Sound) {
+    if (prefs.sound === false) Sound.setEnabled(false);
+    if (typeof prefs.track === "number") Sound.setTrack(prefs.track);
+    if (prefs.music) Sound.setMusic(true);   // actual playback still waits for the first gesture
+  }
+}
 mergeCustomIntoPool();                 // fold saved custom characters into the playable pool
 mergeGaybiesIntoPool();                // and the persistent GAYBYs
 wirePainScaleDrag();                   // drag the disease pain scale to change emotions

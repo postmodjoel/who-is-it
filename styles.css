@@ -6035,3 +6035,43 @@ body.mode-linkedin .cue-card { background: #ffffff; border: 1px solid #d6d6d6; c
   60% { opacity: 0.85; filter: blur(1.5px); }
   100% { opacity: 1; filter: none; transform: none; }
 }
+
+/* ===================== Title-screen settings (gear next to PG) ===================== */
+.ts-bottom-row { display: flex; gap: 10px; align-items: stretch; justify-content: center; width: min(84vw, 300px); margin: 0 auto; animation: ts-fade 0.5s 1.05s both; }
+.ts-bottom-row .ts-pg { animation: none; flex: 1 1 auto; min-width: 0; }
+.ts-bottom-row .ts-gear { flex: 0 0 46px; width: 46px; min-width: 46px; font-size: 1.05rem; padding: 0; display: flex; align-items: center; justify-content: center; }
+.ts-settings-panel {
+  position: fixed; inset: 0; z-index: 360;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 10, 16, 0.7);
+  animation: loreIn 0.25s ease;
+}
+.tsp-box {
+  width: min(92vw, 360px);
+  background: #fffdf7; color: #171512;
+  border: 3px solid #171512; border-radius: 14px;
+  box-shadow: 8px 8px 0 rgba(23, 21, 18, 0.5);
+  padding: 14px 16px 12px;
+}
+.tsp-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-family: "Archivo", sans-serif; letter-spacing: 0.06em; }
+.tsp-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px dashed rgba(23, 21, 18, 0.2); font-weight: 700; font-size: 0.85rem; }
+.tsp-sizes { display: flex; gap: 6px; }
+.tsp-size {
+  width: 40px; height: 32px; border-radius: 7px; border: 2px solid #171512;
+  background: #fffdf7; font-weight: 900; cursor: pointer;
+}
+.tsp-size.on { background: #ffbe0b; }
+.tsp-toggle { position: relative; display: inline-block; width: 46px; height: 26px; cursor: pointer; }
+.tsp-toggle input { opacity: 0; width: 0; height: 0; }
+.tsp-toggle i {
+  position: absolute; inset: 0; border-radius: 999px; border: 2px solid #171512; background: #ddd;
+  transition: background 0.15s ease;
+}
+.tsp-toggle i::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+  border-radius: 50%; background: #171512; transition: transform 0.15s ease;
+}
+.tsp-toggle input:checked + i { background: #35c46a; }
+.tsp-toggle input:checked + i::after { transform: translateX(20px); }
+.tsp-track { max-width: 170px; }
+.tsp-note { margin: 10px 0 0; font-size: 0.66rem; opacity: 0.6; font-style: italic; }

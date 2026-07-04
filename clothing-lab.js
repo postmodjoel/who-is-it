@@ -21,52 +21,56 @@
   const colourSwatches = ["#2f7a78", "#d84e40", "#e0a33a", "#5369b8", "#763f9d", "#267c4f", "#313640", "#f1f1eb"];
 
   const currentOutfits = [
-    { id: "tee", name: "Crew Tee", status: "current", type: "tee", color: "#2f7a78", tags: ["baseline", "crew"], notes: "Good base silhouette, but most variety relies on colour alone." },
-    { id: "vneck", name: "V-Neck Knit", status: "current", type: "vneck", color: "#7062a8", tags: ["neckline", "knit"], notes: "A stronger neckline read than tee, still shares the same torso." },
-    { id: "collared", name: "Button-Up", status: "current", type: "collared", color: "#3f78a5", tags: ["collar", "buttons"], notes: "Clear at small size thanks to the flaps and placket." },
-    { id: "blazer", name: "Blazer", status: "current", type: "blazer", color: "#384252", tags: ["formal", "tie"], notes: "One of the current options with the most shape language." },
-    { id: "jacket", name: "Zip Jacket", status: "current", type: "jacket", color: "#2b6795", tags: ["outerwear", "zip"], notes: "Useful, but close to hoodie and tee unless the zip is visible." },
-    { id: "hoodie", name: "Hoodie", status: "current", type: "hoodie", color: "#5c6f43", tags: ["casual", "hood"], notes: "Best current casual option; the hood rolls read well." },
-    { id: "turtleneck", name: "Turtleneck", status: "current", type: "turtleneck", color: "#1f6f78", tags: ["high neck", "ribbed"], notes: "Distinct neckline, simple body." },
-    { id: "overalls", name: "Overalls", status: "current", type: "overalls", color: "#596f9b", tags: ["straps", "bib"], notes: "Nice silhouette break because it adds straps and a front panel." },
-    { id: "singlet", name: "Singlet", status: "current", type: "singlet", color: "#d76075", tags: ["bare shoulder", "straps"], notes: "Bare shoulders help, but it is the only lighter warm-weather option." }
+    { id: "tee", name: "Crew Tee", status: "current", kind: "base", type: "tee", color: "#2f7a78", tags: ["baseline", "crew"], notes: "Good base silhouette, but most variety relies on colour alone." },
+    { id: "vneck", name: "V-Neck Knit", status: "current", kind: "base", type: "vneck", color: "#7062a8", tags: ["neckline", "knit"], notes: "A stronger neckline read than tee, still shares the same torso." },
+    { id: "collared", name: "Button-Up", status: "current", kind: "base", type: "collared", color: "#3f78a5", tags: ["collar", "buttons"], notes: "Clear at small size thanks to the flaps and placket." },
+    { id: "blazer", name: "Blazer", status: "current", kind: "base", type: "blazer", color: "#384252", tags: ["formal", "tie"], notes: "One of the current options with the most shape language." },
+    { id: "jacket", name: "Zip Jacket", status: "current", kind: "base", type: "jacket", color: "#2b6795", tags: ["outerwear", "zip"], notes: "Useful, but close to hoodie and tee unless the zip is visible." },
+    { id: "hoodie", name: "Hoodie", status: "current", kind: "base", type: "hoodie", color: "#5c6f43", tags: ["casual", "hood"], notes: "Best current casual option; the hood rolls read well." },
+    { id: "turtleneck", name: "Turtleneck", status: "current", kind: "base", type: "turtleneck", color: "#1f6f78", tags: ["high neck", "ribbed"], notes: "Distinct neckline, simple body." },
+    { id: "overalls", name: "Overalls", status: "current", kind: "layer", type: "overalls", defaultBase: "tee", color: "#596f9b", tags: ["straps", "bib", "layerable"], notes: "A bib-and-strap layer that should sit over tees, shirts, or knits." },
+    { id: "singlet", name: "Singlet", status: "current", kind: "base", type: "singlet", color: "#d76075", tags: ["bare shoulder", "straps"], notes: "Bare shoulders help, but it is the only lighter warm-weather option." }
   ];
 
   const newOutfits = [
-    { id: "rugby", name: "Rugby Stripe", status: "new", type: "rugby", color: "#246c5b", accent: "#f0d35f", tags: ["stripes", "sport"], notes: "Big horizontal bands stay readable even on tiny cards." },
-    { id: "flannel", name: "Open Flannel", status: "new", type: "flannel", color: "#b7443d", accent: "#253244", tags: ["plaid", "layers"], notes: "Open overshirt plus tee gives a totally different torso rhythm." },
-    { id: "denim", name: "Denim Jacket", status: "new", type: "denim", color: "#3d6f9e", accent: "#d6a24e", tags: ["outerwear", "pockets"], notes: "Chest pockets and stitching create character without needing extra width." },
-    { id: "varsity", name: "Varsity Jacket", status: "new", type: "varsity", color: "#a53845", accent: "#f0f0e7", tags: ["contrast sleeves", "patch"], notes: "Strong sleeve contrast makes it pop against hair and skin." },
-    { id: "bomber", name: "Bomber Jacket", status: "new", type: "bomber", color: "#566f40", accent: "#e0a33a", tags: ["puffy", "ribbed"], notes: "Rounded body and ribbed bands broaden the outerwear set." },
-    { id: "cardigan", name: "Cardigan", status: "new", type: "cardigan", color: "#7d5a8f", accent: "#f2dfcf", tags: ["knit", "buttons"], notes: "Soft open front, cosy without being another hoodie." },
-    { id: "sweaterVest", name: "Sweater Vest", status: "new", type: "sweaterVest", color: "#c58b31", accent: "#283e6a", tags: ["argyle", "shirt"], notes: "Nerdy, formal-adjacent, and visually different from the blazer." },
-    { id: "labCoat", name: "Lab Coat", status: "new", type: "labCoat", color: "#f4f6f4", accent: "#2f7a78", tags: ["role", "coat"], notes: "Great for jobs and alibis; badge and lapels carry the read." },
-    { id: "scrubs", name: "Scrubs", status: "new", type: "scrubs", color: "#1e8c91", accent: "#cbe7e6", tags: ["role", "v-neck"], notes: "A clean occupational option that is not just a collared shirt." },
-    { id: "chefCoat", name: "Chef Coat", status: "new", type: "chefCoat", color: "#f2f1e8", accent: "#cc453c", tags: ["role", "double-breasted"], notes: "Double buttons are instantly different from the current button-up." },
-    { id: "apron", name: "Apron", status: "new", type: "apron", color: "#2f7a78", accent: "#e7b64f", tags: ["role", "bib"], notes: "Layered over a shirt, so it can support cafe, artist, market, or butcher looks." },
-    { id: "securityVest", name: "Hi-Vis Vest", status: "new", type: "securityVest", color: "#242b34", accent: "#e7f04a", tags: ["role", "reflective"], notes: "High visibility strips give a loud, readable option without changing skin or hair." },
-    { id: "tracksuit", name: "Tracksuit Top", status: "new", type: "tracksuit", color: "#315eaa", accent: "#f3f0e7", tags: ["sport", "zip"], notes: "Shoulder stripes and tall collar separate it from the zip jacket." },
-    { id: "raincoat", name: "Raincoat", status: "new", type: "raincoat", color: "#e3b83e", accent: "#384252", tags: ["hood", "snaps"], notes: "Bright slicker hood gives a bold silhouette and comic-location energy." },
-    { id: "pinafore", name: "Pinafore", status: "new", type: "pinafore", color: "#4b5f9c", accent: "#f1f1eb", tags: ["dress", "straps"], notes: "A dress-like option that still fits the bust crop." },
-    { id: "sariDrape", name: "Sari Drape", status: "new", type: "sariDrape", color: "#d04e78", accent: "#e3b83e", tags: ["drape", "formal"], notes: "Diagonal fabric makes the chest read unlike any existing collar." },
-    { id: "kurta", name: "Kurta", status: "new", type: "kurta", color: "#2f7a5d", accent: "#d8b65a", tags: ["tunic", "placket"], notes: "Long placket and band collar give a calm, polished silhouette." },
-    { id: "sequin", name: "Sequin Top", status: "new", type: "sequin", color: "#4f3c8b", accent: "#f0c94d", tags: ["party", "sparkle"], notes: "Tiny star details help nightclub/casino characters stand out." },
-    { id: "leather", name: "Biker Jacket", status: "new", type: "leather", color: "#252933", accent: "#cdd2d6", tags: ["outerwear", "diagonal zip"], notes: "Asymmetry is the big win here; it avoids another centre-zip read." },
-    { id: "poncho", name: "Fringe Poncho", status: "new", type: "poncho", color: "#9a5f3f", accent: "#2d675f", tags: ["drape", "fringe"], notes: "A broad triangular layer that changes the shoulder outline entirely." }
+    { id: "rugby", name: "Rugby Stripe", status: "new", kind: "base", type: "rugby", color: "#246c5b", accent: "#f0d35f", tags: ["stripes", "sport"], notes: "Big horizontal bands stay readable even on tiny cards." },
+    { id: "flannel", name: "Open Flannel", status: "new", kind: "layer", type: "flannel", defaultBase: "tee", color: "#b7443d", accent: "#253244", tags: ["plaid", "layerable"], notes: "Now treated as a real overshirt: plaid sleeves and side body over a visible underlayer." },
+    { id: "denim", name: "Denim Jacket", status: "new", kind: "layer", type: "denim", defaultBase: "tee", color: "#3d6f9e", accent: "#d6a24e", tags: ["outerwear", "pockets", "layerable"], notes: "Chest pockets and stitching create character without needing extra width." },
+    { id: "varsity", name: "Varsity Jacket", status: "new", kind: "layer", type: "varsity", defaultBase: "tee", color: "#a53845", accent: "#f0f0e7", tags: ["contrast sleeves", "patch", "layerable"], notes: "Redrawn as a jacket with sleeves and ribbing instead of hanging scarf panels." },
+    { id: "bomber", name: "Bomber Jacket", status: "new", kind: "layer", type: "bomber", defaultBase: "tee", color: "#566f40", accent: "#e0a33a", tags: ["puffy", "ribbed", "layerable"], notes: "Rounded body and ribbed bands broaden the outerwear set." },
+    { id: "cardigan", name: "Cardigan", status: "new", kind: "layer", type: "cardigan", defaultBase: "turtleneck", color: "#7d5a8f", accent: "#f2dfcf", tags: ["knit", "buttons", "layerable"], notes: "Soft open front, cosy without being another hoodie." },
+    { id: "sweaterVest", name: "Sweater Vest", status: "new", kind: "layer", type: "sweaterVest", defaultBase: "collared", color: "#c58b31", accent: "#283e6a", tags: ["argyle", "shirt", "layerable"], notes: "A vest layer over shirts, tees, or turtlenecks." },
+    { id: "labCoat", name: "Lab Coat", status: "new", kind: "layer", type: "labCoat", defaultBase: "scrubs", color: "#f4f6f4", accent: "#2f7a78", tags: ["role", "coat", "layerable"], notes: "Outer arms are now coat-white, with the underlayer visible only through the centre opening." },
+    { id: "scrubs", name: "Scrubs", status: "new", kind: "base", type: "scrubs", color: "#1e8c91", accent: "#cbe7e6", tags: ["role", "v-neck"], notes: "A clean occupational option that is not just a collared shirt." },
+    { id: "chefCoat", name: "Chef Coat", status: "new", kind: "base", type: "chefCoat", color: "#f2f1e8", accent: "#cc453c", tags: ["role", "double-breasted"], notes: "Double buttons are instantly different from the current button-up." },
+    { id: "apron", name: "Apron", status: "new", kind: "layer", type: "apron", defaultBase: "collared", color: "#2f7a78", accent: "#e7b64f", tags: ["role", "bib", "layerable"], notes: "A true overlay now, so it can sit over tees, shirts, scrubs, or knits." },
+    { id: "securityVest", name: "Hi-Vis Vest", status: "new", kind: "layer", type: "securityVest", defaultBase: "tee", color: "#242b34", accent: "#e7f04a", tags: ["role", "reflective", "layerable"], notes: "High visibility strips give a loud, readable option without changing skin or hair." },
+    { id: "tracksuit", name: "Tracksuit Top", status: "new", kind: "base", type: "tracksuit", color: "#315eaa", accent: "#f3f0e7", tags: ["sport", "zip"], notes: "Shoulder stripes and tall collar separate it from the zip jacket." },
+    { id: "raincoat", name: "Raincoat", status: "new", kind: "layer", type: "raincoat", defaultBase: "tee", color: "#e3b83e", accent: "#384252", tags: ["hood", "snaps", "layerable"], notes: "Bright slicker hood gives a bold silhouette and comic-location energy." },
+    { id: "pinafore", name: "Pinafore", status: "new", kind: "layer", type: "pinafore", defaultBase: "tee", color: "#4b5f9c", accent: "#f1f1eb", tags: ["dress", "straps", "layerable"], notes: "A dress-like layer that can sit over a tee, shirt, or turtleneck." },
+    { id: "sariDrape", name: "Sari Drape", status: "new", kind: "base", type: "sariDrape", color: "#d04e78", accent: "#e3b83e", tags: ["drape", "formal"], notes: "Diagonal fabric makes the chest read unlike any existing collar." },
+    { id: "kurta", name: "Kurta", status: "new", kind: "base", type: "kurta", color: "#2f7a5d", accent: "#d8b65a", tags: ["tunic", "placket"], notes: "Long placket and band collar give a calm, polished silhouette." },
+    { id: "sequin", name: "Sequin Top", status: "new", kind: "base", type: "sequin", color: "#4f3c8b", accent: "#f0c94d", tags: ["party", "sparkle"], notes: "Tiny star details help nightclub/casino characters stand out." },
+    { id: "leather", name: "Biker Jacket", status: "new", kind: "layer", type: "leather", defaultBase: "tee", color: "#252933", accent: "#cdd2d6", tags: ["outerwear", "diagonal zip", "layerable"], notes: "Asymmetry is the big win here; it avoids another centre-zip read." }
   ];
 
+  const REVIEW_KEY = "who-is-that-clothing-lab-reviews";
   const catalog = currentOutfits.concat(newOutfits);
+  const baseOutfits = catalog.filter((item) => item.kind !== "layer");
 
   const state = {
     selectedId: newOutfits[0].id,
     view: "all",
     colour: newOutfits[0].color,
+    underLayer: "tee",
     skin: skinPresets.fair.value,
-    body: { ...bodyPresets.average }
+    body: { ...bodyPresets.average },
+    reviews: readReviews()
   };
 
   const els = {
     viewFilter: document.querySelector("#viewFilter"),
+    underLayer: document.querySelector("#underLayer"),
     bodyPreset: document.querySelector("#bodyPreset"),
     skinPreset: document.querySelector("#skinPreset"),
     colourInput: document.querySelector("#colourInput"),
@@ -83,7 +87,10 @@
     specOutput: document.querySelector("#specOutput"),
     catalogTitle: document.querySelector("#catalogTitle"),
     catalogStats: document.querySelector("#catalogStats"),
-    outfitGrid: document.querySelector("#outfitGrid")
+    outfitGrid: document.querySelector("#outfitGrid"),
+    yayButton: document.querySelector("#yayButton"),
+    nayButton: document.querySelector("#nayButton"),
+    clearVoteButton: document.querySelector("#clearVoteButton")
   };
 
   function hexToRgb(hex) {
@@ -113,6 +120,39 @@
 
   function itemColor(item) {
     return state.selectedId === item.id ? state.colour : item.color;
+  }
+
+  function readReviews() {
+    try {
+      return JSON.parse(localStorage.getItem(REVIEW_KEY)) || {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function saveReviews() {
+    localStorage.setItem(REVIEW_KEY, JSON.stringify(state.reviews));
+  }
+
+  function reviewFor(id) {
+    return state.reviews[id] || "";
+  }
+
+  function setReview(id, vote) {
+    if (!id) return;
+    if (vote) state.reviews[id] = vote;
+    else delete state.reviews[id];
+    saveReviews();
+    render();
+  }
+
+  function baseItemFor(id) {
+    return baseOutfits.find((item) => item.id === id) || baseOutfits[0];
+  }
+
+  function baseForLayer(item) {
+    const id = item.kind === "layer" ? (state.underLayer || item.defaultBase || "tee") : item.id;
+    return baseItemFor(id);
   }
 
   function bodyPath(t) {

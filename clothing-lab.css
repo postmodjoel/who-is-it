@@ -42,6 +42,8 @@ textarea {
 .preview-meta,
 .stats-row,
 .tag-row,
+.review-actions,
+.card-votes,
 .topbar-actions,
 .swatches {
   display: flex;
@@ -235,6 +237,44 @@ input[type="color"] {
   flex-wrap: wrap;
 }
 
+.review-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.review-button {
+  min-width: 58px;
+  min-height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.review-button.yay.is-active,
+.outfit-card[data-review="yay"] .vote-button[data-vote="yay"] {
+  border-color: #1f7a56;
+  background: #1f7a56;
+  color: #fff;
+}
+
+.review-button.nay.is-active,
+.outfit-card[data-review="nay"] .vote-button[data-vote="nay"] {
+  border-color: #b0443a;
+  background: #b0443a;
+  color: #fff;
+}
+
+.review-button.clear {
+  color: var(--muted);
+}
+
 .tag {
   padding: 4px 7px;
   border: 1px solid var(--line);
@@ -334,12 +374,11 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
-  cursor: pointer;
   text-align: left;
 }
 
 .outfit-card:hover,
-.outfit-card:focus-visible,
+.outfit-card:focus-within,
 .outfit-card.is-selected {
   border-color: var(--ink);
   outline: 0;
@@ -355,6 +394,16 @@ textarea {
   display: block;
   border-radius: 6px;
   background: #dfe9ec;
+}
+
+.card-main {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
 }
 
 .card-meta {
@@ -381,6 +430,50 @@ textarea {
   font-size: 0.78rem;
   font-style: normal;
   line-height: 1.25;
+}
+
+.card-votes {
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.vote-button {
+  flex: 1;
+  min-height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #f7fafb;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.vote-button:hover,
+.vote-button:focus-visible,
+.review-button:hover,
+.review-button:focus-visible {
+  border-color: var(--ink);
+  outline: 0;
+}
+
+.review-mark {
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.outfit-card[data-review="yay"] .review-mark {
+  color: #1f7a56;
+}
+
+.outfit-card[data-review="nay"] .review-mark {
+  color: #b0443a;
 }
 
 @media (max-width: 980px) {

@@ -400,6 +400,7 @@ function newGame(seedSalt, opts = {}) {
   assignRosterTeams();   // salt is final now; derive team sides (no-op for classic <=2 rosters)
   const takenSecrets = new Set();
   state.players = [makePlayer(0, takenSecrets), makePlayer(1, takenSecrets)];
+  assignRosterPersonas(takenSecrets);   // 3+ players: everyone gets a board character to BE this round
   state.currentPlayer = state.mySeat || 0;
   state.log = [];
   state.global.hints = [[], []];
@@ -530,6 +531,19 @@ function assignRosterTeams() {
   order.forEach((rosterIdx, pos) => { roster[rosterIdx].side = pos < size0 ? 0 : 1; });
 }
 function teamMembers(side) { return (state.roster || []).filter((r) => r.side === side); }
+// 3+ players: every human is dealt a PERSONA - a board character that is theirs to voice and act
+// for the round (rotates with the salt each round). Personas never collide with each other or with
+// either team's secret, so playing your part can't leak the answer. Pure roleplay, no mechanics.
+function assignRosterPersonas(takenIdx) {
+  if (!rosterTeamMode()) { (state.roster || []).forEach((r) => { r.personaId = null; }); return; }
+  const taken = new Set(takenIdx || []);
+  state.roster.forEach((r, i) => {
+    let idx = stableHash(`${state.gameSalt}:persona:${i}:${r.name}`) % state.board.length;
+    while (taken.has(idx)) idx = (idx + 1) % state.board.length;
+    taken.add(idx);
+    r.personaId = state.board[idx].id;
+  });
+}
 // Display label for a side: team name in 3+ games, else the human's/classic A-B label.
 function teamLabel(side) {
   if (rosterTeamMode()) return side === 0 ? "TEAM A" : "TEAM B";
@@ -712,7 +726,10 @@ function renderRoom() {
   els.seatRoster.innerHTML = [0, 1].map((i) => {
     const active = i === state.currentPlayer;
     const label = teamMode ? teamLabel(i) : (state.players[i].pname || (i === 0 ? "A" : "B"));
-    const sub = teamMode ? `<span class="seat-sub">${teamMembers(i).map((m) => escapeHtml(m.name)).join("<br>")}</span>` : "";
+    const sub = teamMode ? `<span class="seat-sub">${teamMembers(i).map((m) => {
+      const p = m.personaId ? characterById(m.personaId) : null;
+      return `${escapeHtml(m.name)}${p ? ` <i class="seat-as">as ${escapeHtml(p.name)}</i>` : ""}`;
+    }).join("<br>")}</span>` : "";
     return `<button type="button" class="seat-half ${active ? "active" : ""}" data-seat="${i}">
         <span class="seat-glyph">${active ? "YOU" : escapeHtml(label)}</span>${sub}
       </button>`;
@@ -1469,8 +1486,13 @@ function showRoundOverSplash(done) {
   setTimeout(() => { ov.remove(); if (done) done(); }, 1600);
 }
 // Pre-round team announcement (3+ players only). Same full-screen language as the round reveal.
+// Each member's chip shows the board character they'll be PLAYING this round (their persona).
 function showTeamReveal(done) {
-  const chip = (m) => `<div class="tr-chip"><span class="tr-ini">${escapeHtml((m.name || "?").slice(0, 1).toUpperCase())}</span><span class="tr-nm">${escapeHtml(m.name || "?")}</span></div>`;
+  const chip = (m) => {
+    const p = m.personaId ? characterById(m.personaId) : null;
+    const face = p && p.image ? `<img class="tr-face" src="${p.image}" alt="">` : `<span class="tr-ini">${escapeHtml((m.name || "?").slice(0, 1).toUpperCase())}</span>`;
+    return `<div class="tr-chip">${face}<span class="tr-nm">${escapeHtml(m.name || "?")}${p ? `<i class="tr-as">as ${escapeHtml(p.name)}</i>` : ""}</span></div>`;
+  };
   const teamCol = (side) => `<div class="tr-team tr-${side === 0 ? "a" : "b"}">
       <div class="tr-head">${escapeHtml(teamLabel(side))}</div>
       <div class="tr-members">${teamMembers(side).map(chip).join("")}</div>

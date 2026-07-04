@@ -573,7 +573,10 @@ function newGame(seedSalt, opts = {}) {
   state.board = buildBoard(pool, boardSize);
   state.location = state.settings.locations ? locations[stableHash(`${state.gameSalt}:loc`) % locations.length] : null;
   state.locationVariant = stableHash(`${state.gameSalt}:var`) % 2 ? "night" : "day";
-  state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
+  // The online ROOM is fixed for the whole session (set when hosting/joining) - do NOT re-derive it
+  // from each round's salt, or every new round would move rooms and the peer would miss the deal.
+  // Local mode just needs a display code, so it can track the salt.
+  if (state.gameMode !== "online") state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
   const takenSecrets = new Set();
   state.players = [makePlayer(0, takenSecrets), makePlayer(1, takenSecrets)];
   state.currentPlayer = state.mySeat || 0;

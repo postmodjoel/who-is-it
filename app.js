@@ -1439,6 +1439,13 @@ const ADULT_RIDDLES = [
 function normalizeAdultAnswer(value) {
   return String(value).trim().toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
 }
+// Hangman-style hint: the answer with ~1-in-3 letters revealed, the rest as underscores. Spaces and
+// punctuation show through. e.g. "superannuation" → "_ U _ _ R _ _ _ U _ _ _ O _".
+function maskRiddleAnswer(answer) {
+  return String(answer || "").split("").map((ch, i) =>
+    /[a-z0-9]/i.test(ch) ? (i % 3 === 1 ? ch.toUpperCase() : "_") : ch
+  ).join(" ").replace(/\s{2,}/g, "   ");   // widen the gaps that land on real spaces
+}
 function askAdultGate(cb, required = 3) {
   const needed = Math.max(1, Math.min(required, ADULT_RIDDLES.length));
   const riddles = ADULT_RIDDLES
@@ -1453,6 +1460,7 @@ function askAdultGate(cb, required = 3) {
       <p class="riddle-eyebrow">🔞 Adults only — solve 3 to turn PG off</p>
       <p class="riddle-progress"></p>
       <p class="riddle-q"></p>
+      <p class="riddle-hint" aria-label="answer hint"></p>
       <input class="riddle-input" type="text" placeholder="type your answer…" autocomplete="off" spellcheck="false">
       <p class="riddle-msg"></p>
       <div class="riddle-actions">
@@ -1466,12 +1474,14 @@ function askAdultGate(cb, required = 3) {
   const msg = ov.querySelector(".riddle-msg");
   const progress = ov.querySelector(".riddle-progress");
   const question = ov.querySelector(".riddle-q");
+  const hint = ov.querySelector(".riddle-hint");
   setTimeout(() => input.focus(), 60);
   const done = (ok) => { ov.remove(); cb(ok); };
   const paint = () => {
     const r = riddles[solved];
     progress.textContent = `${solved} / ${needed} correct`;
     question.textContent = r.q;
+    hint.textContent = maskRiddleAnswer(r.a[0]);   // these are hard - give a hangman-style skeleton
     msg.textContent = "";
     input.value = "";
     input.focus();

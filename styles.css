@@ -4742,7 +4742,8 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .riddle-box { width: min(420px, 94vw); padding: 22px; border-radius: 16px; text-align: center; background: var(--panel, #15171d); border: 2px solid var(--line); box-shadow: var(--shadow); color: var(--ink); }
 .riddle-eyebrow { margin: 0 0 10px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #ff9a6a; }
 .riddle-progress { margin: 0 0 8px; font-size: 0.72rem; font-weight: 900; color: #7dffa8; }
-.riddle-q { margin: 0 0 14px; font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
+.riddle-q { margin: 0 0 10px; font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
+.riddle-hint { margin: 0 0 14px; font-family: "Courier New", monospace; font-weight: 800; font-size: 1.15rem; letter-spacing: 0.06em; color: #ffd479; white-space: pre-wrap; }
 .riddle-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.08); color: #fffdf7; font: 700 1rem "Archivo", sans-serif; text-align: center; }
 .riddle-input.shake { animation: ts-shake 0.4s; border-color: #ff5a5a; }
 .riddle-msg { min-height: 1.1rem; margin: 8px 0 0; font-size: 0.74rem; font-weight: 700; color: #ff8f8f; }

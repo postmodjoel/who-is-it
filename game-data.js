@@ -1454,32 +1454,57 @@ window.GameData = {
     "This might be controversial, but…", "A homeless man taught me a lesson today.",
     "I got rejected 47 times before this.", "Grateful. Blessed. Relentless.",
     "Most people won't understand this post.", "3 years ago I had nothing.",
-    "My 6-year-old said something profound at breakfast.", "Thrilled to announce:"
+    "My 6-year-old said something profound at breakfast.", "Thrilled to announce:",
+    "TRIGGER WARNING: this post contains raw authenticity.",
+    "My therapist told me to stop posting. Anyway,", "Nobody asked. Posting anyway. That's leadership.",
+    "They laughed when I cried in the standup. They're not laughing now.",
+    "A barista spelled my name wrong and it rewired my entire worldview.",
+    "I haven't slept since Q2 and I've never felt more aligned.",
+    "Deleting this in an hour but the algorithm must feed.", "I did something no CEO has the courage to do:",
+    "Hot take from seat 14C at 30,000 feet:", "My newborn opened her eyes and I saw pure upside."
   ],
   linkedinBrags: [
     "I closed the biggest deal of my career", "I woke up at 4am and took a cold shower",
     "I fired my highest performer for 'culture fit'", "I turned a coffee spill into a Q3 strategy",
     "I onboarded 40 people I will never speak to", "I gave a keynote to an empty room and crushed it",
     "I replied to every email within 9 seconds", "I manifested a promotion into existence",
-    "I disrupted an industry that didn't ask to be disrupted", "I cried, then I hit my KPIs"
+    "I disrupted an industry that didn't ask to be disrupted", "I cried, then I hit my KPIs",
+    "I replied-all to 4,000 strangers just to say 'thanks'", "I attended a webinar in my sleep and still added value",
+    "I negotiated my own salary DOWN to prove loyalty", "I named my newborn after a quarterly metric",
+    "I gave 110% and then located a further 40% nobody knew existed", "I turned my burnout into a personal brand",
+    "I closed a deal at my nan's funeral (she'd have loved the synergy)", "I outsourced my hobbies to reclaim shareholder value",
+    "I pitched a deck to a barista who did not ask", "I stood at my standing desk until I became a different man"
   ],
   linkedinLessons: [
     "and it taught me everything about leadership.", "and honestly? That's synergy.",
     "Hard work beats talent when talent doesn't hustle.", "This is why culture eats strategy for breakfast.",
     "Failure is just success in beta.", "Your network is your net worth.",
     "and that's the power of a growth mindset.", "Comfort zones are where dreams go to die.",
-    "and I'd do it all again for the shareholders.", "Remember: you miss 100% of the shots you circle back on."
+    "and I'd do it all again for the shareholders.", "Remember: you miss 100% of the shots you circle back on.",
+    "and that's why I no longer believe in weekends.", "The real ROI was the trauma we normalised along the way.",
+    "Stay hungry. Literally. I have forgotten to eat again.", "Boundaries are just unmonetised opportunities.",
+    "That's not burnout — that's the burn BEFORE the out.", "I have not blinked since March. Winners don't blink.",
+    "and THAT, my friends, is thought leadership.", "Circle back? I have never once left the circle.",
+    "Rest is a competitor and I do not lose.", "and my sleep paralysis demon now reports to me."
   ],
   linkedinCTAs: [
     "Agree? 👇", "Repost if this resonated. ♻️", "Thoughts?", "Who else is building? 🚀",
     "Tag someone who needs to hear this.", "#Blessed #Grindset #Synergy", "DMs are open.",
-    "Like if you're relentless.", "Let's connect.", "More on this in my newsletter."
+    "Like if you're relentless.", "Let's connect.", "More on this in my newsletter.",
+    "Comment 'SYNERGY' and I'll DM you absolutely nothing. 🚀", "Repost or you simply do not respect the grind. ♻️",
+    "Unfollow if you have a work-life balance. 🙏", "Screenshot this for when you finally make it. 📸",
+    "Tag your enemies. 👇", "I'm not crying, you're crying (I am also crying). 😭",
+    "Link in bio to my $9 masterclass. 💸", "Sound on for this one. There is no sound."
   ],
   linkedinComments: [
     "Great insights! 🔥", "So inspiring 🙌", "This 👏", "Couldn't agree more!",
     "Adding value as always 💯", "Needed to read this today 🙏", "Powerful. Just powerful.",
     "Circling back on this 🔄", "Facts. No notes.", "Commenting for reach 🚀",
-    "As a fellow thought leader…", "Well said, and brave."
+    "As a fellow thought leader…", "Well said, and brave.",
+    "Liked AND reposted — that's how much this moved me. 🔥", "Sir, this is a professional network (obsessed). 👏",
+    "Saving this to never read again. 📌", "You dropped this 👑 (it's a crown, king).",
+    "Commenting so my network sees that I have depth. 🙏", "Weeping at my standing desk. 😭",
+    "This unlocked something I'll bill you for later. 💯", "Screaming, crying, leveraging synergies. 🚀"
   ],
   // Sad titles for the FLOP tier (low endorsements, generic grey banner, no verification).
   linkedinFlopTitles: [

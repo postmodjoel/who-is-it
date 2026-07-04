@@ -809,6 +809,43 @@ window.GameData = {
     { text: "Do the aura reading of the room. Assign each person a colour and a devastating vibe.", heat: "medium" },
     { text: "Give the 'it's not me, it's my chart' breakup speech, complete with printed evidence.", heat: "medium" },
     { text: "Be the horoscope that comes true in the worst way. Narrate the prophecy and its grim payoff.", heat: "medium" }
+  ],
+  linkedin: [
+    { text: "Give the humblebrag post about your promotion that fools absolutely nobody.", heat: "mild" },
+    { text: "Announce your job title, then invent the three buzzwords that 'define your journey'.", heat: "mild" },
+    { text: "Endorse the person opposite for a skill they clearly do not have. Be effusive.", heat: "mild" },
+    { text: "Do the 'thrilled to announce' post for the most mundane life event imaginable.", heat: "mild" },
+    { text: "Turn a minor personal disaster into an inspirational leadership lesson. #Blessed.", heat: "mild" },
+    { text: "Pitch your 'personal brand' in one sentence. Make it deeply, corporately hollow.", heat: "mild" },
+    { text: "Give the connection request note that is far too intense for a stranger.", heat: "mild" },
+    { text: "Do the recruiter DM promising a 'rockstar ninja' role that is unpaid.", heat: "mild" },
+    { text: "Comment 'Great insights!' on something you very obviously did not read.", heat: "mild" },
+    { text: "Announce you're #OpenToWork with the forced-smile energy of a hostage video.", heat: "mild" },
+    { text: "Give the 5am-cold-shower-grindset morning routine that no human actually does.", heat: "mild" },
+    { text: "Do the post tagging 17 people who have nothing to do with your achievement.", heat: "mild" },
+    { text: "Reframe getting fired as 'excited for my next chapter'. Sell the delusion.", heat: "medium" },
+    { text: "Give the viral post where a homeless man taught you about Q3 synergy.", heat: "medium" },
+    { text: "Do the boss announcing layoffs as a 'difficult but exciting restructuring'.", heat: "medium" },
+    { text: "Humblebrag about working through your own wedding. Frame it as dedication.", heat: "medium" },
+    { text: "Pitch your obvious pyramid scheme as a 'founder-led wellness ecosystem'.", heat: "medium" },
+    { text: "Do the influencer crying in a selfie to announce record quarterly earnings.", heat: "medium" },
+    { text: "Give the passive-aggressive post clearly aimed at one specific ex-colleague.", heat: "medium" },
+    { text: "Announce your 'authentic' rebrand while saying nothing authentic at all.", heat: "medium" },
+    { text: "Do the thought-leader thread that starts 'Unpopular opinion:' and is deeply popular.", heat: "medium" },
+    { text: "Give the toast at your own retirement that's actually a job application.", heat: "medium" },
+    { text: "Reveal you've quiet-quit while posting hourly about 'hustle'. Justify the hypocrisy.", heat: "medium" },
+    { text: "Do the corporate apology for a scandal that takes zero actual responsibility.", heat: "medium" },
+    { text: "Deliver the TED-talk breakdown where your keynote collapses into a full confession.", heat: "feral" },
+    { text: "Expose the entire company at the all-hands. Name names, one department at a time.", heat: "feral" },
+    { text: "Do the LinkedIn meltdown: unravel completely across a 40-part comment thread.", heat: "feral" },
+    { text: "Give the going-viral-for-the-wrong-reasons apology, then double down live.", heat: "feral" },
+    { text: "Reveal what you REALLY think of every 'connection' at this table, one by one.", heat: "feral" },
+    { text: "Do the founder's manifesto that starts reasonable and ends as an unhinged cult pitch.", heat: "feral" },
+    { text: "Rage-quit the meeting, then post the noble 'why I'm leaving' essay before you reach the lift.", heat: "feral" },
+    { text: "Confess the résumé lie that got you the job. Defend it as 'aspirational framing'.", heat: "feral" },
+    { text: "Give the influencer's tearful 'I'm stepping back' video that is entirely a brand relaunch.", heat: "feral" },
+    { text: "Do the whole company retreat gone wrong as a one-person disaster reel.", heat: "feral" },
+    { text: "Announce you're #OpenToWork and interrogate the table for a job in real time. Desperate energy.", heat: "feral" }
   ]
 },
 
@@ -1347,6 +1384,67 @@ window.GameData = {
 
   // Disguise mode: rough phonetic spellings so you can 'pronounce' the covered name.
   disguisePhonetic: {},
+
+  // LINKEDIN mode: corporate-hellscape sibling of WORK. Salt-deterministic job title/company/skills
+  // per character, plus fragment pools the ticker assembles into brainrot posts. Kept PG-clean.
+  linkedinTitles: [
+    "Chief Vibes Officer", "Growth Hacker", "Synergy Architect", "Head of Disruption",
+    "Thought Leader", "Innovation Evangelist", "Ninja Rockstar Developer", "VP of Engagement",
+    "Digital Transformation Guru", "People & Culture Wizard", "Strategic Storyteller",
+    "Founder & CEO (Stealth Startup)", "Brand Alchemist", "Customer Happiness Champion",
+    "Agile Scrum Sensei", "Data Whisperer", "Chief of Staff to the Founder", "Marketing Maverick",
+    "Product Visionary", "Web3 Pioneer", "Global Head of Paperclips", "Senior Buzzword Consultant",
+    "Regional Manager (Interim)", "Full-Stack Overthinker", "Director of First Impressions"
+  ],
+  linkedinCompanies: [
+    "Synergix", "Blockchain Dynamics", "Peakhive", "Nimbus & Co", "Quantumleap Solutions",
+    "Deloittish", "Grindr for B2B", "Verticalize", "The Growth Lab", "Uberr (no relation)",
+    "Frameworq", "Hustle Capital", "Pivot Industries", "Mindful Metrics", "Scalr",
+    "Consultancy McConsultface", "Ideatelligence", "Bezos-adjacent Ventures", "OptimusFlow",
+    "A Stealth Startup", "Foundr Collective", "Ecosystem Partners LLP"
+  ],
+  linkedinSkills: [
+    "Synergy", "Thought Leadership", "Leveraging Synergies", "Agile", "Blockchain",
+    "Public Speaking", "Excel (Advanced)", "Networking", "Personal Branding", "Ideation",
+    "Stakeholder Alignment", "Growth Hacking", "Emotional Intelligence", "PowerPoint",
+    "Disruption", "Cross-functional Collaboration", "Strategic Napping", "KPI Manifestation",
+    "Vibes", "Circling Back", "Low-hanging Fruit Harvesting", "Bandwidth Management",
+    "LinkedIn", "Grindset", "Reply-all Restraint"
+  ],
+  // Post fragments — assembled opener + body + lesson + call-to-action into one brainrot post.
+  linkedinOpeners: [
+    "I wasn't going to post this, but…", "Something incredible happened today.",
+    "Humbled and honoured to share:", "Unpopular opinion:", "Let that sink in.",
+    "This might be controversial, but…", "A homeless man taught me a lesson today.",
+    "I got rejected 47 times before this.", "Grateful. Blessed. Relentless.",
+    "Most people won't understand this post.", "3 years ago I had nothing.",
+    "My 6-year-old said something profound at breakfast.", "Thrilled to announce:"
+  ],
+  linkedinBrags: [
+    "I closed the biggest deal of my career", "I woke up at 4am and took a cold shower",
+    "I fired my highest performer for 'culture fit'", "I turned a coffee spill into a Q3 strategy",
+    "I onboarded 40 people I will never speak to", "I gave a keynote to an empty room and crushed it",
+    "I replied to every email within 9 seconds", "I manifested a promotion into existence",
+    "I disrupted an industry that didn't ask to be disrupted", "I cried, then I hit my KPIs"
+  ],
+  linkedinLessons: [
+    "and it taught me everything about leadership.", "and honestly? That's synergy.",
+    "Hard work beats talent when talent doesn't hustle.", "This is why culture eats strategy for breakfast.",
+    "Failure is just success in beta.", "Your network is your net worth.",
+    "and that's the power of a growth mindset.", "Comfort zones are where dreams go to die.",
+    "and I'd do it all again for the shareholders.", "Remember: you miss 100% of the shots you circle back on."
+  ],
+  linkedinCTAs: [
+    "Agree? 👇", "Repost if this resonated. ♻️", "Thoughts?", "Who else is building? 🚀",
+    "Tag someone who needs to hear this.", "#Blessed #Grindset #Synergy", "DMs are open.",
+    "Like if you're relentless.", "Let's connect.", "More on this in my newsletter."
+  ],
+  linkedinComments: [
+    "Great insights! 🔥", "So inspiring 🙌", "This 👏", "Couldn't agree more!",
+    "Adding value as always 💯", "Needed to read this today 🙏", "Powerful. Just powerful.",
+    "Circling back on this 🔄", "Facts. No notes.", "Commenting for reach 🚀",
+    "As a fellow thought leader…", "Well said, and brave."
+  ],
 
   // Themed question decks for SWIPE / Judgement Day / Sims are added at the end of modePrompts.
   _modePools: true

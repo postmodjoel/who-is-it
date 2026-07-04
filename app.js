@@ -497,6 +497,12 @@ const mysteryEffects = [
     exampleQuestion: "Is your person ready for the meeting?"
   },
   {
+    id: "linkedin",
+    name: "LINKEDIN",
+    apply: applyLinkedin,
+    exampleQuestion: "Is your person #OpenToWork?"
+  },
+  {
     id: "woke",
     name: "WOKE Mode",
     apply: applyWoke,
@@ -664,7 +670,7 @@ function wheelBag() {
 // current tier the pick is salt-random for variety. Once the whole gauntlet is seen the bag resets.
 const WHEEL_TIERS = [
   ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "habbo", "heads-only", null],
-  ["knockoff-manor", "family-tree-disaster", "yugioh", "pixall", "horny-potter", "witness-protection-filter"],
+  ["knockoff-manor", "family-tree-disaster", "yugioh", "pixall", "horny-potter", "witness-protection-filter", "linkedin"],
   ["hidden-agendas", "monocultural", "gay-frogged", "swipe", "fireworks", "sims"],
   ["drugs", "disguise", "disease", "fertility", "orgy", "judgement", "work"],
   ["woke"]
@@ -674,7 +680,7 @@ const WOKE_PREREQS = ["gay-frogged", "orgy", "drugs", "disease", "fertility", "w
 // PG mode: only these wholesome, "explain-to-a-10-year-old" modes are ever picked. Everything sexual/
 // drug/breeding/politically-charged (horny-potter, woke, gay-frogged, orgy, fertility, drugs, disease,
 // swipe, work, monocultural, judgement, murder, hidden-agendas, family-tree) is excluded.
-const PG_SAFE_MODES = ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "heads-only", "yugioh", "pixall", "habbo", "witness-protection-filter", "sims", "family-tree-disaster"];
+const PG_SAFE_MODES = ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "heads-only", "yugioh", "pixall", "habbo", "witness-protection-filter", "sims", "family-tree-disaster", "linkedin"];
 function wheelPgOk(id) { return !state.settings.pg || id === null || PG_SAFE_MODES.includes(id); }
 function wheelTargetFromBag() {
   const known = new Set(mysteryEffects.map((e) => e.id));
@@ -1803,6 +1809,7 @@ function renderBoard() {
   els.characterBoard.classList.toggle("drugs-board", modeId === "drugs");
   els.characterBoard.classList.toggle("fertility-board", modeId === "fertility");
   els.characterBoard.classList.toggle("work-board", modeId === "work");
+  els.characterBoard.classList.toggle("linkedin-board", modeId === "linkedin");
   els.characterBoard.classList.toggle("woke-board", modeId === "woke");
   els.characterBoard.classList.toggle("swipe-board", modeId === "swipe");
   els.characterBoard.classList.toggle("judgement-board", modeId === "judgement");
@@ -1818,6 +1825,7 @@ function renderBoard() {
   if (modeId === "judgement") renderJudgementPurgatory();   // aborted souls lingering in limbo
   if (modeId === "pixall") startPixallLoop(); else stopPixallLoop();
   if (modeId === "sims") startSimsLoop(); else stopSimsLoop();
+  if (modeId === "linkedin") renderLinkedinTicker(); else resetLinkedinTicker();
   stopPropLoop();   // no more random swaps - WHAT'S IN THE HAND? is drag-to-battle only
 }
 // A ghost strip below the Judgement board: every soul you aborted this session, stuck in limbo.
@@ -1831,6 +1839,63 @@ function renderJudgementPurgatory() {
     + souls.map((g) => `<figure class="jd-ghost"><img src="${g.image}" alt=""><figcaption>${escapeHtml(g.name)}<span>#${g.queuePos.toLocaleString()} in queue</span></figcaption></figure>`).join("")
     + `</div>`;
   els.characterBoard.appendChild(strip);
+}
+
+// ===================== LINKEDIN: the brainrot ticker feed =====================
+// A strip above the board cycling generated LinkedIn posts (one board member at a time). Likes tick
+// up cosmetically, a canned comment slides in, and it rotates every ~12s. Pauses on hover. The strip
+// lives in .board-wrap (a sibling of the board) so it survives the board's per-render innerHTML wipe.
+let linkedinRotateTimer = null, linkedinLikeTimer = null, linkedinPostIdx = 0, linkedinPaused = false;
+function renderLinkedinTicker() {
+  const posts = state.global.mystery?.posts || [];
+  if (!posts.length) { resetLinkedinTicker(); return; }
+  const wrap = document.querySelector(".board-wrap");
+  if (!wrap) return;
+  let strip = document.getElementById("linkedinTicker");
+  if (!strip) {
+    strip = document.createElement("div");
+    strip.id = "linkedinTicker";
+    strip.className = "li-ticker";
+    strip.addEventListener("mouseenter", () => { linkedinPaused = true; });
+    strip.addEventListener("mouseleave", () => { linkedinPaused = false; });
+    wrap.insertBefore(strip, wrap.firstChild);   // above the board
+    linkedinPostIdx = 0;
+    paintLinkedinPost();
+  }
+  if (!linkedinRotateTimer) linkedinRotateTimer = setInterval(() => {
+    if (linkedinPaused) return;
+    if (state.global.mystery?.id !== "linkedin") { resetLinkedinTicker(); return; }
+    linkedinPostIdx = (linkedinPostIdx + 1) % (state.global.mystery.posts || [1]).length;
+    paintLinkedinPost();
+  }, 12000);
+  // Cosmetic like-counter ticking (local-only; not synced, purely decorative).
+  if (!linkedinLikeTimer) linkedinLikeTimer = setInterval(() => {
+    if (linkedinPaused) return;
+    const el = document.querySelector("#linkedinTicker .li-likes b");
+    if (el) { const n = parseInt(el.dataset.n || "0", 10) + 1 + Math.floor(Math.random() * 3); el.dataset.n = n; el.textContent = n.toLocaleString(); }
+  }, 1500);
+}
+function paintLinkedinPost() {
+  const strip = document.getElementById("linkedinTicker");
+  const posts = state.global.mystery?.posts || [];
+  if (!strip || !posts.length) return;
+  const p = posts[linkedinPostIdx % posts.length];
+  const ch = characterById(p.authorId);
+  const avatar = ch && ch.image ? `<img class="li-avatar" src="${ch.image}" alt="">` : `<span class="li-avatar li-avatar-blank">in</span>`;
+  strip.innerHTML = `
+    <span class="li-logo" aria-hidden="true">in</span>
+    <div class="li-post" role="status">
+      <div class="li-post-head">${avatar}<div><b>${escapeHtml(p.author)}</b><span>${escapeHtml(p.title)}</span></div></div>
+      <div class="li-post-body">${escapeHtml(p.text)}</div>
+      <div class="li-post-foot"><span class="li-likes">👍 <b data-n="${p.likes}">${p.likes.toLocaleString()}</b></span><span class="li-comment">💬 ${escapeHtml(p.comment)}</span></div>
+    </div>`;
+}
+function resetLinkedinTicker() {
+  if (linkedinRotateTimer) { clearInterval(linkedinRotateTimer); linkedinRotateTimer = null; }
+  if (linkedinLikeTimer) { clearInterval(linkedinLikeTimer); linkedinLikeTimer = null; }
+  linkedinPaused = false;
+  const strip = document.getElementById("linkedinTicker");
+  if (strip) strip.remove();
 }
 
 // ===================== Prop Panic: the periodic PROP SWAP =====================
@@ -2744,9 +2809,10 @@ function clearMysteryEffectUI() {
   resetHeadsAnim();
   resetHabbo();
   resetSimsLoop();
+  resetLinkedinTicker();
   stopPropLoop();
   stopPixallLoop();
-  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board", "pantone-board", "hp-board");
+  els.characterBoard?.classList.remove("family-tree-board", "knockoff-manor-board", "ygo-board", "orgy-board", "pixall-board", "disease-board", "drugs-board", "fertility-board", "work-board", "linkedin-board", "woke-board", "swipe-board", "judgement-board", "sims-board", "heads-board", "habbo-board", "astrology-board", "pantone-board", "hp-board");
   document.body.classList.remove("mode-yugioh", "mode-pixall");
   els.mysteryResult.textContent = "";
   if (ps1Cleanup) { ps1Cleanup(); ps1Cleanup = null; }
@@ -3477,6 +3543,21 @@ function getMysteryCardData(character) {
       html: `<div class="wk-sheet">
         <div class="wk-sentence">⛏ ${a.days} DAYS REMAINING</div>
         <div class="wk-stash"><b>STASH:</b> ${a.items.map(escapeHtml).join(", ")}</div>
+      </div>`
+    };
+  }
+  if (mystery.id === "linkedin") {
+    const a = assignment;
+    const skills = (a.skills || []).map((s) =>
+      `<div class="li-skill"><span>${escapeHtml(s.name)}</span><b>${s.count.toLocaleString()}</b></div>`).join("");
+    return {
+      effectName: mystery.name,
+      cardClass: `linkedin${a.openToWork ? " li-otw" : ""}`,
+      cornerHtml: a.openToWork ? `<span class="li-otw-badge" title="Open to work">#OpenToWork</span>` : "",
+      html: `<div class="li-sheet">
+        <div class="li-title">${escapeHtml(a.title)}</div>
+        <div class="li-company">${escapeHtml(a.company)}</div>
+        <div class="li-skills">${skills}</div>
       </div>`
     };
   }
@@ -4443,6 +4524,45 @@ function applyWork(effect) {
     assignments[ch.id] = { image, days, items };
   });
   return { id: effect.id, name: effect.name, assignments };
+}
+
+// LINKEDIN Mode: the corporate-hellscape sibling of WORK. Every face becomes a profile - job title,
+// company, 1-3 endorsed skills with (absurd) endorsement counts, and a ~30% chance of the green
+// #OpenToWork ring. A generated brainrot post feed rides above the board (see renderLinkedinTicker).
+// All content is salt-deterministic so online peers see the same profiles and the same feed.
+function applyLinkedin(effect) {
+  const D = window.GameData;
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:li:${salt}`) % arr.length];
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:linkedin:${ch.id}`);
+    const skillN = 1 + (h % 3);
+    const skills = [];
+    for (let k = 0; k < skillN; k++) {
+      const name = pick(D.linkedinSkills, `${ch.id}:sk${k}`);
+      if (skills.some((s) => s.name === name)) continue;
+      const count = 3 + (stableHash(`${state.gameSalt}:li:${ch.id}:ec${k}`) % 9997);   // 3..9999
+      skills.push({ name, count });
+    }
+    assignments[ch.id] = {
+      title: pick(D.linkedinTitles, `${ch.id}:t`),
+      company: pick(D.linkedinCompanies, `${ch.id}:co`),
+      skills,
+      openToWork: (h >>> 5) % 10 < 3   // ~30%
+    };
+  });
+  // Build the deterministic post feed: up to 10 board members "posting", each an assembled
+  // opener + brag + lesson + CTA, attributed to that character with a starting like count.
+  const authors = state.board.slice(0, 10);
+  const posts = authors.map((ch, i) => ({
+    authorId: ch.id,
+    author: ch.name,
+    title: assignments[ch.id] ? assignments[ch.id].title : "Professional",
+    text: `${pick(D.linkedinOpeners, `${ch.id}:po`)} ${pick(D.linkedinBrags, `${ch.id}:pb`)} ${pick(D.linkedinLessons, `${ch.id}:pl`)} ${pick(D.linkedinCTAs, `${ch.id}:pc`)}`,
+    comment: pick(D.linkedinComments, `${ch.id}:pcm`),
+    likes: 40 + (stableHash(`${state.gameSalt}:li:${ch.id}:lk`) % 4000)
+  }));
+  return { id: effect.id, name: effect.name, assignments, posts };
 }
 
 // Disease Mode: every character gets a sheet of (deliberately outdated) diagnoses with MINOR/MAJOR/

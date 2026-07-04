@@ -241,6 +241,7 @@ const state = {
     boardSize: 24
   },
   currentPlayer: 0,
+  roundAge: 0,         // how many rounds deep this session is (0 = the plain opening round). Drives prompt "heat".
   gameMode: "local",   // "local" (pass-and-play) or "online" (room-synced)
   board: [],
   players: [],
@@ -591,6 +592,10 @@ function newGame(seedSalt, opts = {}) {
   // no sort. The strangeness only creeps in from round two onward.
   const plainRound = opts.first === true;
   state.plainRound = plainRound;
+  // Track how many rounds deep we are so prompts can escalate in heat (mild -> medium -> feral).
+  // The opening round resets it; every fresh deal after that ages the session. Resume keeps the
+  // saved value (it's restored before newGame's applyResume path).
+  if (!opts.resume) state.roundAge = plainRound ? 0 : (state.roundAge || 0) + 1;
   // The wheel outcome is picked from the no-repeat bag now, so the "start" message can carry it
   // (a remote client's own bag may disagree - the dealer's pick wins).
   state.wheelPick = plainRound ? null : (opts.effectId !== undefined ? opts.effectId : (state.settings.mystery ? wheelTargetFromBag() : null));
@@ -2543,12 +2548,31 @@ function fillVoidPanel(player) {
 // Per-mode question decks - when a special mode is active, every drawn question matches its flavour.
 const modePrompts = window.GameData.modePrompts;
 
+// A prompt entry is either a plain string or a { text, heat } object. Heat is one of
+// "mild" | "medium" | "feral"; untagged strings read as "mild".
+function promptText(p) { return typeof p === "string" ? p : (p && p.text) || ""; }
+function promptHeat(p) { return (p && typeof p === "object" && p.heat) || "mild"; }
+// Which heat tiers are allowed this round. The session eases in: the first few rounds stay mild,
+// then medium unlocks, then feral late. PG mode never goes past medium. Heat is a LOCAL flavour
+// choice (prompts aren't synced), so no salt determinism is needed here.
+function allowedHeats(age, pg) {
+  const tiers = age < 3 ? ["mild"] : age < 6 ? ["mild", "medium"] : ["mild", "medium", "feral"];
+  return pg ? tiers.filter((h) => h !== "feral") : tiers;
+}
 function drawPrompt() {
   const modeDeck = state.global.mystery ? modePrompts[state.global.mystery.id] : null;
   const deck = modeDeck && modeDeck.length
     ? modeDeck
     : (state.settings.prompts ? absurdPrompts : classicPrompts);
-  els.questionPrompt.textContent = pick(deck);
+  // Escalation only kicks in for decks that actually carry heat tags; untagged decks are used whole,
+  // so this is a no-op until the content is tagged.
+  let pool = deck;
+  if (deck.some((p) => p && typeof p === "object" && p.heat)) {
+    const allow = allowedHeats(state.roundAge || 0, state.settings.pg);
+    const filtered = deck.filter((p) => allow.includes(promptHeat(p)));
+    if (filtered.length) pool = filtered;
+  }
+  els.questionPrompt.textContent = promptText(pick(pool));
 }
 
 // The question rerolls when you click the cue card itself (no auto-rotation, no separate button).
@@ -5836,6 +5860,7 @@ function saveGameState() {
       gameMode: state.gameMode || "local",
       mySeat: state.mySeat || 0,
       currentPlayer: state.currentPlayer,
+      roundAge: state.roundAge || 0,
       boardIds: state.board.map((c) => c.id),   // pin the exact deal: the pool can grow mid-round (fresh GAYBYs)
       effectId: state.global.mystery ? state.global.mystery.id : null,   // debug-picked/mystery-swapped modes survive too
       babies: state.board.filter((c) => c.isBaby || (c.isGayby && !c.persistedGayby)).map(serializeCharacter),
@@ -5852,6 +5877,7 @@ function resumeGame(saved) {
   state.settings = { ...state.settings, ...(saved.settings || {}) };
   state.gameMode = saved.gameMode || "local";
   state.mySeat = saved.mySeat || 0;
+  state.roundAge = saved.roundAge || 0;   // restored before newGame's resume path (which preserves it)
   state.abortedBabies = saved.abortedBabies || [];
   newGame(saved.salt, { resume: true, remote: true });
   // Rebuild the EXACT dealt board from the save: re-dealing from the salt isn't enough because the

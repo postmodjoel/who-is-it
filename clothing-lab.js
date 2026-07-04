@@ -1,6 +1,5 @@
 (function () {
   const ink = "#1f2330";
-  const softInk = "rgba(31,35,48,.28)";
   const stroke = { contour: 3.4, feature: 2.5, detail: 1.7 };
 
   const bodyPresets = {
@@ -177,11 +176,6 @@
       + ` L ${f(br + belly * 0.8)} 256`
       + ` C ${f(br + 1 + belly)} ${f(tipY + 13)} ${f(tr + r - 2)} ${f(tipY + r)} ${f(tr)} ${f(tipY)}`
       + ` C ${f(tr - r)} ${f(tipY - r - 2)} ${f(nr + 7)} ${f(dropY)} ${f(nr)} ${f(neckY)} Z`;
-  }
-
-  function bareShoulderPath(t) {
-    const d = bodyPath(t);
-    return d.replace("M", "M");
   }
 
   function mannequin(t) {
@@ -483,21 +477,178 @@
         <circle cx='155' cy='171' r='2.4' fill='${a}' stroke='${ink}' stroke-width='1'/>
       `);
     }
-    if (item.type === "poncho") {
+    return baseBody(t, c, crewCollar(c));
+  }
+
+  function renderLayer(item, t, c) {
+    const a = item.accent || shadeColor(c, 1.2);
+    const lo = shadeColor(c, 0.76);
+    const hi = shadeColor(c, 1.12);
+    const sleeveL = `M70 155C91 163 106 188 113 256H72C64 214 61 176 70 155Z`;
+    const sleeveR = `M186 155C165 163 150 188 143 256H184C192 214 195 176 186 155Z`;
+    const openLeft = `M75 153C94 158 110 174 119 256H74Z`;
+    const openRight = `M181 153C162 158 146 174 137 256H182Z`;
+    const centreZip = `<path d='M128 158V256' stroke='${ink}' stroke-width='2.5' stroke-linecap='round'/>`;
+
+    if (item.type === "overalls") {
       return `
-        <path d='M128 131L214 256H42Z' fill='${c}' stroke='${ink}' stroke-width='3.4' stroke-linejoin='round'/>
-        <path d='M91 185H165M75 210H181M59 235H197' stroke='${a}' stroke-width='3' stroke-linecap='round' opacity='.82'/>
-        <path d='M105 145Q128 160 151 145' fill='none' stroke='${shadeColor(c, 0.62)}' stroke-width='4' stroke-linecap='round'/>
-        <g stroke='${shadeColor(c, 0.62)}' stroke-width='1.4' stroke-linecap='round'>${Array.from({ length: 12 }, (_, i) => `<path d='M${58 + i * 13} 244L${54 + i * 13} 256'/>`).join("")}</g>
+        <path d='M104 157C91 147 79 145 68 151M152 157C165 147 177 145 188 151' fill='none' stroke='${c}' stroke-width='11' stroke-linecap='round'/>
+        <path d='M104 157C91 147 79 145 68 151M152 157C165 147 177 145 188 151' fill='none' stroke='${ink}' stroke-width='2' stroke-linecap='round' opacity='.62'/>
+        <path d='M104 156Q128 166 152 156L152 222L104 222Z' fill='${c}' stroke='${ink}' stroke-width='2.6' stroke-linejoin='round'/>
+        <circle cx='113' cy='171' r='2.5' fill='${a}' stroke='${ink}' stroke-width='1.2'/>
+        <circle cx='143' cy='171' r='2.5' fill='${a}' stroke='${ink}' stroke-width='1.2'/>
+        <path d='M112 197H144' stroke='${shadeColor(c, 0.65)}' stroke-width='2' stroke-linecap='round'/>
       `;
     }
-    return baseBody(t, c, crewCollar(c));
+    if (item.type === "flannel") {
+      const plaid = `
+        <g stroke='${shadeColor(c, 0.58)}' stroke-width='1.5' opacity='.8'>
+          <path d='M82 153V256M101 153V256M155 153V256M174 153V256M63 178H193M63 206H193M63 234H193'/>
+        </g>
+        <g stroke='${a}' stroke-width='1.1' opacity='.65'>
+          <path d='M91 153V256M165 153V256M63 191H193M63 222H193'/>
+        </g>`;
+      return `
+        <path d='${sleeveL}' fill='${c}' stroke='${ink}' stroke-width='2.5' stroke-linejoin='round'/>
+        <path d='${sleeveR}' fill='${c}' stroke='${ink}' stroke-width='2.5' stroke-linejoin='round'/>
+        <path d='${openLeft}' fill='${c}' stroke='${ink}' stroke-width='2.6' stroke-linejoin='round'/>
+        <path d='${openRight}' fill='${c}' stroke='${ink}' stroke-width='2.6' stroke-linejoin='round'/>
+        ${plaid}
+        <path d='M99 144L128 169L157 144' fill='none' stroke='${ink}' stroke-width='2.5' stroke-linejoin='round'/>
+        <path d='M105 149L128 168L151 149' fill='none' stroke='${hi}' stroke-width='1.7' stroke-linejoin='round'/>
+      `;
+    }
+    if (item.type === "denim") {
+      return `
+        <path d='${sleeveL}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='${sleeveR}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='${openLeft}' fill='${hi}' stroke='${ink}' stroke-width='2.5' stroke-linejoin='round'/>
+        <path d='${openRight}' fill='${hi}' stroke='${ink}' stroke-width='2.5' stroke-linejoin='round'/>
+        <path d='M92 194H118V219H92ZM138 194H164V219H138Z' fill='${lo}' stroke='${ink}' stroke-width='2'/>
+        <path d='M99 202H111M145 202H157M128 158V256' stroke='${a}' stroke-width='1.8' stroke-linecap='round' opacity='.85'/>
+        ${buttonPlacket(128, 176, 5, 15, a)}
+      `;
+    }
+    if (item.type === "varsity") {
+      return `
+        <path d='${sleeveL}' fill='${a}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='${sleeveR}' fill='${a}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M88 151C109 158 121 176 124 256H88Z' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M168 151C147 158 135 176 132 256H168Z' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M97 144Q128 162 159 144L163 155Q128 174 93 155Z' fill='${c}' stroke='${ink}' stroke-width='2.4'/>
+        <path d='M99 150Q128 163 157 150M89 239H167' fill='none' stroke='${a}' stroke-width='2.2' stroke-linecap='round'/>
+        ${centreZip}
+        <text x='101' y='204' font-size='20' font-weight='900' fill='${a}' stroke='${ink}' stroke-width='0.7'>W</text>
+      `;
+    }
+    if (item.type === "bomber") {
+      return `
+        <path d='${sleeveL}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='${sleeveR}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M82 153C104 159 118 178 122 256H82Z' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M174 153C152 159 138 178 134 256H174Z' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M93 143Q128 159 163 143L163 157Q128 174 93 157Z' fill='${lo}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M83 240H173V256H83Z' fill='${lo}' stroke='${ink}' stroke-width='2.3'/>
+        ${centreZip}
+        <g stroke='${a}' stroke-width='1.4' opacity='.8'><path d='M95 149H161M88 247H168'/></g>
+      `;
+    }
+    if (item.type === "cardigan") {
+      return `
+        <path d='${sleeveL}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='${sleeveR}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='${openLeft}' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='${openRight}' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M104 145L128 190L152 145' fill='none' stroke='${ink}' stroke-width='4' stroke-linejoin='round'/>
+        <path d='M104 145L128 190L152 145' fill='none' stroke='${shadeColor(c, 0.65)}' stroke-width='2' stroke-linejoin='round'/>
+        ${buttonPlacket(132, 185, 5, 14, "#f6d7a5")}
+        <path d='M93 202H113M143 202H163' stroke='${shadeColor(c, 0.68)}' stroke-width='1.7' stroke-linecap='round'/>
+      `;
+    }
+    if (item.type === "sweaterVest") {
+      const diamonds = Array.from({ length: 4 }, (_, i) => {
+        const x = 98 + i * 20;
+        return `<path d='M${x} 190l10 -12l10 12l-10 12Z' fill='${i % 2 ? a : shadeColor(c, 1.25)}' stroke='${shadeColor(c, 0.58)}' stroke-width='1'/>`;
+      }).join("");
+      return `
+        <path d='M96 146L128 194L160 146C153 187 162 219 169 256H87C94 219 103 187 96 146Z' fill='${c}' stroke='${ink}' stroke-width='2.7' stroke-linejoin='round'/>
+        <path d='M101 145L128 186L155 145' fill='none' stroke='${a}' stroke-width='3.2' stroke-linejoin='round'/>
+        ${diamonds}
+      `;
+    }
+    if (item.type === "labCoat") {
+      return `
+        <path d='${sleeveL}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='${sleeveR}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M70 151C94 156 112 174 121 256H70Z' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M186 151C162 156 144 174 135 256H186Z' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M101 143L128 158L119 203L94 168Z' fill='${c}' stroke='${ink}' stroke-width='2.3'/>
+        <path d='M155 143L128 158L137 203L162 168Z' fill='${c}' stroke='${ink}' stroke-width='2.3'/>
+        <rect x='145' y='189' width='24' height='13' rx='2' fill='${a}' stroke='${ink}' stroke-width='1.5'/>
+        <path d='M128 158V256' stroke='${shadeColor(c, 0.8)}' stroke-width='2'/>
+      `;
+    }
+    if (item.type === "apron") {
+      return `
+        <path d='M104 150C112 159 121 163 128 163C135 163 144 159 152 150' fill='none' stroke='${c}' stroke-width='6' stroke-linecap='round'/>
+        <path d='M101 161L155 161L166 256H90Z' fill='${c}' stroke='${ink}' stroke-width='2.7' stroke-linejoin='round'/>
+        <path d='M91 197C112 207 144 207 165 197' fill='none' stroke='${shadeColor(c, 0.7)}' stroke-width='2'/>
+        <path d='M108 225H148' stroke='${shadeColor(c, 0.72)}' stroke-width='1.8' stroke-linecap='round'/>
+        <rect x='111' y='180' width='34' height='12' rx='2' fill='${a}' stroke='${ink}' stroke-width='1.4'/>
+      `;
+    }
+    if (item.type === "securityVest") {
+      return `
+        <path d='M86 151C105 164 117 188 121 256H84Z' fill='${a}' stroke='${ink}' stroke-width='2.4'/>
+        <path d='M170 151C151 164 139 188 135 256H172Z' fill='${a}' stroke='${ink}' stroke-width='2.4'/>
+        <path d='M96 178L116 256M160 178L140 256' stroke='#f8fbf3' stroke-width='5' opacity='.85'/>
+        <path d='M86 219H170' stroke='#f8fbf3' stroke-width='6' opacity='.82'/>
+      `;
+    }
+    if (item.type === "raincoat") {
+      return `
+        <path d='${sleeveL}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='${sleeveR}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M84 153C106 160 121 180 124 256H84Z' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M172 153C150 160 135 180 132 256H172Z' fill='${c}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M94 161C92 130 106 110 128 110C150 110 164 130 162 161C151 151 139 146 128 146C117 146 105 151 94 161Z' fill='${c}' stroke='${ink}' stroke-width='2.8'/>
+        <path d='M101 145Q128 166 155 145' fill='none' stroke='${shadeColor(c, 0.68)}' stroke-width='4' stroke-linecap='round'/>
+        ${centreZip}
+        ${buttonPlacket(128, 181, 5, 14, a)}
+      `;
+    }
+    if (item.type === "pinafore") {
+      return `
+        <path d='M100 145C111 160 117 185 117 256H139C139 185 145 160 156 145' fill='none' stroke='${c}' stroke-width='10' stroke-linecap='round'/>
+        <path d='M90 179Q128 190 166 179L176 256H80Z' fill='${c}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>
+        <path d='M105 195H151' stroke='${shadeColor(c, 0.65)}' stroke-width='1.8'/>
+        <circle cx='113' cy='181' r='2.5' fill='${a}' stroke='${ink}' stroke-width='1'/>
+        <circle cx='143' cy='181' r='2.5' fill='${a}' stroke='${ink}' stroke-width='1'/>
+      `;
+    }
+    if (item.type === "leather") {
+      return `
+        <path d='${sleeveL}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='${sleeveR}' fill='${c}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M82 153C104 159 119 178 122 256H82Z' fill='${hi}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M174 153C152 159 137 178 134 256H174Z' fill='${lo}' stroke='${ink}' stroke-width='2.6'/>
+        <path d='M101 144L128 156L111 204L91 168Z' fill='${hi}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M155 144L128 156L145 204L165 168Z' fill='${lo}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M106 155L150 236' stroke='${a}' stroke-width='2.6' stroke-linecap='round'/>
+        <path d='M96 195H116M141 195H162' stroke='${a}' stroke-width='1.8' stroke-linecap='round'/>
+      `;
+    }
+    return "";
   }
 
   function renderOutfitSvg(item, opts = {}) {
     const c = opts.color || itemColor(item);
     const width = opts.large ? 360 : 256;
-    const body = item.status === "current" ? renderCurrent(item, state.body, c) : renderNew(item, state.body, c);
+    const base = baseForLayer(item);
+    const baseColor = base.color;
+    const body = item.kind === "layer"
+      ? renderBaseGarment(base, state.body, baseColor) + renderLayer(item, state.body, c)
+      : renderBaseGarment(item, state.body, c);
     const label = escapeHtml(item.name);
     return `
       <svg viewBox='0 0 256 256' role='img' aria-label='${label} clothing preview' xmlns='http://www.w3.org/2000/svg'>
@@ -511,24 +662,40 @@
     `.replace("<svg", `<svg width='${width}' height='${width}'`);
   }
 
+  function renderBaseGarment(item, t, c) {
+    return item.status === "current" ? renderCurrent(item, t, c) : renderNew(item, t, c);
+  }
+
   function filteredCatalog() {
     if (state.view === "new") return catalog.filter((item) => item.status === "new");
     if (state.view === "current") return catalog.filter((item) => item.status === "current");
+    if (state.view === "layers") return catalog.filter((item) => item.kind === "layer");
+    if (state.view === "unreviewed") return catalog.filter((item) => !reviewFor(item.id));
+    if (state.view === "yay") return catalog.filter((item) => reviewFor(item.id) === "yay");
+    if (state.view === "nay") return catalog.filter((item) => reviewFor(item.id) === "nay");
     return catalog;
   }
 
   function renderPreview() {
     const item = currentItem();
+    const base = baseForLayer(item);
+    const vote = reviewFor(item.id);
     els.previewArt.innerHTML = renderOutfitSvg(item, { large: true, color: state.colour });
     els.previewStatus.textContent = item.status === "new" ? "New concept" : "Current option";
     els.previewStatus.classList.toggle("current", item.status === "current");
     els.previewName.textContent = item.name;
     els.previewNotes.textContent = item.notes;
     els.previewTags.innerHTML = item.tags.map((tag) => `<span class='tag'>${escapeHtml(tag)}</span>`).join("");
+    els.yayButton.classList.toggle("is-active", vote === "yay");
+    els.nayButton.classList.toggle("is-active", vote === "nay");
+    els.clearVoteButton.disabled = !vote;
     els.specOutput.value = JSON.stringify({
       id: item.id,
       name: item.name,
       status: item.status,
+      review: vote || "unreviewed",
+      layerable: item.kind === "layer",
+      underLayer: item.kind === "layer" ? base.id : null,
       renderType: item.type,
       baseColor: state.colour,
       accent: item.accent || null,
@@ -541,15 +708,26 @@
 
   function renderGrid() {
     const items = filteredCatalog();
+    if (!items.includes(currentItem()) && items.length) {
+      state.selectedId = items[0].id;
+      state.colour = items[0].color;
+    }
     els.outfitGrid.innerHTML = items.map((item) => `
-      <button class='outfit-card ${item.id === state.selectedId ? "is-selected" : ""}' type='button' data-id='${item.id}'>
-        ${renderOutfitSvg(item)}
-        <span class='card-meta'>
-          <strong>${escapeHtml(item.name)}</strong>
-          <span>${item.status === "new" ? "New concept" : "Current"}</span>
-          <em>${escapeHtml(item.tags.slice(0, 2).join(" / "))}</em>
-        </span>
-      </button>
+      <article class='outfit-card ${item.id === state.selectedId ? "is-selected" : ""}' data-id='${item.id}' data-review='${reviewFor(item.id)}'>
+        <button class='card-main' type='button' data-select='${item.id}'>
+          ${renderOutfitSvg(item)}
+          <span class='card-meta'>
+            <strong>${escapeHtml(item.name)}</strong>
+            <span>${item.status === "new" ? "New concept" : "Current"}${item.kind === "layer" ? " / Layer" : ""}</span>
+            <em>${escapeHtml(item.tags.slice(0, 2).join(" / "))}</em>
+          </span>
+        </button>
+        <div class='card-votes' aria-label='Review ${escapeHtml(item.name)}'>
+          <button class='vote-button' type='button' data-vote='yay' data-id='${item.id}'>Yay</button>
+          <button class='vote-button' type='button' data-vote='nay' data-id='${item.id}'>Nay</button>
+        </div>
+        <span class='review-mark'>${reviewFor(item.id) || "Unreviewed"}</span>
+      </article>
     `).join("");
     els.catalogTitle.textContent = `${items.length} outfit${items.length === 1 ? "" : "s"}`;
     renderStats();
@@ -558,14 +736,17 @@
   function renderStats() {
     const newCount = catalog.filter((item) => item.status === "new").length;
     const currentCount = catalog.filter((item) => item.status === "current").length;
-    const layerTypes = new Set(["flannel", "denim", "varsity", "bomber", "cardigan", "labCoat", "securityVest", "tracksuit", "raincoat", "leather", "poncho"]);
-    const layers = newOutfits.filter((item) => layerTypes.has(item.type)).length;
-    const role = newOutfits.filter((item) => item.tags.includes("role")).length;
+    const layers = catalog.filter((item) => item.kind === "layer").length;
+    const yay = catalog.filter((item) => reviewFor(item.id) === "yay").length;
+    const nay = catalog.filter((item) => reviewFor(item.id) === "nay").length;
+    const pending = catalog.length - yay - nay;
     els.catalogStats.innerHTML = [
       ["Current", currentCount],
       ["New", newCount],
       ["Layers", layers],
-      ["Role", role]
+      ["Yay", yay],
+      ["Nay", nay],
+      ["Pending", pending]
     ].map(([label, value]) => `<span class='stat'><strong>${value}</strong><span>${label}</span></span>`).join("");
   }
 
@@ -583,6 +764,8 @@
   }
 
   function setupControls() {
+    els.underLayer.innerHTML = baseOutfits.map((item) => `<option value='${item.id}'>${item.name}</option>`).join("");
+    els.underLayer.value = state.underLayer;
     els.bodyPreset.innerHTML = Object.entries(bodyPresets).map(([id, preset]) => `<option value='${id}'>${preset.label}</option>`).join("");
     els.bodyPreset.value = "average";
     els.skinPreset.innerHTML = Object.entries(skinPresets).map(([id, preset]) => `<option value='${id}'>${preset.label}</option>`).join("");
@@ -591,7 +774,11 @@
 
     els.viewFilter.addEventListener("change", () => {
       state.view = els.viewFilter.value;
-      renderGrid();
+      render();
+    });
+    els.underLayer.addEventListener("change", () => {
+      state.underLayer = els.underLayer.value;
+      render();
     });
     els.bodyPreset.addEventListener("change", () => {
       state.body = { ...bodyPresets[els.bodyPreset.value] };
@@ -613,14 +800,26 @@
       render();
     });
     els.outfitGrid.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-id]");
-      if (!button) return;
-      const item = catalog.find((entry) => entry.id === button.dataset.id);
+      const voteButton = event.target.closest("[data-vote]");
+      if (voteButton) {
+        setReview(voteButton.dataset.id, voteButton.dataset.vote);
+        return;
+      }
+      const selectButton = event.target.closest("[data-select]");
+      if (!selectButton) return;
+      const item = catalog.find((entry) => entry.id === selectButton.dataset.select);
       if (!item) return;
       state.selectedId = item.id;
       state.colour = item.color;
+      if (item.kind === "layer" && item.defaultBase) {
+        state.underLayer = item.defaultBase;
+        els.underLayer.value = state.underLayer;
+      }
       render();
     });
+    els.yayButton.addEventListener("click", () => setReview(state.selectedId, "yay"));
+    els.nayButton.addEventListener("click", () => setReview(state.selectedId, "nay"));
+    els.clearVoteButton.addEventListener("click", () => setReview(state.selectedId, ""));
     [
       ["buildRange", "build"],
       ["slopeRange", "shoulderSlope"],
@@ -635,8 +834,8 @@
   }
 
   function render() {
-    renderPreview();
     renderGrid();
+    renderPreview();
   }
 
   setupControls();

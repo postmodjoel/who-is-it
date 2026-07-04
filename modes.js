@@ -2273,16 +2273,15 @@ function getMysteryCardData(character) {
   }
   if (mystery.id === "gallery") {
     const a = assignment;
+    // The frame IS the artwork: repainted portrait, uneven hang, and only a whisper of a label
+    // (year · medium) under the name. No plaque box.
     return {
       effectName: mystery.name,
       cardClass: `gallery gal-${a.style}`,
+      image: a.image || undefined,
+      style: a.hang,
       cornerHtml: a.sold ? `<span class="gal-sold" title="Sold">● SOLD</span>` : "",
-      html: `<div class="gal-plaque">
-        <div class="gal-title">“${escapeHtml(a.title)}”</div>
-        <div class="gal-artist">Artist unknown · ${a.year} · <i>${escapeHtml(a.styleLabel)}</i></div>
-        <div class="gal-medium">${escapeHtml(a.medium)}</div>
-        <div class="gal-price">${escapeHtml(a.price)}</div>
-      </div>`
+      html: `<div class="gal-caption">${a.year} · ${escapeHtml(a.medium)}</div>`
     };
   }
   if (mystery.id === "neighbourhood-watch") {
@@ -3470,15 +3469,18 @@ function applyNeighbourhoodWatch(effect) {
 // STYLE - the style drives the frame and the CSS filter treatment (De Stijl, Renaissance, Pop Art,
 // Impressionist, Baroque, Watercolour, Brutalist, Ukiyo-e) - with a brass plaque: title, year,
 // medium, price. The exhibition takes over the venue: the location becomes the Art Gallery.
+// Each style carries its own era (the year on the label matches the movement), and its own painted
+// backdrop palette — the portrait is re-rendered on that backdrop so it reads as a painting, not a
+// game card on a coloured square.
 const GALLERY_STYLES = [
-  { key: "destijl", label: "De Stijl" },
-  { key: "renaissance", label: "Renaissance" },
-  { key: "impressionist", label: "Impressionist" },
-  { key: "popart", label: "Pop Art" },
-  { key: "baroque", label: "Baroque" },
-  { key: "watercolour", label: "Watercolour" },
-  { key: "brutalist", label: "Brutalist" },
-  { key: "ukiyoe", label: "Ukiyo-e" }
+  { key: "destijl", label: "De Stijl", era: [1917, 1931], bgs: ["#f4f1ea", "#efe9dd"] },
+  { key: "renaissance", label: "Renaissance", era: [1495, 1600], bgs: ["#2b2018", "#33261a", "#232019"] },
+  { key: "impressionist", label: "Impressionist", era: [1865, 1895], bgs: ["#dfe8dd", "#e8e2d3", "#dee4ec"] },
+  { key: "popart", label: "Pop Art", era: [1955, 1970], bgs: ["#ffd23a", "#ff5a72", "#4dd2ff", "#5dff8f"] },
+  { key: "baroque", label: "Baroque", era: [1600, 1700], bgs: ["#191310", "#221a12"] },
+  { key: "watercolour", label: "Watercolour", era: [1790, 1880], bgs: ["#f7f4ec", "#f2ede2"] },
+  { key: "brutalist", label: "Brutalist", era: [1950, 1975], bgs: ["#d8d8d4", "#c9c9c4"] },
+  { key: "ukiyoe", label: "Ukiyo-e", era: [1760, 1850], bgs: ["#efe3c1", "#e9dbb4"] }
 ];
 function applyGallery(effect) {
   const D = window.GameData;
@@ -3491,12 +3493,23 @@ function applyGallery(effect) {
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:gallery:${ch.id}`);
     const style = GALLERY_STYLES[h % GALLERY_STYLES.length];
+    // Repaint the sitter onto the movement's backdrop (calm pose, no card-blue default bg).
+    const bg = style.bgs[(h >>> 3) % style.bgs.length];
+    let image = null;
+    if (ch.traits && window.faceGenerator) {
+      try { image = window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: bg, animMode: "calm" }); } catch (e) { /* keep original */ }
+    }
+    // Hang them slightly unevenly - a real wall, not a grid: per-piece scale/rotation/vertical drift.
+    const scale = 0.9 + ((h >>> 8) % 13) / 100;             // 0.90..1.02
+    const rot = (((h >>> 5) % 5) - 2) * 0.55;               // -1.1°..+1.1°
+    const shift = ((h >>> 11) % 14) - 6;                    // -6..+7 px
     assignments[ch.id] = {
       style: style.key,
       styleLabel: style.label,
-      title: pick(D.galleryTitles || ["Untitled"], `${ch.id}:t`),
+      image,
+      hang: `--gal-scale:${scale.toFixed(2)};--gal-rot:${rot.toFixed(2)}deg;--gal-shift:${shift}px`,
       medium: pick(D.galleryMediums || ["oil on canvas"], `${ch.id}:m`),
-      year: 1503 + (stableHash(`${state.gameSalt}:gal:${ch.id}:yr`) % 522),
+      year: style.era[0] + (stableHash(`${state.gameSalt}:gal:${ch.id}:yr`) % (style.era[1] - style.era[0] + 1)),
       price: pick(D.galleryPrices || ["Priced on request"], `${ch.id}:p`),
       sold: (h >>> 6) % 4 === 0
     };

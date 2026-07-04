@@ -255,6 +255,7 @@ const state = {
   roomCode: "0000",
   gameSalt: "",
   abortedBabies: [],   // session-level: aborted souls that later haunt Judgement Day's purgatory
+  lore: [],            // session lore ledger: one entry per finished round, feeds the "Previously…" callbacks
   log: [],
   global: {
     mystery: null,
@@ -450,8 +451,9 @@ function newGame(seedSalt, opts = {}) {
     }
     // The Wheel of Fate spins at the start of the round to pick the chaos mode BOTH seats will share.
     // The landing spot is a hash of the salt, so every client's wheel lands on the SAME mode.
+    // Roughly every third round a "PREVIOUSLY, IN THIS UNIVERSE…" callback plays first.
     if (state.settings.mystery) {
-      spinModeRoulette((id) => {
+      maybeShowLoreCallback(() => spinModeRoulette((id) => {
         if (id) {
           const eff = MysteryModes.byId(id);
           applyMysteryEffect(id);
@@ -465,7 +467,7 @@ function newGame(seedSalt, opts = {}) {
         }
         render();
         scheduleSave();
-      });
+      }));
     }
     scheduleSave();
   };
@@ -1283,6 +1285,7 @@ function saveGameState() {
       roomCode: state.roomCode,   // online: the channel isn't re-derivable for a joiner, so persist it
       currentPlayer: state.currentPlayer,
       roundAge: state.roundAge || 0,
+      lore: state.lore || [],
       playerCount: state.playerCount || 2,
       roster: (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side })),
       clientId: state.clientId || "",
@@ -1365,6 +1368,7 @@ function resumeGame(saved) {
     state.roomCode = saved.roomCode || String((stableHash(saved.salt) % 9000) + 1000);
   }
   state.roundAge = saved.roundAge || 0;   // restored before newGame's resume path (which preserves it)
+  state.lore = Array.isArray(saved.lore) ? saved.lore : [];
   state.abortedBabies = saved.abortedBabies || [];
   // Restore the roster BEFORE newGame so assignRosterTeams re-derives the same sides from the same
   // salt + roster (and the seat pill / team labels come back intact).
@@ -1457,14 +1461,19 @@ function showRoundReveal(done) {
   const mine = my === 0 ? secA : secB;
   const theirs = my === 0 ? secB : secA;
   const teamMode = rosterTeamMode();
+  recordRoundLore(secA, secB);
+  // Mode-flavoured epilogue under each reveal ("Still going around with that MAJOR HYSTERIA.") -
+  // the character's send-off in the voice of the round that just ended.
+  const epiMine = typeof modeEpilogue === "function" ? modeEpilogue(mine) : "";
+  const epiTheirs = typeof modeEpilogue === "function" ? modeEpilogue(theirs) : "";
   const ov = document.createElement("div");
   ov.className = "round-reveal";
   ov.innerHTML = `
     <div class="rr-title">ROUND OVER</div>
     <div class="rr-cards">
-      <div class="rr-card"><span class="rr-label rr-you">${teamMode ? "YOUR TEAM WAS" : "YOU WERE"}</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span></div>
+      <div class="rr-card"><span class="rr-label rr-you">${teamMode ? "YOUR TEAM WAS" : "YOU WERE"}</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span>${epiMine ? `<span class="rr-epilogue">${escapeHtml(epiMine)}</span>` : ""}</div>
       <div class="rr-vs">×</div>
-      <div class="rr-card"><span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span></div>
+      <div class="rr-card"><span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span>${epiTheirs ? `<span class="rr-epilogue">${escapeHtml(epiTheirs)}</span>` : ""}</div>
     </div>
     <button type="button" class="button primary rr-next">NEXT ROUND →</button>`;
   document.body.appendChild(ov);
@@ -1482,6 +1491,55 @@ function showRoundReveal(done) {
 function endRound() {
   netSend("endround", {});
   showRoundReveal(() => newGame());
+}
+
+// ===================== Session lore: the universe remembers =====================
+// One ledger entry per finished round (who the secrets were, which mode it was). Feeds the
+// "PREVIOUSLY, IN THIS UNIVERSE…" callback that sometimes plays before the next wheel spin.
+function recordRoundLore(secA, secB) {
+  if (!Array.isArray(state.lore)) state.lore = [];
+  const eff = state.global.mystery ? MysteryModes.byId(state.global.mystery.id) : null;
+  state.lore.push({
+    modeId: eff ? eff.id : null,
+    modeName: eff ? eff.name : null,
+    names: [secA && secA.name, secB && secB.name].filter(Boolean)
+  });
+  if (state.lore.length > 12) state.lore.shift();
+  scheduleSave();
+}
+// Roughly every third round (salt-deterministic, so online peers agree) the deal pauses for a
+// callback to an earlier round before the wheel spins. Pure lore - nothing mechanical.
+const LORE_TEMPLATES = [
+  (e, n) => `${n} has not been seen since the ${e.modeName} incident.`,
+  (e, n) => `${n} would like everyone to forget what happened during ${e.modeName}. We will not.`,
+  (e, n) => `The ${e.modeName} incident remains under investigation. ${n} is not cooperating.`,
+  (e, n) => `Somewhere out there, ${n} is still recovering from ${e.modeName}.`,
+  (e, n) => `${n} has gone home to think about what they did.`,
+  (e, n) => `${e.modeName} changed ${n}. Everyone's too polite to mention it.`,
+  (e, n) => `${n} maintains that ${e.modeName} "wasn't even that bad". The others disagree.`
+];
+function maybeShowLoreCallback(next) {
+  const lore = (state.lore || []).filter((entry) => entry.modeName && entry.names.length);
+  const show = lore.length && stableHash(`${state.gameSalt}:lorecb`) % 3 === 0;
+  if (!show) { next(); return; }
+  // Prefer recent history but occasionally dig deeper - all salt-picked so peers see the same line.
+  const pool = lore.slice(-5);
+  const entry = pool[stableHash(`${state.gameSalt}:loree`) % pool.length];
+  const name = entry.names[stableHash(`${state.gameSalt}:loren`) % entry.names.length];
+  const line = LORE_TEMPLATES[stableHash(`${state.gameSalt}:loret`) % LORE_TEMPLATES.length](entry, name);
+  const ov = document.createElement("div");
+  ov.className = "lore-overlay";
+  ov.innerHTML = `<div class="lore-box"><p class="lore-eyebrow">PREVIOUSLY, IN THIS UNIVERSE…</p><p class="lore-line">${escapeHtml(line)}</p></div>`;
+  document.body.appendChild(ov);
+  let doneOnce = false;
+  const finish = () => {
+    if (doneOnce) return;
+    doneOnce = true;
+    ov.classList.add("lore-out");
+    setTimeout(() => { ov.remove(); next(); }, 420);
+  };
+  ov.addEventListener("click", finish);
+  setTimeout(finish, 3600);
 }
 // Disabling PG mode requires solving adults-only riddles (free text) - the answers are all bits of
 // grown-up life a 10-year-old wouldn't know. cb(true) if solved, cb(false) if cancelled/given up.

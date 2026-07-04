@@ -1754,6 +1754,78 @@ function wirePainScaleDrag() {
   document.addEventListener("pointerup", () => { if (painDragCard) { painDragCard.draggable = true; painDragCard = null; } });
 }
 
+// The round-reveal send-off: one line about the revealed character, in the voice of the mode that
+// just ended ("Still going around with that MEGA HYSTERIA."). Generic pool when a mode has no
+// bespoke line. Cosmetic only - salt-derived where it picks, so peers read the same epilogue.
+const EPILOGUE_GENERIC = [
+  "Has gone home to think about what they did.",
+  "Will not be answering questions at this time.",
+  "Remains, somehow, at large.",
+  "Has already told the group chat their version.",
+  "Considers this whole round defamatory.",
+  "Learned nothing. Absolutely nothing."
+];
+function modeEpilogue(character) {
+  if (!character) return "";
+  const m = state.global.mystery;
+  const generic = () => EPILOGUE_GENERIC[stableHash(`${state.gameSalt}:epi:${character.id}`) % EPILOGUE_GENERIC.length];
+  const a = m && m.assignments ? m.assignments[character.id] : null;
+  if (!m || !a) return generic();
+  switch (m.id) {
+    case "disease": {
+      const d = (a.diseases || [])[0];
+      if (a.patientZero) return "Patient zero. Still shaking hands at parties.";
+      return d ? `Still going around with that ${d.tier} ${String(d.name).toUpperCase()}.` : generic();
+    }
+    case "drugs": {
+      const habit = (a.habits || [])[0];
+      return habit ? `Still on the ${habit.name}. "Quitting Monday."` : generic();
+    }
+    case "linkedin":
+      return a.openToWork ? `Remains ${a.otwText || "#OpenToWork"}.` : `Still "${a.title}" at ${a.company}.`;
+    case "neighbourhood-watch":
+      return a.feudWith ? `The feud with ${a.feudWith} continues. I have footage.` : generic();
+    case "orgy":
+      return `Body count now ${(a.bodyCount || 0) + 1}. No further comment.`;
+    case "astrology":
+      return a.sun ? `Blames the whole round on ${a.retro ? "Mercury retrograde" : `being a ${a.sun.name}`}.` : generic();
+    case "horny-potter":
+      return a.horcrux ? `Their horcrux (${a.horcrux}) remains at large.` : `${a.house} has revoked their common-room privileges.`;
+    case "work":
+      return `${Math.max(0, (a.days || 1) - 1)} days remaining. The spoon digs on.`;
+    case "judgement":
+      return a.verdict === "HELL" ? `Still in ${a.location || "the Lake of Fire"}. One star.` :
+        a.verdict === "HEAVEN" ? `Watching all of this from ${a.location || "Cloud Nine"}, smugly.` :
+        `Still #${(stableHash(`${state.gameSalt}:q:${character.id}`) % 90000 + 10000).toLocaleString()} in the purgatory queue.`;
+    case "sims":
+      return a.action ? `Last seen ${String(a.action).toLowerCase()}. Needs unmet.` : generic();
+    case "swipe":
+      return a.ick ? `Unmatched by everyone. The ick: ${String(a.ick).toLowerCase()}.` : generic();
+    case "fertility":
+      return a.barren ? "Stock remains discontinued." : "Still restocking. Ask about bulk pricing.";
+    case "yugioh":
+      return a.frame === "trap" || a.frame === "spell" ? "Sent to the graveyard face-down. Rude." : "Added to the banlist for what they did tonight.";
+    case "pantone":
+      return a.name ? `Discontinued by Pantone. "${a.name}" is no more.` : generic();
+    case "habbo":
+      return state.settings.pg ? "Banned from the pool for splashing." : "Banned from the pool. You know what for. (bobba)";
+    case "fireworks":
+      return "Partially reassembled. The head is still missing.";
+    case "knockoff-manor":
+      return "Was in the BATHS ROOM the whole time. Allegedly.";
+    case "witness-protection-filter":
+      return "Relocated. New name, same eyes.";
+    case "gay-frogged":
+      return "Still glowing. The frogs kept in touch.";
+    case "hidden-agendas":
+      return "Now polling at 4%. Refuses to concede.";
+    case "woke":
+      return "Cancelled, cured, relapsed and re-platformed - all before breakfast.";
+    default:
+      return generic();
+  }
+}
+
 function getMysteryCardData(character) {
   const mystery = state.global.mystery;
   if (!mystery || !mystery.assignments) return { html: "", dataset: {} };

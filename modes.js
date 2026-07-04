@@ -130,6 +130,18 @@ const MYSTERY_EFFECT_DEFINITIONS = [
     exampleQuestion: "Is your person #OpenToWork?"
   },
   {
+    id: "neighbourhood-watch",
+    name: "NEIGHBOURHOOD WATCH",
+    apply: applyNeighbourhoodWatch,
+    exampleQuestion: "Is your person the group admin?"
+  },
+  {
+    id: "gallery",
+    name: "THE GALLERY",
+    apply: applyGallery,
+    exampleQuestion: "Is your person priced on request?"
+  },
+  {
     id: "woke",
     name: "WOKE Mode",
     apply: applyWoke,
@@ -199,6 +211,7 @@ const MYSTERY_MODE_META = {
   pantone: { tier: 1, wheelOrder: 70, pgSafe: true, glyph: "❏", boardClasses: ["pantone-board"] },
   habbo: { tier: 1, wheelOrder: 80, pgSafe: true, glyph: "⌂", boardClasses: ["habbo-board"], flash: "#2fb6d8", renderBoard: renderHabboBoard, afterRenderSecret: pixelateHabboSecret, teardown: resetHabbo },
   "heads-only": { tier: 1, wheelOrder: 90, pgSafe: true, glyph: "⊚", boardClasses: ["heads-board"], flash: "#7a5cff", renderBoard: renderHeadsOnlyBoard, teardown: resetHeadsAnim },
+  gallery: { tier: 1, wheelOrder: 95, pgSafe: true, glyph: "◫", boardClasses: ["gallery-board"], flash: "#c9a24b" },
   "knockoff-manor": { tier: 2, wheelOrder: 10, pgSafe: false, glyph: "☠", boardClasses: ["knockoff-manor-board"], renderBoard: renderKnockoffManorBoard, renderHouseMap },
   "family-tree-disaster": { tier: 2, wheelOrder: 20, pgSafe: true, glyph: "⚭", boardClasses: ["family-tree-board"], renderBoard: renderFamilyBoard },
   yugioh: { tier: 2, wheelOrder: 30, pgSafe: true, glyph: "◈", boardClasses: ["ygo-board"], bodyClasses: ["mode-yugioh"], flash: "#a05aff", decorateLocation: decorateYugiohLocation, prepareCard: prepareYugiohCard },
@@ -206,6 +219,7 @@ const MYSTERY_MODE_META = {
   "horny-potter": { tier: 2, wheelOrder: 50, pgSafe: false, glyph: "☇", boardClasses: ["hp-board"] },
   "witness-protection-filter": { tier: 2, wheelOrder: 60, pgSafe: true, glyph: "⊘", flash: "#c9d200" },
   linkedin: { tier: 2, wheelOrder: 70, pgSafe: true, glyph: "in", boardClasses: ["linkedin-board"], bodyClasses: ["mode-linkedin"], afterDefaultBoard: renderLinkedinTicker, teardown: resetLinkedinTicker },
+  "neighbourhood-watch": { tier: 2, wheelOrder: 75, pgSafe: true, glyph: "⚑", boardClasses: ["nw-board"], flash: "#4267b2", afterDefaultBoard: renderNwTicker, teardown: resetNwTicker },
   "hidden-agendas": { tier: 3, wheelOrder: 10, pgSafe: false, glyph: "⚿", flash: "#3a5fd0" },
   monocultural: { tier: 3, wheelOrder: 20, pgSafe: false, glyph: "⧉", flash: "#c88968" },
   "gay-frogged": { tier: 3, wheelOrder: 30, pgSafe: false, glyph: "⚧", flash: "rainbow", decorateLocation: decorateGayFroggedLocation },
@@ -305,11 +319,18 @@ function wheelTargetFromBag() {
     pool = pool.filter((id) => id !== "woke" || WOKE_PREREQS.every((p) => seen.includes(p)));
     if (pool.length) return pool[stableHash(`${state.gameSalt}:wheel`) % pool.length];
   }
-  // Whole gauntlet complete - reset and start a fresh, escalating lap.
+  // Whole gauntlet complete - reset and start a fresh, escalating lap. That's a SEASON FINALE:
+  // flag it so the round flow plays the recap montage before this round's wheel spin.
   try { localStorage.setItem(WHEEL_BAG_KEY, "[]"); } catch (e) { /* fine */ }
+  try {
+    const season = 1 + (parseInt(localStorage.getItem(SEASON_KEY) || "1", 10) || 1);
+    localStorage.setItem(SEASON_KEY, String(season));
+    state.pendingFinale = season - 1;   // the season that just wrapped
+  } catch (e) { /* fine */ }
   const first = WHEEL_TIERS[0].filter((id) => (id === null || known.has(id)) && wheelPgOk(id));
   return (first.length ? first[stableHash(`${state.gameSalt}:wheel`) % first.length] : null);
 }
+const SEASON_KEY = "whoisit_season_v1";
 function markWheelSeen(id) {
   try {
     const seen = wheelBag();
@@ -386,6 +407,62 @@ function resetLinkedinTicker() {
   if (linkedinLikeTimer) { clearInterval(linkedinLikeTimer); linkedinLikeTimer = null; }
   linkedinPaused = false;
   const strip = document.getElementById("linkedinTicker");
+  if (strip) strip.remove();
+}
+
+// ===================== NEIGHBOURHOOD WATCH: the group feed ticker =====================
+// Same engine as the LinkedIn ticker: one post at a time above the board, an angry-react counter
+// that ticks up cosmetically (local-only), a comment that slides in, ~12s rotation, pause on hover.
+let nwRotateTimer = null, nwReactTimer = null, nwPostIdx = 0, nwPaused = false;
+function renderNwTicker() {
+  const posts = state.global.mystery?.posts || [];
+  if (!posts.length) { resetNwTicker(); return; }
+  const wrap = document.querySelector(".board-wrap");
+  if (!wrap) return;
+  let strip = document.getElementById("nwTicker");
+  if (!strip) {
+    strip = document.createElement("div");
+    strip.id = "nwTicker";
+    strip.className = "nw-ticker";
+    strip.addEventListener("mouseenter", () => { nwPaused = true; });
+    strip.addEventListener("mouseleave", () => { nwPaused = false; });
+    wrap.insertBefore(strip, wrap.firstChild);
+    nwPostIdx = 0;
+    paintNwPost();
+  }
+  if (!nwRotateTimer) nwRotateTimer = setInterval(() => {
+    if (nwPaused) return;
+    if (state.global.mystery?.id !== "neighbourhood-watch") { resetNwTicker(); return; }
+    nwPostIdx = (nwPostIdx + 1) % (state.global.mystery.posts || [1]).length;
+    paintNwPost();
+  }, 12000);
+  if (!nwReactTimer) nwReactTimer = setInterval(() => {
+    if (nwPaused) return;
+    const el = document.querySelector("#nwTicker .nw-reacts b");
+    if (el) { const n = parseInt(el.dataset.n || "0", 10) + 1; el.dataset.n = n; el.textContent = n; }
+  }, 2600);
+}
+function paintNwPost() {
+  const strip = document.getElementById("nwTicker");
+  const m = state.global.mystery;
+  const posts = m?.posts || [];
+  if (!strip || !posts.length) return;
+  const p = posts[nwPostIdx % posts.length];
+  const ch = characterById(p.authorId);
+  const avatar = ch && ch.image ? `<img class="nw-avatar" src="${ch.image}" alt="">` : `<span class="nw-avatar nw-avatar-blank">f</span>`;
+  strip.innerHTML = `
+    <div class="nw-group-head">${escapeHtml(m.groupName || "NEIGHBOURHOOD WATCH")} <span>· Private group</span></div>
+    <div class="nw-post" role="status">
+      <div class="nw-post-head">${avatar}<div><b>${escapeHtml(p.author)}</b><span>${escapeHtml(p.role)} · ${escapeHtml(p.when)}</span></div></div>
+      <div class="nw-post-body">${escapeHtml(p.text)}</div>
+      <div class="nw-post-foot"><span class="nw-reacts">😡 <b data-n="${p.reacts}">${p.reacts}</b></span><span class="nw-comment">💬 <b>${escapeHtml(p.commenter)}:</b> ${escapeHtml(p.comment)}</span></div>
+    </div>`;
+}
+function resetNwTicker() {
+  if (nwRotateTimer) { clearInterval(nwRotateTimer); nwRotateTimer = null; }
+  if (nwReactTimer) { clearInterval(nwReactTimer); nwReactTimer = null; }
+  nwPaused = false;
+  const strip = document.getElementById("nwTicker");
   if (strip) strip.remove();
 }
 
@@ -653,15 +730,45 @@ function renderHabboSelectionUI(focusChat = false) {
     if (a.head) pixelateSrc(a.head, 30, (url) => { const img = bar.querySelector("img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
     const input = bar.querySelector("input");
     if (draft) input.value = draft;
-    const say = () => { const t = input.value.trim(); if (t) { habboSay(ch.id, t); input.value = ""; } input.focus(); };
+    // The bobba filter runs ONCE at send time (not per client), so everyone reads the same censored
+    // words - then the chat is broadcast so both online seats see every bubble.
+    const say = () => {
+      const t = input.value.trim();
+      if (t) {
+        const filtered = bobbaize(t);
+        const bobbas = (filtered.match(/bobba/g) || []).length;
+        if (bobbas) bumpStat("bobbas", bobbas);
+        habboSay(ch.id, filtered);
+        netSend("chat", { charId: ch.id, text: filtered });
+        input.value = "";
+      }
+      input.focus();
+    };
     bar.querySelector("button").addEventListener("click", say);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") say(); if (e.key === "Escape") selectHabbo(habboSelected); });
     if (focusChat || hadFocus) setTimeout(() => { if (input.isConnected) input.focus({ preventScroll: true }); }, 60);
   }
 }
 function banHabbo(id) {
+  if (!currentPlayer().eliminated.has(id)) bumpStat("habboBans");
   toggleEliminated(id);
   if (habboSelected !== id) habboSelected = id;
+}
+// The Habbo word filter: random words become "bobba", exactly like the hotel's censor - the joke is
+// that it fires on completely innocent words, and the table has to guess what was really said.
+// PG mode censors MORE aggressively (it's a children's hotel, after all). Local randomness is fine:
+// the text is bobba-ized once at send time and travels the wire already censored.
+function bobbaize(text) {
+  const rate = state.settings.pg ? 0.45 : 0.28;
+  const words = String(text).split(/(\s+)/);
+  const out = words.map((w) => {
+    if (!w.trim() || w.length < 3) return w;
+    if (Math.random() >= rate) return w;
+    const tail = /[.,!?…]+$/.exec(w);
+    return "bobba" + (tail ? tail[0] : "");
+  });
+  // Never censor the whole message into nothing but bobba... actually, sometimes that's funnier.
+  return out.join("");
 }
 // Habbo chat: the new bubble lands at the head; older ones float upward and expire.
 function habboSay(id, text) {
@@ -1128,6 +1235,7 @@ function resetTransientBoardRenders() {
   if (modeId !== "pixall") stopPixallLoop();
   if (modeId !== "sims") stopSimsLoop();
   if (modeId !== "linkedin") resetLinkedinTicker();
+  if (modeId !== "neighbourhood-watch") resetNwTicker();
   stopPropLoop();
 }
 
@@ -1690,6 +1798,195 @@ function wirePainScaleDrag() {
   document.addEventListener("pointerup", () => { if (painDragCard) { painDragCard.draggable = true; painDragCard = null; } });
 }
 
+// The round-reveal send-off: one line about the revealed character, in the voice of the mode that
+// just ended ("Still going around with that MEGA HYSTERIA."). Generic pool when a mode has no
+// bespoke line. Cosmetic only - salt-derived where it picks, so peers read the same epilogue.
+const EPILOGUE_GENERIC = [
+  "Has gone home to think about what they did.",
+  "Will not be answering questions at this time.",
+  "Remains, somehow, at large.",
+  "Has already told the group chat their version.",
+  "Considers this whole round defamatory.",
+  "Learned nothing. Absolutely nothing."
+];
+function modeEpilogue(character) {
+  if (!character) return "";
+  const m = state.global.mystery;
+  const generic = () => EPILOGUE_GENERIC[stableHash(`${state.gameSalt}:epi:${character.id}`) % EPILOGUE_GENERIC.length];
+  const a = m && m.assignments ? m.assignments[character.id] : null;
+  if (!m || !a) return generic();
+  switch (m.id) {
+    case "disease": {
+      const d = (a.diseases || [])[0];
+      if (a.patientZero) return "Patient zero. Still shaking hands at parties.";
+      return d ? `Still going around with that ${d.tier} ${String(d.name).toUpperCase()}.` : generic();
+    }
+    case "drugs": {
+      const habit = (a.habits || [])[0];
+      return habit ? `Still on the ${habit.name}. "Quitting Monday."` : generic();
+    }
+    case "linkedin":
+      return a.openToWork ? `Remains ${a.otwText || "#OpenToWork"}.` : `Still "${a.title}" at ${a.company}.`;
+    case "neighbourhood-watch":
+      return a.feudWith ? `The feud with ${a.feudWith} continues. I have footage.` : generic();
+    case "orgy":
+      return `Body count now ${(a.bodyCount || 0) + 1}. No further comment.`;
+    case "astrology":
+      return a.sun ? `Blames the whole round on ${a.retro ? "Mercury retrograde" : `being a ${a.sun.name}`}.` : generic();
+    case "horny-potter":
+      return a.horcrux ? `Their horcrux (${a.horcrux}) remains at large.` : `${a.house} has revoked their common-room privileges.`;
+    case "work":
+      return `${Math.max(0, (a.days || 1) - 1)} days remaining. The spoon digs on.`;
+    case "judgement":
+      return a.verdict === "HELL" ? `Still in ${a.location || "the Lake of Fire"}. One star.` :
+        a.verdict === "HEAVEN" ? `Watching all of this from ${a.location || "Cloud Nine"}, smugly.` :
+        `Still #${(stableHash(`${state.gameSalt}:q:${character.id}`) % 90000 + 10000).toLocaleString()} in the purgatory queue.`;
+    case "sims":
+      return a.action ? `Last seen ${String(a.action).toLowerCase()}. Needs unmet.` : generic();
+    case "swipe":
+      return a.ick ? `Unmatched by everyone. The ick: ${String(a.ick).toLowerCase()}.` : generic();
+    case "fertility":
+      return a.barren ? "Stock remains discontinued." : "Still restocking. Ask about bulk pricing.";
+    case "yugioh":
+      return a.frame === "trap" || a.frame === "spell" ? "Sent to the graveyard face-down. Rude." : "Added to the banlist for what they did tonight.";
+    case "pantone":
+      return a.name ? `Discontinued by Pantone. "${a.name}" is no more.` : generic();
+    case "habbo":
+      return state.settings.pg ? "Banned from the pool for splashing." : "Banned from the pool. You know what for. (bobba)";
+    case "gallery":
+      return a && a.sold ? `Sold for ${a.price}. The artist saw none of it.` : `Still unsold at ${a && a.price ? a.price : "any price"}. The critics were right.`;
+    case "fireworks":
+      return "Partially reassembled. The head is still missing.";
+    case "knockoff-manor":
+      return "Was in the BATHS ROOM the whole time. Allegedly.";
+    case "witness-protection-filter":
+      return "Relocated. New name, same eyes.";
+    case "gay-frogged":
+      return "Still glowing. The frogs kept in touch.";
+    case "hidden-agendas":
+      return "Now polling at 4%. Refuses to concede.";
+    case "woke":
+      return "Cancelled, cured, relapsed and re-platformed - all before breakfast.";
+    default:
+      return generic();
+  }
+}
+
+// Last words: when a character gets flipped down, they sometimes protest - one line, in the voice
+// of the active mode, anchored to the card. Local-only (the eliminator hears the complaint; the
+// other seat just sees the flip), so Math.random is fine here.
+const LAST_WORDS_GENERIC = [
+  "I wasn't even THERE.",
+  "You'll regret this at the reunion.",
+  "Tell my plants I loved them.",
+  "This is defamation, actually.",
+  "I demand to speak to the board.",
+  "Wow. WOW.",
+  "I was about to say something important.",
+  "My lawyer will flip me back up.",
+  "You've made an enemy for life. A small one.",
+  "Fine. FINE. I didn't want to be guessed anyway."
+];
+function modeLastWords(character) {
+  const m = state.global.mystery;
+  const a = m && m.assignments ? m.assignments[character.id] : null;
+  const generic = () => LAST_WORDS_GENERIC[Math.floor(Math.random() * LAST_WORDS_GENERIC.length)];
+  if (!m) return generic();
+  const roll = Math.random();
+  if (roll < 0.35) return generic();   // even in a mode, sometimes they just complain normally
+  switch (m.id) {
+    case "disease": {
+      const d = a && (a.diseases || [])[0];
+      return d ? `But it was only ${d.tier} ${d.name}!` : "I was getting BETTER.";
+    }
+    case "drugs": {
+      const habit = a && (a.habits || [])[0];
+      return habit ? `The ${habit.name} was for a FRIEND.` : "I can quit being eliminated whenever I want.";
+    }
+    case "linkedin":
+      return a && a.openToWork ? "Eliminated?? I'm putting this on my profile." : "I'd like to connect about this.";
+    case "neighbourhood-watch":
+      return a && a.feudWith ? `${a.feudWith} put you up to this. I HAVE FOOTAGE.` : "The group will hear about this. With screenshots.";
+    case "orgy":
+      return "I was told there'd be no judgement here.";
+    case "astrology":
+      return a && a.sun ? `A ${a.sun.name} would NEVER do this to you.` : "Mercury did this. Not you. Mercury.";
+    case "horny-potter":
+      return a && a.horcrux ? "Joke's on you. I have a horcrux." : "Avada kedavr— oh.";
+    case "work":
+      return a ? `${a.days} days left and NOW this.` : "I was almost paroled.";
+    case "judgement":
+      return a && a.verdict === "HEAVEN" ? "I'll be watching from Cloud Nine. Smugly." : "See you downstairs.";
+    case "sims":
+      return "Sul sul... sul...";
+    case "swipe":
+      return "Unmatched?? UNMATCHED???";
+    case "fertility":
+      return "My stock! My beautiful stock!";
+    case "pantone":
+      return a && a.name ? `You'll never find "${a.name}" again.` : "You'll never match this shade again.";
+    case "habbo":
+      return "bobba.";
+    case "yugioh":
+      return "You've activated my trap card. (I have no trap card.)";
+    case "knockoff-manor":
+      return "The killer is still among—";
+    case "witness-protection-filter":
+      return "You never saw me. Officially.";
+    case "gay-frogged":
+      return "The glow was real. WE were real.";
+    case "hidden-agendas":
+      return "My donors will hear of this.";
+    case "woke":
+      return "Cancelled. Again. Typical.";
+    case "pixall":
+      return "I was only 8 pixels. What did I ever do to you.";
+    case "ps1-mode":
+      return "*despawns loudly*";
+    case "disguise":
+      return "At least tell me WHO you just eliminated.";
+    case "prop-panic":
+      return a && a.value ? `The ${a.value} was NEVER mine.` : "It was planted on me.";
+    case "family-tree-disaster":
+      return "My twin will avenge me.";
+    case "emotional-audit":
+      return a ? `My ${a.meter} was at ${a.value}% and it was all for you.` : "I FELT things, you know.";
+    case "role-reveal":
+      return a && a.value ? `But who will ${String(a.value).toLowerCase()} now?` : "The town needed me.";
+    case "face-first":
+      return "It was the face, wasn't it.";
+    case "monocultural":
+      return "We all look identical and you chose ME.";
+    case "heads-only":
+      return "You can't keep a good head down.";
+    case "gallery":
+      return "I was priceless. PRICELESS.";
+    case "fireworks":
+      return "I regret nothing.";
+    default:
+      return generic();
+  }
+}
+// Anchor the bubble to the (freshly re-rendered) card or floating head. Comic-bubble, ~3s life.
+function showLastWords(charId) {
+  const ch = characterById(charId);
+  if (!ch) return;
+  const el = document.getElementById(`card-${charId}`) || document.querySelector(`.float-head[data-id="${charId}"]`);
+  if (!el) return;
+  el.querySelectorAll(".lastwords-bubble").forEach((b) => b.remove());
+  const bub = document.createElement("span");
+  bub.className = "lastwords-bubble";
+  bub.textContent = modeLastWords(ch);
+  // Lift the speaking card above its neighbours (and their shadows) while the bubble is up.
+  const prevZ = el.style.zIndex;
+  el.style.zIndex = "60";
+  el.appendChild(bub);
+  setTimeout(() => {
+    bub.classList.add("lw-out");
+    setTimeout(() => { bub.remove(); el.style.zIndex = prevZ; }, 380);
+  }, 3200);
+}
+
 function getMysteryCardData(character) {
   const mystery = state.global.mystery;
   if (!mystery || !mystery.assignments) return { html: "", dataset: {} };
@@ -1971,6 +2268,35 @@ function getMysteryCardData(character) {
         ${locationHtml}
         <div class="li-connections">${escapeHtml(a.connections || "")}</div>
         <div class="li-skills">${skills}</div>
+      </div>`
+    };
+  }
+  if (mystery.id === "gallery") {
+    const a = assignment;
+    // The frame IS the artwork: repainted portrait, uneven hang, and only a whisper of a label
+    // (year · medium) under the name. No plaque box.
+    return {
+      effectName: mystery.name,
+      cardClass: `gallery gal-${a.style}`,
+      image: a.image || undefined,
+      style: a.hang,
+      cornerHtml: a.sold ? `<span class="gal-sold" title="Sold">● SOLD</span>` : "",
+      html: `<div class="gal-caption">${a.year} · ${escapeHtml(a.medium)}</div>`
+    };
+  }
+  if (mystery.id === "neighbourhood-watch") {
+    const a = assignment;
+    const isAdmin = /admin|moderator/i.test(a.role || "");
+    return {
+      effectName: mystery.name,
+      cardClass: `nw${isAdmin ? " nw-admin" : ""}`,
+      cornerHtml: isAdmin ? `<span class="nw-admin-badge">ADMIN</span>` : "",
+      html: `<div class="nw-sheet">
+        <div class="nw-name">${escapeHtml(a.displayName)}</div>
+        <div class="nw-role">${escapeHtml(a.role)}</div>
+        <div class="nw-since">🏠 ${escapeHtml(a.street)} · since ${a.since}</div>
+        ${a.feudWith ? `<div class="nw-feud">⚔ Feuding with <b>${escapeHtml(a.feudWith)}</b></div>` : ""}
+        <div class="nw-gripe">📢 Posting about: ${escapeHtml((a.gripe || "").replace("{target}", a.feudWith || "the new people"))}</div>
       </div>`
     };
   }
@@ -2543,11 +2869,13 @@ function simsMarried(A, B, a, b) {
   if (success) {
     [a, b].forEach((s) => { s.simoleons = Math.round((s.simoleons || 0) * 0.04); s.mood = "red"; s.action = "Regretting the vows"; s.needs = { ...s.needs, fun: Math.min(s.needs?.fun ?? 20, 8), social: Math.min(s.needs?.social ?? 20, 12) }; });
     flashToast("⛓️ Married — til debt do us part"); sfx("buzzer");
+    bumpStat("weddings");
   } else {
     const pot = (a.simoleons || 0) + (b.simoleons || 0);
     a.simoleons = Math.round(pot / 2); b.simoleons = pot - a.simoleons;
     [a, b].forEach((s) => { s.mood = "green"; s.action = "Living their best divorced life"; s.needs = { ...s.needs, fun: Math.max(s.needs?.fun ?? 80, 90), social: Math.max(s.needs?.social ?? 80, 88) }; });
     flashToast("🕊️ Divorce — happily ever after"); sfx("coin");
+    bumpStat("divorces");
   }
   const bank = simBankGet(); bank[A.id] = a.simoleons; bank[B.id] = b.simoleons; simBankSet(bank);
   renderBoard();
@@ -2906,6 +3234,7 @@ function avadaKedavra(ch) {
   }
   flashToast(alreadyDown ? `✨ Finite — ${ch.name} rises again.` : `☠ Avada Kedavra — ${ch.name} is no more.`);
   sfx(alreadyDown ? "sparkle" : "boom");
+  if (!alreadyDown) bumpStat("avadas");
   setTimeout(() => toggleEliminated(ch.id), alreadyDown ? 60 : 500);
 }
 
@@ -3086,6 +3415,106 @@ function applyLinkedin(effect) {
     likes: 40 + (stableHash(`${state.gameSalt}:li:${ch.id}:lk`) % 4000)
   }));
   return { id: effect.id, name: effect.name, assignments, posts };
+}
+
+// NEIGHBOURHOOD WATCH: the suburban-Facebook-group sibling of LINKEDIN. Every face becomes a group
+// member — role badge, street + lived-here-since year, and a FEUD with another board member. The
+// ticker above the board cycles assembled posts (opener + gripe + evidence + signoff), with gripes
+// that name the feud target. Surnames reuse the LinkedIn derivation (same salt key), so the same
+// person keeps the same full name across both modes — the universe remembers.
+function applyNeighbourhoodWatch(effect) {
+  const D = window.GameData;
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:nw:${salt}`) % arr.length];
+  const surnamesByBucket = D.linkedinSurnames || {};
+  const fullName = (ch) => {
+    const bucket = SURNAME_BUCKET[ch.traits && ch.traits.skin] || "medSouth";
+    const pool = surnamesByBucket[bucket] || surnamesByBucket.medSouth || ["Smith"];
+    return `${toSentenceCase(ch.name)} ${pool[stableHash(`${state.gameSalt}:li:${ch.id}:sn`) % pool.length]}`;
+  };
+  const groupName = pick(D.nwGroupNames || ["NEIGHBOURHOOD WATCH"], "group");
+  const assignments = {};
+  const n = state.board.length;
+  state.board.forEach((ch, i) => {
+    const h = stableHash(`${state.gameSalt}:nw:${ch.id}`);
+    // Feud target: another board member, never self, salt-deterministic.
+    const feud = n > 1 ? state.board[(i + 1 + (h % (n - 1))) % n] : null;
+    assignments[ch.id] = {
+      displayName: fullName(ch),
+      role: pick(D.nwRoles || ["Member"], `${ch.id}:role`),
+      street: pick(D.nwStreets || ["Cavendish St"], `${ch.id}:st`),
+      since: 1962 + (h % 62),                       // lived here since 1962..2023
+      feudWith: feud ? fullName(feud) : null,
+      gripe: pick(D.nwGripes || ["the bins"], `${ch.id}:gr`)
+    };
+  });
+  // The group feed: up to 10 members posting. {target} in a gripe resolves to the author's feud.
+  const posts = state.board.slice(0, 10).map((ch) => {
+    const a = assignments[ch.id];
+    const gripe = a.gripe.replace("{target}", a.feudWith || "the new people at number 42");
+    return {
+      authorId: ch.id,
+      author: a.displayName,
+      role: a.role,
+      when: `${1 + (stableHash(`${state.gameSalt}:nw:${ch.id}:wh`) % 9)}h`,
+      text: `${pick(D.nwOpeners, `${ch.id}:po`)} ${gripe}. ${pick(D.nwEvidence, `${ch.id}:pe`)} ${pick(D.nwSignoffs, `${ch.id}:ps`)}`,
+      commenter: assignments[state.board[(state.board.indexOf(ch) + 3) % n].id].displayName,
+      comment: pick(D.nwComments, `${ch.id}:pc`),
+      reacts: 3 + (stableHash(`${state.gameSalt}:nw:${ch.id}:rx`) % 84)
+    };
+  });
+  return { id: effect.id, name: effect.name, groupName, assignments, posts };
+}
+
+// THE GALLERY: every portrait becomes a museum piece. Each character is hung in a different art
+// STYLE - the style drives the frame and the CSS filter treatment (De Stijl, Renaissance, Pop Art,
+// Impressionist, Baroque, Watercolour, Brutalist, Ukiyo-e) - with a brass plaque: title, year,
+// medium, price. The exhibition takes over the venue: the location becomes the Art Gallery.
+// Each style carries its own era (the year on the label matches the movement), and its own painted
+// backdrop palette — the portrait is re-rendered on that backdrop so it reads as a painting, not a
+// game card on a coloured square.
+const GALLERY_STYLES = [
+  { key: "destijl", label: "De Stijl", era: [1917, 1931], bgs: ["#f4f1ea", "#efe9dd"] },
+  { key: "renaissance", label: "Renaissance", era: [1495, 1600], bgs: ["#2b2018", "#33261a", "#232019"] },
+  { key: "impressionist", label: "Impressionist", era: [1865, 1895], bgs: ["#dfe8dd", "#e8e2d3", "#dee4ec"] },
+  { key: "popart", label: "Pop Art", era: [1955, 1970], bgs: ["#ffd23a", "#ff5a72", "#4dd2ff", "#5dff8f"] },
+  { key: "baroque", label: "Baroque", era: [1600, 1700], bgs: ["#191310", "#221a12"] },
+  { key: "watercolour", label: "Watercolour", era: [1790, 1880], bgs: ["#f7f4ec", "#f2ede2"] },
+  { key: "brutalist", label: "Brutalist", era: [1950, 1975], bgs: ["#d8d8d4", "#c9c9c4"] },
+  { key: "ukiyoe", label: "Ukiyo-e", era: [1760, 1850], bgs: ["#efe3c1", "#e9dbb4"] }
+];
+function applyGallery(effect) {
+  const D = window.GameData;
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:gal:${salt}`) % arr.length];
+  // Tonight's venue IS the gallery (salt-independent lookup, so both peers agree). Use the
+  // app-level `locations` array (it carries the derived banner-art paths, unlike the raw data).
+  const gal = (typeof locations !== "undefined" ? locations : []).find((l) => /gallery/i.test(l.name || ""));
+  if (gal && state.settings.locations) { state.location = gal; state.locationVariant = "day"; }
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:gallery:${ch.id}`);
+    const style = GALLERY_STYLES[h % GALLERY_STYLES.length];
+    // Repaint the sitter onto the movement's backdrop (calm pose, no card-blue default bg).
+    const bg = style.bgs[(h >>> 3) % style.bgs.length];
+    let image = null;
+    if (ch.traits && window.faceGenerator) {
+      try { image = window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: bg, animMode: "calm" }); } catch (e) { /* keep original */ }
+    }
+    // Hang them slightly unevenly - a real wall, not a grid: per-piece scale/rotation/vertical drift.
+    const scale = 0.9 + ((h >>> 8) % 13) / 100;             // 0.90..1.02
+    const rot = (((h >>> 5) % 5) - 2) * 0.55;               // -1.1°..+1.1°
+    const shift = ((h >>> 11) % 14) - 6;                    // -6..+7 px
+    assignments[ch.id] = {
+      style: style.key,
+      styleLabel: style.label,
+      image,
+      hang: `--gal-scale:${scale.toFixed(2)};--gal-rot:${rot.toFixed(2)}deg;--gal-shift:${shift}px`,
+      medium: pick(D.galleryMediums || ["oil on canvas"], `${ch.id}:m`),
+      year: style.era[0] + (stableHash(`${state.gameSalt}:gal:${ch.id}:yr`) % (style.era[1] - style.era[0] + 1)),
+      price: pick(D.galleryPrices || ["Priced on request"], `${ch.id}:p`),
+      sold: (h >>> 6) % 4 === 0
+    };
+  });
+  return { id: effect.id, name: effect.name, assignments };
 }
 
 // Disease Mode: every character gets a sheet of (deliberately outdated) diagnoses with MINOR/MAJOR/
@@ -3897,6 +4326,18 @@ function applyPs1Mode(effect) {
 
 // Full-frame announcement: a white flash plus the effect's name, each letter flung in from
 // off-screen along its own path to slam together in the centre.
+// Per-mode title entrances: each effect's name arrives its own way (neon flicker, typewriter,
+// woodblock zoom, séance blur…). Anything unmapped keeps the classic letters-slam.
+const TITLE_ANIMS = {
+  "witness-protection-filter": "flicker", disguise: "flicker", drugs: "flicker",
+  "knockoff-manor": "typewriter", work: "typewriter", "neighbourhood-watch": "typewriter", linkedin: "typewriter",
+  habbo: "riseup", sims: "riseup", "family-tree-disaster": "riseup",
+  yugioh: "zoomdrop", fireworks: "zoomdrop", "prop-panic": "zoomdrop",
+  "gay-frogged": "wave", woke: "wave", orgy: "wave", swipe: "wave",
+  pixall: "glitch", "ps1-mode": "glitch",
+  gallery: "elegant", pantone: "elegant", astrology: "elegant", "horny-potter": "elegant",
+  judgement: "spooky", disease: "spooky", fertility: "spooky"
+};
 function playEffectAnnouncement(name) {
   sfx("reveal");
   const prev = document.getElementById("effectBlast");
@@ -3904,7 +4345,7 @@ function playEffectAnnouncement(name) {
 
   const overlay = document.createElement("div");
   overlay.id = "effectBlast";
-  overlay.className = "effect-blast";
+  overlay.className = `effect-blast anim-${TITLE_ANIMS[currentMysteryEffect()?.id] || "slam"}`;
 
   // Full-screen colour flash behind the letters, tinted to the active mode.
   const col = flashForCurrentMode();

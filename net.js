@@ -8,6 +8,8 @@
 let net = null;
 let netRoom = null;          // the room the current socket is connected to
 let netReconnectTimer = null;
+// Close the transport when the tab goes away so the relay/channel isn't left holding a dead peer.
+window.addEventListener("beforeunload", () => { try { if (net) net.close(); } catch (e) { /* fine */ } });
 function setNetStatus(s) { state.netStatus = s; const el = document.querySelector(".or-status"); if (el && state.gameMode === "online") el.textContent = s === "open" ? (state.onlinePeer ? "🟢 friend connected" : "🟡 connected — waiting for a friend…") : s === "connecting" ? "🟠 connecting…" : "🔴 disconnected — retrying…"; updateLobby(); }
 // Cross-device transport: add ?relay=ws://<host>:8765 to the URL on every device and run
 // `python3 relay.py` on one machine - the relay fans messages out per room. Without the param the
@@ -199,6 +201,14 @@ function handleNetMsg(msg) {
       const room = (mystery.rooms || []).find((r) => r.id === msg.roomId);
       const asg = mystery.assignments[msg.charId];
       if (room && asg) { asg.roomId = room.id; asg.roomName = room.name; renderBoard(); }
+    }
+    return;
+  }
+  if (msg.type === "chat") {
+    markPeerOnline();
+    // Habbo room chat: the sender already bobba-ized the text, so every client shows the same words.
+    if (state.global.mystery?.id === "habbo" && typeof habboSay === "function" && msg.charId && typeof msg.text === "string") {
+      habboSay(msg.charId, String(msg.text).slice(0, 90));
     }
     return;
   }

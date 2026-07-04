@@ -255,6 +255,8 @@ const state = {
   roomCode: "0000",
   gameSalt: "",
   abortedBabies: [],   // session-level: aborted souls that later haunt Judgement Day's purgatory
+  lore: [],            // session lore ledger: one entry per finished round, feeds the "Previously…" callbacks
+  stats: {},           // session tally of unlocked absurdities (avadas, divorces…) — receipt lines when > 0
   log: [],
   global: {
     mystery: null,
@@ -270,13 +272,9 @@ const els = {
   roomStatus: document.querySelector("#roomStatus"),
   seatRoster: document.querySelector("#seatRoster"),
   secretCard: document.querySelector("#secretCard"),
-  revealSecretButton: document.querySelector("#revealSecretButton"),
   swapSeatButton: document.querySelector("#swapSeatButton"),
-  drawPromptButton: document.querySelector("#drawPromptButton"),
   questionPrompt: document.querySelector("#questionPrompt"),
-  mysteryButton: document.querySelector("#mysteryButton"),
   mysteryResult: document.querySelector("#mysteryResult"),
-  mysteryUseCount: document.querySelector("#mysteryUseCount"),
   hintShelf: document.querySelector("#hintShelf"),
   characterBoard: document.querySelector("#characterBoard"),
   opponentPanel: document.querySelector("#opponentPanel"),
@@ -285,9 +283,8 @@ const els = {
   themeButton: document.querySelector("#themeButton"),
   setupButton: document.querySelector("#setupButton"),
   editorButton: document.querySelector("#editorButton"),
+  almanacButton: document.querySelector("#almanacButton"),
   soundButton: document.querySelector("#soundButton"),
-  newGameButton: document.querySelector("#newGameButton"),
-  endRoundButton: document.querySelector("#endRoundButton"),
   settingSeed: document.querySelector("#settingSeed"),
   copySeedButton: document.querySelector("#copySeedButton"),
   debugEffectPicker: document.querySelector("#debugEffectPicker"),
@@ -298,7 +295,6 @@ const els = {
   settingLocations: document.querySelector("#settingLocations"),
   settingRoles: document.querySelector("#settingRoles"),
   settingPG: document.querySelector("#settingPG"),
-  settingBoardSize: document.querySelector("#settingBoardSize")
 };
 
 els.houseMap = document.createElement("section");
@@ -342,7 +338,6 @@ function installStaticIcons() {
   syncThemeButton();
   setButtonIcon(els.setupButton, "settings", "Setup");
   if (els.swapSeatButton) { setButtonIcon(els.swapSeatButton, "swap", "End round"); els.swapSeatButton.classList.add("end-round-btn"); els.swapSeatButton.querySelector(".ib-label")?.remove(); els.swapSeatButton.insertAdjacentHTML("beforeend", "<span class=\"er-txt\">END ROUND</span>"); }
-  if (els.drawPromptButton) setButtonIcon(els.drawPromptButton, "prompt", "Draw prompt");
 }
 
 function currentTheme() {
@@ -405,6 +400,7 @@ function newGame(seedSalt, opts = {}) {
   assignRosterTeams();   // salt is final now; derive team sides (no-op for classic <=2 rosters)
   const takenSecrets = new Set();
   state.players = [makePlayer(0, takenSecrets), makePlayer(1, takenSecrets)];
+  assignRosterPersonas(takenSecrets);   // 3+ players: everyone gets a board character to BE this round
   state.currentPlayer = state.mySeat || 0;
   state.log = [];
   state.global.hints = [[], []];
@@ -450,8 +446,14 @@ function newGame(seedSalt, opts = {}) {
     }
     // The Wheel of Fate spins at the start of the round to pick the chaos mode BOTH seats will share.
     // The landing spot is a hash of the salt, so every client's wheel lands on the SAME mode.
+    // Roughly every third round a "PREVIOUSLY, IN THIS UNIVERSE…" callback plays first — unless the
+    // wheel bag just completed a full lap, in which case the SEASON FINALE takes the slot.
     if (state.settings.mystery) {
-      spinModeRoulette((id) => {
+      const preShow = (go) => {
+        if (state.pendingFinale) { const s = state.pendingFinale; state.pendingFinale = null; showSeasonFinale(s, go); }
+        else maybeShowLoreCallback(go);
+      };
+      preShow(() => spinModeRoulette((id) => {
         if (id) {
           const eff = MysteryModes.byId(id);
           applyMysteryEffect(id);
@@ -465,7 +467,7 @@ function newGame(seedSalt, opts = {}) {
         }
         render();
         scheduleSave();
-      });
+      }));
     }
     scheduleSave();
   };
@@ -529,6 +531,19 @@ function assignRosterTeams() {
   order.forEach((rosterIdx, pos) => { roster[rosterIdx].side = pos < size0 ? 0 : 1; });
 }
 function teamMembers(side) { return (state.roster || []).filter((r) => r.side === side); }
+// 3+ players: every human is dealt a PERSONA - a board character that is theirs to voice and act
+// for the round (rotates with the salt each round). Personas never collide with each other or with
+// either team's secret, so playing your part can't leak the answer. Pure roleplay, no mechanics.
+function assignRosterPersonas(takenIdx) {
+  if (!rosterTeamMode()) { (state.roster || []).forEach((r) => { r.personaId = null; }); return; }
+  const taken = new Set(takenIdx || []);
+  state.roster.forEach((r, i) => {
+    let idx = stableHash(`${state.gameSalt}:persona:${i}:${r.name}`) % state.board.length;
+    while (taken.has(idx)) idx = (idx + 1) % state.board.length;
+    taken.add(idx);
+    r.personaId = state.board[idx].id;
+  });
+}
 // Display label for a side: team name in 3+ games, else the human's/classic A-B label.
 function teamLabel(side) {
   if (rosterTeamMode()) return side === 0 ? "TEAM A" : "TEAM B";
@@ -711,7 +726,10 @@ function renderRoom() {
   els.seatRoster.innerHTML = [0, 1].map((i) => {
     const active = i === state.currentPlayer;
     const label = teamMode ? teamLabel(i) : (state.players[i].pname || (i === 0 ? "A" : "B"));
-    const sub = teamMode ? `<span class="seat-sub">${escapeHtml(teamMembers(i).map((m) => m.name).join(", "))}</span>` : "";
+    const sub = teamMode ? `<span class="seat-sub">${teamMembers(i).map((m) => {
+      const p = m.personaId ? characterById(m.personaId) : null;
+      return `${escapeHtml(m.name)}${p ? ` <i class="seat-as">as ${escapeHtml(p.name)}</i>` : ""}`;
+    }).join("<br>")}</span>` : "";
     return `<button type="button" class="seat-half ${active ? "active" : ""}" data-seat="${i}">
         <span class="seat-glyph">${active ? "YOU" : escapeHtml(label)}</span>${sub}
       </button>`;
@@ -733,7 +751,6 @@ function renderSecret() {
     els.secretCard.innerHTML = `
       <div class="portrait-wrap"><div class="secret-hidden-tile">🙈</div></div>
       <div class="card-plate"><h3>Face hidden</h3><p class="card-hint">tap to reveal</p></div>`;
-    if (els.revealSecretButton) setButtonIcon(els.revealSecretButton, "eye", "Show face");
     updateFloatingSecret(secret, false);
     return;
   }
@@ -758,7 +775,6 @@ function renderSecret() {
   `;
   MysteryModes.afterRenderSecret({ card: els.secretCard, character: secret, data: m });
   els.secretCard.title = "Tap to hide your face";
-  if (els.revealSecretButton) setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
 }
 
 // A compact "you are" reminder (head + name) that pins to the top on mobile once the real secret card
@@ -812,15 +828,9 @@ function renderHints() {
   els.hintShelf.innerHTML = hints.map((hint) => `<span class="hint-pill">${escapeHtml(hint)}</span>`).join("");
 }
 
+// The per-seat mystery button is retired (the wheel picks the mode) - just keep the cue-card
+// sub-line empty so no stale status text lingers under the question.
 function renderMystery() {
-  if (!els.mysteryButton) { els.mysteryResult.textContent = ""; return; }   // button retired - wheel picks the mode
-  const used = state.players.filter((player) => player.mysteryUsed).length;
-  if (els.mysteryUseCount) els.mysteryUseCount.textContent = `${used}/2`;
-  const disabled = !state.settings.mystery || currentPlayer().mysteryUsed;
-  els.mysteryButton.disabled = disabled;
-  setButtonIcon(els.mysteryButton, "spark", currentPlayer().mysteryUsed ? "Mystery spent" : "Mystery effect");
-  // The sub-line under the question stays empty - the mystery button already shows its own state, so
-  // no filler status text ("Mystery is off." / "already burned its mystery.") clutters the cue card.
   els.mysteryResult.textContent = "";
 }
 
@@ -842,8 +852,12 @@ function toggleEliminated(id) {
   renderBoard();
   state.justEliminated = null;
   state.justRestored = null;
-  sfx(player.eliminated.has(id) ? "eliminate" : "revive");
-  netSend("elim", { id, down: player.eliminated.has(id) });   // live-sync the cross-off
+  const down = player.eliminated.has(id);
+  if (down && state.global.mystery?.id === "fireworks") bumpStat("headsPopped");
+  // Last words: the freshly-flipped character sometimes protests (~40%, local-only theatre).
+  if (down && Math.random() < 0.4 && typeof showLastWords === "function") showLastWords(id);
+  sfx(down ? "eliminate" : "revive");
+  netSend("elim", { id, down });   // live-sync the cross-off
   scheduleSave();
 }
 
@@ -863,18 +877,32 @@ function allowedHeats(age, pg) {
 }
 function drawPrompt() {
   const modeDeck = state.global.mystery ? modePrompts[state.global.mystery.id] : null;
-  const deck = modeDeck && modeDeck.length
+  let deck = modeDeck && modeDeck.length
     ? modeDeck
     : (state.settings.prompts ? absurdPrompts : classicPrompts);
+  // Location-aware prompts: when a location is set, roughly 1-in-6 draws come from the shared
+  // {location} deck instead - the banner scene leaks into the questions, whatever the mode.
+  const locDeck = (window.GameData && window.GameData.locationPrompts) || [];
+  if (state.location && locDeck.length && Math.random() < 0.16) deck = locDeck;
   // Escalation only kicks in for decks that actually carry heat tags; untagged decks are used whole,
   // so this is a no-op until the content is tagged.
   let pool = deck;
   if (deck.some((p) => p && typeof p === "object" && p.heat)) {
     const allow = allowedHeats(state.roundAge || 0, state.settings.pg);
-    const filtered = deck.filter((p) => allow.includes(promptHeat(p)));
+    let filtered = deck.filter((p) => allow.includes(promptHeat(p)));
+    // A deck with nothing at the allowed heats (e.g. orgy has no mild) clamps to its LOWEST available
+    // tier rather than falling back to the whole deck - early rounds never leak feral prompts.
+    if (!filtered.length) {
+      for (const heat of ["mild", "medium", "feral"]) {
+        filtered = deck.filter((p) => promptHeat(p) === heat);
+        if (filtered.length) break;
+      }
+    }
     if (filtered.length) pool = filtered;
   }
-  els.questionPrompt.textContent = promptText(pick(pool));
+  // {location} resolves to the current banner scene ("the Wine Cellar"); safe fallback if unset.
+  const text = promptText(pick(pool)).replace(/\{location\}/g, state.location ? `the ${state.location.name}` : "this place");
+  els.questionPrompt.textContent = text;
 }
 
 // The question rerolls when you click the cue card itself (no auto-rotation, no separate button).
@@ -897,12 +925,6 @@ function wireCueCardClick() {
   cueCard.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); reroll(); }
   });
-}
-
-function activateMystery() {
-  triggerMysteryEffect(state.currentPlayer);
-  render();
-  scheduleSave();
 }
 
 function triggerMysteryEffect(playerIndex) {
@@ -1110,16 +1132,12 @@ function toggleSecretVisible() {
   currentPlayer().secretVisible = !currentPlayer().secretVisible;
   renderSecret();
 }
-if (els.revealSecretButton) els.revealSecretButton.addEventListener("click", toggleSecretVisible);
 if (els.secretCard) els.secretCard.addEventListener("click", toggleSecretVisible);
 
 // The arrows button ends the round (you tell each other who you were in person - the reveal shows
 // both secrets, then the next round deals). Seat swapping in local mode is the YOU/B chips.
 els.swapSeatButton.addEventListener("click", endRound);
 
-if (els.drawPromptButton) els.drawPromptButton.addEventListener("click", drawPrompt);
-if (els.mysteryButton) els.mysteryButton.addEventListener("click", activateMystery);
-if (els.endRoundButton) els.endRoundButton.addEventListener("click", endRound);
 if (els.copySeedButton) els.copySeedButton.addEventListener("click", () => {
   const code = currentSeedCode();
   if (els.settingSeed) els.settingSeed.value = code;
@@ -1144,6 +1162,46 @@ function rebuildDebugPicker() {
     opt.textContent = effect.name;
     els.debugEffectPicker.appendChild(opt);
   });
+  // Debug test profiles: seed a session state so end-game flows can be tested without a 30-round night.
+  const grp = document.createElement("optgroup");
+  grp.label = "🧪 Test profiles";
+  [["profile-endgame", "Endgame (1 mode left)"], ["profile-stats", "Stats-heavy session"]].forEach(([v, t]) => {
+    const opt = document.createElement("option");
+    opt.value = v; opt.textContent = t;
+    grp.appendChild(opt);
+  });
+  els.debugEffectPicker.appendChild(grp);
+}
+// Seed the persistent + session state for testing the finale/receipt flows.
+function applyDebugProfile(kind) {
+  const seedLore = () => {
+    state.lore = [
+      { modeId: "disease", modeName: "Disease Mode", names: ["Felix", "Hugo"], you: "Felix" },
+      { modeId: "habbo", modeName: "Habbo Hotel", names: ["Stella", "Niko"], you: "Niko" },
+      { modeId: "linkedin", modeName: "LINKEDIN", names: ["Elena", "Bruno"], you: "Elena" },
+      { modeId: "gallery", modeName: "THE GALLERY", names: ["Aisha", "Kai"], you: "Kai" },
+      { modeId: "horny-potter", modeName: "Horny Potter", names: ["Olivia", "Leon"], you: "Olivia" },
+      { modeId: "sims", modeName: "The Sims", names: ["Maya", "Tyler"], you: "Maya" }
+    ];
+    state.stats = { abortions: 3, divorces: 2, weddings: 1, avadas: 5, habboBans: 4, headsPopped: 7, bobbas: 23, babies: 2, gaybys: 1 };
+    state.roundAge = 7;
+  };
+  if (kind === "profile-stats") {
+    seedLore();
+    flashToast("🧪 Stats profile loaded — end the round and FINISH SESSION to see the receipt.");
+  } else if (kind === "profile-endgame") {
+    seedLore();
+    // Mark everything but ONE mode as both discovered and wheel-seen: the next spin completes
+    // the lap (season finale) and the discovery counter sits at total-1.
+    const ids = mysteryEffects.map((e) => e.id);
+    const allButOne = ids.slice(0, -1);
+    try {
+      localStorage.setItem(DISCOVERED_KEY, JSON.stringify(allButOne));
+      localStorage.setItem(WHEEL_BAG_KEY, JSON.stringify(allButOne.concat([null])));
+    } catch (e) { /* fine */ }
+    flashToast(`🧪 Endgame profile — only "${MysteryModes.byId(ids[ids.length - 1])?.name}" left. Next round finishes the lap.`);
+  }
+  scheduleSave();
 }
 function setPgMode(on) {
   state.settings.pg = !!on;
@@ -1176,6 +1234,7 @@ if (els.debugEffectPicker) {
   els.debugEffectPicker.addEventListener("change", () => {
     const id = els.debugEffectPicker.value;
     els.debugEffectPicker.value = "";
+    if (id.startsWith("profile-")) { applyDebugProfile(id); return; }
     const effect = MysteryModes.byId(id);
     if (!effect) return;
     if (currentPlayer()) currentPlayer().mysteryUsed = true;
@@ -1199,7 +1258,6 @@ els.saveSetupButton.addEventListener("click", () => {
   state.settings.locations = els.settingLocations.checked;
   state.settings.roles = els.settingRoles.checked;
   if (els.settingPG) state.settings.pg = els.settingPG.checked;
-  state.settings.boardSize = Number(els.settingBoardSize.value);
   // A pasted seed code replays that exact round (board, location, wheel outcome, secrets).
   const code = els.settingSeed ? els.settingSeed.value.trim() : "";
   const parsed = code && code !== currentSeedCode() ? parseSeedCode(code) : null;
@@ -1262,7 +1320,6 @@ function syncSettingsToForm() {
   els.settingLocations.checked = state.settings.locations;
   els.settingRoles.checked = state.settings.roles;
   if (els.settingPG) els.settingPG.checked = state.settings.pg;
-  els.settingBoardSize.value = String(state.settings.boardSize);
   if (els.settingSeed) els.settingSeed.value = state.gameSalt ? currentSeedCode() : "";
 }
 
@@ -1283,6 +1340,8 @@ function saveGameState() {
       roomCode: state.roomCode,   // online: the channel isn't re-derivable for a joiner, so persist it
       currentPlayer: state.currentPlayer,
       roundAge: state.roundAge || 0,
+      lore: state.lore || [],
+      stats: state.stats || {},
       playerCount: state.playerCount || 2,
       roster: (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side })),
       clientId: state.clientId || "",
@@ -1365,6 +1424,8 @@ function resumeGame(saved) {
     state.roomCode = saved.roomCode || String((stableHash(saved.salt) % 9000) + 1000);
   }
   state.roundAge = saved.roundAge || 0;   // restored before newGame's resume path (which preserves it)
+  state.lore = Array.isArray(saved.lore) ? saved.lore : [];
+  state.stats = saved.stats && typeof saved.stats === "object" ? saved.stats : {};
   state.abortedBabies = saved.abortedBabies || [];
   // Restore the roster BEFORE newGame so assignRosterTeams re-derives the same sides from the same
   // salt + roster (and the seat pill / team labels come back intact).
@@ -1425,8 +1486,13 @@ function showRoundOverSplash(done) {
   setTimeout(() => { ov.remove(); if (done) done(); }, 1600);
 }
 // Pre-round team announcement (3+ players only). Same full-screen language as the round reveal.
+// Each member's chip shows the board character they'll be PLAYING this round (their persona).
 function showTeamReveal(done) {
-  const chip = (m) => `<div class="tr-chip"><span class="tr-ini">${escapeHtml((m.name || "?").slice(0, 1).toUpperCase())}</span><span class="tr-nm">${escapeHtml(m.name || "?")}</span></div>`;
+  const chip = (m) => {
+    const p = m.personaId ? characterById(m.personaId) : null;
+    const face = p && p.image ? `<img class="tr-face" src="${p.image}" alt="">` : `<span class="tr-ini">${escapeHtml((m.name || "?").slice(0, 1).toUpperCase())}</span>`;
+    return `<div class="tr-chip">${face}<span class="tr-nm">${escapeHtml(m.name || "?")}${p ? `<i class="tr-as">as ${escapeHtml(p.name)}</i>` : ""}</span></div>`;
+  };
   const teamCol = (side) => `<div class="tr-team tr-${side === 0 ? "a" : "b"}">
       <div class="tr-head">${escapeHtml(teamLabel(side))}</div>
       <div class="tr-members">${teamMembers(side).map(chip).join("")}</div>
@@ -1457,16 +1523,22 @@ function showRoundReveal(done) {
   const mine = my === 0 ? secA : secB;
   const theirs = my === 0 ? secB : secA;
   const teamMode = rosterTeamMode();
+  recordRoundLore(secA, secB);
+  // Mode-flavoured epilogue under each reveal ("Still going around with that MAJOR HYSTERIA.") -
+  // the character's send-off in the voice of the round that just ended.
+  const epiMine = typeof modeEpilogue === "function" ? modeEpilogue(mine) : "";
+  const epiTheirs = typeof modeEpilogue === "function" ? modeEpilogue(theirs) : "";
   const ov = document.createElement("div");
   ov.className = "round-reveal";
   ov.innerHTML = `
     <div class="rr-title">ROUND OVER</div>
     <div class="rr-cards">
-      <div class="rr-card"><span class="rr-label rr-you">${teamMode ? "YOUR TEAM WAS" : "YOU WERE"}</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span></div>
+      <div class="rr-card"><span class="rr-label rr-you">${teamMode ? "YOUR TEAM WAS" : "YOU WERE"}</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span>${epiMine ? `<span class="rr-epilogue">${escapeHtml(epiMine)}</span>` : ""}</div>
       <div class="rr-vs">×</div>
-      <div class="rr-card"><span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span></div>
+      <div class="rr-card"><span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span>${epiTheirs ? `<span class="rr-epilogue">${escapeHtml(epiTheirs)}</span>` : ""}</div>
     </div>
-    <button type="button" class="button primary rr-next">NEXT ROUND →</button>`;
+    <button type="button" class="button primary rr-next">NEXT ROUND →</button>
+    <button type="button" class="button ghost rr-finish">🧾 FINISH SESSION</button>`;
   document.body.appendChild(ov);
   // No auto-advance: players click NEXT ROUND when they're ready (time to pass the device / react).
   // Online: whoever clicks deals + broadcasts; a remote deal also clears any lingering reveal (newGame).
@@ -1478,10 +1550,259 @@ function showRoundReveal(done) {
     setTimeout(() => { ov.remove(); if (done) done(); }, 380);
   };
   ov.querySelector(".rr-next").addEventListener("click", finish);
+  // FINISH SESSION: the night ends here - the receipt prints on the session-end screen.
+  ov.querySelector(".rr-finish").addEventListener("click", () => {
+    if (finished) return;
+    finished = true;
+    ov.remove();
+    showSessionEnd();
+  });
 }
 function endRound() {
   netSend("endround", {});
   showRoundReveal(() => newGame());
+}
+
+// Session stat tally: modes report their unlocked absurdities here; the receipt prints any > 0.
+function bumpStat(key, n = 1) {
+  if (!state.stats) state.stats = {};
+  state.stats[key] = (state.stats[key] || 0) + n;
+  scheduleSave();
+}
+
+// ===================== Session lore: the universe remembers =====================
+// One ledger entry per finished round (who the secrets were, which mode it was). Feeds the
+// "PREVIOUSLY, IN THIS UNIVERSE…" callback that sometimes plays before the next wheel spin.
+function recordRoundLore(secA, secB) {
+  if (!Array.isArray(state.lore)) state.lore = [];
+  const eff = state.global.mystery ? MysteryModes.byId(state.global.mystery.id) : null;
+  const my = state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer;
+  const mine = my === 0 ? secA : secB;
+  state.lore.push({
+    modeId: eff ? eff.id : null,
+    modeName: eff ? eff.name : null,
+    names: [secA && secA.name, secB && secB.name].filter(Boolean),
+    you: mine ? mine.name : null   // which one THIS device was (feeds the night receipt)
+  });
+  if (state.lore.length > 12) state.lore.shift();
+  almanacRecord(secA, secB, eff);
+  scheduleSave();
+}
+
+// ===================== The Almanac: everything the universe has ever established =====================
+// A persistent per-character dossier (per device). Every finished round: everyone on the board gains
+// an appearance; the two unmasked secrets also gain their mode-voiced epilogue as a recorded FACT.
+const ALMANAC_KEY = "whoisit_almanac_v1";
+function almanacLoad() {
+  try { const a = JSON.parse(localStorage.getItem(ALMANAC_KEY) || "null"); return a && a.chars ? a : { chars: {} }; }
+  catch (e) { return { chars: {} }; }
+}
+function almanacSave(a) {
+  try { localStorage.setItem(ALMANAC_KEY, JSON.stringify(a)); } catch (e) { /* storage full - the universe forgets */ }
+}
+function almanacRecord(secA, secB, eff) {
+  const a = almanacLoad();
+  const touch = (ch) => {
+    if (!ch) return null;
+    const entry = a.chars[ch.id] || (a.chars[ch.id] = { name: ch.name, rounds: 0, unmasked: 0, facts: [] });
+    entry.name = ch.name;
+    return entry;
+  };
+  state.board.forEach((ch) => { const e = touch(ch); if (e) e.rounds += 1; });
+  [secA, secB].forEach((sec) => {
+    const e = touch(sec);
+    if (!e) return;
+    e.unmasked += 1;
+    const line = typeof modeEpilogue === "function" ? modeEpilogue(sec) : "";
+    if (line) {
+      e.facts.push({ m: eff ? eff.name : "A perfectly normal round", line });
+      if (e.facts.length > 20) e.facts.shift();
+    }
+  });
+  almanacSave(a);
+}
+// ===================== The Night Receipt: an old-school printout of the session =====================
+// Feeds out of a printer slot, thermal-paper style: every round as a line item with a stamped
+// verdict, the cast you played as, dubious totals, a barcode, NO REFUNDS.
+const RECEIPT_TAGS = ["[OK]", "[INCIDENT]", "[UNDER REVIEW]", "[NO SURVIVORS]", "[SEALED]", "[DO NOT ASK]", "[RESOLVED*]", "[ONGOING]"];
+// Human labels for the stat tally — a stat only prints when its count is > 0.
+const RECEIPT_STAT_LABELS = {
+  abortions: "ABORTIONS",
+  babies: "BABIES BRED",
+  gaybys: "GAYBYS",
+  divorces: "DIVORCES (SIMS)",
+  weddings: "WEDDINGS (REGRETTED)",
+  avadas: "AVADA KEDAVRAS",
+  habboBans: "HABBO POOL BANS",
+  headsPopped: "HEADS POPPED",
+  bobbas: "BOBBAS SAID"
+};
+function buildReceiptPaper() {
+  const lore = state.lore || [];
+  const season = (() => { try { return parseInt(localStorage.getItem("whoisit_season_v1") || "1", 10) || 1; } catch (e) { return 1; } })();
+  const items = lore.length
+    ? lore.map((e, i) => {
+      const tag = RECEIPT_TAGS[stableHash(`${e.modeName || "plain"}:${i}:tag`) % RECEIPT_TAGS.length];
+      return `<div class="rc-line"><span>1x ${escapeHtml((e.modeName || "AN ORDINARY ROUND").toUpperCase())}</span><b>${tag}</b></div>`;
+    }).join("")
+    : `<div class="rc-line"><span>0x ROUNDS ON RECORD</span><b>[SUSPICIOUS]</b></div>`;
+  const you = [...new Set(lore.map((e) => e.you).filter(Boolean))];
+  const secretsBurned = lore.reduce((n, e) => n + e.names.length, 0);
+  const statLines = Object.entries(RECEIPT_STAT_LABELS)
+    .filter(([key]) => (state.stats && state.stats[key]) > 0)
+    .map(([key, label]) => `<div class="rc-line"><span>${label}</span><b>${state.stats[key]}</b></div>`).join("");
+  return `
+    <div class="receipt-paper" role="document">
+      <p class="rc-logo">WHO? IS IT?</p>
+      <p class="rc-sub">UNIVERSE RECEIPT</p>
+      <p class="rc-meta">ROOM #${escapeHtml(state.roomCode || "0000")} · SEASON ${season}</p>
+      <div class="rc-rule"></div>
+      ${items}
+      <div class="rc-rule"></div>
+      <p class="rc-head">TONIGHT YOU WERE:</p>
+      <p class="rc-cast">${you.length ? you.map(escapeHtml).join(", ") : "NOBODY (YET)"}</p>
+      <div class="rc-rule"></div>
+      <div class="rc-line"><span>ROUNDS PLAYED</span><b>${lore.length}</b></div>
+      <div class="rc-line"><span>SECRETS BURNED</span><b>${secretsBurned}</b></div>
+      ${statLines ? `<div class="rc-rule"></div><p class="rc-head">INCIDENT TALLY:</p>${statLines}` : ""}
+      <div class="rc-rule"></div>
+      <div class="rc-line"><span>WINNERS</span><b>N/A</b></div>
+      <div class="rc-line"><span>REFUNDS</span><b>NONE</b></div>
+      <div class="rc-rule"></div>
+      <p class="rc-thanks">THANK YOU FOR EXISTING<br>IN THIS UNIVERSE</p>
+      <div class="rc-barcode" aria-hidden="true"></div>
+      <p class="rc-serial">#${escapeHtml(String(stableHash(state.gameSalt || "void")).slice(0, 10))}</p>
+      <p class="rc-foot">*nothing was resolved</p>
+    </div>`;
+}
+// The end-of-session screen: FINISH SESSION (on the round reveal) leads here. The receipt prints;
+// if every single mode has been discovered, the full THE COMPLETE UNIVERSE celebration crowns it.
+function showSessionEnd() {
+  document.querySelector(".session-end")?.remove();
+  const found = loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length;
+  const total = mysteryEffects.length;
+  const complete = found >= total;
+  const ov = document.createElement("div");
+  ov.className = "session-end" + (complete ? " se-complete" : "");
+  ov.innerHTML = `
+    <div class="se-head">
+      ${complete
+        ? `<p class="sf-eyebrow">EVERY MODE. EVERY INCIDENT. EVERYONE.</p><h2 class="sf-title se-title">THE COMPLETE<br>UNIVERSE</h2>`
+        : `<h2 class="sf-title se-title">SESSION ENDED</h2><p class="se-sub">🎡 ${found} / ${total} modes discovered — the universe isn't finished with you.</p>`}
+    </div>
+    <div class="rc-printer" aria-hidden="true"><i></i></div>
+    ${buildReceiptPaper()}
+    <button type="button" class="button primary se-home">BACK TO TITLE</button>`;
+  document.body.appendChild(ov);
+  try { if (window.Sound && Sound.spinTicks) Sound.spinTicks(1500, 55, 55); } catch (e) { /* silent printer */ }
+  if (complete) sfx("win");
+  ov.querySelector(".se-home").addEventListener("click", () => {
+    // The session is over: clear the round save + ledger so the next night starts fresh.
+    try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }
+    state.lore = [];
+    state.stats = {};
+    ov.remove();
+    showTitleScreen();
+  });
+}
+
+function showAlmanac() {
+  document.querySelector(".almanac-overlay")?.remove();
+  const a = almanacLoad();
+  const entries = Object.entries(a.chars)
+    .map(([id, e]) => ({ id, ...e }))
+    .sort((x, y) => y.unmasked - x.unmasked || y.rounds - x.rounds);
+  const row = (e) => {
+    const ch = characterById(e.id);
+    const img = ch && ch.image ? `<img src="${ch.image}" alt="">` : `<span class="al-blank">${escapeHtml((e.name || "?")[0] || "?")}</span>`;
+    const facts = (e.facts || []).slice(-3).reverse()
+      .map((f) => `<p class="al-fact"><b>${escapeHtml(f.m)}:</b> ${escapeHtml(f.line)}</p>`).join("");
+    return `<div class="al-row">
+      <div class="al-portrait">${img}</div>
+      <div class="al-body">
+        <p class="al-name">${escapeHtml(e.name || "???")}</p>
+        <p class="al-stats">${e.rounds} round${e.rounds === 1 ? "" : "s"} · unmasked ${e.unmasked}×</p>
+        ${facts || `<p class="al-fact al-none">No incidents on record. Yet.</p>`}
+      </div>
+    </div>`;
+  };
+  const ov = document.createElement("div");
+  ov.className = "almanac-overlay";
+  ov.innerHTML = `
+    <div class="almanac-box">
+      <div class="al-head">
+        <div>
+          <p class="al-eyebrow">THE ALMANAC</p>
+          <p class="al-sub">Everything this universe has ever established. It keeps growing.</p>
+          <p class="al-discovered" title="Mystery modes you've encountered">🎡 ${loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length} / ${mysteryEffects.length} modes discovered</p>
+        </div>
+        <button type="button" class="icon-button al-close" aria-label="Close">X</button>
+      </div>
+      <div class="al-list">${entries.length ? entries.map(row).join("") : `<p class="al-empty">Nothing on record. Finish a round — the universe will start taking notes.</p>`}</div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener("click", (e) => { if (e.target === ov || e.target.closest(".al-close")) ov.remove(); });
+}
+// Roughly every third round (salt-deterministic, so online peers agree) the deal pauses for a
+// callback to an earlier round before the wheel spins. Pure lore - nothing mechanical.
+const LORE_TEMPLATES = [
+  (e, n) => `${n} has not been seen since the ${e.modeName} incident.`,
+  (e, n) => `${n} would like everyone to forget what happened during ${e.modeName}. We will not.`,
+  (e, n) => `The ${e.modeName} incident remains under investigation. ${n} is not cooperating.`,
+  (e, n) => `Somewhere out there, ${n} is still recovering from ${e.modeName}.`,
+  (e, n) => `${n} has gone home to think about what they did.`,
+  (e, n) => `${e.modeName} changed ${n}. Everyone's too polite to mention it.`,
+  (e, n) => `${n} maintains that ${e.modeName} "wasn't even that bad". The others disagree.`
+];
+// SEASON FINALE: the wheel bag just completed a full lap of every mode (flagged in
+// wheelTargetFromBag). Play the recap montage of the season's lore, then roll the next season.
+function showSeasonFinale(season, next) {
+  const lore = (state.lore || []).slice(-8);
+  const recap = lore.length
+    ? lore.map((e, i) => `<p class="sf-line" style="--i:${i}">▸ ${escapeHtml(e.modeName || "A quiet round")}${e.names.length ? ` — ${escapeHtml(e.names.join(" & "))}` : ""}</p>`).join("")
+    : `<p class="sf-line" style="--i:0">▸ A season of incidents nobody wrote down. Probably for the best.</p>`;
+  const ov = document.createElement("div");
+  ov.className = "finale-overlay";
+  ov.innerHTML = `
+    <div class="finale-box">
+      <p class="sf-eyebrow">EVERY MODE. EVERY INCIDENT. EVERYONE.</p>
+      <h2 class="sf-title">THAT'S A WRAP ON<br>SEASON ${season}</h2>
+      <div class="sf-recap">${recap}</div>
+      <button type="button" class="button primary sf-next">ROLL SEASON ${season + 1} →</button>
+    </div>`;
+  document.body.appendChild(ov);
+  sfx("reveal");
+  let doneOnce = false;
+  const finish = () => {
+    if (doneOnce) return;
+    doneOnce = true;
+    ov.classList.add("lore-out");
+    setTimeout(() => { ov.remove(); next(); }, 420);
+  };
+  ov.querySelector(".sf-next").addEventListener("click", finish);
+}
+function maybeShowLoreCallback(next) {
+  const lore = (state.lore || []).filter((entry) => entry.modeName && entry.names.length);
+  const show = lore.length && stableHash(`${state.gameSalt}:lorecb`) % 3 === 0;
+  if (!show) { next(); return; }
+  // Prefer recent history but occasionally dig deeper - all salt-picked so peers see the same line.
+  const pool = lore.slice(-5);
+  const entry = pool[stableHash(`${state.gameSalt}:loree`) % pool.length];
+  const name = entry.names[stableHash(`${state.gameSalt}:loren`) % entry.names.length];
+  const line = LORE_TEMPLATES[stableHash(`${state.gameSalt}:loret`) % LORE_TEMPLATES.length](entry, name);
+  const ov = document.createElement("div");
+  ov.className = "lore-overlay";
+  ov.innerHTML = `<div class="lore-box"><p class="lore-eyebrow">PREVIOUSLY, IN THIS UNIVERSE…</p><p class="lore-line">${escapeHtml(line)}</p></div>`;
+  document.body.appendChild(ov);
+  let doneOnce = false;
+  const finish = () => {
+    if (doneOnce) return;
+    doneOnce = true;
+    ov.classList.add("lore-out");
+    setTimeout(() => { ov.remove(); next(); }, 420);
+  };
+  ov.addEventListener("click", finish);
+  setTimeout(finish, 3600);
 }
 // Disabling PG mode requires solving adults-only riddles (free text) - the answers are all bits of
 // grown-up life a 10-year-old wouldn't know. cb(true) if solved, cb(false) if cancelled/given up.
@@ -1576,10 +1897,47 @@ function askAdultGate(cb, required = 3) {
   paint();
 }
 
+// Device prefs that outlive rounds (board size, sound) - set from the TITLE screen only, so
+// nobody can quietly resize the board mid-game and desync everyone else.
+const PREFS_KEY = "whoisit_prefs_v1";
+function loadPrefs() {
+  try { return JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") || {}; } catch (e) { return {}; }
+}
+function savePrefs(patch) {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ ...loadPrefs(), ...patch })); } catch (e) { /* fine */ }
+}
+function showTitleSettings() {
+  document.querySelector(".ts-settings-panel")?.remove();
+  const S = window.Sound;
+  const panel = document.createElement("div");
+  panel.className = "ts-settings-panel";
+  const sizeBtns = [18, 24, 30].map((n) =>
+    `<button type="button" class="tsp-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
+  const trackOpts = (S ? S.trackNames() : []).map((t, i) =>
+    `<option value="${i}" ${S && S.currentTrack() === i ? "selected" : ""}>${escapeHtml(t)}</option>`).join("");
+  panel.innerHTML = `
+    <div class="tsp-box">
+      <div class="tsp-head"><b>SETTINGS</b><button type="button" class="icon-button tsp-close" aria-label="Close">X</button></div>
+      <div class="tsp-row"><span>Board size</span><span class="tsp-sizes">${sizeBtns}</span></div>
+      <div class="tsp-row"><span>Sound</span><label class="tsp-toggle"><input type="checkbox" class="tsp-sound" ${S && S.isEnabled() ? "checked" : ""}><i></i></label></div>
+      <div class="tsp-row"><span>Music</span><label class="tsp-toggle"><input type="checkbox" class="tsp-music" ${S && S.isMusicOn() ? "checked" : ""}><i></i></label></div>
+      <div class="tsp-row"><span>Track</span><select class="tsp-track button ghost">${trackOpts}</select></div>
+      <p class="tsp-note">Board size applies from the next deal. It can't be changed mid-game.</p>
+    </div>`;
+  document.body.appendChild(panel);
+  panel.addEventListener("click", (e) => { if (e.target === panel || e.target.closest(".tsp-close")) panel.remove(); });
+  panel.querySelectorAll(".tsp-size").forEach((b) => b.addEventListener("click", () => {
+    state.settings.boardSize = Number(b.dataset.n);
+    savePrefs({ boardSize: state.settings.boardSize });
+    panel.querySelectorAll(".tsp-size").forEach((x) => x.classList.toggle("on", x === b));
+    sfx("blip");
+  }));
+  panel.querySelector(".tsp-sound").addEventListener("change", (e) => { if (S) S.setEnabled(e.target.checked); savePrefs({ sound: e.target.checked }); });
+  panel.querySelector(".tsp-music").addEventListener("change", (e) => { if (S) { S.resume(); S.setMusic(e.target.checked); } savePrefs({ music: e.target.checked }); });
+  panel.querySelector(".tsp-track").addEventListener("change", (e) => { if (S) { S.setTrack(Number(e.target.value)); } savePrefs({ track: Number(e.target.value) }); });
+}
 function showTitleScreen() {
   const saved = loadGameSave();
-  const modeTotal = (typeof mysteryEffects !== "undefined") ? mysteryEffects.length : 0;
-  const modeFound = loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length;
   const ov = document.createElement("div");
   ov.className = "title-screen";
   ov.innerHTML = `
@@ -1618,10 +1976,16 @@ function showTitleScreen() {
         <button type="button" class="button ghost ts-back">← back</button>
       </div>
     </div>
-    <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>
-    <p class="ts-discovered" title="Mystery modes you've encountered">🎡 ${modeFound} / ${modeTotal} modes discovered</p>`;
+    <div class="ts-bottom-row">
+      <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>
+      <button type="button" class="button secondary ts-gear" aria-label="Settings" title="Settings">⚙</button>
+    </div>`;
   document.body.appendChild(ov);
-  const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
+  const close = () => { if (window.Sound) Sound.titleLoop(false); ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
+  // The title groove (bass + drums) can only start after a user gesture unlocks the AudioContext.
+  ov.addEventListener("pointerdown", () => { if (window.Sound) { Sound.resume(); Sound.titleLoop(true); } }, { once: true });
+  // Every menu tap clicks (PG/gear play their own richer sounds).
+  ov.querySelectorAll("button:not(.ts-pg):not(.ts-gear)").forEach((b) => b.addEventListener("click", () => sfx("click")));
   // PG toggle: turning it ON is free; turning it OFF is gated behind an adults-only riddle.
   const pgBtn = ov.querySelector(".ts-pg");
   const paintPg = () => { pgBtn.classList.toggle("on", state.settings.pg); pgBtn.querySelector("b").textContent = state.settings.pg ? "ON" : "OFF"; pgBtn.setAttribute("aria-pressed", String(state.settings.pg)); };
@@ -1629,6 +1993,7 @@ function showTitleScreen() {
     if (!state.settings.pg) { setPgMode(true); paintPg(); sfx("blip"); return; }
     askAdultGate((ok) => { if (ok) { setPgMode(false); paintPg(); sfx("coin"); } else { setPgMode(true); paintPg(); sfx("buzzer"); } });
   });
+  ov.querySelector(".ts-gear").addEventListener("click", () => { sfx("click"); showTitleSettings(); });
   const steps = {
     main: ov.querySelector(".ts-step-main"),
     names: ov.querySelector(".ts-step-names"),
@@ -1801,10 +2166,21 @@ function parseSeedCode(code) {
 
 loadTheme();
 installStaticIcons();
+// Device prefs (board size, sound/music) set from the title-screen settings panel.
+{
+  const prefs = loadPrefs();
+  if ([18, 24, 30].includes(prefs.boardSize)) state.settings.boardSize = prefs.boardSize;
+  if (window.Sound) {
+    if (prefs.sound === false) Sound.setEnabled(false);
+    if (typeof prefs.track === "number") Sound.setTrack(prefs.track);
+    if (prefs.music) Sound.setMusic(true);   // actual playback still waits for the first gesture
+  }
+}
 mergeCustomIntoPool();                 // fold saved custom characters into the playable pool
 mergeGaybiesIntoPool();                // and the persistent GAYBYs
 wirePainScaleDrag();                   // drag the disease pain scale to change emotions
 if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
+if (els.almanacButton) els.almanacButton.addEventListener("click", showAlmanac);
 showTitleScreen();                     // WHO? / IS IT? slides in; deal or resume from there
 wireCueCardClick();
 wireFloatingSecret();

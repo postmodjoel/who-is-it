@@ -1362,6 +1362,16 @@
         .join("");
     }
 
+    // lockBlend chooses the construction: "merged" (default) fuses all locks into ONE mass with a
+    // single rim outline - contiguous, no ghost seams through overlaps. "separate" is the classic
+    // per-lock render (each lock keeps its own outline + dark/shine shading) - some styles (Olivia's
+    // cascades) read better with the locks individually articulated. Editor-facing toggle.
+    if (traits.lockBlend === "separate") {
+      return items
+        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: hairOutlineFor(traits), seed: `${seed}-l${i}` }))
+        .join("");
+    }
+
     const outline = hairOutlineFor(traits);
     const layer = behind ? "behind" : "front";
     // rim = a single outline of the whole lock mass (outer silhouette + spiral concavities), which is

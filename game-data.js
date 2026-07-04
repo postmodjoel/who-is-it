@@ -1462,6 +1462,30 @@ window.GameData = {
   ],
   // Premium flexes for the POWER tier (verified, thousands of endorsements, nice banner).
   linkedinPremium: ["⭐ Top Voice", "✔ Verified", "🏆 Influencer", "🔵 Premium", "💼 500K+ Reach"],
+  // Surnames bucketed by skin-tone band (see SURNAME_BUCKET in applyLinkedin) — genuine
+  // representation, real surnames only, no caricature. Display-only (never mutates character.name).
+  linkedinSurnames: {
+    anglo: ["Smith", "Smythe", "Johnson", "Williams", "Taylor", "Brown", "Wilson", "Thompson",
+      "Davies", "Clarke", "Walker", "Hughes", "Baker", "Harrison", "Smith-Jones", "Fitzgerald"],
+    european: ["Kowalski", "Rossi", "Müller", "O'Brien", "Papadopoulos", "Novak", "Andersson",
+      "Fischer", "Costa", "Dubois", "Moretti", "Jansen", "Nowak", "Weber", "Popescu", "Virtanen"],
+    medSouth: ["Haddad", "Farah", "Patel", "Singh", "Nguyen", "Reyes", "García", "Khan", "Sharma",
+      "Rahman", "Osman", "Karimi", "Mehta", "Aziz", "Hosseini", "Bianchi"],
+    african: ["Okafor", "Mwangi", "Abara", "Kamau", "Otieno", "Ndiaye", "Banda", "Chiedozie",
+      "Adeyemi", "Dlamini", "Nkosi", "Achebe", "Okonkwo", "Mensah", "Owusu", "Diallo"]
+  },
+  // LinkedIn-style location lines (aspirational) + sad flop-tier ones. Salt-deterministic pick.
+  linkedinLocations: [
+    "Greater Sydney Area", "Melbourne, VIC", "Bali (Remote)", "San Francisco Bay Area",
+    "Remote-first 🌍", "Greater Brisbane Area", "Perth, WA", "Gold Coast (Digital Nomad)",
+    "Byron Bay (Remote)", "Singapore", "London, UK", "Greater Adelaide Area",
+    "Remote (Global)", "Sydney • Hybrid", "Greater Auckland Area", "Dubai (Tax-Free)"
+  ],
+  linkedinFlopLocations: [
+    "Mum's spare room", "The group chat", "Parents' garage", "Currently on the couch",
+    "A share house in Marrickville", "Undisclosed (avoiding people)", "The local library",
+    "My childhood bedroom", "Wherever the wifi is", "Between Airbnbs"
+  ],
 
   // Themed question decks for SWIPE / Judgement Day / Sims are added at the end of modePrompts.
   _modePools: true

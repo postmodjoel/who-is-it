@@ -5460,7 +5460,13 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .character-board.linkedin-board { background: #f3f2ef; border-radius: 10px; }
 .character-card.linkedin { background: #fff; border: 1px solid #d6d6d6; color: #1d1d1d; }
 .character-card.linkedin .card-plate { background: none; padding: 5px 7px 7px; gap: 2px; min-width: 0; overflow: hidden; }
-.character-card.linkedin h3 { color: #0a0a0a; font-size: 0.82rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* LinkedIn mode owns the whole plate: the base UPPERCASE name h3 is hidden; the Sentence Case
+   "First Surname" is rendered inside the sheet (.li-name) so every card has an identical layout. */
+.character-card.linkedin h3 { display: none; }
+.li-name { font-size: 0.74rem; font-weight: 800; color: #0a0a0a; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li-location { font-size: 0.5rem; color: #8a8a8a; margin-bottom: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.character-card.linkedin.li-power .li-name { color: #0a66c2; }
+.character-card.linkedin.li-flop .li-name { color: #6a6a6a; }
 /* Green #OpenToWork ring hugging the portrait. */
 .character-card.linkedin.li-otw .portrait-wrap { box-shadow: inset 0 0 0 4px #01754f; }
 .li-otw-badge {

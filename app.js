@@ -1329,9 +1329,86 @@ function renderEditorSaved() {
     if (c) { editorState = { ...c, traits: JSON.parse(JSON.stringify(c.traits)), existing: true }; renderEditorControls(); renderEditorPreview(); syncEditorButtons(); }
   }));
 }
+// The live board list: pick a character on the current board to restyle - Save applies + syncs.
+function renderEditorBoard() {
+  const box = editorDialog.querySelector("#edBoardList");
+  if (!box) return;
+  const chars = state.board.filter((c) => c.traits);
+  box.innerHTML = chars.length
+    ? chars.map((c) => `<button type="button" class="ed-chip ${editorState.boardId === c.id ? "is-on" : ""}" data-board="${c.id}">${escapeHtml(displayName(c))}</button>`).join("")
+    : `<span class="ed-empty">Deal a game to edit its characters.</span>`;
+  box.querySelectorAll("[data-board]").forEach((b) => b.addEventListener("click", () => {
+    const c = state.board.find((x) => x.id === b.dataset.board);
+    if (!c) return;
+    editorState = { id: c.id, name: c.name, pronouns: c.pronouns || "they", traits: JSON.parse(JSON.stringify(c.traits)), seed: c.seed, existing: false, boardId: c.id };
+    renderEditorControls(); renderEditorPreview(); renderEditorBoard(); syncEditorButtons();
+  }));
+}
 function syncEditorButtons() {
   const del = editorDialog.querySelector("#edDelete");
-  if (del) del.style.display = editorState.existing ? "" : "none";
+  if (del) del.style.display = (editorState.existing && !editorState.boardId) ? "" : "none";
+  const save = editorDialog.querySelector("#edSave");
+  const add = editorDialog.querySelector("#edAdd");
+  const hint = editorDialog.querySelector("#edHint");
+  if (editorState.boardId) {
+    if (save) save.textContent = "💾 Save to board";
+    if (add) add.style.display = "none";
+    if (hint) hint.textContent = `Editing ${editorState.name} on the board — Save syncs to both players.`;
+  } else {
+    if (save) save.textContent = "Save";
+    if (add) add.style.display = "";
+    if (hint) hint.textContent = "Saved faces get dealt into future games.";
+  }
+}
+// Randomisers. RAND maps each editable trait to a value generator (categorical from the traitBook,
+// numeric within the slider range, colours as hex).
+function editorRand() {
+  const T = window.faceGenerator.traitBook;
+  const pickA = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const hex = () => "#" + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0");
+  const num = (lo, hi, dp) => +(lo + Math.random() * (hi - lo)).toFixed(dp);
+  return {
+    __pronouns: () => pickA(["she", "he", "they"]),
+    skin: () => pickA(T.skinTones), hair: () => pickA(T.hairStyles), hairColor: () => pickA(T.hairColors),
+    expression: () => pickA(T.expressions), faceShape: () => pickA(T.faceShapes),
+    noseTip: () => pickA(T.noseTips || ["round"]), browShape: () => pickA(T.browShapes),
+    clothing: () => pickA(T.clothing), accessory: () => pickA(T.accessories), animMode: () => pickA(EDITOR_ANIM),
+    eyeColor: hex, shirt: hex,
+    eyeScale: () => num(0.8, 1.2, 2), browThick: () => num(0.7, 1.4, 2), noseWidth: () => num(0.7, 1.3, 2),
+    mouthScale: () => num(0.85, 1.2, 2), build: () => Math.floor(num(60, 110, 0))
+  };
+}
+function setEditorTrait(key, val) {
+  if (key === "__pronouns") editorState.pronouns = val;
+  else editorState.traits[key] = val;
+}
+function randomizeAll() {
+  const R = editorRand();
+  Object.keys(R).forEach((k) => setEditorTrait(k, R[k]()));
+  renderEditorControls(); renderEditorPreview();
+}
+function randomizeCurrent() {
+  const R = editorRand();
+  const keys = Object.keys(R);
+  const key = (editorState.lastKey && R[editorState.lastKey]) ? editorState.lastKey : keys[Math.floor(Math.random() * keys.length)];
+  setEditorTrait(key, R[key]());
+  renderEditorControls(); renderEditorPreview();
+  // Re-focus the field we just rolled so "This setting" keeps targeting it.
+  const el = editorDialog.querySelector(`[data-key="${key}"]`);
+  if (el) { el.focus(); editorState.lastKey = key; }
+}
+// Apply the current edit to the live board character and broadcast it to the other seat.
+function applyBoardEdit() {
+  const c = state.board.find((x) => x.id === editorState.boardId);
+  if (!c) return;
+  c.traits = JSON.parse(JSON.stringify(editorState.traits));
+  c.name = editorState.name; c.pronouns = editorState.pronouns;
+  try { c.image = window.faceGenerator.renderPortrait(c.seed, c.traits); } catch (e) { /* keep old */ }
+  if (state.global.mystery) { const eff = mysteryEffects.find((x) => x.id === state.global.mystery.id); if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (err) { /* no per-char data */ } } }
+  renderBoard(); renderSecret();
+  netSend("editchar", { id: c.id, traits: c.traits, name: c.name, pronouns: c.pronouns, seed: c.seed });
+  flashToast(`🎨 ${c.name} restyled${state.gameMode === "online" ? " — synced" : ""}.`);
+  sfx("sparkle");
 }
 function buildEditorDialog() {
   const d = document.createElement("dialog");
@@ -1343,9 +1420,17 @@ function buildEditorDialog() {
         <button class="icon-button" id="edClose" type="button" aria-label="Close">X</button>
       </div>
       <div class="editor-body">
-        <div class="editor-preview"><img id="edPreview" alt="preview"><small>Saved faces get dealt into future games.</small></div>
+        <div class="editor-preview">
+          <img id="edPreview" alt="preview">
+          <small id="edHint">Saved faces get dealt into future games.</small>
+          <div class="ed-rand">
+            <button type="button" id="edRandAll" class="button ghost">🎲 Randomise all</button>
+            <button type="button" id="edRandOne" class="button ghost">🎲 This setting</button>
+          </div>
+        </div>
         <div class="editor-controls"></div>
       </div>
+      <div class="editor-saved"><p class="label">On the board <span class="ed-sub">— edit & sync live to both players</span></p><div id="edBoardList" class="ed-saved-list"></div></div>
       <div class="editor-saved"><p class="label">Saved characters</p><div id="edSavedList" class="ed-saved-list"></div></div>
       <div class="dialog-actions">
         <button type="button" id="edDelete" class="button ghost">Delete</button>
@@ -1363,6 +1448,10 @@ function buildEditorDialog() {
     else editorState.traits[key] = el.dataset.num ? Number(el.value) : el.value;
     renderEditorPreview();
   });
+  // Remember the last field the user touched so "🎲 This setting" knows which one to roll.
+  d.querySelector(".editor-controls").addEventListener("focusin", (e) => { if (e.target.dataset && e.target.dataset.key && e.target.dataset.key !== "__name") editorState.lastKey = e.target.dataset.key; });
+  d.querySelector("#edRandAll").addEventListener("click", randomizeAll);
+  d.querySelector("#edRandOne").addEventListener("click", randomizeCurrent);
   const persist = () => {
     const data = { id: editorState.id, name: editorState.name, pronouns: editorState.pronouns, traits: editorState.traits, seed: editorState.seed };
     upsertCustom(data);
@@ -1370,7 +1459,7 @@ function buildEditorDialog() {
     renderEditorSaved(); syncEditorButtons();
     return data;
   };
-  d.querySelector("#edSave").addEventListener("click", persist);
+  d.querySelector("#edSave").addEventListener("click", () => { if (editorState.boardId) applyBoardEdit(); else persist(); });
   d.querySelector("#edAdd").addEventListener("click", () => {
     const data = persist();
     const ch = buildCustomCharacter(data);
@@ -1379,7 +1468,7 @@ function buildEditorDialog() {
     if (state.global.mystery) { const eff = mysteryEffects.find((x) => x.id === state.global.mystery.id); if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (err) { /* no per-char data */ } } }
     state.justBorn = data.id; renderBoard(); state.justBorn = null;
   });
-  d.querySelector("#edNew").addEventListener("click", () => { editorState = newEditorState(); renderEditorControls(); renderEditorPreview(); syncEditorButtons(); });
+  d.querySelector("#edNew").addEventListener("click", () => { editorState = newEditorState(); renderEditorControls(); renderEditorPreview(); renderEditorBoard(); syncEditorButtons(); });
   d.querySelector("#edDelete").addEventListener("click", () => { if (editorState.existing) deleteCustom(editorState.id); editorState = newEditorState(); renderEditorControls(); renderEditorPreview(); renderEditorSaved(); syncEditorButtons(); });
   d.querySelector("#edClose").addEventListener("click", () => d.close());
   return d;
@@ -1388,7 +1477,7 @@ function openCharacterEditor() {
   if (!window.faceGenerator) return;
   if (!editorDialog) editorDialog = buildEditorDialog();
   editorState = newEditorState();
-  renderEditorControls(); renderEditorPreview(); renderEditorSaved(); syncEditorButtons();
+  renderEditorControls(); renderEditorPreview(); renderEditorSaved(); renderEditorBoard(); syncEditorButtons();
   editorDialog.showModal();
 }
 function sortedBoard() {
@@ -5296,6 +5385,12 @@ els.saveSetupButton.addEventListener("click", () => {
     newGame();
   }
 });
+// Unchecking PG in the setup dialog also needs the adults-only riddle (a kid can't just flip it off).
+if (els.settingPG) els.settingPG.addEventListener("change", () => {
+  if (els.settingPG.checked) return;                       // turning ON is free
+  els.settingPG.checked = true;                            // hold it on until the riddle is solved
+  askAdultRiddle((ok) => { els.settingPG.checked = !ok; state.settings.pg = !ok; });
+});
 
 // ===================== Sound & music controls =====================
 // A SFX helper that plays locally AND (in online play) tells the peer to play it too, so a soundboard
@@ -5429,6 +5524,18 @@ function handleNetMsg(msg) {
   if (!msg || typeof msg !== "object") return;
   if (msg.type === "sfx") { if (window.Sound && typeof msg.name === "string") window.Sound.play(msg.name); return; }
   if (msg.type === "music") { if (window.Sound) { window.Sound.setTrack(Number(msg.track) || 0); window.Sound.setMusic(!!msg.on); } return; }
+  if (msg.type === "editchar") {
+    // The other player restyled a board character - apply their traits + re-render our copy.
+    const c = state.board.find((x) => x.id === msg.id);
+    if (c && msg.traits) {
+      c.traits = msg.traits; if (msg.name) c.name = msg.name; if (msg.pronouns) c.pronouns = msg.pronouns;
+      try { c.image = window.faceGenerator.renderPortrait(msg.seed != null ? msg.seed : c.seed, c.traits); } catch (e) { /* keep old */ }
+      if (state.global.mystery) { const eff = mysteryEffects.find((x) => x.id === state.global.mystery.id); if (eff && eff.apply) { try { state.global.mystery = eff.apply(eff); } catch (err) { /* fine */ } } }
+      renderBoard(); renderSecret();
+      flashToast(`🎨 A friend restyled ${c.name}.`);
+    }
+    return;
+  }
   if (msg.type === "hello") {
     markPeerOnline();
     const seat = msg.seat === 0 ? 0 : 1;
@@ -5645,6 +5752,44 @@ function endRound() {
   netSend("endround", {});
   showRoundReveal(() => newGame());
 }
+// Disabling PG mode requires solving an adults-only riddle (free text) - the answers are all bits of
+// grown-up life a 10-year-old wouldn't know. cb(true) if solved, cb(false) if cancelled/given up.
+const ADULT_RIDDLES = [
+  { q: "I visit every adult once a year, take a cut of all you earned, and no child has ever paid me. What am I?", a: ["tax", "taxes", "taxman", "the taxman", "income tax", "hmrc", "irs"] },
+  { q: "I'm the loan that chains you to one house for thirty years. One word — what am I?", a: ["mortgage", "a mortgage"] },
+  { q: "\"Nothing in life is certain except death and ___.\" Fill in the blank.", a: ["taxes", "tax"] },
+  { q: "I'm taken from your wage before it even lands, I pay for the roads and hospitals, and grown-ups dread me every payslip. What am I?", a: ["tax", "taxes", "national insurance", "ni"] },
+  { q: "Adults sign me to rent a home, I list what you can't do, and I always want a deposit. What am I?", a: ["lease", "tenancy", "a lease", "tenancy agreement", "rental agreement", "contract"] }
+];
+function askAdultRiddle(cb) {
+  const r = ADULT_RIDDLES[Math.floor(Math.random() * ADULT_RIDDLES.length)];
+  const ov = document.createElement("div");
+  ov.className = "riddle-overlay";
+  ov.innerHTML = `<div class="riddle-box">
+      <p class="riddle-eyebrow">🔞 Adults only — solve this to turn PG off</p>
+      <p class="riddle-q">${escapeHtml(r.q)}</p>
+      <input class="riddle-input" type="text" placeholder="type your answer…" autocomplete="off" spellcheck="false">
+      <p class="riddle-msg"></p>
+      <div class="riddle-actions">
+        <button type="button" class="button ghost riddle-cancel">Never mind</button>
+        <button type="button" class="button primary riddle-go">Answer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const input = ov.querySelector(".riddle-input");
+  const msg = ov.querySelector(".riddle-msg");
+  setTimeout(() => input.focus(), 60);
+  const done = (ok) => { ov.remove(); cb(ok); };
+  const submit = () => {
+    const val = input.value.trim().toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
+    if (r.a.includes(val)) done(true);
+    else { msg.textContent = "That's not it — PG mode stays on. (Ask a grown-up.)"; input.classList.add("shake"); setTimeout(() => input.classList.remove("shake"), 400); input.select(); }
+  };
+  ov.querySelector(".riddle-go").addEventListener("click", submit);
+  ov.querySelector(".riddle-cancel").addEventListener("click", () => done(false));
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") done(false); });
+}
+
 function showTitleScreen() {
   const saved = loadGameSave();
   const ov = document.createElement("div");
@@ -5673,9 +5818,17 @@ function showTitleScreen() {
         <button type="button" class="button ghost ts-back">← back</button>
       </div>
     </div>
+    <button type="button" class="ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}">🧒 PG mode: <b>${state.settings.pg ? "ON" : "OFF"}</b></button>
     <p class="ts-hint">Local = pass one screen back and forth. Online = share your room number with a friend.</p>`;
   document.body.appendChild(ov);
   const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
+  // PG toggle: turning it ON is free; turning it OFF is gated behind an adults-only riddle.
+  const pgBtn = ov.querySelector(".ts-pg");
+  const paintPg = () => { pgBtn.classList.toggle("on", state.settings.pg); pgBtn.querySelector("b").textContent = state.settings.pg ? "ON" : "OFF"; pgBtn.setAttribute("aria-pressed", String(state.settings.pg)); };
+  pgBtn.addEventListener("click", () => {
+    if (!state.settings.pg) { state.settings.pg = true; if (els.settingPG) els.settingPG.checked = true; paintPg(); sfx("blip"); return; }
+    askAdultRiddle((ok) => { if (ok) { state.settings.pg = false; if (els.settingPG) els.settingPG.checked = false; paintPg(); sfx("coin"); } else { sfx("buzzer"); } });
+  });
   const steps = {
     main: ov.querySelector(".ts-step-main"),
     online: ov.querySelector(".ts-step-online"),

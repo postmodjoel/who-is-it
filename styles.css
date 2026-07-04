@@ -4215,7 +4215,11 @@ body.mode-pixall .secret-card img {
 .ed-saved-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
 .ed-chip { padding: 3px 9px; border-radius: 20px; border: 1px solid rgba(255,255,255,.2); background: #22252e; color: #eef1f6; font-size: 0.66rem; font-weight: 700; cursor: pointer; }
 .ed-chip:hover { border-color: #ffbe0b; }
+.ed-chip.is-on { background: #ffd400; color: #111; border-color: #ffd400; }
 .ed-empty { font-size: 0.66rem; color: #8890a0; }
+.ed-rand { display: flex; gap: 6px; margin-top: 8px; width: 100%; }
+.ed-rand .button { flex: 1; min-height: 34px; padding: 6px 4px; font-size: 0.64rem; }
+.ed-sub { font-weight: 500; font-size: 0.62rem; color: var(--muted, #9aa2b1); letter-spacing: 0; text-transform: none; }
 .editor-dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 @media (max-width: 560px) {
   .editor-body { grid-template-columns: 1fr; }
@@ -4690,6 +4694,26 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 }
 .sp-fx:hover { background: color-mix(in srgb, var(--ink) 18%, transparent); }
 .sp-fx:active { transform: translateY(1px); }
+
+/* ===================== Title PG toggle + adults-only riddle ===================== */
+.ts-pg {
+  margin: 12px auto 0; display: block; padding: 8px 18px; border-radius: 999px; cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.08);
+  color: #fffdf7; font: 800 0.82rem "Archivo", sans-serif; letter-spacing: 0.02em;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ts-pg b { color: #ff8f8f; }
+.ts-pg.on { border-color: #37c86a; background: rgba(55, 200, 106, 0.18); }
+.ts-pg.on b { color: #7dffa8; }
+.riddle-overlay { position: fixed; inset: 0; z-index: 2100; display: grid; place-items: center; background: rgba(6, 8, 14, 0.82); animation: wed-in 0.2s ease-out; padding: 20px; }
+.riddle-box { width: min(420px, 94vw); padding: 22px; border-radius: 16px; text-align: center; background: var(--panel, #15171d); border: 2px solid var(--line); box-shadow: var(--shadow); color: var(--ink); }
+.riddle-eyebrow { margin: 0 0 10px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #ff9a6a; }
+.riddle-q { margin: 0 0 14px; font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
+.riddle-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.08); color: #fffdf7; font: 700 1rem "Archivo", sans-serif; text-align: center; }
+.riddle-input.shake { animation: ts-shake 0.4s; border-color: #ff5a5a; }
+.riddle-msg { min-height: 1.1rem; margin: 8px 0 0; font-size: 0.74rem; font-weight: 700; color: #ff8f8f; }
+.riddle-actions { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+.riddle-actions .button { flex: 1; }
 
 /* ===================== Astrology mode ===================== */
 .character-board.astrology-board {

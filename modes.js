@@ -1068,6 +1068,7 @@ function applyMysteryEffect(effectId) {
   clearMysteryEffectUI();
   const effect = mysteryRegistry[effectId];
   if (!effect) return;
+  if (typeof markModeDiscovered === "function") markModeDiscovered(effectId);   // collection meta
   state.global.mystery = effect.apply(effect);
 }
 
@@ -1742,10 +1743,11 @@ function getMysteryCardData(character) {
     };
   }
   if (mystery.id === "role-reveal") {
+    // The role badge (html) already renders on both board and secret cards; a secretExtraHtml role
+    // paragraph on top of it made the secret card show the job TWICE.
     return {
       effectName: mystery.name,
       dataset: { mysteryValue: assignment.value },
-      secretExtraHtml: `<p class="card-role">${escapeHtml(roleFor(character.id))}</p>`,
       html: addMysteryBadge(assignment.value, "role")
     };
   }

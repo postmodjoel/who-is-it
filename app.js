@@ -385,6 +385,9 @@ function loadTheme() {
 // derive the same round from one shared salt), refresh-resume, and shareable SEED codes possible.
 function newGame(seedSalt, opts = {}) {
   clearMysteryEffectUI();
+  // Clear a lingering round-over reveal (e.g. a remote peer dealt the next round before this client
+  // clicked NEXT ROUND). The pre-round team reveal is created later and is excluded here.
+  document.querySelectorAll(".round-reveal:not(.team-reveal)").forEach((el) => el.remove());
   // Sort choice persists across rounds (rebuildSortOptions drops it only if the new mode can't do it).
   // The board only draws from the procedurally generated faces. The hand-illustrated PNG
   // characters (baseCharacters) stay defined as the gold-standard reference but are never dealt
@@ -1296,6 +1299,19 @@ function loadGameSave() {
   try { const s = JSON.parse(localStorage.getItem(GAME_SAVE_KEY) || "null"); return s && s.v === 1 && s.salt ? s : null; }
   catch (e) { return null; }
 }
+// Collection meta: every mode the player has ever seen, persisted, shown as "N / total" on the title.
+const DISCOVERED_KEY = "whoisit_discovered_v1";
+function loadDiscoveredModes() {
+  try { const a = JSON.parse(localStorage.getItem(DISCOVERED_KEY) || "[]"); return Array.isArray(a) ? a : []; }
+  catch (e) { return []; }
+}
+function markModeDiscovered(id) {
+  if (!id) return;
+  try {
+    const set = loadDiscoveredModes();
+    if (!set.includes(id)) { set.push(id); localStorage.setItem(DISCOVERED_KEY, JSON.stringify(set)); }
+  } catch (e) { /* storage off - meta is cosmetic */ }
+}
 function resumeGame(saved) {
   state.settings = { ...state.settings, ...(saved.settings || {}) };
   state.gameMode = saved.gameMode || "local";
@@ -1407,13 +1423,19 @@ function showRoundReveal(done) {
       <div class="rr-card"><span class="rr-label rr-you">${teamMode ? "YOUR TEAM WAS" : "YOU WERE"}</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span></div>
       <div class="rr-vs">×</div>
       <div class="rr-card"><span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span></div>
-    </div>`;
+    </div>
+    <button type="button" class="button primary rr-next">NEXT ROUND →</button>`;
   document.body.appendChild(ov);
-  setTimeout(() => {
+  // No auto-advance: players click NEXT ROUND when they're ready (time to pass the device / react).
+  // Online: whoever clicks deals + broadcasts; a remote deal also clears any lingering reveal (newGame).
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
     ov.classList.add("rr-out");
-    setTimeout(() => ov.remove(), 450);
-    if (done) done();
-  }, 4200);
+    setTimeout(() => { ov.remove(); if (done) done(); }, 380);
+  };
+  ov.querySelector(".rr-next").addEventListener("click", finish);
 }
 function endRound() {
   netSend("endround", {});
@@ -1514,6 +1536,8 @@ function askAdultGate(cb, required = 3) {
 
 function showTitleScreen() {
   const saved = loadGameSave();
+  const modeTotal = (typeof mysteryEffects !== "undefined") ? mysteryEffects.length : 0;
+  const modeFound = loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length;
   const ov = document.createElement("div");
   ov.className = "title-screen";
   ov.innerHTML = `
@@ -1552,7 +1576,8 @@ function showTitleScreen() {
         <button type="button" class="button ghost ts-back">← back</button>
       </div>
     </div>
-    <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>`;
+    <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>
+    <p class="ts-discovered" title="Mystery modes you've encountered">🎡 ${modeFound} / ${modeTotal} modes discovered</p>`;
   document.body.appendChild(ov);
   const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
   // PG toggle: turning it ON is free; turning it OFF is gated behind an adults-only riddle.

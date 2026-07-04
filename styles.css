@@ -4738,6 +4738,7 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 }
 .ts-pg b { padding: 2px 7px; border-radius: 4px; background: #e01b1b; color: #fffdf7; font-size: 0.74rem; }
 .ts-pg.on b { background: #178a47; }
+.ts-discovered { margin: 0; font-weight: 800; font-size: 0.78rem; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.72); text-align: center; animation: ts-fade 0.5s 1.15s both; }
 .riddle-overlay { position: fixed; inset: 0; z-index: 2100; display: grid; place-items: center; background: rgba(6, 8, 14, 0.82); animation: wed-in 0.2s ease-out; padding: 20px; }
 .riddle-box { width: min(420px, 94vw); padding: 22px; border-radius: 16px; text-align: center; background: var(--panel, #15171d); border: 2px solid var(--line); box-shadow: var(--shadow); color: var(--ink); }
 .riddle-eyebrow { margin: 0 0 10px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #ff9a6a; }
@@ -5347,6 +5348,7 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .rr-label.rr-them { color: #7aa8ff; }
 .rr-name { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.3rem; text-transform: uppercase; color: #fffdf7; }
 .rr-vs { font-size: clamp(1.6rem, 5vw, 3rem); font-weight: 900; color: #e0341a; animation: ts-fade 0.5s 0.45s both; }
+.rr-next { margin-top: 6px; min-width: 240px; font-size: 1.05rem; font-weight: 900; letter-spacing: 0.02em; animation: ts-fade 0.5s 0.55s both; }
 @media (max-width: 560px) { .rr-cards { gap: 10px; } .rr-name { font-size: 0.95rem; } }
 
 /* Pre-round team announcement (3+ players) - shares .round-reveal's full-screen backdrop. */

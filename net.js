@@ -216,7 +216,9 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "endround") {
     markPeerOnline();
-    showRoundReveal();   // the follow-up "start" message deals the new round
+    // Show the reveal with a NEXT ROUND button; whoever clicks it deals + broadcasts "start" (and a
+    // remote "start" clears this reveal via newGame). No auto-advance, so everyone gets a breather.
+    showRoundReveal(() => newGame());
   }
 }
 // Strip a character down to what another client (or a save file) needs to rebuild them.

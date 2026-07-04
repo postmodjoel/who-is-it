@@ -980,6 +980,46 @@ window.GameData = {
     { text: "Do the neighbour who took the fence dispute to A Current Affair. Give the driveway interview.", heat: "feral" },
     { text: "Announce the street's WhatsApp splinter group, live, naming exactly who is not invited and why.", heat: "feral" }
   ],
+  // THE GALLERY: art-world absurdity. mild+medium are PG-clean (openings, critics, audio guides);
+  // feral is unhinged art-world crime and scandal — PG caps at medium so kids never see it.
+  gallery: [
+    { text: "Auction the person opposite. Start the bidding insultingly low.", heat: "mild" },
+    { text: "Give the audio-guide entry for your own face. Track 7. Speak slowly.", heat: "mild" },
+    { text: "Be the critic who hates this exhibition. Review the table in one devastating paragraph.", heat: "mild" },
+    { text: "Stand too close to a painting until security (the person opposite) has to intervene.", heat: "mild" },
+    { text: "Explain a completely blank canvas to the table. It's worth £4 million. Justify it.", heat: "mild" },
+    { text: "Be the security guard who has grown too attached to one painting. Say goodbye — it sold today.", heat: "mild" },
+    { text: "Give the gallery-opening speech while clearly only here for the free wine.", heat: "mild" },
+    { text: "Describe your own portrait as if you've never met yourself. Be unkind.", heat: "mild" },
+    { text: "Do the parent dragging a child through the gallery, explaining every artwork incorrectly.", heat: "mild" },
+    { text: "You are a living statue. Someone just sneezed on you. Break character as slowly as possible.", heat: "mild" },
+    { text: "Curate the person opposite: title, year, medium. Announce it to the room.", heat: "mild" },
+    { text: "Be the donor who wants their name on the wing pronounced correctly. Correct everyone. Twice.", heat: "mild" },
+    { text: "Give the guided tour but you memorised the wrong gallery's script. Commit.", heat: "mild" },
+    { text: "React to finding out your portrait is hung in the gift-shop corridor. Near the toilets.", heat: "mild" },
+    { text: "Be the artist explaining that the smudge was intentional. The smudge was not intentional.", heat: "medium" },
+    { text: "Two paddles, one masterpiece: bid against the person opposite until one of you cries.", heat: "medium" },
+    { text: "You've been caught touching the art. Explain to the whole gallery what your hands were doing.", heat: "medium" },
+    { text: "Give the acceptance speech for an art prize you clearly did not deserve. Thank your enemies.", heat: "medium" },
+    { text: "Be the influencer doing a photoshoot in front of a painting about famine. Direct the shoot.", heat: "medium" },
+    { text: "Defend your five-year-old's fridge drawing to the acquisitions board as 'late brutalism'.", heat: "medium" },
+    { text: "The restoration went wrong. Unveil the botched face to the donors and keep smiling.", heat: "medium" },
+    { text: "Be the appraiser telling a family their heirloom is worthless. Enjoy it slightly too much.", heat: "medium" },
+    { text: "Sell the table a print of a print of a photocopy. Limited edition of 40,000.", heat: "medium" },
+    { text: "Give the museum's apology after the sculpture 'incident'. Take no actual responsibility.", heat: "medium" },
+    { text: "Be the artist at their own opening overhearing a brutal review. Circle closer. Interject badly.", heat: "medium" },
+    { text: "Announce the gallery's rebrand: it's now an 'immersive experience'. The paintings light up. Grieve.", heat: "medium" },
+    { text: "Confess you've been swapping the placards around for months. Reveal your favourite swap.", heat: "feral" },
+    { text: "Plan the heist out loud with the person opposite. You are both already on camera.", heat: "feral" },
+    { text: "You forged it. The one behind you. Walk the table through your masterpiece, stroke by stroke.", heat: "feral" },
+    { text: "Be the artist's ex at the retrospective, loudly identifying which paintings are about you.", heat: "feral" },
+    { text: "Glue yourself to a painting for a cause you invent mid-sentence. Field press questions.", heat: "feral" },
+    { text: "The nude portrait is of YOU and it just sold to your in-laws. React across the dinner table.", heat: "feral" },
+    { text: "Give the black-market valuation of everyone at this table. Name your buyer.", heat: "feral" },
+    { text: "You bid £86 million by scratching your nose. Explain to your spouse what you've done.", heat: "feral" },
+    { text: "Be the curator revealing the gallery's entire collection is fake — at your own retirement party.", heat: "feral" },
+    { text: "Deliver the villain monologue of an art thief who only steals paintings of people they fancy.", heat: "feral" }
+  ],
   "prop-panic": [
     { text: "Brandish the object in your hand like a legendary sword and give it a name it has not earned.", heat: "mild" },
     { text: "Announce out loud what your object beats in a fight, and say it like it's obvious to everyone.", heat: "mild" },
@@ -2145,6 +2185,33 @@ window.GameData = {
     "Melaleuca Pl", "The Esplanade", "Bottlebrush Cres", "Grevillea Loop", "Ferndale Rd", "Ibis Way"
   ],
 
+  // THE GALLERY: every portrait becomes a museum piece. Titles/mediums/prices are salt-picked;
+  // the art STYLE drives the frame + filter treatment (see GALLERY_STYLES in modes.js).
+  galleryTitles: [
+    "Portrait of a Woman Who Has Sent a Risky Text", "Man Refusing to Ask for Directions",
+    "Study of Someone Pretending to Have Read the Book", "The Unpaid Invoice",
+    "Woman Ignoring a Group Chat", "Self-Portrait as a More Successful Cousin",
+    "Man About to Reply-All", "The Committee Rejects the Budget",
+    "Girl with the Audacity", "Portrait of an Ex, Flattering on Purpose",
+    "Man Holding a Grudge (and Grapes)", "Woman Who Knows What You Did",
+    "The Last Biscuit", "Boy Who Peaked at the Quiz Night",
+    "Allegory of Leaving on Read", "Madonna of the Self-Checkout",
+    "Man Composing a One-Star Review", "Woman Returning an Opened Item",
+    "The Betrayal at Brunch", "Portrait of Someone's 'Friend' Who 'Asked'",
+    "Study in Unearned Confidence", "The Apology That Wasn't",
+    "Nude Descending Into the Group Chat", "Man Who Brought Nothing to the Potluck"
+  ],
+  galleryMediums: [
+    "oil on regret", "acrylic and lies", "mixed media, mostly crumbs",
+    "charcoal on a stolen napkin", "gouache, unforgivably", "watercolour on thin ice",
+    "oil on canvas (the canvas is also stolen)", "tempera and spite", "fresco, detached from context",
+    "ink, sweat and correction fluid", "pastel on expired parchment", "collage of other people's ideas"
+  ],
+  galleryPrices: [
+    "$2", "£4,200,000", "Priced on request", "NFS (stolen)", "Three goats",
+    "$86,000,000", "Make an offer, coward", "Free to a bad home", "Was $12, now $9",
+    "One (1) favour", "Insured for more than your house", "Payment plan available"
+  ],
   // Location-aware prompts: {location} resolves to the current banner scene at draw time
   // ("the Wine Cellar"). Mixed into every mode's draws (~1 in 6) whenever a location is set.
   locationPrompts: [

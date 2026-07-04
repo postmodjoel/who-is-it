@@ -136,6 +136,12 @@ const MYSTERY_EFFECT_DEFINITIONS = [
     exampleQuestion: "Is your person the group admin?"
   },
   {
+    id: "gallery",
+    name: "THE GALLERY",
+    apply: applyGallery,
+    exampleQuestion: "Is your person priced on request?"
+  },
+  {
     id: "woke",
     name: "WOKE Mode",
     apply: applyWoke,
@@ -205,6 +211,7 @@ const MYSTERY_MODE_META = {
   pantone: { tier: 1, wheelOrder: 70, pgSafe: true, glyph: "❏", boardClasses: ["pantone-board"] },
   habbo: { tier: 1, wheelOrder: 80, pgSafe: true, glyph: "⌂", boardClasses: ["habbo-board"], flash: "#2fb6d8", renderBoard: renderHabboBoard, afterRenderSecret: pixelateHabboSecret, teardown: resetHabbo },
   "heads-only": { tier: 1, wheelOrder: 90, pgSafe: true, glyph: "⊚", boardClasses: ["heads-board"], flash: "#7a5cff", renderBoard: renderHeadsOnlyBoard, teardown: resetHeadsAnim },
+  gallery: { tier: 1, wheelOrder: 95, pgSafe: true, glyph: "◫", boardClasses: ["gallery-board"], flash: "#c9a24b" },
   "knockoff-manor": { tier: 2, wheelOrder: 10, pgSafe: false, glyph: "☠", boardClasses: ["knockoff-manor-board"], renderBoard: renderKnockoffManorBoard, renderHouseMap },
   "family-tree-disaster": { tier: 2, wheelOrder: 20, pgSafe: true, glyph: "⚭", boardClasses: ["family-tree-board"], renderBoard: renderFamilyBoard },
   yugioh: { tier: 2, wheelOrder: 30, pgSafe: true, glyph: "◈", boardClasses: ["ygo-board"], bodyClasses: ["mode-yugioh"], flash: "#a05aff", decorateLocation: decorateYugiohLocation, prepareCard: prepareYugiohCard },
@@ -1843,6 +1850,8 @@ function modeEpilogue(character) {
       return a.name ? `Discontinued by Pantone. "${a.name}" is no more.` : generic();
     case "habbo":
       return state.settings.pg ? "Banned from the pool for splashing." : "Banned from the pool. You know what for. (bobba)";
+    case "gallery":
+      return a && a.sold ? `Sold for ${a.price}. The artist saw none of it.` : `Still unsold at ${a && a.price ? a.price : "any price"}. The critics were right.`;
     case "fireworks":
       return "Partially reassembled. The head is still missing.";
     case "knockoff-manor":
@@ -1947,6 +1956,8 @@ function modeLastWords(character) {
       return "We all look identical and you chose ME.";
     case "heads-only":
       return "You can't keep a good head down.";
+    case "gallery":
+      return "I was priceless. PRICELESS.";
     case "fireworks":
       return "I regret nothing.";
     default:
@@ -2248,6 +2259,20 @@ function getMysteryCardData(character) {
         ${locationHtml}
         <div class="li-connections">${escapeHtml(a.connections || "")}</div>
         <div class="li-skills">${skills}</div>
+      </div>`
+    };
+  }
+  if (mystery.id === "gallery") {
+    const a = assignment;
+    return {
+      effectName: mystery.name,
+      cardClass: `gallery gal-${a.style}`,
+      cornerHtml: a.sold ? `<span class="gal-sold" title="Sold">● SOLD</span>` : "",
+      html: `<div class="gal-plaque">
+        <div class="gal-title">“${escapeHtml(a.title)}”</div>
+        <div class="gal-artist">Artist unknown · ${a.year} · <i>${escapeHtml(a.styleLabel)}</i></div>
+        <div class="gal-medium">${escapeHtml(a.medium)}</div>
+        <div class="gal-price">${escapeHtml(a.price)}</div>
       </div>`
     };
   }
@@ -3427,6 +3452,44 @@ function applyNeighbourhoodWatch(effect) {
     };
   });
   return { id: effect.id, name: effect.name, groupName, assignments, posts };
+}
+
+// THE GALLERY: every portrait becomes a museum piece. Each character is hung in a different art
+// STYLE - the style drives the frame and the CSS filter treatment (De Stijl, Renaissance, Pop Art,
+// Impressionist, Baroque, Watercolour, Brutalist, Ukiyo-e) - with a brass plaque: title, year,
+// medium, price. The exhibition takes over the venue: the location becomes the Art Gallery.
+const GALLERY_STYLES = [
+  { key: "destijl", label: "De Stijl" },
+  { key: "renaissance", label: "Renaissance" },
+  { key: "impressionist", label: "Impressionist" },
+  { key: "popart", label: "Pop Art" },
+  { key: "baroque", label: "Baroque" },
+  { key: "watercolour", label: "Watercolour" },
+  { key: "brutalist", label: "Brutalist" },
+  { key: "ukiyoe", label: "Ukiyo-e" }
+];
+function applyGallery(effect) {
+  const D = window.GameData;
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:gal:${salt}`) % arr.length];
+  // Tonight's venue IS the gallery (salt-independent lookup, so both peers agree). Use the
+  // app-level `locations` array (it carries the derived banner-art paths, unlike the raw data).
+  const gal = (typeof locations !== "undefined" ? locations : []).find((l) => /gallery/i.test(l.name || ""));
+  if (gal && state.settings.locations) { state.location = gal; state.locationVariant = "day"; }
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:gallery:${ch.id}`);
+    const style = GALLERY_STYLES[h % GALLERY_STYLES.length];
+    assignments[ch.id] = {
+      style: style.key,
+      styleLabel: style.label,
+      title: pick(D.galleryTitles || ["Untitled"], `${ch.id}:t`),
+      medium: pick(D.galleryMediums || ["oil on canvas"], `${ch.id}:m`),
+      year: 1503 + (stableHash(`${state.gameSalt}:gal:${ch.id}:yr`) % 522),
+      price: pick(D.galleryPrices || ["Priced on request"], `${ch.id}:p`),
+      sold: (h >>> 6) % 4 === 0
+    };
+  });
+  return { id: effect.id, name: effect.name, assignments };
 }
 
 // Disease Mode: every character gets a sheet of (deliberately outdated) diagnoses with MINOR/MAJOR/

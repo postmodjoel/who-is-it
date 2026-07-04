@@ -1363,14 +1363,13 @@
     }
 
     const outline = hairOutlineFor(traits);
-    const strand = hairStrandTones(hair).low;
     const layer = behind ? "behind" : "front";
+    // rim = a single outline of the whole lock mass (outer silhouette + spiral concavities), which is
+    // what makes curl/horn shapes read. fill = solid colour. We deliberately DON'T draw the old
+    // per-lock seam strokes: they outlined every lock individually and ghosted through overlaps.
     const rim = renderHairLockRim(items, seed, hair, outline, layer, behind ? 3.4 : 4.2);
     const fill = renderHairLockPartGroup(items, seed, hair, outline, "fill");
-    const seam = behind
-      ? ""
-      : renderHairLockPartGroup(items, seed, hair, outline, "seam", { seam: strand, seamWidth: 2.8, seamOpacity: 0.28 });
-    return `${rim}${fill}${seam}`;
+    return `${rim}${fill}`;
   }
 
   function renderHairLockPartGroup(items, seed, hair, outline, mode, extraCtx) {

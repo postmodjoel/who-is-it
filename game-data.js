@@ -2145,6 +2145,35 @@ window.GameData = {
     "Melaleuca Pl", "The Esplanade", "Bottlebrush Cres", "Grevillea Loop", "Ferndale Rd", "Ibis Way"
   ],
 
+  // Location-aware prompts: {location} resolves to the current banner scene at draw time
+  // ("the Wine Cellar"). Mixed into every mode's draws (~1 in 6) whenever a location is set.
+  locationPrompts: [
+    { text: "You are all at {location}. Explain why you're not allowed back.", heat: "mild" },
+    { text: "Give the one-star review of {location} that mentions a staff member by name.", heat: "mild" },
+    { text: "You work at {location}. Deliver the announcement you've been told to read out.", heat: "mild" },
+    { text: "Welcome everyone to {location} like a tour guide who has completely given up.", heat: "mild" },
+    { text: "Something just smashed at {location}. Turn around slowly and explain.", heat: "mild" },
+    { text: "You've been coming to {location} every day for a year. Tell the table why. Lie.", heat: "mild" },
+    { text: "Do the safety briefing for {location}. Include one rule that raises serious questions.", heat: "mild" },
+    { text: "You're the last person at {location} at closing time. Negotiate to stay.", heat: "mild" },
+    { text: "Leave a voicemail cancelling your plans, but you're obviously already at {location}.", heat: "mild" },
+    { text: "Describe the smell of {location} in loving, unnecessary detail.", heat: "mild" },
+    { text: "You've just been named Employee of the Month at {location}. Give the speech. You don't work there.", heat: "medium" },
+    { text: "Get thrown out of {location} in real time. Narrate your own removal.", heat: "medium" },
+    { text: "You ran into your ex at {location}. Do both sides of the conversation.", heat: "medium" },
+    { text: "Explain to your boss why you were at {location} during work hours. Dig deeper with every sentence.", heat: "medium" },
+    { text: "Start a loyalty-card dispute at {location} and refuse all reasonable compromises.", heat: "medium" },
+    { text: "You're reviewing {location} for a food blog nobody reads. Deliver the pretentious verdict.", heat: "medium" },
+    { text: "A celebrity just walked into {location}. Play it cool. Fail immediately.", heat: "medium" },
+    { text: "You've been banned from every {location} in the state. Recount the incident that did it.", heat: "medium" },
+    { text: "Call triple zero from {location} about something that is absolutely not an emergency.", heat: "medium" },
+    { text: "Confess what you actually did at {location} last night. The CCTV has already been reviewed.", heat: "feral" },
+    { text: "You and someone at this table were both at {location} at 3am. Get your stories straight, out loud.", heat: "feral" },
+    { text: "Give the police statement about the incident at {location}. Incriminate yourself twice.", heat: "feral" },
+    { text: "The group chat has voted you 'most likely to be conceived at {location}'. Respond to the allegation.", heat: "feral" },
+    { text: "You woke up at {location} with no memory and one shoe. Reconstruct the night for the table.", heat: "feral" }
+  ],
+
   // Themed question decks for SWIPE / Judgement Day / Sims are added at the end of modePrompts.
   _modePools: true
 };

@@ -865,9 +865,13 @@ function allowedHeats(age, pg) {
 }
 function drawPrompt() {
   const modeDeck = state.global.mystery ? modePrompts[state.global.mystery.id] : null;
-  const deck = modeDeck && modeDeck.length
+  let deck = modeDeck && modeDeck.length
     ? modeDeck
     : (state.settings.prompts ? absurdPrompts : classicPrompts);
+  // Location-aware prompts: when a location is set, roughly 1-in-6 draws come from the shared
+  // {location} deck instead - the banner scene leaks into the questions, whatever the mode.
+  const locDeck = (window.GameData && window.GameData.locationPrompts) || [];
+  if (state.location && locDeck.length && Math.random() < 0.16) deck = locDeck;
   // Escalation only kicks in for decks that actually carry heat tags; untagged decks are used whole,
   // so this is a no-op until the content is tagged.
   let pool = deck;
@@ -876,7 +880,9 @@ function drawPrompt() {
     const filtered = deck.filter((p) => allow.includes(promptHeat(p)));
     if (filtered.length) pool = filtered;
   }
-  els.questionPrompt.textContent = promptText(pick(pool));
+  // {location} resolves to the current banner scene ("the Wine Cellar"); safe fallback if unset.
+  const text = promptText(pick(pool)).replace(/\{location\}/g, state.location ? `the ${state.location.name}` : "this place");
+  els.questionPrompt.textContent = text;
 }
 
 // The question rerolls when you click the cue card itself (no auto-rotation, no separate button).

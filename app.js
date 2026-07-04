@@ -1528,14 +1528,31 @@ function showRoundReveal(done) {
   // the character's send-off in the voice of the round that just ended.
   const epiMine = typeof modeEpilogue === "function" ? modeEpilogue(mine) : "";
   const epiTheirs = typeof modeEpilogue === "function" ? modeEpilogue(theirs) : "";
+  // Team mode: each side reveals as a TILE SET - the secret (crowned) plus every team member's
+  // persona - so the whole team is on screen, not one lonely portrait.
+  const sideTiles = (sec, side, epi) => {
+    const tiles = [`<div class="rr-tile rr-tile-secret"><img src="${sec ? sec.image : ""}" alt=""><span class="rr-tile-name">${escapeHtml(sec ? sec.name : "?")}</span><i>THE SECRET</i></div>`]
+      .concat(teamMembers(side).map((m) => {
+        const p = m.personaId ? characterById(m.personaId) : null;
+        return p ? `<div class="rr-tile"><img src="${p.image}" alt=""><span class="rr-tile-name">${escapeHtml(p.name)}</span><i>${escapeHtml(m.name)}</i></div>` : "";
+      }));
+    return `<div class="rr-tiles">${tiles.join("")}</div>${epi ? `<span class="rr-epilogue">${escapeHtml(epi)}</span>` : ""}`;
+  };
+  const theirSide = my === 0 ? 1 : 0;
+  const cardMine = teamMode
+    ? `<span class="rr-label rr-you">YOUR TEAM WAS</span>${sideTiles(mine, my, epiMine)}`
+    : `<span class="rr-label rr-you">YOU WERE</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span>${epiMine ? `<span class="rr-epilogue">${escapeHtml(epiMine)}</span>` : ""}`;
+  const cardTheirs = teamMode
+    ? `<span class="rr-label rr-them">THEY WERE</span>${sideTiles(theirs, theirSide, epiTheirs)}`
+    : `<span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span>${epiTheirs ? `<span class="rr-epilogue">${escapeHtml(epiTheirs)}</span>` : ""}`;
   const ov = document.createElement("div");
-  ov.className = "round-reveal";
+  ov.className = "round-reveal" + (teamMode ? " rr-teamgrid" : "");
   ov.innerHTML = `
     <div class="rr-title">ROUND OVER</div>
     <div class="rr-cards">
-      <div class="rr-card"><span class="rr-label rr-you">${teamMode ? "YOUR TEAM WAS" : "YOU WERE"}</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span>${epiMine ? `<span class="rr-epilogue">${escapeHtml(epiMine)}</span>` : ""}</div>
+      <div class="rr-card">${cardMine}</div>
       <div class="rr-vs">×</div>
-      <div class="rr-card"><span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span>${epiTheirs ? `<span class="rr-epilogue">${escapeHtml(epiTheirs)}</span>` : ""}</div>
+      <div class="rr-card">${cardTheirs}</div>
     </div>
     <button type="button" class="button primary rr-next">NEXT ROUND →</button>
     <button type="button" class="button ghost rr-finish">🧾 FINISH SESSION</button>`;
@@ -1582,6 +1599,7 @@ function recordRoundLore(secA, secB) {
     modeId: eff ? eff.id : null,
     modeName: eff ? eff.name : null,
     names: [secA && secA.name, secB && secB.name].filter(Boolean),
+    ids: [secA && secA.id, secB && secB.id].filter(Boolean),   // portraits for the end credits
     you: mine ? mine.name : null   // which one THIS device was (feeds the night receipt)
   });
   if (state.lore.length > 12) state.lore.shift();
@@ -1675,32 +1693,56 @@ function buildReceiptPaper() {
       <p class="rc-foot">*nothing was resolved</p>
     </div>`;
 }
-// The end-of-session screen: FINISH SESSION (on the round reveal) leads here. The receipt prints;
-// if every single mode has been discovered, the full THE COMPLETE UNIVERSE celebration crowns it.
+// The end-of-session CREDITS screen: FINISH SESSION leads here. Its own full-screen world (no
+// game board): drifting dark gradient, a huge title, tiki hold-music, an endlessly scrolling
+// credit-roll of everyone encountered this session (mode-flavoured, doubles welcome: WOKE OLIVIA
+// and GALLERY OLIVIA are different people), and the receipt printing out of its slot.
+// Discovering every mode upgrades it to THE COMPLETE UNIVERSE.
 function showSessionEnd() {
   document.querySelector(".session-end")?.remove();
   const found = loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length;
   const total = mysteryEffects.length;
   const complete = found >= total;
+  // The cast: every secret from every round, captioned with its round's mode ("WOKE OLIVIA").
+  let cast = [];
+  (state.lore || []).forEach((e) => {
+    (e.ids && e.ids.length ? e.ids : []).forEach((id) => {
+      const ch = characterById(id);
+      if (ch) cast.push({ img: ch.image, name: ch.name, mode: e.modeName || "ORDINARY" });
+    });
+  });
+  if (!cast.length) cast = state.board.slice(0, 12).map((ch) => ({ img: ch.image, name: ch.name, mode: "UNCREDITED" }));
+  // Pad short sessions so the roll never looks sparse, then duplicate for a seamless loop.
+  while (cast.length && cast.length < 12) cast = cast.concat(cast.slice(0, 12 - cast.length));
+  const tile = (c) => `<div class="se-cast"><img src="${c.img}" alt=""><span class="se-cast-mode">${escapeHtml(String(c.mode).toUpperCase())}</span><span class="se-cast-name">${escapeHtml(c.name)}</span></div>`;
+  const roll = cast.map(tile).join("");
   const ov = document.createElement("div");
   ov.className = "session-end" + (complete ? " se-complete" : "");
   ov.innerHTML = `
-    <div class="se-head">
-      ${complete
-        ? `<p class="sf-eyebrow">EVERY MODE. EVERY INCIDENT. EVERYONE.</p><h2 class="sf-title se-title">THE COMPLETE<br>UNIVERSE</h2>`
-        : `<h2 class="sf-title se-title">SESSION ENDED</h2><p class="se-sub">🎡 ${found} / ${total} modes discovered — the universe isn't finished with you.</p>`}
-    </div>
-    <div class="rc-printer" aria-hidden="true"><i></i></div>
-    ${buildReceiptPaper()}
-    <button type="button" class="button primary se-home">BACK TO TITLE</button>`;
+    <div class="se-credits" aria-hidden="true"><div class="se-roll">${roll}${roll}</div></div>
+    <div class="se-stage">
+      <div class="se-head">
+        ${complete
+          ? `<p class="sf-eyebrow">EVERY MODE. EVERY INCIDENT. EVERYONE.</p><h2 class="sf-title se-title">THE COMPLETE<br>UNIVERSE</h2>`
+          : `<p class="sf-eyebrow">THAT'S THE NIGHT</p><h2 class="sf-title se-title">SESSION<br>ENDED</h2><p class="se-sub">🎡 ${found} / ${total} modes discovered — the universe isn't finished with you.</p>`}
+      </div>
+      <div class="rc-printarea">
+        <div class="rc-printer" aria-hidden="true"><i></i></div>
+        <div class="rc-window">${buildReceiptPaper()}</div>
+      </div>
+      <button type="button" class="button primary se-home">BACK TO TITLE</button>
+    </div>`;
   document.body.appendChild(ov);
-  try { if (window.Sound && Sound.spinTicks) Sound.spinTicks(1500, 55, 55); } catch (e) { /* silent printer */ }
+  try {
+    if (window.Sound) { Sound.resume(); Sound.printer(1800); Sound.creditsLoop(true); }
+  } catch (e) { /* silence is acceptable at a funeral */ }
   if (complete) sfx("win");
   ov.querySelector(".se-home").addEventListener("click", () => {
     // The session is over: clear the round save + ledger so the next night starts fresh.
     try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }
     state.lore = [];
     state.stats = {};
+    try { if (window.Sound) Sound.creditsLoop(false); } catch (e) { /* fine */ }
     ov.remove();
     showTitleScreen();
   });

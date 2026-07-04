@@ -602,7 +602,7 @@ function renderHeadsOnlyBoard(player) {
 }
 
 // ===================== Habbo Hotel mode =====================
-const HABBO_GW = 7, HABBO_GH = 7, HABBO_TW = 84, HABBO_TH = 42;
+const HABBO_GW = 8, HABBO_GH = 8, HABBO_TW = 84, HABBO_TH = 42;   // 8x8: room for furni AND a stroll
 let habboPos = new Map();     // char id -> {col,row}, persisted so walking survives re-renders
 let habboSelected = null;
 let habboCtx = null;
@@ -796,17 +796,33 @@ function habboPath(c0, r0, c1, r1) {
   while (r !== r1) { r += Math.sign(r1 - r); path.push({ col: c, row: r }); }
   return path;
 }
-// An L-path that respects furni: try columns-first then rows-first; use the first route whose
-// every step is unblocked. Returns null when the sofa really is in the way.
+// Real pathfinding around the furniture: BFS over the grid (4-directional), never stepping on a
+// furni tile. Guests walk AROUND the sofa like actual Habbos. Returns null only when the target
+// is genuinely unreachable (fully walled in).
 function habboPathAvoiding(c0, r0, c1, r1) {
-  const routes = [habboPath(c0, r0, c1, r1), (() => {
-    const path = []; let c = c0, r = r0;
-    while (r !== r1) { r += Math.sign(r1 - r); path.push({ col: c, row: r }); }
-    while (c !== c1) { c += Math.sign(c1 - c); path.push({ col: c, row: r }); }
-    return path;
-  })()];
-  for (const path of routes) {
-    if (path.length && path.every((s) => !habboBlocked.has(`${s.col},${s.row}`))) return path;
+  if (c0 === c1 && r0 === r1) return null;
+  const key = (c, r) => `${c},${r}`;
+  const prev = new Map([[key(c0, r0), null]]);
+  const queue = [[c0, r0]];
+  while (queue.length) {
+    const [c, r] = queue.shift();
+    if (c === c1 && r === r1) {
+      const path = [];
+      let k = key(c1, r1);
+      while (prev.get(k)) {
+        const [pc, pr] = k.split(",").map(Number);
+        path.unshift({ col: pc, row: pr });
+        k = prev.get(k);
+      }
+      return path;
+    }
+    for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nc = c + dc, nr = r + dr, nk = key(nc, nr);
+      if (nc < 0 || nc >= HABBO_GW || nr < 0 || nr >= HABBO_GH) continue;
+      if (prev.has(nk) || habboBlocked.has(nk)) continue;
+      prev.set(nk, key(c, r));
+      queue.push([nc, nr]);
+    }
   }
   return null;
 }
@@ -958,18 +974,39 @@ function renderHabboFurni(room, wallL, wallR) {
   const pool = preferred.length >= 10 ? preferred : preferred.concat(floorProps);
   const layer = document.createElement("div");
   layer.className = "habbo-furni-layer";
+  // A prop may never SPLIT the floor: after adding it, every free tile must still reach every
+  // other free tile (flood fill), or a guest could spawn walled-in behind the pot plants.
+  const keepsFloorConnected = (cand) => {
+    const blocked = new Set(habboBlocked); blocked.add(cand);
+    let start = null, free = 0;
+    for (let r = 0; r < HABBO_GH; r++) for (let c = 0; c < HABBO_GW; c++) {
+      if (!blocked.has(`${c},${r}`)) { free++; if (!start) start = [c, r]; }
+    }
+    if (!start) return false;
+    const seen = new Set([`${start[0]},${start[1]}`]);
+    const queue = [start];
+    while (queue.length) {
+      const [c, r] = queue.pop();
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nc = c + dc, nr = r + dr, k = `${nc},${nr}`;
+        if (nc < 0 || nc >= HABBO_GW || nr < 0 || nr >= HABBO_GH || seen.has(k) || blocked.has(k)) continue;
+        seen.add(k); queue.push([nc, nr]);
+      }
+    }
+    return seen.size === free;
+  };
   const nFloor = 7 + (stableHash(`${seedBase}:n`) % 6);   // 7..12 props
   for (let i = 0; i < nFloor; i++) {
     const prop = pool[stableHash(`${seedBase}:f${i}`) % pool.length];
     let c = stableHash(`${seedBase}:fc${i}`) % HABBO_GW;
     let r = stableHash(`${seedBase}:fr${i}`) % HABBO_GH;
     let tries = 0;
-    while (habboBlocked.has(`${c},${r}`) && tries < HABBO_GW * HABBO_GH) {
+    while ((habboBlocked.has(`${c},${r}`) || !keepsFloorConnected(`${c},${r}`)) && tries < HABBO_GW * HABBO_GH) {
       c = (c + 1) % HABBO_GW;
       if (c === 0) r = (r + 1) % HABBO_GH;
       tries++;
     }
-    if (habboBlocked.has(`${c},${r}`)) continue;
+    if (habboBlocked.has(`${c},${r}`) || !keepsFloorConnected(`${c},${r}`)) continue;
     habboBlocked.add(`${c},${r}`);
     const p = habboIso(c, r);
     const img = document.createElement("img");
@@ -3343,16 +3380,11 @@ function applyHabbo(effect) {
       ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, headOnly: true })
       : ch.image;
     const shirt = ch.traits?.shirt || (tb?.skinToneHex?.[ch.traits?.skin]) || "#4a90e2";
-    // The room figure: a local Habbo-style pixel sprite built from the same traits (hair/skin/
-    // shirt/accessories). Falls back to the classic head+CSS-body figure if the generator's absent.
-    let avatar = null, avatarHead = null;
-    if (window.habboAvatar && ch.traits) {
-      try {
-        avatar = window.habboAvatar.render(ch);
-        avatarHead = window.habboAvatar.renderHead(ch);
-      } catch (e) { /* fall back to the classic figure */ }
-    }
-    assignments[ch.id] = { head, shirt, avatar, avatarHead };
+    // The room figure: a REAL Habbo sprite, generated once offline via habbo-imaging from this
+    // character's traits (tools/fetch-habbo-avatars.py) and served locally. Characters without a
+    // pre-fetched sprite (babies, customs) fall back to the classic head+CSS-body figure.
+    const sprite = window.HabboAvatarSprites && window.HabboAvatarSprites[ch.id];
+    assignments[ch.id] = { head, shirt, avatar: sprite ? sprite.body : null, avatarHead: sprite ? sprite.head : null };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

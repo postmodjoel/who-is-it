@@ -191,6 +191,59 @@
       step++;
     }, sixteenth);
   }
+  // Receipt printer: stuttered dot-matrix zips (saw buzz + hiss in chunks) ending in a paper tear.
+  function printerNoise(durationMs) {
+    if (!enabled) return;
+    ac();
+    let t = 0;
+    const CHUNK = 150;
+    const burst = () => {
+      if (!enabled) return;
+      if (t >= durationMs) {
+        noise(0.14, { vol: 0.35, filter: "highpass", freq: 2600 });   // rrrip - the tear-off
+        return;
+      }
+      tone(1850 + ((t / CHUNK) % 3) * 160, 0.085, { type: "sawtooth", vol: 0.13 });
+      noise(0.08, { vol: 0.2, filter: "bandpass", freq: 5200 });
+      t += CHUNK;
+      setTimeout(burst, CHUNK);
+    };
+    burst();
+  }
+
+  // Tiki credits loop: swung island lounge - ukulele-ish triangle plucks over a hapa-haole
+  // turnaround, brushed shaker, lazy kick. Plays under the session-end credits.
+  let creditsTimer = null, creditsStep = 0;
+  function stopCreditsLoop() { if (creditsTimer) { clearInterval(creditsTimer); creditsTimer = null; } }
+  function startCreditsLoop() {
+    stopCreditsLoop();
+    if (!enabled) return;
+    ac();
+    const bpm = 86, sixteenth = 15000 / bpm;
+    // C6 - A7 - Dm7 - G7 (the eternal island turnaround), 1 bar each.
+    const PROG = [[60, 64, 67, 69], [57, 61, 64, 67], [50, 53, 57, 62], [55, 59, 62, 65]];
+    // Swung uke plucks (16 steps/bar): strums on the off-beats, a little answering hook.
+    const PLUCK = [0, null, 2, null, null, 1, null, null, 3, null, 2, null, null, 12, null, 11];
+    const shaker = [0.5, 0, 0.25, 0.35, 0.5, 0, 0.25, 0.35, 0.5, 0, 0.25, 0.35, 0.5, 0, 0.35, 0.25];
+    creditsStep = 0;
+    creditsTimer = setInterval(() => {
+      if (!enabled) { stopCreditsLoop(); return; }
+      const bar = Math.floor(creditsStep / 16) % PROG.length;
+      const chord = PROG[bar];
+      const s = creditsStep % 16;
+      if (s === 0) kick(0.32);
+      if (shaker[s]) hat(0.05 * shaker[s]);
+      if (s === 8) noise(0.07, { vol: 0.06, filter: "bandpass", freq: 3200, bus: musicBus });
+      const d = PLUCK[s];
+      if (d != null) {
+        const note = d >= 10 ? chord[(d - 10) % chord.length] + 12 : chord[d % chord.length];
+        tone(mtof(note), sixteenth / 1000 * 1.3, { type: "triangle", vol: 0.3, bus: musicBus });
+      }
+      if (s === 0 || s === 10) tone(mtof(chord[0] - 12), sixteenth / 1000 * 2.6, { type: "sine", vol: 0.4, bus: musicBus });
+      creditsStep++;
+    }, sixteenth);
+  }
+
   // Title groove: just bass and drums - a two-bar lo-bit pocket that vamps under the menu.
   let titleTimer = null, titleStep = 0;
   function stopTitleLoop() { if (titleTimer) { clearInterval(titleTimer); titleTimer = null; } }
@@ -230,6 +283,9 @@
     setMusic(on) { musicOn = !!on; if (musicOn && track > 0) { stopTitleLoop(); startMusic(); } else stopMusic(); },
     // The title-screen groove (bass + drums only). Suppressed while real music is playing.
     titleLoop(on) { if (on && !(musicOn && track > 0)) startTitleLoop(); else stopTitleLoop(); },
+    // Tiki lounge under the end-of-session credits (pauses any other loop).
+    creditsLoop(on) { stopTitleLoop(); if (on) { stopMusic(); startCreditsLoop(); } else { stopCreditsLoop(); if (musicOn && track > 0) startMusic(); } },
+    printer(durationMs) { ac(); printerNoise(durationMs || 1500); },
     spinTicks(durationMs, fromGap, toGap) { ac(); return spinTicks(durationMs, fromGap, toGap); }
   };
 })();

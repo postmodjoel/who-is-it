@@ -282,6 +282,7 @@ const els = {
   themeButton: document.querySelector("#themeButton"),
   setupButton: document.querySelector("#setupButton"),
   editorButton: document.querySelector("#editorButton"),
+  almanacButton: document.querySelector("#almanacButton"),
   soundButton: document.querySelector("#soundButton"),
   settingSeed: document.querySelector("#settingSeed"),
   copySeedButton: document.querySelector("#copySeedButton"),
@@ -1496,13 +1497,83 @@ function endRound() {
 function recordRoundLore(secA, secB) {
   if (!Array.isArray(state.lore)) state.lore = [];
   const eff = state.global.mystery ? MysteryModes.byId(state.global.mystery.id) : null;
+  const my = state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer;
+  const mine = my === 0 ? secA : secB;
   state.lore.push({
     modeId: eff ? eff.id : null,
     modeName: eff ? eff.name : null,
-    names: [secA && secA.name, secB && secB.name].filter(Boolean)
+    names: [secA && secA.name, secB && secB.name].filter(Boolean),
+    you: mine ? mine.name : null   // which one THIS device was (feeds the night receipt)
   });
   if (state.lore.length > 12) state.lore.shift();
+  almanacRecord(secA, secB, eff);
   scheduleSave();
+}
+
+// ===================== The Almanac: everything the universe has ever established =====================
+// A persistent per-character dossier (per device). Every finished round: everyone on the board gains
+// an appearance; the two unmasked secrets also gain their mode-voiced epilogue as a recorded FACT.
+const ALMANAC_KEY = "whoisit_almanac_v1";
+function almanacLoad() {
+  try { const a = JSON.parse(localStorage.getItem(ALMANAC_KEY) || "null"); return a && a.chars ? a : { chars: {} }; }
+  catch (e) { return { chars: {} }; }
+}
+function almanacSave(a) {
+  try { localStorage.setItem(ALMANAC_KEY, JSON.stringify(a)); } catch (e) { /* storage full - the universe forgets */ }
+}
+function almanacRecord(secA, secB, eff) {
+  const a = almanacLoad();
+  const touch = (ch) => {
+    if (!ch) return null;
+    const entry = a.chars[ch.id] || (a.chars[ch.id] = { name: ch.name, rounds: 0, unmasked: 0, facts: [] });
+    entry.name = ch.name;
+    return entry;
+  };
+  state.board.forEach((ch) => { const e = touch(ch); if (e) e.rounds += 1; });
+  [secA, secB].forEach((sec) => {
+    const e = touch(sec);
+    if (!e) return;
+    e.unmasked += 1;
+    const line = typeof modeEpilogue === "function" ? modeEpilogue(sec) : "";
+    if (line) {
+      e.facts.push({ m: eff ? eff.name : "A perfectly normal round", line });
+      if (e.facts.length > 20) e.facts.shift();
+    }
+  });
+  almanacSave(a);
+}
+function showAlmanac() {
+  document.querySelector(".almanac-overlay")?.remove();
+  const a = almanacLoad();
+  const entries = Object.entries(a.chars)
+    .map(([id, e]) => ({ id, ...e }))
+    .sort((x, y) => y.unmasked - x.unmasked || y.rounds - x.rounds);
+  const row = (e) => {
+    const ch = characterById(e.id);
+    const img = ch && ch.image ? `<img src="${ch.image}" alt="">` : `<span class="al-blank">${escapeHtml((e.name || "?")[0] || "?")}</span>`;
+    const facts = (e.facts || []).slice(-3).reverse()
+      .map((f) => `<p class="al-fact"><b>${escapeHtml(f.m)}:</b> ${escapeHtml(f.line)}</p>`).join("");
+    return `<div class="al-row">
+      <div class="al-portrait">${img}</div>
+      <div class="al-body">
+        <p class="al-name">${escapeHtml(e.name || "???")}</p>
+        <p class="al-stats">${e.rounds} round${e.rounds === 1 ? "" : "s"} · unmasked ${e.unmasked}×</p>
+        ${facts || `<p class="al-fact al-none">No incidents on record. Yet.</p>`}
+      </div>
+    </div>`;
+  };
+  const ov = document.createElement("div");
+  ov.className = "almanac-overlay";
+  ov.innerHTML = `
+    <div class="almanac-box">
+      <div class="al-head">
+        <div><p class="al-eyebrow">THE ALMANAC</p><p class="al-sub">Everything this universe has ever established. It keeps growing.</p></div>
+        <button type="button" class="icon-button al-close" aria-label="Close">X</button>
+      </div>
+      <div class="al-list">${entries.length ? entries.map(row).join("") : `<p class="al-empty">Nothing on record. Finish a round — the universe will start taking notes.</p>`}</div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener("click", (e) => { if (e.target === ov || e.target.closest(".al-close")) ov.remove(); });
 }
 // Roughly every third round (salt-deterministic, so online peers agree) the deal pauses for a
 // callback to an earlier round before the wheel spins. Pure lore - nothing mechanical.
@@ -1887,6 +1958,7 @@ mergeCustomIntoPool();                 // fold saved custom characters into the 
 mergeGaybiesIntoPool();                // and the persistent GAYBYs
 wirePainScaleDrag();                   // drag the disease pain scale to change emotions
 if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
+if (els.almanacButton) els.almanacButton.addEventListener("click", showAlmanac);
 showTitleScreen();                     // WHO? / IS IT? slides in; deal or resume from there
 wireCueCardClick();
 wireFloatingSecret();

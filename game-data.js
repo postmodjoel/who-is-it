@@ -846,6 +846,42 @@ window.GameData = {
     { text: "Give the influencer's tearful 'I'm stepping back' video that is entirely a brand relaunch.", heat: "feral" },
     { text: "Do the whole company retreat gone wrong as a one-person disaster reel.", heat: "feral" },
     { text: "Announce you're #OpenToWork and interrogate the table for a job in real time. Desperate energy.", heat: "feral" }
+  ],
+  // Habbo Hotel: pixel-party chaos. mild+medium are PG-safe (22 of them, so the PG pool is healthy);
+  // 'bobba' is the Habbo filter-dodge word and all bobba prompts are tagged feral (PG never sees them).
+  habbo: [
+    { text: "Ask everyone to come to your room for a totally normal party. It is not a normal party.", heat: "mild" },
+    { text: "Beg a passing Habbo for free furni. Escalate to full grovelling.", heat: "mild" },
+    { text: "Do the Habbo dance. You know the one. Do it now, no music.", heat: "mild" },
+    { text: "Say your next answer in wobbly rainbow text — out loud, one colour at a time.", heat: "mild" },
+    { text: "Someone's walled you into a corner with furni. React with total dignity.", heat: "mild" },
+    { text: "Trade your entire room for one rare throne. Regret it instantly, out loud.", heat: "mild" },
+    { text: "Give the tour of your pixel mansion. It is one sofa and a rug.", heat: "mild" },
+    { text: "Roleplay the pool bouncer: 'no, you can't come in'. Enforce it on the table.", heat: "mild" },
+    { text: "Pose as a piece of furni so nobody talks to you. Hold the pose.", heat: "mild" },
+    { text: "Recruit the table into your Habbo 'family'. Assign everyone a rank right now.", heat: "mild" },
+    { text: "Advertise your room as 'BEST PARTY!!!' while it sits completely empty and silent.", heat: "mild" },
+    { text: "Demand everyone respect the sofa. It is your throne now. Rule from it.", heat: "mild" },
+    { text: "You've been muted by the moderator mid-sentence. Finish the sentence in mime.", heat: "medium" },
+    { text: "Run the classic falling-furni scam on the person opposite. Sell the promise hard.", heat: "medium" },
+    { text: "Explain to your parents the phone bill from buying Habbo Coins.", heat: "medium" },
+    { text: "Report the person opposite to the mods for a made-up crime. Read out the charges.", heat: "medium" },
+    { text: "Pretend to be Habbo staff and 'verify' someone's password. Get caught mid-sentence.", heat: "medium" },
+    { text: "Host a 'trust trade' that is obviously a scam. Insist it is completely trustworthy.", heat: "medium" },
+    { text: "Give the sob story that cons a stranger out of their rarest furni.", heat: "medium" },
+    { text: "Announce a fake room raid and herd everyone into the pool.", heat: "medium" },
+    { text: "Do the passive-aggressive pixel breakup in the middle of a crowded room.", heat: "medium" },
+    { text: "Sell 'VIP access' to a rope-off area that is three ordinary tiles of floor.", heat: "medium" },
+    { text: "Bobba is what Habbos say instead of any filtered word. Tell the person opposite exactly how you'd bobba them.", heat: "feral" },
+    { text: "Describe your ideal date entirely in the word bobba.", heat: "feral" },
+    { text: "You've been reported for bobba in the pool. Give your defence, saying bobba at least five times.", heat: "feral" },
+    { text: "Confess your most bobba secret to the room. Spare no bobba detail.", heat: "feral" },
+    { text: "Two Habbos, one sofa, lights off. Narrate what the bobba happens next.", heat: "feral" },
+    { text: "Slide into the person opposite's DMs with your most unhinged bobba opener.", heat: "feral" },
+    { text: "Explain, in graphic bobba, exactly why you got banned from the hotel.", heat: "feral" },
+    { text: "Give the bobba pickup line so filthy the mods had to invent a new filter for it.", heat: "feral" },
+    { text: "Recount the 'pool's closed' incident. It was bobba. It was entirely your fault.", heat: "feral" },
+    { text: "Auction yourself off for bobba. Start the bidding at one rare throne.", heat: "feral" }
   ]
 },
 

@@ -8,6 +8,8 @@
 let net = null;
 let netRoom = null;          // the room the current socket is connected to
 let netReconnectTimer = null;
+// Close the transport when the tab goes away so the relay/channel isn't left holding a dead peer.
+window.addEventListener("beforeunload", () => { try { if (net) net.close(); } catch (e) { /* fine */ } });
 function setNetStatus(s) { state.netStatus = s; const el = document.querySelector(".or-status"); if (el && state.gameMode === "online") el.textContent = s === "open" ? (state.onlinePeer ? "🟢 friend connected" : "🟡 connected — waiting for a friend…") : s === "connecting" ? "🟠 connecting…" : "🔴 disconnected — retrying…"; updateLobby(); }
 // Cross-device transport: add ?relay=ws://<host>:8765 to the URL on every device and run
 // `python3 relay.py` on one machine - the relay fans messages out per room. Without the param the

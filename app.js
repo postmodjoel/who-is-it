@@ -271,13 +271,9 @@ const els = {
   roomStatus: document.querySelector("#roomStatus"),
   seatRoster: document.querySelector("#seatRoster"),
   secretCard: document.querySelector("#secretCard"),
-  revealSecretButton: document.querySelector("#revealSecretButton"),
   swapSeatButton: document.querySelector("#swapSeatButton"),
-  drawPromptButton: document.querySelector("#drawPromptButton"),
   questionPrompt: document.querySelector("#questionPrompt"),
-  mysteryButton: document.querySelector("#mysteryButton"),
   mysteryResult: document.querySelector("#mysteryResult"),
-  mysteryUseCount: document.querySelector("#mysteryUseCount"),
   hintShelf: document.querySelector("#hintShelf"),
   characterBoard: document.querySelector("#characterBoard"),
   opponentPanel: document.querySelector("#opponentPanel"),
@@ -287,8 +283,6 @@ const els = {
   setupButton: document.querySelector("#setupButton"),
   editorButton: document.querySelector("#editorButton"),
   soundButton: document.querySelector("#soundButton"),
-  newGameButton: document.querySelector("#newGameButton"),
-  endRoundButton: document.querySelector("#endRoundButton"),
   settingSeed: document.querySelector("#settingSeed"),
   copySeedButton: document.querySelector("#copySeedButton"),
   debugEffectPicker: document.querySelector("#debugEffectPicker"),
@@ -343,7 +337,6 @@ function installStaticIcons() {
   syncThemeButton();
   setButtonIcon(els.setupButton, "settings", "Setup");
   if (els.swapSeatButton) { setButtonIcon(els.swapSeatButton, "swap", "End round"); els.swapSeatButton.classList.add("end-round-btn"); els.swapSeatButton.querySelector(".ib-label")?.remove(); els.swapSeatButton.insertAdjacentHTML("beforeend", "<span class=\"er-txt\">END ROUND</span>"); }
-  if (els.drawPromptButton) setButtonIcon(els.drawPromptButton, "prompt", "Draw prompt");
 }
 
 function currentTheme() {
@@ -735,7 +728,6 @@ function renderSecret() {
     els.secretCard.innerHTML = `
       <div class="portrait-wrap"><div class="secret-hidden-tile">🙈</div></div>
       <div class="card-plate"><h3>Face hidden</h3><p class="card-hint">tap to reveal</p></div>`;
-    if (els.revealSecretButton) setButtonIcon(els.revealSecretButton, "eye", "Show face");
     updateFloatingSecret(secret, false);
     return;
   }
@@ -760,7 +752,6 @@ function renderSecret() {
   `;
   MysteryModes.afterRenderSecret({ card: els.secretCard, character: secret, data: m });
   els.secretCard.title = "Tap to hide your face";
-  if (els.revealSecretButton) setButtonIcon(els.revealSecretButton, "eyeOff", "Hide face");
 }
 
 // A compact "you are" reminder (head + name) that pins to the top on mobile once the real secret card
@@ -814,15 +805,9 @@ function renderHints() {
   els.hintShelf.innerHTML = hints.map((hint) => `<span class="hint-pill">${escapeHtml(hint)}</span>`).join("");
 }
 
+// The per-seat mystery button is retired (the wheel picks the mode) - just keep the cue-card
+// sub-line empty so no stale status text lingers under the question.
 function renderMystery() {
-  if (!els.mysteryButton) { els.mysteryResult.textContent = ""; return; }   // button retired - wheel picks the mode
-  const used = state.players.filter((player) => player.mysteryUsed).length;
-  if (els.mysteryUseCount) els.mysteryUseCount.textContent = `${used}/2`;
-  const disabled = !state.settings.mystery || currentPlayer().mysteryUsed;
-  els.mysteryButton.disabled = disabled;
-  setButtonIcon(els.mysteryButton, "spark", currentPlayer().mysteryUsed ? "Mystery spent" : "Mystery effect");
-  // The sub-line under the question stays empty - the mystery button already shows its own state, so
-  // no filler status text ("Mystery is off." / "already burned its mystery.") clutters the cue card.
   els.mysteryResult.textContent = "";
 }
 
@@ -877,7 +862,15 @@ function drawPrompt() {
   let pool = deck;
   if (deck.some((p) => p && typeof p === "object" && p.heat)) {
     const allow = allowedHeats(state.roundAge || 0, state.settings.pg);
-    const filtered = deck.filter((p) => allow.includes(promptHeat(p)));
+    let filtered = deck.filter((p) => allow.includes(promptHeat(p)));
+    // A deck with nothing at the allowed heats (e.g. orgy has no mild) clamps to its LOWEST available
+    // tier rather than falling back to the whole deck - early rounds never leak feral prompts.
+    if (!filtered.length) {
+      for (const heat of ["mild", "medium", "feral"]) {
+        filtered = deck.filter((p) => promptHeat(p) === heat);
+        if (filtered.length) break;
+      }
+    }
     if (filtered.length) pool = filtered;
   }
   // {location} resolves to the current banner scene ("the Wine Cellar"); safe fallback if unset.
@@ -905,12 +898,6 @@ function wireCueCardClick() {
   cueCard.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); reroll(); }
   });
-}
-
-function activateMystery() {
-  triggerMysteryEffect(state.currentPlayer);
-  render();
-  scheduleSave();
 }
 
 function triggerMysteryEffect(playerIndex) {
@@ -1118,16 +1105,12 @@ function toggleSecretVisible() {
   currentPlayer().secretVisible = !currentPlayer().secretVisible;
   renderSecret();
 }
-if (els.revealSecretButton) els.revealSecretButton.addEventListener("click", toggleSecretVisible);
 if (els.secretCard) els.secretCard.addEventListener("click", toggleSecretVisible);
 
 // The arrows button ends the round (you tell each other who you were in person - the reveal shows
 // both secrets, then the next round deals). Seat swapping in local mode is the YOU/B chips.
 els.swapSeatButton.addEventListener("click", endRound);
 
-if (els.drawPromptButton) els.drawPromptButton.addEventListener("click", drawPrompt);
-if (els.mysteryButton) els.mysteryButton.addEventListener("click", activateMystery);
-if (els.endRoundButton) els.endRoundButton.addEventListener("click", endRound);
 if (els.copySeedButton) els.copySeedButton.addEventListener("click", () => {
   const code = currentSeedCode();
   if (els.settingSeed) els.settingSeed.value = code;

@@ -1,0 +1,6 @@
+# iCloud / Finder duplicate files ("foo 2.js", "bar 2.md")
+* 2.*
+*\ 2.*
+
+# macOS
+.DS_Store

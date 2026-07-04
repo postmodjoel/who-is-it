@@ -4636,18 +4636,17 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .wed-face { width: 116px; height: 116px; border-radius: 14px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
 .wed-heart { font-size: 2.4rem; animation: wed-beat 0.7s ease-in-out infinite; }
 @keyframes wed-beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
-.wed-reel { position: relative; height: 42px; width: 230px; margin: 0 auto; overflow: hidden; border-radius: 9px; background: #10202c; box-shadow: inset 0 0 0 2px #2e9ec7; animation: wed-spin 0.16s linear infinite; }
-.wed-reel b { display: block; height: 42px; line-height: 42px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.35rem; letter-spacing: 0.06em; }
-.wed-reel b:nth-child(1) { color: #ff6a6a; }   /* SUCCESS - the trap */
-.wed-reel b:nth-child(2) { color: #5fe06a; }   /* FAILURE - the good ending */
-@keyframes wed-spin { from { transform: translateY(0); } to { transform: translateY(-42px); } }
-.wed-overlay.wed-spun .wed-reel { animation: none; }
-.wed-overlay.wed-success .wed-reel { transform: translateY(0); box-shadow: inset 0 0 0 2px #ff6a6a; }
-.wed-overlay.wed-fail .wed-reel { transform: translateY(-42px); box-shadow: inset 0 0 0 2px #5fe06a; }
-.wed-banner { margin-top: 16px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.4rem; color: #fff; animation: wed-pop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1); }
-.wed-overlay.wed-success .wed-banner { color: #ff9a9a; }
-.wed-overlay.wed-fail .wed-banner { color: #8affa8; }
-@keyframes wed-pop { from { transform: scale(0.5); opacity: 0; } }
+/* The slot machine: one label rattling through the possible actions, then locking on the winner. */
+.wed-slot { display: grid; place-items: center; height: 52px; width: 260px; margin: 4px auto 0; border-radius: 10px; background: #10202c; box-shadow: inset 0 0 0 2px #2e9ec7; }
+.wed-slot-label { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.55rem; letter-spacing: 0.05em; color: #cfe8ff; }
+.wed-overlay.wed-locked .wed-slot { animation: wed-lock 0.4s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.wed-overlay.act-married .wed-slot { box-shadow: inset 0 0 0 2px #ffd24d; } .wed-overlay.act-married .wed-slot-label { color: #ffe08a; }
+.wed-overlay.act-slap .wed-slot { box-shadow: inset 0 0 0 2px #ff6a6a; } .wed-overlay.act-slap .wed-slot-label { color: #ff9a9a; }
+.wed-overlay.act-woohoo .wed-slot { box-shadow: inset 0 0 0 2px #5fe06a; } .wed-overlay.act-woohoo .wed-slot-label { color: #8affa8; }
+@keyframes wed-lock { from { transform: scale(0.7); } }
+/* A slapped Sim's card jolts sideways. */
+.character-card.sim-slapped { animation: sim-slap 0.5s ease-out; }
+@keyframes sim-slap { 0% { transform: translateX(0); } 12% { transform: translateX(10px) rotate(2deg); } 30% { transform: translateX(-8px) rotate(-2deg); } 50% { transform: translateX(5px); } 70% { transform: translateX(-3px); } 100% { transform: translateX(0); } }
 
 /* ===================== Astrology mode ===================== */
 .character-board.astrology-board {

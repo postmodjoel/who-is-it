@@ -237,6 +237,7 @@ const state = {
     mystery: true,
     locations: true,
     roles: true,
+    pg: false,          // "PG mode" - the wheel only lands on kid-safe modes, no breeding/woohoo
     boardSize: 24
   },
   currentPlayer: 0,
@@ -289,6 +290,7 @@ const els = {
   settingMystery: document.querySelector("#settingMystery"),
   settingLocations: document.querySelector("#settingLocations"),
   settingRoles: document.querySelector("#settingRoles"),
+  settingPG: document.querySelector("#settingPG"),
   settingBoardSize: document.querySelector("#settingBoardSize")
 };
 
@@ -626,9 +628,10 @@ function newGame(seedSalt, opts = {}) {
 
 // What the Wheel of Fate WILL land on for the current salt (deterministic; includes "no effect").
 function wheelTarget() {
-  const n = mysteryEffects.length + 1;   // +1 = the No Effect cell
+  const pool = state.settings.pg ? mysteryEffects.filter((e) => PG_SAFE_MODES.includes(e.id)) : mysteryEffects;
+  const n = pool.length + 1;   // +1 = the No Effect cell
   const idx = stableHash(`${state.gameSalt}:wheel`) % n;
-  return idx < mysteryEffects.length ? mysteryEffects[idx].id : null;
+  return idx < pool.length ? pool[idx].id : null;
 }
 // No-repeat wheel: the wheel draws from a persistent bag and never repeats a mode until you've
 // experienced every single one (then the bag resets for another full lap). Still salt-deterministic
@@ -652,19 +655,24 @@ const WHEEL_TIERS = [
 ];
 // woke needs every one of its component modes experienced first (belt-and-braces beyond its tier).
 const WOKE_PREREQS = ["gay-frogged", "orgy", "drugs", "disease", "fertility", "work", "disguise"];
+// PG mode: only these wholesome, "explain-to-a-10-year-old" modes are ever picked. Everything sexual/
+// drug/breeding/politically-charged (horny-potter, woke, gay-frogged, orgy, fertility, drugs, disease,
+// swipe, work, monocultural, judgement, murder, hidden-agendas, family-tree) is excluded.
+const PG_SAFE_MODES = ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "heads-only", "yugioh", "pixall", "habbo", "witness-protection-filter", "fireworks", "sims", "disguise"];
+function wheelPgOk(id) { return !state.settings.pg || id === null || PG_SAFE_MODES.includes(id); }
 function wheelTargetFromBag() {
   const known = new Set(mysteryEffects.map((e) => e.id));
   const seen = wheelBag();
   for (const tier of WHEEL_TIERS) {
-    let pool = tier.filter((id) => (id === null || known.has(id)) && !seen.includes(id));
+    let pool = tier.filter((id) => (id === null || known.has(id)) && !seen.includes(id) && wheelPgOk(id));
     // Gate WOKE until its prerequisite modes have all been seen.
     pool = pool.filter((id) => id !== "woke" || WOKE_PREREQS.every((p) => seen.includes(p)));
     if (pool.length) return pool[stableHash(`${state.gameSalt}:wheel`) % pool.length];
   }
   // Whole gauntlet complete - reset and start a fresh, escalating lap.
   try { localStorage.setItem(WHEEL_BAG_KEY, "[]"); } catch (e) { /* fine */ }
-  const first = WHEEL_TIERS[0].filter((id) => id === null || known.has(id));
-  return first[stableHash(`${state.gameSalt}:wheel`) % first.length];
+  const first = WHEEL_TIERS[0].filter((id) => (id === null || known.has(id)) && wheelPgOk(id));
+  return (first.length ? first[stableHash(`${state.gameSalt}:wheel`) % first.length] : null);
 }
 function markWheelSeen(id) {
   try {
@@ -957,9 +965,9 @@ function breedCharacters(aId, bId) {
   // PANTONE: dragging two people together doesn't breed - it MIXES them like paint. Both take the
   // averaged background AND the averaged skin tone, and their Pantone chips re-derive from the blend.
   if (mode === "pantone") { mixPantonePair(A, B); return; }
-  // SIMS: dragging two sims together doesn't breed - they get MARRIED, then a spinner lands on
-  // SUCCESS (stay together, broke + miserable) or FAILURE (divorce, split the money, blissful).
-  if (mode === "sims") { simsMarriage(A, B); return; }
+  // SIMS: dragging two sims spins a slot machine of interactions - MARRIED / SLAP / WOOHOO (WOOHOO is
+  // dropped in PG mode) - and plays out whichever it lands on.
+  if (mode === "sims") { simsInteract(A, B); return; }
   // HORNY POTTER: the only "drag" is the Dark Lord onto a victim - he Avada Kedavras them (marks them
   // as a NO). Anyone else dragging just jiggles ("not here").
   if (mode === "horny-potter") {
@@ -3779,52 +3787,84 @@ function applySims(effect) {
   simBankSet(bank);
   return { id: effect.id, name: effect.name, assignments };
 }
-// Drag two Sims together => a MARRIAGE minigame (à la the politics tug). A spinner rattles between
-// SUCCESS and FAILURE, then lands: SUCCESS = they stay together, both simoleons wiped and moods sink
-// to miserable ("til debt do us part"); FAILURE = they DIVORCE, the combined estate is split 50/50
-// and both come out blissfully happy. Deterministic per pair so online seats agree.
-function simsMarriage(A, B) {
+// Drag two Sims together => a SLOT MACHINE cycles the possible interactions (like the identity reels)
+// and lands on one: MARRIED, SLAP, or WOOHOO. WOOHOO (making a baby) is dropped in PG mode.
+function simsInteract(A, B) {
   const asg = state.global.mystery?.assignments;
   const a = asg && asg[A.id], b = asg && asg[B.id];
   if (!a || !b) return;
-  if (document.querySelector(".wed-overlay")) return;      // one ceremony at a time
+  if (document.querySelector(".wed-overlay")) return;      // one interaction at a time
+  const ACTIONS = state.settings.pg ? ["MARRIED", "SLAP"] : ["MARRIED", "SLAP", "WOOHOO"];
+  const action = ACTIONS[stableHash(`${state.gameSalt}:simact:${A.id}:${B.id}`) % ACTIONS.length];
   const ov = document.createElement("div");
   ov.className = "wed-overlay";
   ov.innerHTML = `<div class="wed-stage">
-      <div class="wed-title">💍 MARRIED</div>
+      <div class="wed-title">🎰 SIMS</div>
       <div class="wed-couple">
         <img class="wed-face" src="${A.image}" alt="">
-        <span class="wed-heart">💞</span>
+        <span class="wed-heart">↔</span>
         <img class="wed-face" src="${B.image}" alt="">
       </div>
-      <div class="wed-reel"><b>SUCCESS</b><b>FAILURE</b></div>
+      <div class="wed-slot"><b class="wed-slot-label">?</b></div>
     </div>`;
   document.body.appendChild(ov);
-  const success = stableHash(`${state.gameSalt}:wed:${A.id}:${B.id}:${(a.simoleons || 0) + (b.simoleons || 0)}`) % 2 === 0;
-  // Spin the reel, then lock onto the outcome.
+  const label = ov.querySelector(".wed-slot-label");
+  const face = (act) => `${{ MARRIED: "💍", SLAP: "👋", WOOHOO: "🛏️" }[act]} ${act}`;
+  // Rattle through the options, then lock on the chosen one.
+  let t = 0;
+  const spin = setInterval(() => { label.textContent = face(ACTIONS[t % ACTIONS.length]); t++; }, 110);
   setTimeout(() => {
-    ov.classList.add("wed-spun", success ? "wed-success" : "wed-fail");
-    const banner = document.createElement("div");
-    banner.className = "wed-banner";
-    banner.innerHTML = success
-      ? `⛓️ <b>SUCCESS</b> — til debt do us part`
-      : `🕊️ <b>DIVORCE</b> — happily ever after`;
-    ov.querySelector(".wed-stage").appendChild(banner);
-  }, 2300);
+    clearInterval(spin);
+    label.textContent = face(action);
+    ov.classList.add("wed-locked", `act-${action.toLowerCase()}`);
+  }, 1900);
   setTimeout(() => {
-    if (success) {
-      // Stay together: estate wiped, moods crater to miserable.
-      [a, b].forEach((s) => { s.simoleons = Math.round((s.simoleons || 0) * 0.04); s.mood = "red"; s.action = "Regretting the vows"; s.needs = { ...s.needs, fun: Math.min(s.needs?.fun ?? 20, 8), social: Math.min(s.needs?.social ?? 20, 12) }; });
-    } else {
-      // Divorce: split the combined estate down the middle, both come out happy.
-      const pot = (a.simoleons || 0) + (b.simoleons || 0);
-      a.simoleons = Math.round(pot / 2); b.simoleons = pot - a.simoleons;
-      [a, b].forEach((s) => { s.mood = "green"; s.action = "Living their best divorced life"; s.needs = { ...s.needs, fun: Math.max(s.needs?.fun ?? 80, 90), social: Math.max(s.needs?.social ?? 80, 88) }; });
-    }
-    const bank = simBankGet(); bank[A.id] = a.simoleons; bank[B.id] = b.simoleons; simBankSet(bank);   // wealth carries to Judgement
     ov.remove();
+    if (action === "WOOHOO") return simsWoohoo(A, B);
+    if (action === "SLAP") return simsSlap(A, B, a, b);
+    return simsMarried(A, B, a, b);
+  }, 2900);
+}
+// MARRIED: SUCCESS (stay together, estate wiped, both miserable) or FAILURE (divorce, split the estate
+// 50/50, both blissful). Deterministic per pair.
+function simsMarried(A, B, a, b) {
+  const success = stableHash(`${state.gameSalt}:wed:${A.id}:${B.id}:${(a.simoleons || 0) + (b.simoleons || 0)}`) % 2 === 0;
+  if (success) {
+    [a, b].forEach((s) => { s.simoleons = Math.round((s.simoleons || 0) * 0.04); s.mood = "red"; s.action = "Regretting the vows"; s.needs = { ...s.needs, fun: Math.min(s.needs?.fun ?? 20, 8), social: Math.min(s.needs?.social ?? 20, 12) }; });
+    flashToast("⛓️ Married — til debt do us part");
+  } else {
+    const pot = (a.simoleons || 0) + (b.simoleons || 0);
+    a.simoleons = Math.round(pot / 2); b.simoleons = pot - a.simoleons;
+    [a, b].forEach((s) => { s.mood = "green"; s.action = "Living their best divorced life"; s.needs = { ...s.needs, fun: Math.max(s.needs?.fun ?? 80, 90), social: Math.max(s.needs?.social ?? 80, 88) }; });
+    flashToast("🕊️ Divorce — happily ever after");
+  }
+  const bank = simBankGet(); bank[A.id] = a.simoleons; bank[B.id] = b.simoleons; simBankSet(bank);
+  renderBoard();
+}
+// SLAP: A wallops B. B's SOCIAL bottoms out and their face crumples (diabolically sad); A is elated.
+function simsSlap(A, B, a, b) {
+  const reface = (ch, expr) => { try { return window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, expression: expr, background: "transparent" }); } catch (e) { return null; } };
+  b.mood = "red"; b.needs = { ...b.needs, social: 1, fun: Math.min(b.needs?.fun ?? 20, 6) }; b.action = "Reeling from that slap"; const bi = reface(B, "sad"); if (bi) b.image = bi;
+  a.mood = "green"; a.needs = { ...a.needs, social: Math.max(a.needs?.social ?? 80, 96), fun: Math.max(a.needs?.fun ?? 80, 95) }; a.action = "Never felt more alive"; const ai = reface(A, "bigSmile"); if (ai) a.image = ai;
+  flashToast(`👋 SLAP! ${escapeHtml(B.name)} did NOT see that coming.`);
+  renderBoard();
+  const card = document.getElementById(`card-${B.id}`);
+  if (card) { card.classList.remove("sim-slapped"); void card.offsetWidth; card.classList.add("sim-slapped"); }
+}
+// WOOHOO: the classic Sims baby-maker (adult mode only). Reuses the shared birth animation + KEEP/ABORT.
+function simsWoohoo(A, B) {
+  const gayby = sameSex(A, B);
+  const baby = makeBaby(A, B, gayby);
+  playBirthAnimation(A.image, B.image, baby, true, () => offerKeepOrAbort(baby, () => {
+    state.board.push(baby);
+    if (state.global.mystery) state.global.mystery.assignments[baby.id] = { mood: "green", needs: { hunger: 92, social: 95, bladder: 70, fun: 98 }, action: "Being a fresh newborn", career: "Unemployed", simoleons: 0, ...simsPortrait(baby) };
+    if (baby.isGayby) persistGayby(baby);
+    netAnnounceBaby(baby); scheduleSave();
+    state.justBorn = baby.id;
+    if (typeof addLog === "function") addLog(`${A.name} + ${B.name} woohoo'd — baby ${baby.name}!`);
     renderBoard();
-  }, 3900);
+    state.justBorn = null;
+  }, () => abortBaby(baby, A, B)), { woohoo: true });
 }
 
 // HEADS ONLY: no cards at all - just every character's floating head (+ name) drifting around the
@@ -5177,6 +5217,7 @@ els.saveSetupButton.addEventListener("click", () => {
   state.settings.mystery = els.settingMystery.checked;
   state.settings.locations = els.settingLocations.checked;
   state.settings.roles = els.settingRoles.checked;
+  if (els.settingPG) state.settings.pg = els.settingPG.checked;
   state.settings.boardSize = Number(els.settingBoardSize.value);
   // A pasted seed code replays that exact round (board, location, wheel outcome, secrets).
   const code = els.settingSeed ? els.settingSeed.value.trim() : "";
@@ -5194,6 +5235,7 @@ function syncSettingsToForm() {
   els.settingMystery.checked = state.settings.mystery;
   els.settingLocations.checked = state.settings.locations;
   els.settingRoles.checked = state.settings.roles;
+  if (els.settingPG) els.settingPG.checked = state.settings.pg;
   els.settingBoardSize.value = String(state.settings.boardSize);
   if (els.settingSeed) els.settingSeed.value = state.gameSalt ? currentSeedCode() : "";
 }

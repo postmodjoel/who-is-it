@@ -92,34 +92,129 @@
     return function () { cancelled = true; };
   }
 
-  // Background tracks: a bassline + arpeggio over a looping chord progression. `prog` is a list of
-  // chords (arrays of MIDI notes); the scheduler walks 8th-notes across them.
+  // ===================== Music: the lo-bit lounge engine =====================
+  // 16-step bars over an 8-chord progression (a full lap is 8 bars, so the loop breathes), with a
+  // light lo-bit drum kit (kick = sine drop, snare = bandpass hiss, hat = ticked highpass noise)
+  // and AUTHORED melody phrases (two alternating 2-bar sentences, call-and-response) instead of a
+  // wallpapered arpeggio. Melody notes are chord-degree indices (negative = octave down, +10 = up
+  // an octave on degree n-10, null = rest).
+  function kick(vol) {
+    const c = ac(); if (!c || !enabled) return;
+    const o = c.createOscillator(); o.type = "sine";
+    const g = c.createGain(); const t = c.currentTime;
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.exponentialRampToValueAtTime(45, t + 0.09);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    o.connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.14);
+  }
+  const snare = (vol) => noise(0.09, { vol, filter: "bandpass", freq: 2400, bus: musicBus });
+  const hat = (vol) => noise(0.03, { vol, filter: "highpass", freq: 7500, bus: musicBus });
+
+  // Shared drum patterns (16 steps): a lounge brush kit and a lo-bit kit with more bounce.
+  const DRUMS = {
+    brush: { k: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0], s: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0.6], h: [0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0.4] },
+    lobit: { k: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0], s: [0, 0, 0, 0, 1, 0, 0, 0.4, 0, 0, 0, 0, 1, 0, 0, 0], h: [1, 0, 0.5, 0, 1, 0, 0.5, 0.3, 1, 0, 0.5, 0, 1, 0, 0.5, 0.5] },
+    sparse: { k: [1, 0, 0, 0, 0, 0, 0, 0, 0.7, 0, 0, 0, 0, 0, 0, 0], s: [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0], h: [0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0] }
+  };
+  // Bass patterns (16 steps): degree index into the chord, or "5th"/null.
+  const BASS = {
+    lounge: [0, null, null, null, null, null, 1, null, 0, null, null, null, 2, null, null, null],
+    walk: [0, null, null, 1, null, null, 2, null, 3, null, null, 2, null, null, 1, null],
+    pump: [0, null, 0, null, null, null, 0, null, 0, null, 0, null, null, null, 1, null]
+  };
+  // Two-bar melodic sentences (32 slots). A plays on bars 0-1 & 4-5; B answers on 2-3 & 6-7.
   const TRACKS = [
     { name: "🔇 None" },
-    { name: "🫧 Bubblegum", bpm: 116, prog: [[57, 60, 64], [62, 65, 69], [64, 67, 71], [60, 64, 67]], lead: "triangle", bass: "square" },
-    { name: "🎹 Lounge",    bpm: 92,  prog: [[57, 60, 64, 67], [55, 59, 62, 65], [53, 57, 60, 64], [55, 58, 62, 65]], lead: "sine", bass: "sine" },
-    { name: "🕹️ 8-bit Quest", bpm: 132, prog: [[45, 52, 57], [48, 55, 60], [50, 57, 62], [43, 50, 55]], lead: "square", bass: "square" },
-    { name: "🛗 Elevator",  bpm: 84,  prog: [[60, 64, 67, 71], [57, 60, 64, 69], [59, 62, 65, 69], [60, 64, 67, 72]], lead: "sine", bass: "triangle" }
+    {
+      name: "🎹 Lounge", bpm: 94, lead: "sine", bass: "sine", drums: DRUMS.brush, bassPat: BASS.walk,
+      prog: [[57, 60, 64, 67], [55, 59, 62, 65], [53, 57, 60, 64], [55, 58, 62, 65], [57, 60, 64, 67], [52, 55, 59, 62], [53, 57, 60, 64], [55, 59, 62, 66]],
+      melA: [2, null, null, 3, null, null, 2, null, 1, null, null, null, null, null, 0, null, 2, null, 3, null, 12, null, null, null, 3, null, 2, null, null, null, null, null],
+      melB: [null, null, 1, null, 2, null, null, null, 3, null, 2, null, 1, null, null, null, 0, null, null, null, 1, null, 2, null, null, null, 3, null, 2, null, 1, null]
+    },
+    {
+      name: "🛗 Elevator", bpm: 84, lead: "sine", bass: "triangle", drums: DRUMS.sparse, bassPat: BASS.lounge,
+      prog: [[60, 64, 67, 71], [57, 60, 64, 69], [59, 62, 65, 69], [60, 64, 67, 72], [58, 62, 65, 69], [57, 60, 64, 69], [55, 59, 62, 67], [60, 64, 67, 71]],
+      melA: [0, null, null, null, 1, null, null, null, 2, null, null, null, null, null, null, null, 3, null, null, 2, null, null, 1, null, null, null, null, null, null, null, null, null],
+      melB: [null, null, 2, null, null, null, 3, null, null, null, 12, null, null, null, null, null, 2, null, 1, null, null, null, 0, null, null, null, null, null, null, null, null, null]
+    },
+    {
+      name: "🕹️ Arcade Lounge", bpm: 106, lead: "square", leadVol: 0.16, bass: "triangle", drums: DRUMS.lobit, bassPat: BASS.pump,
+      prog: [[57, 60, 64, 67], [53, 57, 60, 64], [55, 59, 62, 65], [57, 60, 64, 69], [50, 53, 57, 60], [55, 58, 62, 65], [52, 55, 59, 62], [55, 59, 62, 65]],
+      melA: [0, null, 1, null, 2, null, 3, null, 12, null, null, null, 3, null, 2, null, 1, null, null, null, 2, null, 1, null, 0, null, null, null, null, null, -1, null],
+      melB: [12, null, null, 11, null, null, 13, null, 12, null, 11, null, 10, null, null, null, 3, null, null, 2, null, null, 1, null, 2, null, null, null, null, null, null, null]
+    },
+    {
+      name: "🌙 Night Drive", bpm: 100, lead: "triangle", bass: "sine", drums: DRUMS.lobit, bassPat: BASS.lounge,
+      prog: [[45, 52, 57, 60], [48, 55, 60, 64], [43, 50, 55, 59], [45, 52, 57, 60], [41, 48, 53, 57], [48, 55, 60, 64], [43, 50, 55, 59], [45, 52, 57, 62]],
+      melA: [null, null, 12, null, null, 13, null, null, 12, null, 11, null, null, null, null, null, 10, null, null, 11, null, null, 12, null, null, null, null, null, null, null, null, null],
+      melB: [13, null, null, null, 12, null, null, null, 11, null, 12, null, 10, null, null, null, null, null, 1, null, 2, null, 3, null, 2, null, null, null, null, null, null, null]
+    },
+    {
+      name: "📼 Hold Music", bpm: 96, lead: "sine", bass: "triangle", drums: DRUMS.brush, bassPat: BASS.lounge,
+      prog: [[62, 66, 69, 73], [60, 64, 67, 71], [59, 62, 66, 69], [57, 61, 64, 69], [62, 66, 69, 73], [64, 67, 71, 74], [59, 62, 66, 69], [62, 66, 69, 71]],
+      melA: [3, null, null, null, 2, null, 3, null, 12, null, null, null, null, null, null, null, 2, null, null, null, 1, null, 2, null, 3, null, null, null, null, null, null, null],
+      melB: [null, null, 12, null, null, null, 13, null, 12, null, null, null, 3, null, null, null, 2, null, 3, null, 2, null, 1, null, 0, null, null, null, null, null, null, null]
+    }
   ];
   function stopMusic() { if (musicTimer) { clearInterval(musicTimer); musicTimer = null; } }
   function startMusic() {
     stopMusic();
     const T = TRACKS[track]; if (!T || !T.prog || !enabled) return;
     ac();
-    const eighth = 30000 / T.bpm;      // ms per 8th note
+    const sixteenth = 15000 / T.bpm;   // ms per 16th note
     step = 0;
+    const degNote = (chord, d) => {
+      if (d == null) return null;
+      if (d < 0) return chord[0] + 12 * d;              // -1 => root an octave down
+      if (d >= 10) return chord[(d - 10) % chord.length] + 12;
+      return chord[d % chord.length];
+    };
     musicTimer = setInterval(() => {
       if (!enabled || !musicOn) { stopMusic(); return; }
-      const bar = Math.floor(step / 8) % T.prog.length;
+      const bar = Math.floor(step / 16) % T.prog.length;
       const chord = T.prog[bar];
-      const s = step % 8;
-      // Bass on beats 1 and 5; a gentle arpeggio climbing the chord on the off-beats.
-      if (s === 0 || s === 4) tone(mtof(chord[0] - 12), eighth / 1000 * 1.6, { type: T.bass, vol: 0.5, bus: musicBus });
-      const note = chord[s % chord.length] + (s >= 4 ? 12 : 0);
-      tone(mtof(note), eighth / 1000 * 0.9, { type: T.lead, vol: 0.32, bus: musicBus });
-      if (s === 6) tone(mtof(chord[(s + 1) % chord.length] + 12), eighth / 1000 * 0.7, { type: T.lead, vol: 0.2, bus: musicBus });
+      const s = step % 16;
+      // Drums: light, looped, and quiet enough to sit under the table talk.
+      if (T.drums.k[s]) kick(0.5 * T.drums.k[s]);
+      if (T.drums.s[s]) snare(0.14 * T.drums.s[s]);
+      if (T.drums.h[s]) hat(0.05 * T.drums.h[s]);
+      // Bass: patterned, an octave down, slightly longer than the grid so it breathes.
+      const bassDeg = T.bassPat[s];
+      if (bassDeg != null) tone(mtof(chord[bassDeg % chord.length] - 12), sixteenth / 1000 * 2.4, { type: T.bass, vol: 0.42, bus: musicBus });
+      // Melody: sentence A for two bars, sentence B answers for two - so the phrase only repeats
+      // every 4 bars, over an 8-bar progression: the full loop is ~30-45s, not 8s.
+      const sentence = (Math.floor(bar / 2) % 2 === 0) ? T.melA : T.melB;
+      const mel = sentence[(bar % 2) * 16 + s];
+      const note = degNote(chord, mel);
+      if (note != null) tone(mtof(note), sixteenth / 1000 * 1.7, { type: T.lead, vol: T.leadVol || 0.26, bus: musicBus });
       step++;
-    }, eighth);
+    }, sixteenth);
+  }
+  // Title groove: just bass and drums - a two-bar lo-bit pocket that vamps under the menu.
+  let titleTimer = null, titleStep = 0;
+  function stopTitleLoop() { if (titleTimer) { clearInterval(titleTimer); titleTimer = null; } }
+  function startTitleLoop() {
+    stopTitleLoop();
+    if (!enabled) return;
+    ac();
+    const bpm = 96, sixteenth = 15000 / bpm;
+    const bassLine = [33, null, null, 33, null, null, 36, null, 33, null, null, 31, null, null, 28, null,
+      33, null, null, 33, null, null, 36, null, 38, null, 36, null, 33, null, 31, null];
+    const k = [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0];
+    const h = [1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0.4];
+    const sPat = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0];
+    titleStep = 0;
+    titleTimer = setInterval(() => {
+      if (!enabled) { stopTitleLoop(); return; }
+      const s = titleStep % 16;
+      if (k[s]) kick(0.5);
+      if (sPat[s]) snare(0.12);
+      if (h[s]) hat(0.045 * h[s]);
+      const b = bassLine[titleStep % 32];
+      if (b != null) tone(mtof(b), sixteenth / 1000 * 2.2, { type: "triangle", vol: 0.44, bus: musicBus });
+      titleStep++;
+    }, sixteenth);
   }
 
   window.Sound = {
@@ -132,7 +227,9 @@
     currentTrack: () => track,
     isMusicOn: () => musicOn && track > 0,
     setTrack(i) { track = Math.max(0, Math.min(TRACKS.length - 1, i | 0)); if (musicOn && track > 0) startMusic(); else stopMusic(); },
-    setMusic(on) { musicOn = !!on; if (musicOn && track > 0) startMusic(); else stopMusic(); },
+    setMusic(on) { musicOn = !!on; if (musicOn && track > 0) { stopTitleLoop(); startMusic(); } else stopMusic(); },
+    // The title-screen groove (bass + drums only). Suppressed while real music is playing.
+    titleLoop(on) { if (on && !(musicOn && track > 0)) startTitleLoop(); else stopTitleLoop(); },
     spinTicks(durationMs, fromGap, toGap) { ac(); return spinTicks(durationMs, fromGap, toGap); }
   };
 })();

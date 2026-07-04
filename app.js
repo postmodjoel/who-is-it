@@ -1959,7 +1959,11 @@ function showTitleScreen() {
       <button type="button" class="button secondary ts-gear" aria-label="Settings" title="Settings">⚙</button>
     </div>`;
   document.body.appendChild(ov);
-  const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
+  const close = () => { if (window.Sound) Sound.titleLoop(false); ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
+  // The title groove (bass + drums) can only start after a user gesture unlocks the AudioContext.
+  ov.addEventListener("pointerdown", () => { if (window.Sound) { Sound.resume(); Sound.titleLoop(true); } }, { once: true });
+  // Every menu tap clicks (PG/gear play their own richer sounds).
+  ov.querySelectorAll("button:not(.ts-pg):not(.ts-gear)").forEach((b) => b.addEventListener("click", () => sfx("click")));
   // PG toggle: turning it ON is free; turning it OFF is gated behind an adults-only riddle.
   const pgBtn = ov.querySelector(".ts-pg");
   const paintPg = () => { pgBtn.classList.toggle("on", state.settings.pg); pgBtn.querySelector("b").textContent = state.settings.pg ? "ON" : "OFF"; pgBtn.setAttribute("aria-pressed", String(state.settings.pg)); };

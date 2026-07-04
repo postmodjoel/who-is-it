@@ -181,11 +181,14 @@
   function mannequin(t) {
     const skin = state.skin;
     const hair = "#332017";
+    const neckShade = shadeColor(skin, 0.82);
     return `
-      <path d='M108 104L108 153Q128 165 148 153L148 104Z' fill='${skin}' stroke='${ink}' stroke-width='3'/>
+      <path d='M106 144C108 170 115 191 128 199C141 191 148 170 150 144L151 205Q128 215 105 205Z' fill='${skin}'/>
+      <path d='M107 168C111 188 118 200 128 204C138 200 145 188 149 168' fill='none' stroke='${neckShade}' stroke-width='2' stroke-linecap='round' opacity='.52'/>
       <circle cx='67' cy='105' r='11' fill='${skin}' stroke='${ink}' stroke-width='3'/>
       <circle cx='189' cy='105' r='11' fill='${skin}' stroke='${ink}' stroke-width='3'/>
       <path d='M128 39c36 0 60 27 60 67 0 25-8 46-22 59-10 10-23 15-38 15s-28-5-38-15c-14-13-22-34-22-59 0-40 24-67 60-67Z' fill='${skin}' stroke='${ink}' stroke-width='3.4'/>
+      <path d='M103 166Q128 183 153 166' fill='none' stroke='${neckShade}' stroke-width='2.2' stroke-linecap='round' opacity='.35'/>
       <path d='M70 93c8-37 31-58 60-58 30 0 53 20 60 58-31-13-77-13-120 0Z' fill='${hair}' stroke='${ink}' stroke-width='3' stroke-linejoin='round'/>
       <path d='M101 107c9-3 18-3 27 0M136 107c9-3 18-3 27 0' stroke='${ink}' stroke-width='2.4' stroke-linecap='round'/>
       <path d='M111 127q17 9 34 0' fill='none' stroke='${ink}' stroke-width='2.4' stroke-linecap='round'/>
@@ -290,11 +293,13 @@
     }
     if (item.type === "singlet") {
       const skin = state.skin;
+      const skinLo = shadeColor(skin, 0.86);
       return baseBody(t, skin, `
-        <path d='M103 145L113 145L110 169L102 169Z' fill='${c}' stroke='${ink}' stroke-width='2'/>
-        <path d='M153 145L143 145L146 169L154 169Z' fill='${c}' stroke='${ink}' stroke-width='2'/>
-        <path d='M109 148C110 187 91 211 89 256H167C165 211 146 187 147 148Q128 168 109 148Z' fill='${c}' stroke='${ink}' stroke-width='3' stroke-linejoin='round'/>
-        <path d='M113 158Q128 176 143 158' fill='none' stroke='${shadeColor(c, 0.75)}' stroke-width='1.8' stroke-linecap='round'/>
+        <path d='M96 151C88 160 85 176 84 196L94 198C96 176 102 160 112 150Z' fill='${c}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
+        <path d='M160 151C168 160 171 176 172 196L162 198C160 176 154 160 144 150Z' fill='${c}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
+        <path d='M103 160C109 174 118 181 128 181C138 181 147 174 153 160C158 194 164 222 168 256H88C92 222 98 194 103 160Z' fill='${c}' stroke='${ink}' stroke-width='3' stroke-linejoin='round'/>
+        <path d='M107 164Q128 192 149 164' fill='none' stroke='${shadeColor(c, 0.74)}' stroke-width='2' stroke-linecap='round'/>
+        <path d='M91 184C96 200 98 218 97 244M165 184C160 200 158 218 159 244' fill='none' stroke='${skinLo}' stroke-width='1.6' stroke-linecap='round' opacity='.62'/>
       `);
     }
     return baseBody(t, c, crewCollar(c));
@@ -484,10 +489,10 @@
     const a = item.accent || shadeColor(c, 1.2);
     const lo = shadeColor(c, 0.76);
     const hi = shadeColor(c, 1.12);
-    const sleeveL = `M70 155C91 163 106 188 113 256H72C64 214 61 176 70 155Z`;
-    const sleeveR = `M186 155C165 163 150 188 143 256H184C192 214 195 176 186 155Z`;
-    const openLeft = `M75 153C94 158 110 174 119 256H74Z`;
-    const openRight = `M181 153C162 158 146 174 137 256H182Z`;
+    const sleeveL = `M52 160C74 148 105 165 122 256H52C46 217 44 178 52 160Z`;
+    const sleeveR = `M204 160C182 148 151 165 134 256H204C210 217 212 178 204 160Z`;
+    const openLeft = `M55 158C82 151 110 174 123 256H72C64 219 61 181 55 158Z`;
+    const openRight = `M201 158C174 151 146 174 133 256H184C192 219 195 181 201 158Z`;
     const centreZip = `<path d='M128 158V256' stroke='${ink}' stroke-width='2.5' stroke-linecap='round'/>`;
 
     if (item.type === "overalls") {

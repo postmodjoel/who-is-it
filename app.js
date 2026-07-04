@@ -648,8 +648,8 @@ function wheelBag() {
 // and gets progressively more feral, finishing on WOKE (the everything-at-once finale). Within the
 // current tier the pick is salt-random for variety. Once the whole gauntlet is seen the bag resets.
 const WHEEL_TIERS = [
-  ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", null],
-  ["knockoff-manor", "family-tree-disaster", "heads-only", "yugioh", "pixall", "habbo", "horny-potter"],
+  ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "habbo", null],
+  ["knockoff-manor", "family-tree-disaster", "heads-only", "yugioh", "pixall", "horny-potter"],
   ["hidden-agendas", "monocultural", "witness-protection-filter", "gay-frogged", "swipe", "fireworks", "sims"],
   ["drugs", "disguise", "disease", "fertility", "orgy", "judgement", "work"],
   ["woke"]

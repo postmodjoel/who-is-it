@@ -130,6 +130,12 @@ const MYSTERY_EFFECT_DEFINITIONS = [
     exampleQuestion: "Is your person #OpenToWork?"
   },
   {
+    id: "neighbourhood-watch",
+    name: "NEIGHBOURHOOD WATCH",
+    apply: applyNeighbourhoodWatch,
+    exampleQuestion: "Is your person the group admin?"
+  },
+  {
     id: "woke",
     name: "WOKE Mode",
     apply: applyWoke,
@@ -206,6 +212,7 @@ const MYSTERY_MODE_META = {
   "horny-potter": { tier: 2, wheelOrder: 50, pgSafe: false, glyph: "☇", boardClasses: ["hp-board"] },
   "witness-protection-filter": { tier: 2, wheelOrder: 60, pgSafe: true, glyph: "⊘", flash: "#c9d200" },
   linkedin: { tier: 2, wheelOrder: 70, pgSafe: true, glyph: "in", boardClasses: ["linkedin-board"], bodyClasses: ["mode-linkedin"], afterDefaultBoard: renderLinkedinTicker, teardown: resetLinkedinTicker },
+  "neighbourhood-watch": { tier: 2, wheelOrder: 75, pgSafe: true, glyph: "⚑", boardClasses: ["nw-board"], flash: "#4267b2", afterDefaultBoard: renderNwTicker, teardown: resetNwTicker },
   "hidden-agendas": { tier: 3, wheelOrder: 10, pgSafe: false, glyph: "⚿", flash: "#3a5fd0" },
   monocultural: { tier: 3, wheelOrder: 20, pgSafe: false, glyph: "⧉", flash: "#c88968" },
   "gay-frogged": { tier: 3, wheelOrder: 30, pgSafe: false, glyph: "⚧", flash: "rainbow", decorateLocation: decorateGayFroggedLocation },
@@ -386,6 +393,62 @@ function resetLinkedinTicker() {
   if (linkedinLikeTimer) { clearInterval(linkedinLikeTimer); linkedinLikeTimer = null; }
   linkedinPaused = false;
   const strip = document.getElementById("linkedinTicker");
+  if (strip) strip.remove();
+}
+
+// ===================== NEIGHBOURHOOD WATCH: the group feed ticker =====================
+// Same engine as the LinkedIn ticker: one post at a time above the board, an angry-react counter
+// that ticks up cosmetically (local-only), a comment that slides in, ~12s rotation, pause on hover.
+let nwRotateTimer = null, nwReactTimer = null, nwPostIdx = 0, nwPaused = false;
+function renderNwTicker() {
+  const posts = state.global.mystery?.posts || [];
+  if (!posts.length) { resetNwTicker(); return; }
+  const wrap = document.querySelector(".board-wrap");
+  if (!wrap) return;
+  let strip = document.getElementById("nwTicker");
+  if (!strip) {
+    strip = document.createElement("div");
+    strip.id = "nwTicker";
+    strip.className = "nw-ticker";
+    strip.addEventListener("mouseenter", () => { nwPaused = true; });
+    strip.addEventListener("mouseleave", () => { nwPaused = false; });
+    wrap.insertBefore(strip, wrap.firstChild);
+    nwPostIdx = 0;
+    paintNwPost();
+  }
+  if (!nwRotateTimer) nwRotateTimer = setInterval(() => {
+    if (nwPaused) return;
+    if (state.global.mystery?.id !== "neighbourhood-watch") { resetNwTicker(); return; }
+    nwPostIdx = (nwPostIdx + 1) % (state.global.mystery.posts || [1]).length;
+    paintNwPost();
+  }, 12000);
+  if (!nwReactTimer) nwReactTimer = setInterval(() => {
+    if (nwPaused) return;
+    const el = document.querySelector("#nwTicker .nw-reacts b");
+    if (el) { const n = parseInt(el.dataset.n || "0", 10) + 1; el.dataset.n = n; el.textContent = n; }
+  }, 2600);
+}
+function paintNwPost() {
+  const strip = document.getElementById("nwTicker");
+  const m = state.global.mystery;
+  const posts = m?.posts || [];
+  if (!strip || !posts.length) return;
+  const p = posts[nwPostIdx % posts.length];
+  const ch = characterById(p.authorId);
+  const avatar = ch && ch.image ? `<img class="nw-avatar" src="${ch.image}" alt="">` : `<span class="nw-avatar nw-avatar-blank">f</span>`;
+  strip.innerHTML = `
+    <div class="nw-group-head">${escapeHtml(m.groupName || "NEIGHBOURHOOD WATCH")} <span>· Private group</span></div>
+    <div class="nw-post" role="status">
+      <div class="nw-post-head">${avatar}<div><b>${escapeHtml(p.author)}</b><span>${escapeHtml(p.role)} · ${escapeHtml(p.when)}</span></div></div>
+      <div class="nw-post-body">${escapeHtml(p.text)}</div>
+      <div class="nw-post-foot"><span class="nw-reacts">😡 <b data-n="${p.reacts}">${p.reacts}</b></span><span class="nw-comment">💬 <b>${escapeHtml(p.commenter)}:</b> ${escapeHtml(p.comment)}</span></div>
+    </div>`;
+}
+function resetNwTicker() {
+  if (nwRotateTimer) { clearInterval(nwRotateTimer); nwRotateTimer = null; }
+  if (nwReactTimer) { clearInterval(nwReactTimer); nwReactTimer = null; }
+  nwPaused = false;
+  const strip = document.getElementById("nwTicker");
   if (strip) strip.remove();
 }
 
@@ -1128,6 +1191,7 @@ function resetTransientBoardRenders() {
   if (modeId !== "pixall") stopPixallLoop();
   if (modeId !== "sims") stopSimsLoop();
   if (modeId !== "linkedin") resetLinkedinTicker();
+  if (modeId !== "neighbourhood-watch") resetNwTicker();
   stopPropLoop();
 }
 
@@ -1971,6 +2035,22 @@ function getMysteryCardData(character) {
         ${locationHtml}
         <div class="li-connections">${escapeHtml(a.connections || "")}</div>
         <div class="li-skills">${skills}</div>
+      </div>`
+    };
+  }
+  if (mystery.id === "neighbourhood-watch") {
+    const a = assignment;
+    const isAdmin = /admin|moderator/i.test(a.role || "");
+    return {
+      effectName: mystery.name,
+      cardClass: `nw${isAdmin ? " nw-admin" : ""}`,
+      cornerHtml: isAdmin ? `<span class="nw-admin-badge">ADMIN</span>` : "",
+      html: `<div class="nw-sheet">
+        <div class="nw-name">${escapeHtml(a.displayName)}</div>
+        <div class="nw-role">${escapeHtml(a.role)}</div>
+        <div class="nw-since">🏠 ${escapeHtml(a.street)} · since ${a.since}</div>
+        ${a.feudWith ? `<div class="nw-feud">⚔ Feuding with <b>${escapeHtml(a.feudWith)}</b></div>` : ""}
+        <div class="nw-gripe">📢 Posting about: ${escapeHtml((a.gripe || "").replace("{target}", a.feudWith || "the new people"))}</div>
       </div>`
     };
   }
@@ -3086,6 +3166,54 @@ function applyLinkedin(effect) {
     likes: 40 + (stableHash(`${state.gameSalt}:li:${ch.id}:lk`) % 4000)
   }));
   return { id: effect.id, name: effect.name, assignments, posts };
+}
+
+// NEIGHBOURHOOD WATCH: the suburban-Facebook-group sibling of LINKEDIN. Every face becomes a group
+// member — role badge, street + lived-here-since year, and a FEUD with another board member. The
+// ticker above the board cycles assembled posts (opener + gripe + evidence + signoff), with gripes
+// that name the feud target. Surnames reuse the LinkedIn derivation (same salt key), so the same
+// person keeps the same full name across both modes — the universe remembers.
+function applyNeighbourhoodWatch(effect) {
+  const D = window.GameData;
+  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:nw:${salt}`) % arr.length];
+  const surnamesByBucket = D.linkedinSurnames || {};
+  const fullName = (ch) => {
+    const bucket = SURNAME_BUCKET[ch.traits && ch.traits.skin] || "medSouth";
+    const pool = surnamesByBucket[bucket] || surnamesByBucket.medSouth || ["Smith"];
+    return `${toSentenceCase(ch.name)} ${pool[stableHash(`${state.gameSalt}:li:${ch.id}:sn`) % pool.length]}`;
+  };
+  const groupName = pick(D.nwGroupNames || ["NEIGHBOURHOOD WATCH"], "group");
+  const assignments = {};
+  const n = state.board.length;
+  state.board.forEach((ch, i) => {
+    const h = stableHash(`${state.gameSalt}:nw:${ch.id}`);
+    // Feud target: another board member, never self, salt-deterministic.
+    const feud = n > 1 ? state.board[(i + 1 + (h % (n - 1))) % n] : null;
+    assignments[ch.id] = {
+      displayName: fullName(ch),
+      role: pick(D.nwRoles || ["Member"], `${ch.id}:role`),
+      street: pick(D.nwStreets || ["Cavendish St"], `${ch.id}:st`),
+      since: 1962 + (h % 62),                       // lived here since 1962..2023
+      feudWith: feud ? fullName(feud) : null,
+      gripe: pick(D.nwGripes || ["the bins"], `${ch.id}:gr`)
+    };
+  });
+  // The group feed: up to 10 members posting. {target} in a gripe resolves to the author's feud.
+  const posts = state.board.slice(0, 10).map((ch) => {
+    const a = assignments[ch.id];
+    const gripe = a.gripe.replace("{target}", a.feudWith || "the new people at number 42");
+    return {
+      authorId: ch.id,
+      author: a.displayName,
+      role: a.role,
+      when: `${1 + (stableHash(`${state.gameSalt}:nw:${ch.id}:wh`) % 9)}h`,
+      text: `${pick(D.nwOpeners, `${ch.id}:po`)} ${gripe}. ${pick(D.nwEvidence, `${ch.id}:pe`)} ${pick(D.nwSignoffs, `${ch.id}:ps`)}`,
+      commenter: assignments[state.board[(state.board.indexOf(ch) + 3) % n].id].displayName,
+      comment: pick(D.nwComments, `${ch.id}:pc`),
+      reacts: 3 + (stableHash(`${state.gameSalt}:nw:${ch.id}:rx`) % 84)
+    };
+  });
+  return { id: effect.id, name: effect.name, groupName, assignments, posts };
 }
 
 // Disease Mode: every character gets a sheet of (deliberately outdated) diagnoses with MINOR/MAJOR/

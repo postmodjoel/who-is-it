@@ -939,6 +939,47 @@ window.GameData = {
     { text: "Recreate the moment you and another Habbo turned the lights off. Keep it entirely bobba.", heat: "feral" },
     { text: "Sell the person opposite a 'private bobba room' upgrade. Detail exactly what it includes.", heat: "feral" }
   ],
+  // NEIGHBOURHOOD WATCH: the suburban-Facebook-group sibling of LinkedIn. mild+medium stay PG-clean
+  // (bin drama, footage threats); feral is unhinged suburbia, never sexual — PG caps at medium anyway.
+  "neighbourhood-watch": [
+    { text: "Read your post about the bins out loud. It is 400 words long. Commit to all of them.", heat: "mild" },
+    { text: "Announce you have footage. You do not have footage. Double down anyway.", heat: "mild" },
+    { text: "Do the 'Not naming names. You know who you are.' post at someone at this table.", heat: "mild" },
+    { text: "Report a 'suspicious person' who is very clearly just a man checking his phone.", heat: "mild" },
+    { text: "Give the passive-aggressive 'friendly reminder' about the shared driveway. Weaponise the word 'friendly'.", heat: "mild" },
+    { text: "Post about a lost cat with far too much personal backstory. The cat is fine.", heat: "mild" },
+    { text: "Ask if 'anyone else heard that noise last night' and describe the noise for a full thirty seconds.", heat: "mild" },
+    { text: "Do the admin's pinned post about being civil. Make it wildly uncivil.", heat: "mild" },
+    { text: "Sell something on Marketplace with the phrase 'no lowballers, I know what I have'. It's junk.", heat: "mild" },
+    { text: "Recommend a tradie with terrifying intensity. 'Ask for Dave. Tell him Sharon sent you.'", heat: "mild" },
+    { text: "Complain about hoon behaviour on the street. Slowly reveal you know the exact car, driver, and mother.", heat: "mild" },
+    { text: "Ask the group if the fireworks last night 'were legal'. You already called someone.", heat: "mild" },
+    { text: "Give a weather warning like it's the apocalypse. It's a bit of rain.", heat: "mild" },
+    { text: "Do the 'does anyone know why the police were on Cavendish St' post, then refuse all follow-up questions.", heat: "mild" },
+    { text: "Accuse the person opposite of putting their bin out a full day early. Present the timeline.", heat: "medium" },
+    { text: "Read the comment thread of your own post, playing all five escalating commenters.", heat: "medium" },
+    { text: "Announce you're leaving the group, then reply to three more comments on your way out.", heat: "medium" },
+    { text: "Do the man who replies 'simple fix' to every problem with an illegal solution.", heat: "medium" },
+    { text: "Accuse a dog at this table of the crime on your nature strip. Address the owner coldly.", heat: "medium" },
+    { text: "Get muted by the admin mid-rant. Continue the rant in mime.", heat: "medium" },
+    { text: "Post the blurry night-cam footage and narrate it like a nature documentary. It's a possum.", heat: "medium" },
+    { text: "Start a petition about the new speed bump. Collect signatures from the table right now.", heat: "medium" },
+    { text: "Do the 'in MY day this street' monologue and make the past sound genuinely worse.", heat: "medium" },
+    { text: "Reply 'following' to something devastating and personal. Say it with your whole chest.", heat: "medium" },
+    { text: "Confront the person opposite about their hedge. The hedge is fine. This is about something deeper.", heat: "medium" },
+    { text: "Give the 'I don't usually post but' speech before the pettiest grievance imaginable.", heat: "medium" },
+    { text: "Organise a street meeting about the parking situation. Nobody comes. Hold it anyway.", heat: "medium" },
+    { text: "Launch the group poll that splits the whole street into two warring factions. Read the options.", heat: "feral" },
+    { text: "Screenshot a private message and post it to the group. Defend this at the tribunal.", heat: "feral" },
+    { text: "Do the full unhinged 3am post that gets the whole group archived. Every capital letter.", heat: "feral" },
+    { text: "Reveal you've kept a folder on a neighbour since 2019. Present your findings to the table.", heat: "feral" },
+    { text: "Confess YOU are the one who's been moving everyone's bins. Explain your reign of terror.", heat: "feral" },
+    { text: "Stage the admin coup. Depose the current admin at this table and seize the pinned post.", heat: "feral" },
+    { text: "Read the defamation apology the group's lawyers made you post. Make it worse than the original.", heat: "feral" },
+    { text: "Accuse the whole table of being 'the new people from number 42'. List everything that's changed since they came.", heat: "feral" },
+    { text: "Do the neighbour who took the fence dispute to A Current Affair. Give the driveway interview.", heat: "feral" },
+    { text: "Announce the street's WhatsApp splinter group, live, naming exactly who is not invited and why.", heat: "feral" }
+  ],
   "prop-panic": [
     { text: "Brandish the object in your hand like a legendary sword and give it a name it has not earned.", heat: "mild" },
     { text: "Announce out loud what your object beats in a fight, and say it like it's obvious to everyone.", heat: "mild" },
@@ -2044,6 +2085,64 @@ window.GameData = {
     "Mum's spare room", "The group chat", "Parents' garage", "Currently on the couch",
     "A share house in Marrickville", "Undisclosed (avoiding people)", "The local library",
     "My childhood bedroom", "Wherever the wifi is", "Between Airbnbs"
+  ],
+
+  // NEIGHBOURHOOD WATCH: suburban Facebook-group pools. Posts are assembled opener + gripe +
+  // evidence + signoff; {target} in a gripe is replaced with another board member's name (the feud).
+  nwGroupNames: [
+    "CAVENDISH STREET COMMUNITY NOTICEBOARD (OFFICIAL)", "Acacia Heights Neighbourhood Watch",
+    "Wattle Grove Residents (NO POLITICS)", "The Real Ferndale Community Group",
+    "Kookaburra Court Crime Alerts & Chat", "Banksia Estate Concerned Citizens"
+  ],
+  nwRoles: [
+    "Admin", "Admin (self-appointed)", "Top Contributor", "Moderator (on a power trip)",
+    "Muted 3 times", "Founding member", "Joined 2007", "Marketplace power seller",
+    "Banned twice, back on a new account", "Only posts sunsets", "Comments 'following' on everything",
+    "Runs the splinter group", "Never posts, sees everything", "Group historian (keeps screenshots)"
+  ],
+  nwGripes: [
+    "the bins situation on our street", "whoever's dog did THIS on my nature strip",
+    "the hoons doing burnouts at 2am", "people parking ACROSS my driveway",
+    "the new speed bump nobody asked for", "{target} and their so-called 'renovation'",
+    "the shopping trolley that's been in the creek since March", "{target}'s hedge (again)",
+    "someone stealing my recycling before the truck comes", "the state of the oval toilets",
+    "{target} letting their cat roam at night", "the mystery mower running at 6:45am SHARP",
+    "next door's 'band practice'", "{target} not returning my ladder since Easter",
+    "drones. someone is flying drones", "the council ignoring my 14 emails",
+    "people not picking up after their dogs", "{target} feeding the ibis ON PURPOSE"
+  ],
+  nwOpeners: [
+    "I wasn't going to post this, but", "RANT:", "Just a friendly reminder about",
+    "To whoever is responsible for", "I don't usually post here, however:",
+    "ATTENTION ALL RESIDENTS regarding", "Am I the only one who's noticed",
+    "Sorry admin, delete if not allowed, but", "This is my third and FINAL post about",
+    "With respect to everyone involved in"
+  ],
+  nwEvidence: [
+    "I have footage.", "I have photos and I am NOT afraid to use them.",
+    "Multiple neighbours have confirmed this.", "I've already contacted the council.",
+    "My husband saw the whole thing.", "It's all been documented in a folder.",
+    "The dashcam doesn't lie.", "I counted. Fourteen times. FOURTEEN.",
+    "I've cross-referenced the bin nights.", "A Current Affair has been notified."
+  ],
+  nwSignoffs: [
+    "Not naming names. You know who you are.", "Do better, Cavendish Street.",
+    "This used to be a nice area.", "Think of the children.", "I will be raising this at the AGM.",
+    "Rant over.", "Kind regards, a CONCERNED resident.", "You've been warned.",
+    "Delete if not allowed.", "And yes, I've spoken to a lawyer.", "No further comments will be answered.",
+    "The group has been made aware."
+  ],
+  nwComments: [
+    "Following.", "This. 👏", "Disgraceful. Share to the other group?", "simple fix, mate 🔧",
+    "We moved here to get AWAY from this.", "Sending this straight to the council.",
+    "It's the new people from number 42.", "I heard it too!! Around 2:15am??",
+    "Karen this is the third time this week.", "Petition where do I sign", "😡😡😡",
+    "Can admin PIN this please", "It was a possum. It's always a possum.", "Beautiful sunset tonight though ❤️"
+  ],
+  // Suburban street names for profiles ("Resident of ...").
+  nwStreets: [
+    "Cavendish St", "Acacia Ct", "Wattle Gr", "Banksia Ave", "Kookaburra Cl", "Jacaranda Dr",
+    "Melaleuca Pl", "The Esplanade", "Bottlebrush Cres", "Grevillea Loop", "Ferndale Rd", "Ibis Way"
   ],
 
   // Themed question decks for SWIPE / Judgement Day / Sims are added at the end of modePrompts.

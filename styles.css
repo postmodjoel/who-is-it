@@ -4072,9 +4072,9 @@ body.mode-pixall .secret-card img {
    coloured fill varies (a low need used to look like a stray floating pill). */
 /* Fixed-width track (not 1fr) so every need bar is identical on both the wide board card AND the
    narrow secret card, where 1fr used to collapse the bars to nubs. */
-.sim-bar { display: grid; grid-template-columns: 54px 84px; align-items: center; gap: 5px; justify-content: center; }
-.sim-bar b { font-size: 0.47rem; font-weight: 800; color: #9fd0e8; letter-spacing: 0.02em; }
-.sim-bar i { display: block; width: 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.2); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
+.sim-bar { display: grid; grid-template-columns: 46px 66px; align-items: center; gap: 5px; justify-content: center; }
+.sim-bar b { font-size: 0.42rem; font-weight: 800; color: #9fd0e8; letter-spacing: 0.02em; }
+.sim-bar i { display: block; width: 100%; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.2); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
 .sim-bar s { display: block; height: 100%; width: var(--n, 50%); border-radius: 4px 0 0 4px; }
 .sim-bar s.sim-ok { background: linear-gradient(90deg, #5fe06a, #37b23a); }
 .sim-bar s.sim-warn { background: linear-gradient(90deg, #ffe06a, #f0b23a); }
@@ -4648,6 +4648,49 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .character-card.sim-slapped { animation: sim-slap 0.5s ease-out; }
 @keyframes sim-slap { 0% { transform: translateX(0); } 12% { transform: translateX(10px) rotate(2deg); } 30% { transform: translateX(-8px) rotate(-2deg); } 50% { transform: translateX(5px); } 70% { transform: translateX(-3px); } 100% { transform: translateX(0); } }
 
+/* ===================== WHAT'S IN THE HAND? object battle ===================== */
+.pb-overlay { position: fixed; inset: 0; z-index: 1002; display: grid; place-items: center; background: rgba(6, 10, 20, 0.78); animation: wed-in 0.2s ease-out; }
+.pb-stage { text-align: center; }
+.pb-fighters { display: flex; align-items: center; justify-content: center; gap: 22px; }
+.pb-fighter { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pb-fighter b { font-size: 4.5rem; line-height: 1; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5)); }
+.pb-fighter i { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 0.9rem; letter-spacing: 0.04em; text-transform: uppercase; color: #dfe6f2; font-style: normal; }
+.pb-a { animation: pb-charge-l 0.6s ease-in-out infinite alternate; }
+.pb-b { animation: pb-charge-r 0.6s ease-in-out infinite alternate; }
+@keyframes pb-charge-l { to { transform: translateX(10px); } }
+@keyframes pb-charge-r { to { transform: translateX(-10px); } }
+.pb-vs { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.8rem; color: #ff5a4a; text-shadow: 0 0 12px rgba(255, 90, 74, 0.7); animation: pb-vs-pulse 0.5s ease-in-out infinite alternate; }
+@keyframes pb-vs-pulse { to { transform: scale(1.18); } }
+.pb-overlay.pb-a-wins .pb-a, .pb-overlay.pb-b-wins .pb-b { animation: pb-win 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.pb-overlay.pb-a-wins .pb-b, .pb-overlay.pb-b-wins .pb-a { animation: pb-lose 0.6s ease-in forwards; }
+@keyframes pb-win { 0% { transform: scale(1); } 50% { transform: scale(1.35); } 100% { transform: scale(1.15); } }
+@keyframes pb-lose { to { transform: scale(0.2) rotate(60deg); opacity: 0; } }
+.pb-overlay.pb-a-wins .pb-vs, .pb-overlay.pb-b-wins .pb-vs, .pb-overlay.pb-draw .pb-vs { animation: none; opacity: 0.3; }
+.pb-result { margin-top: 22px; font-family: "Archivo", sans-serif; font-weight: 800; font-size: 1.25rem; color: #fff; min-height: 1.6rem; }
+.pb-result b { color: #ffd24d; }
+
+/* ===================== Sound & music panel ===================== */
+.sound-panel {
+  position: absolute; top: 8px; right: 8px; z-index: 60; width: min(300px, 88vw);
+  padding: 12px 14px 14px; border-radius: 14px;
+  background: var(--panel, #15171d); border: 2px solid var(--line); box-shadow: var(--shadow);
+  color: var(--ink);
+}
+.sp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
+.sp-x { border: none; background: none; color: var(--muted); font-size: 0.9rem; cursor: pointer; }
+.sp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 0.8rem; font-weight: 600; }
+.sp-row select { flex: 0 0 auto; max-width: 55%; padding: 4px 6px; border-radius: 6px; border: 2px solid var(--line); background: var(--surface); color: var(--card-ink); font-weight: 700; }
+.sp-row input[type="checkbox"] { accent-color: #18a589; width: 18px; height: 18px; }
+.sp-board-label { margin: 10px 0 6px; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.sp-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.sp-fx {
+  padding: 6px 4px; border-radius: 7px; border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink);
+  font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer;
+}
+.sp-fx:hover { background: color-mix(in srgb, var(--ink) 18%, transparent); }
+.sp-fx:active { transform: translateY(1px); }
+
 /* ===================== Astrology mode ===================== */
 .character-board.astrology-board {
   border-color: #2a2350 !important;
@@ -5187,6 +5230,9 @@ body:not(.mode-online) .opponent-panel { display: none; }
 /* ===================== Debug picker: hidden until someone types "debug" ===================== */
 #debugEffectPicker { display: none; }
 body.debug-mode #debugEffectPicker { display: inline-flex; }
+.debug-pg-toggle { display: none; }
+body.debug-mode .debug-pg-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; height: 36px; border-radius: 6px; border: 2px solid var(--line); background: var(--surface); color: var(--card-ink); font-weight: 800; font-size: 0.7rem; cursor: pointer; }
+.debug-pg-toggle input { accent-color: #18a589; }
 
 /* ===================== Dark-themed chrome (topbar + side controls) ===================== */
 /* The floating white pills clashed with the dark board. In dark mode the controls take the panel

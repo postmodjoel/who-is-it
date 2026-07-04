@@ -1872,7 +1872,16 @@ window.GameData = {
     ["Affluenza", "MINOR"], ["Gout", "MINOR"], ["Consumption", "MAJOR"], ["Brain Fever", "MAJOR"],
     ["Lovesickness", "MINOR"], ["Ennui", "MINOR"], ["Scurvy", "MINOR"], ["Bad Humours", "MINOR"],
     ["HIV", "MEGA"], ["Bubonic Plague", "MEGA"], ["Consumption of the Soul", "MEGA"],
-    ["Nervous Exhaustion", "MINOR"], ["Excess of Bile", "MINOR"], ["Female Hysteria", "MAJOR"]
+    ["Nervous Exhaustion", "MINOR"], ["Excess of Bile", "MINOR"], ["Female Hysteria", "MAJOR"],
+    // More antiquated diagnoses
+    ["Railway Spine", "MAJOR"], ["Masturbatory Insanity", "MAJOR"], ["Dropsy", "MINOR"],
+    ["Green Sickness", "MINOR"], ["Apoplexy", "MAJOR"], ["Catalepsy", "MAJOR"], ["St. Vitus' Dance", "MAJOR"],
+    ["Fits of the Mother", "MINOR"], ["Nostalgia (fatal)", "MAJOR"], ["Bilious Fever", "MINOR"],
+    ["The Ague", "MINOR"], ["Quinsy", "MINOR"], ["Dyspepsia", "MINOR"], ["The King's Evil", "MAJOR"],
+    ["Puerperal Fever", "MAJOR"], ["Softening of the Brain", "MAJOR"], ["Onanism", "MINOR"],
+    ["Grocer's Itch", "MINOR"], ["Barrel Fever", "MINOR"], ["Furor Uterinus", "MAJOR"],
+    ["Cacoethes Scribendi", "MINOR"], ["Milk Leg", "MINOR"], ["Sugar Sickness", "MAJOR"],
+    ["Consumption of the Purse", "MEGA"], ["Galloping Consumption", "MEGA"], ["Spontaneous Combustion", "MEGA"]
   ],
   cancerTypes: ["Lung", "Pancreatic", "Skin", "Bone", "Brain", "Liver", "Stomach", "Throat",
     "Blood", "Colon", "Eyeball", "Elbow", "Vibe", "Wallet", "Spleen"],
@@ -1881,7 +1890,14 @@ window.GameData = {
   medications: ["Mercury Tonic", "Heroic Cough Syrup", "Radium Water", "Cocaine Drops",
     "Leeches (3x daily)", "Laudanum", "Arsenic Wafers", "Lithium Soda", "Snake Oil", "Bloodletting",
     "Tobacco Smoke Enema", "Morphine Lozenge", "Electroshock (PRN)", "Lobotomy (pending)",
-    "Strychnine Pick-Me-Up", "Cod Liver Oil", "Opium Tincture", "Vibes (untested)"],
+    "Strychnine Pick-Me-Up", "Cod Liver Oil", "Opium Tincture", "Vibes (untested)",
+    // More antiquated therapies
+    "Trepanation", "Wet Cupping", "Blistering Plaster", "Mustard Poultice", "Purging & Emetics",
+    "Cold-Water Immersion", "Rotational Therapy", "Insulin Coma Therapy", "Malaria Fever Therapy",
+    "Mesmerism", "Ice-pick Lobotomy", "Chloroform Rag", "Belladonna Drops", "Turpentine Tonic",
+    "Calomel Purge", "Goat-gland Transplant", "The Fasting Cure", "Electric Corset",
+    "Radioactive Suppositories", "The Tapeworm Diet", "Hydrotherapy Spray", "Cautery Iron",
+    "Powdered Mummy", "Theriac (60 ingredients)", "Bezoar Stone", "A Good Trepanning"],
   // Pain faces from worst (left) to best (right).
   painFaces: [">:(", ">:|", ":|", ":)", ":D"],
 

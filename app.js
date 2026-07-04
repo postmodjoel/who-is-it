@@ -279,6 +279,7 @@ const els = {
   themeButton: document.querySelector("#themeButton"),
   setupButton: document.querySelector("#setupButton"),
   editorButton: document.querySelector("#editorButton"),
+  soundButton: document.querySelector("#soundButton"),
   newGameButton: document.querySelector("#newGameButton"),
   endRoundButton: document.querySelector("#endRoundButton"),
   settingSeed: document.querySelector("#settingSeed"),
@@ -376,9 +377,9 @@ function loadTheme() {
 const mysteryEffects = [
   {
     id: "prop-panic",
-    name: "Prop Panic",
+    name: "WHAT'S IN THE HAND?",
     apply: applyPropPanic,
-    exampleQuestion: "Is your person holding a plunger?"
+    exampleQuestion: "Would your person's object beat a rock?"
   },
   {
     id: "family-tree-disaster",
@@ -658,7 +659,7 @@ const WOKE_PREREQS = ["gay-frogged", "orgy", "drugs", "disease", "fertility", "w
 // PG mode: only these wholesome, "explain-to-a-10-year-old" modes are ever picked. Everything sexual/
 // drug/breeding/politically-charged (horny-potter, woke, gay-frogged, orgy, fertility, drugs, disease,
 // swipe, work, monocultural, judgement, murder, hidden-agendas, family-tree) is excluded.
-const PG_SAFE_MODES = ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "heads-only", "yugioh", "pixall", "habbo", "witness-protection-filter", "fireworks", "sims", "disguise"];
+const PG_SAFE_MODES = ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "heads-only", "yugioh", "pixall", "habbo", "witness-protection-filter", "fireworks", "sims", "disguise", "family-tree-disaster"];
 function wheelPgOk(id) { return !state.settings.pg || id === null || PG_SAFE_MODES.includes(id); }
 function wheelTargetFromBag() {
   const known = new Set(mysteryEffects.map((e) => e.id));
@@ -965,6 +966,8 @@ function breedCharacters(aId, bId) {
   // PANTONE: dragging two people together doesn't breed - it MIXES them like paint. Both take the
   // averaged background AND the averaged skin tone, and their Pantone chips re-derive from the blend.
   if (mode === "pantone") { mixPantonePair(A, B); return; }
+  // WHAT'S IN THE HAND?: drag one object onto another and they BATTLE (RPS-style); loser is crossed off.
+  if (mode === "prop-panic") { propBattle(A, B); return; }
   // SIMS: dragging two sims spins a slot machine of interactions - MARRIED / SLAP / WOOHOO (WOOHOO is
   // dropped in PG mode) - and plays out whichever it lands on.
   if (mode === "sims") { simsInteract(A, B); return; }
@@ -1118,7 +1121,9 @@ function simsPortrait(ch) {
   } catch (e) { return {}; }
 }
 // After a baby is born the players decide its fate: KEEP adds it to the board, ABORT... doesn't.
+// PG mode is wholesome - the baby is simply KEPT, no abort option is ever offered.
 function offerKeepOrAbort(baby, keep, abort) {
+  if (state.settings.pg) { keep(); return; }
   const ov = document.createElement("div");
   ov.className = "keep-abort";
   ov.innerHTML = `<div class="ka-box">
@@ -1196,6 +1201,7 @@ function playBirthAnimation(imgA, imgB, baby, grind, done, opts) {
       <div class="birth-card ${baby.isGayby ? "gayby-card" : ""}"><img src="${baby.image}" alt=""><span class="birth-name">${escapeHtml(baby.name)}</span></div>
     </div>`;
   document.body.appendChild(ov);
+  setTimeout(() => sfx("baby"), grind ? 1400 : 350);   // fanfare as the baby is revealed
   setTimeout(() => { ov.remove(); done(); }, grind ? 3200 : 2500);
 }
 // Shared drag-and-drop wiring: any card / floating head can be dragged onto another to breed. Works
@@ -1640,7 +1646,7 @@ function renderBoard() {
   if (modeId === "judgement") renderJudgementPurgatory();   // aborted souls lingering in limbo
   if (modeId === "pixall") startPixallLoop(); else stopPixallLoop();
   if (modeId === "sims") startSimsLoop(); else stopSimsLoop();
-  if (modeId === "prop-panic") startPropLoop(); else stopPropLoop();
+  stopPropLoop();   // no more random swaps - WHAT'S IN THE HAND? is drag-to-battle only
 }
 // A ghost strip below the Judgement board: every soul you aborted this session, stuck in limbo.
 function renderJudgementPurgatory() {
@@ -2323,6 +2329,7 @@ function toggleEliminated(id) {
   renderBoard();
   state.justEliminated = null;
   state.justRestored = null;
+  sfx(player.eliminated.has(id) ? "eliminate" : "revive");
   netSend("elim", { id, down: player.eliminated.has(id) });   // live-sync the cross-off
   scheduleSave();
 }
@@ -3583,6 +3590,11 @@ function applyWoke(effect) {
   const defects = ["SLOW SWIMMERS", "EXPIRED STOCK", "TWO-HEADED RISK", "RECALLED BATCH", "ALL DUDS", "PREMIUM (allegedly)"];
   const stash = (D && D.workInventory) || ["Shiv"];
   const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:wk:${salt}`) % arr.length];
+  // Special Disguise flattens the vibe when everyone's covered, so cap it at a COUPLE of people:
+  // only the two lowest-hashed board members are ever allowed to roll it.
+  const disguiseOk = new Set(
+    deterministicOrder(state.board, `${state.gameSalt}:woke:disg`).slice(0, 2).map((c) => c.id)
+  );
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:woke:${ch.id}`);
@@ -3591,7 +3603,8 @@ function applyWoke(effect) {
       .map((m) => [m, stableHash(`${state.gameSalt}:wkmod:${ch.id}:${m}`)])
       .sort((a, b) => a[1] - b[1])
       .map((x) => x[0]);
-    const mods = order.slice(0, 2 + (h % 2));
+    let mods = order.slice(0, 2 + (h % 2));
+    if (mods.includes("disguise") && !disguiseOk.has(ch.id)) mods = mods.filter((m) => m !== "disguise");
     const has = (m) => mods.includes(m);
     const a = { modules: mods };
 
@@ -3831,12 +3844,12 @@ function simsMarried(A, B, a, b) {
   const success = stableHash(`${state.gameSalt}:wed:${A.id}:${B.id}:${(a.simoleons || 0) + (b.simoleons || 0)}`) % 2 === 0;
   if (success) {
     [a, b].forEach((s) => { s.simoleons = Math.round((s.simoleons || 0) * 0.04); s.mood = "red"; s.action = "Regretting the vows"; s.needs = { ...s.needs, fun: Math.min(s.needs?.fun ?? 20, 8), social: Math.min(s.needs?.social ?? 20, 12) }; });
-    flashToast("⛓️ Married — til debt do us part");
+    flashToast("⛓️ Married — til debt do us part"); sfx("buzzer");
   } else {
     const pot = (a.simoleons || 0) + (b.simoleons || 0);
     a.simoleons = Math.round(pot / 2); b.simoleons = pot - a.simoleons;
     [a, b].forEach((s) => { s.mood = "green"; s.action = "Living their best divorced life"; s.needs = { ...s.needs, fun: Math.max(s.needs?.fun ?? 80, 90), social: Math.max(s.needs?.social ?? 80, 88) }; });
-    flashToast("🕊️ Divorce — happily ever after");
+    flashToast("🕊️ Divorce — happily ever after"); sfx("coin");
   }
   const bank = simBankGet(); bank[A.id] = a.simoleons; bank[B.id] = b.simoleons; simBankSet(bank);
   renderBoard();
@@ -3847,6 +3860,7 @@ function simsSlap(A, B, a, b) {
   b.mood = "red"; b.needs = { ...b.needs, social: 1, fun: Math.min(b.needs?.fun ?? 20, 6) }; b.action = "Reeling from that slap"; const bi = reface(B, "sad"); if (bi) b.image = bi;
   a.mood = "green"; a.needs = { ...a.needs, social: Math.max(a.needs?.social ?? 80, 96), fun: Math.max(a.needs?.fun ?? 80, 95) }; a.action = "Never felt more alive"; const ai = reface(A, "bigSmile"); if (ai) a.image = ai;
   flashToast(`👋 SLAP! ${escapeHtml(B.name)} did NOT see that coming.`);
+  sfx("slap");
   renderBoard();
   const card = document.getElementById(`card-${B.id}`);
   if (card) { card.classList.remove("sim-slapped"); void card.offsetWidth; card.classList.add("sim-slapped"); }
@@ -4055,6 +4069,7 @@ function avadaKedavra(ch) {
     card.querySelector(".portrait-wrap")?.appendChild(flash);
   }
   flashToast(alreadyDown ? `✨ Finite — ${ch.name} rises again.` : `☠ Avada Kedavra — ${ch.name} is no more.`);
+  sfx(alreadyDown ? "sparkle" : "boom");
   setTimeout(() => toggleEliminated(ch.id), alreadyDown ? 60 : 500);
 }
 
@@ -4468,42 +4483,70 @@ function yugiohLocationFlavor(location) {
   return { suffix: suffixes[h % suffixes.length], text: lines[(h >>> 4) % lines.length] };
 }
 
+// WHAT'S IN THE HAND?: everyone holds one of exactly 12 objects. Drag one onto another and the two
+// objects BATTLE (Rock-Paper-Scissors style) - each beats the 5 that follow it around the ring, loses
+// to the 5 before, and ties the one directly opposite. The loser is knocked off the board.
+const PROP_BATTLE = [
+  ["Rock", "🪨", "smashes"], ["Bag", "🛍️", "swallows"], ["Scissors", "✂️", "shreds"],
+  ["Fire", "🔥", "burns"], ["Water", "💧", "douses"], ["Sponge", "🧽", "soaks up"],
+  ["Sword", "🗡️", "slices"], ["Snake", "🐍", "poisons"], ["Boot", "🥾", "stomps"],
+  ["Tree", "🌳", "outgrows"], ["Sun", "☀️", "scorches"], ["Moon", "🌙", "eclipses"]
+];
+// Does prop i beat prop j? +1 win, -1 loss, 0 draw. (Ring of 12: beat next 5, lose prev 5, tie +6.)
+function propBattleResult(i, j) {
+  if (i === j) return 0;
+  const d = ((j - i) % 12 + 12) % 12;
+  return d >= 1 && d <= 5 ? 1 : (d === 6 ? 0 : -1);
+}
 function applyPropPanic(effect) {
-  const props = [
-    ["traffic cone", "🚧"],
-    ["baguette", "🥖"],
-    ["swordfish", "🐟"],
-    ["clipboard", "📋"],
-    ["plunger", "🪠"],
-    ["juice box", "🧃"],
-    ["kazoo", "🎺"],
-    ["magnifying glass", "🔍"],
-    ["bolt cutters", "✂️"],
-    ["rubber chicken", "🐔"],
-    ["tiny fan", "🪭"],
-    ["yoga mat", "🟪"],
-    ["candelabra", "🕯️"],
-    ["melon", "🍈"],
-    ["briefcase", "💼"],
-    ["garden rake", "🪴"],
-    ["roller skate", "🛼"],
-    ["boom mic", "🎤"],
-    ["frozen peas", "🫛"],
-    ["desk bell", "🔔"],
-    ["binoculars", "🔭"],
-    ["saucepan", "🍲"],
-    ["novelty goblet", "🏆"],
-    ["extension cord", "🔌"],
-    ["folding chair", "🪑"],
-    ["megaphone", "📣"],
-    ["seashell", "🐚"],
-    ["trophy fish", "🎣"]
-  ];
   const assignments = {};
-  assignEvenCategories(state.board, props, effect.id).forEach(({ character, value }) => {
-    assignments[character.id] = { value: value[0], emoji: value[1] };
+  assignEvenCategories(state.board, PROP_BATTLE.map((p, i) => i), effect.id).forEach(({ character, value }) => {
+    const p = PROP_BATTLE[value];
+    assignments[character.id] = { propIdx: value, value: p[0], emoji: p[1] };
   });
   return { id: effect.id, name: effect.name, assignments };
+}
+// The duel: A's object is dragged onto B's. A VS overlay flashes the two, then the winner's object
+// "verbs" the loser and the loser is crossed off (drag again on a downed card to revive).
+function propBattle(A, B) {
+  const asg = state.global.mystery?.assignments;
+  const a = asg && asg[A.id], b = asg && asg[B.id];
+  if (!a || !b || A.id === B.id) return;
+  if (document.querySelector(".pb-overlay")) return;
+  const res = propBattleResult(a.propIdx, b.propIdx);
+  const ov = document.createElement("div");
+  ov.className = "pb-overlay";
+  ov.innerHTML = `<div class="pb-stage">
+      <div class="pb-fighters">
+        <span class="pb-fighter pb-a"><b>${a.emoji}</b><i>${escapeHtml(a.value)}</i></span>
+        <span class="pb-vs">VS</span>
+        <span class="pb-fighter pb-b"><b>${b.emoji}</b><i>${escapeHtml(b.value)}</i></span>
+      </div>
+      <div class="pb-result"></div>
+    </div>`;
+  document.body.appendChild(ov);
+  sfx("blip");
+  setTimeout(() => {
+    const out = ov.querySelector(".pb-result");
+    if (res === 0) {
+      ov.classList.add("pb-draw");
+      out.innerHTML = `🤝 <b>DRAW!</b> ${a.emoji} and ${b.emoji} are evenly matched.`;
+      sfx("honk");
+    } else {
+      const win = res === 1 ? a : b, lose = res === 1 ? b : a;
+      const winner = res === 1 ? A : B, loser = res === 1 ? B : A;
+      ov.classList.add(res === 1 ? "pb-a-wins" : "pb-b-wins");
+      out.innerHTML = `${win.emoji} <b>${escapeHtml(win.value)}</b> ${escapeHtml(PROP_BATTLE[win.propIdx][2])} ${lose.emoji} <b>${escapeHtml(lose.value)}</b>!`;
+      ov._loserId = loser.id;
+      ov._loserDown = currentPlayer().eliminated.has(loser.id);
+      sfx("win");
+    }
+  }, 1400);
+  setTimeout(() => {
+    const loserId = ov._loserId;
+    ov.remove();
+    if (loserId) toggleEliminated(loserId);   // knock the loser off (or revive if already down)
+  }, 2600);
 }
 
 function applyFamilyTreeDisaster(effect) {
@@ -4917,6 +4960,7 @@ const MODE_FLASH = {
   "hidden-agendas": "#3a5fd0"
 };
 function playEffectAnnouncement(name) {
+  sfx("reveal");
   const prev = document.getElementById("effectBlast");
   if (prev) prev.remove();
 
@@ -5184,14 +5228,37 @@ if (els.copySeedButton) els.copySeedButton.addEventListener("click", () => {
 });
 els.themeButton.addEventListener("click", toggleTheme);
 
-// Debug: manually trigger any mystery effect from a dropdown (handy while building/balancing).
-if (els.debugEffectPicker) {
+// Debug: manually trigger any mystery effect from a dropdown (handy while building/balancing). The
+// list respects the debug PG toggle - flip PG on and the non-PG modes vanish from the menu, so you
+// can verify PG mode really does hide everything it should.
+function rebuildDebugPicker() {
+  if (!els.debugEffectPicker) return;
+  const keep = els.debugEffectPicker.querySelector('option[value=""]');
+  els.debugEffectPicker.innerHTML = "";
+  if (keep) els.debugEffectPicker.appendChild(keep);
   mysteryEffects.forEach((effect) => {
+    if (state.settings.pg && !PG_SAFE_MODES.includes(effect.id)) return;
     const opt = document.createElement("option");
     opt.value = effect.id;
     opt.textContent = effect.name;
     els.debugEffectPicker.appendChild(opt);
   });
+}
+if (els.debugEffectPicker) {
+  rebuildDebugPicker();
+  // Debug-only PG toggle in the topbar - lets you flip PG on/off to test it without opening setup.
+  const pgWrap = document.createElement("label");
+  pgWrap.id = "debugPgToggle"; pgWrap.className = "debug-pg-toggle";
+  pgWrap.innerHTML = `<input type="checkbox"> PG`;
+  const pgInput = pgWrap.querySelector("input");
+  pgInput.checked = !!state.settings.pg;
+  pgInput.addEventListener("change", () => {
+    state.settings.pg = pgInput.checked;
+    if (els.settingPG) els.settingPG.checked = pgInput.checked;
+    rebuildDebugPicker();
+    flashToast(pgInput.checked ? "🧒 PG mode ON — adult modes hidden" : "PG mode OFF");
+  });
+  els.debugEffectPicker.parentNode.insertBefore(pgWrap, els.debugEffectPicker.nextSibling);
   els.debugEffectPicker.addEventListener("change", () => {
     const id = els.debugEffectPicker.value;
     els.debugEffectPicker.value = "";
@@ -5229,6 +5296,45 @@ els.saveSetupButton.addEventListener("click", () => {
     newGame();
   }
 });
+
+// ===================== Sound & music controls =====================
+// A SFX helper that plays locally AND (in online play) tells the peer to play it too, so a soundboard
+// press or a game event is heard by both seats.
+function sfx(name, opts) {
+  if (window.Sound) window.Sound.play(name);
+  if (opts && opts.shared && state.gameMode === "online") netSend("sfx", { name });
+}
+// Unlock the AudioContext on the very first user gesture (browsers block audio until then).
+let soundUnlocked = false;
+function unlockSound() { if (!soundUnlocked && window.Sound) { soundUnlocked = true; window.Sound.resume(); } }
+document.addEventListener("pointerdown", unlockSound, { once: false });
+function toggleSoundPanel() {
+  let panel = document.getElementById("soundPanel");
+  if (panel) { panel.remove(); return; }
+  if (!window.Sound) return;
+  unlockSound();
+  panel = document.createElement("div");
+  panel.id = "soundPanel"; panel.className = "sound-panel";
+  const S = window.Sound;
+  const host = state.gameMode !== "online" || (state.mySeat || 0) === 0;
+  const trackOpts = S.trackNames().map((n, i) => `<option value="${i}" ${i === S.currentTrack() ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
+  panel.innerHTML = `
+    <div class="sp-head"><b>🔊 Sound</b><button type="button" class="sp-x" aria-label="close">✕</button></div>
+    <label class="sp-row"><span>Sound on</span><input type="checkbox" class="sp-master" ${S.isEnabled() ? "checked" : ""}></label>
+    <label class="sp-row"><span>Music${host ? "" : " (host controls)"}</span><input type="checkbox" class="sp-music" ${S.isMusicOn() ? "checked" : ""} ${host ? "" : "disabled"}></label>
+    <label class="sp-row"><span>Track</span><select class="sp-track" ${host ? "" : "disabled"}>${trackOpts}</select></label>
+    <div class="sp-board-label">Soundboard — both players hear it</div>
+    <div class="sp-board">${S.sfxNames().map((n) => `<button type="button" class="sp-fx" data-fx="${n}">${escapeHtml(n)}</button>`).join("")}</div>`;
+  document.querySelector(".game-stage")?.appendChild(panel) || document.body.appendChild(panel);
+  panel.querySelector(".sp-x").addEventListener("click", () => panel.remove());
+  panel.querySelector(".sp-master").addEventListener("change", (e) => { S.setEnabled(e.target.checked); if (e.target.checked) sfx("blip"); });
+  const musicBox = panel.querySelector(".sp-music");
+  const trackSel = panel.querySelector(".sp-track");
+  const pushMusic = () => { S.setMusic(musicBox.checked); S.setTrack(Number(trackSel.value)); if (state.gameMode === "online") netSend("music", { on: musicBox.checked, track: Number(trackSel.value) }); };
+  if (host) { musicBox.addEventListener("change", pushMusic); trackSel.addEventListener("change", () => { if (!musicBox.checked) musicBox.checked = true; pushMusic(); }); }
+  panel.querySelectorAll(".sp-fx").forEach((b) => b.addEventListener("click", () => sfx(b.dataset.fx, { shared: true })));
+}
+if (els.soundButton) els.soundButton.addEventListener("click", toggleSoundPanel);
 
 function syncSettingsToForm() {
   els.settingPrompts.checked = state.settings.prompts;
@@ -5321,6 +5427,8 @@ function markPeerOnline() {
 }
 function handleNetMsg(msg) {
   if (!msg || typeof msg !== "object") return;
+  if (msg.type === "sfx") { if (window.Sound && typeof msg.name === "string") window.Sound.play(msg.name); return; }
+  if (msg.type === "music") { if (window.Sound) { window.Sound.setTrack(Number(msg.track) || 0); window.Sound.setMusic(!!msg.on); } return; }
   if (msg.type === "hello") {
     markPeerOnline();
     const seat = msg.seat === 0 ? 0 : 1;

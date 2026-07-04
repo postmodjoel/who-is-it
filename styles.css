@@ -5091,10 +5091,11 @@ img.pol-mascot {
 .title-screen {
   position: fixed; inset: 0; z-index: 2000;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px;
-  /* A slow-drifting theme-coloured gradient (navy → violet → warm) so the 3D title reads against it. */
-  background: linear-gradient(125deg, #0b0a14 0%, #1b1444 22%, #331d63 42%, #10203f 60%, #3a2610 80%, #0b0a14 100%);
+  /* De Stijl primaries: a slow-drifting BLUE ↔ RED gradient over dark anchors (yellow is supplied by
+     the WHO text, so it stays out of the backdrop). Reads clearly under the 3D title. */
+  background: linear-gradient(125deg, #0a1740 0%, #1741c0 22%, #0b1428 46%, #b21f27 68%, #470d11 86%, #0a1740 100%);
   background-size: 320% 320%;
-  animation: ts-bg-drift 20s ease-in-out infinite;
+  animation: ts-bg-drift 22s ease-in-out infinite;
   transition: opacity 0.45s ease;
 }
 @keyframes ts-bg-drift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }

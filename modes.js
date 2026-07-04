@@ -205,7 +205,7 @@ const MYSTERY_MODE_META = {
   pixall: { tier: 2, wheelOrder: 40, pgSafe: true, glyph: "▦", boardClasses: ["pixall-board"], bodyClasses: ["mode-pixall"], flash: "#5dff8f", afterDefaultBoard: startPixallLoop, teardown: stopPixallLoop },
   "horny-potter": { tier: 2, wheelOrder: 50, pgSafe: false, glyph: "☇", boardClasses: ["hp-board"] },
   "witness-protection-filter": { tier: 2, wheelOrder: 60, pgSafe: true, glyph: "⊘", flash: "#c9d200" },
-  linkedin: { tier: 2, wheelOrder: 70, pgSafe: true, glyph: "in", boardClasses: ["linkedin-board"], afterDefaultBoard: renderLinkedinTicker, teardown: resetLinkedinTicker },
+  linkedin: { tier: 2, wheelOrder: 70, pgSafe: true, glyph: "in", boardClasses: ["linkedin-board"], bodyClasses: ["mode-linkedin"], afterDefaultBoard: renderLinkedinTicker, teardown: resetLinkedinTicker },
   "hidden-agendas": { tier: 3, wheelOrder: 10, pgSafe: false, glyph: "⚿", flash: "#3a5fd0" },
   monocultural: { tier: 3, wheelOrder: 20, pgSafe: false, glyph: "⧉", flash: "#c88968" },
   "gay-frogged": { tier: 3, wheelOrder: 30, pgSafe: false, glyph: "⚧", flash: "rainbow", decorateLocation: decorateGayFroggedLocation },
@@ -1068,6 +1068,7 @@ function applyMysteryEffect(effectId) {
   clearMysteryEffectUI();
   const effect = mysteryRegistry[effectId];
   if (!effect) return;
+  if (typeof markModeDiscovered === "function") markModeDiscovered(effectId);   // collection meta
   state.global.mystery = effect.apply(effect);
 }
 
@@ -1742,10 +1743,11 @@ function getMysteryCardData(character) {
     };
   }
   if (mystery.id === "role-reveal") {
+    // The role badge (html) already renders on both board and secret cards; a secretExtraHtml role
+    // paragraph on top of it made the secret card show the job TWICE.
     return {
       effectName: mystery.name,
       dataset: { mysteryValue: assignment.value },
-      secretExtraHtml: `<p class="card-role">${escapeHtml(roleFor(character.id))}</p>`,
       html: addMysteryBadge(assignment.value, "role")
     };
   }
@@ -1951,16 +1953,22 @@ function getMysteryCardData(character) {
       `<div class="li-skill"><span>${escapeHtml(s.name)}</span><b>${s.count.toLocaleString()}</b></div>`).join("");
     const bn = a.banner || { type: "plain" };
     const bannerHtml = bn.type === "image"
-      ? `<div class="li-banner li-banner-img" style="background-image:url('${encodeURI(bn.src)}')"></div>`
+      ? `<div class="li-banner li-banner-img${bn.power ? " li-banner-power" : ""}" style="background-image:url('${encodeURI(bn.src)}')"></div>`
       : `<div class="li-banner li-banner-${bn.type}"></div>`;
     const premium = a.premium ? `<span class="li-premium">${escapeHtml(a.premium)}</span>` : "";
+    const nameHtml = a.displayName ? `<div class="li-name">${escapeHtml(a.displayName)}</div>` : "";
+    const locationHtml = a.location ? `<div class="li-location">📍 ${escapeHtml(a.location)}</div>` : "";
+    // LinkedIn mode owns the whole plate (the base card name h3 is hidden via CSS) so every card has
+    // the identical vertical order: banner → Name Surname → title → company → location → connections → skills.
     return {
       effectName: mystery.name,
       cardClass: `linkedin li-${a.tier || "mid"}${a.openToWork ? " li-otw" : ""}`,
       cornerHtml: a.openToWork ? `<span class="li-otw-badge" title="Open to work">${escapeHtml(a.otwText || "#OpenToWork")}</span>` : "",
       html: `${bannerHtml}<div class="li-sheet">
+        ${nameHtml}
         <div class="li-title">${escapeHtml(a.title)}${premium}</div>
         <div class="li-company">${escapeHtml(a.company)}</div>
+        ${locationHtml}
         <div class="li-connections">${escapeHtml(a.connections || "")}</div>
         <div class="li-skills">${skills}</div>
       </div>`
@@ -2985,10 +2993,30 @@ function applyWork(effect) {
 // company, 1-3 endorsed skills with (absurd) endorsement counts, and a ~30% chance of the green
 // #OpenToWork ring. A generated brainrot post feed rides above the board (see renderLinkedinTicker).
 // All content is salt-deterministic so online peers see the same profiles and the same feed.
+// Curated banner slugs for POWER-tier profiles: professional/aspirational locations whose day
+// banner art is known to exist in assets/locations/ (so no 404s). POWER always gets one.
+const LI_BANNER_SLUGS = [
+  "office", "rooftop", "hotel_lobby", "airport_lounge", "art_gallery", "museum_lobby",
+  "library", "cafe", "wine_cellar", "spa", "greenhouse", "restaurant", "bookstore", "theater"
+];
+// Skin-tone band → surname pool. Display-only representation (real surnames, no caricature).
+const SURNAME_BUCKET = {
+  porcelain: "anglo", fair: "anglo",
+  olive: "european", tan: "european", fakeTan: "european",
+  amber: "medSouth", brown: "medSouth",
+  deep: "african", ebony: "african"
+};
+// "JOEL" → "Joel", "MARY-JANE" → "Mary-Jane" (display only; character.name is never mutated).
+function toSentenceCase(name) {
+  return String(name || "").toLowerCase().replace(/(^|[\s'-])([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
+}
 function applyLinkedin(effect) {
   const D = window.GameData;
   const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:li:${salt}`) % arr.length];
   const locs = D.locations || [];
+  const surnamesByBucket = D.linkedinSurnames || {};
+  const liLocations = D.linkedinLocations || [];
+  const liFlopLocations = D.linkedinFlopLocations || [];
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:linkedin:${ch.id}`);
@@ -3007,23 +3035,33 @@ function applyLinkedin(effect) {
         : 30 + (ch2 % 1170);                                  // 30..1199
       skills.push({ name, count });
     }
-    // Banner: POWER gets a clean premium strip; MID is 50/50 blurred banner vs plain gradient;
-    // FLOP gets the generic grey default.
-    let banner = { type: "plain" };
-    const wantsImage = tier === "mid" && (h >>> 9) % 2 === 0;
-    if (wantsImage && locs.length) {
-      const slug = locs[stableHash(`${state.gameSalt}:li:${ch.id}:bn`) % locs.length].slug;
-      banner = { type: "image", src: `${LOCATION_ART_DIR}/${slug}_day_banner.png` };
-    } else if (tier === "power") {
-      banner = { type: "premium" };
+    // Banner by tier: POWER *always* gets a rich blurred location banner (premium look — taller, gold
+    // rule, richer saturation); MID a plain LinkedIn-blue gradient only; FLOP the sad grey stripes.
+    let banner;
+    if (tier === "power") {
+      const slug = LI_BANNER_SLUGS[stableHash(`${state.gameSalt}:li:${ch.id}:bn`) % LI_BANNER_SLUGS.length];
+      banner = { type: "image", power: true, src: `${LOCATION_ART_DIR}/${slug}_day_banner.png` };
     } else if (tier === "flop") {
       banner = { type: "grey" };
+    } else {
+      banner = { type: "plain" };
     }
     // #OpenToWork: flops flaunt it most (~60%), mids sometimes (~30%), power never (they're winning).
     const otwRoll = (h >>> 5) % 10;
     const openToWork = tier === "power" ? false : otwRoll < (tier === "flop" ? 6 : 3);
+    // Display name: character's first name (Sentence Case) + a salt-deterministic surname whose pool
+    // tracks skin tone. DISPLAY-ONLY — character.name is untouched (guessing/search key off it).
+    const bucket = SURNAME_BUCKET[ch.traits && ch.traits.skin] || "medSouth";
+    const pool = surnamesByBucket[bucket] || surnamesByBucket.medSouth || ["Smith"];
+    const surname = pool[stableHash(`${state.gameSalt}:li:${ch.id}:sn`) % pool.length];
+    const displayName = `${toSentenceCase(ch.name)} ${surname}`;
+    const locPool = tier === "flop" ? (liFlopLocations.length ? liFlopLocations : liLocations) : liLocations;
+    const location = locPool.length ? locPool[stableHash(`${state.gameSalt}:li:${ch.id}:loc`) % locPool.length] : "";
     assignments[ch.id] = {
       tier,
+      surname,
+      displayName,
+      location,
       title: tier === "flop" ? pick(D.linkedinFlopTitles, `${ch.id}:ft`) : pick(D.linkedinTitles, `${ch.id}:t`),
       company: pick(D.linkedinCompanies, `${ch.id}:co`),
       skills,

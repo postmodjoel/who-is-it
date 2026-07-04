@@ -1363,14 +1363,13 @@
     }
 
     const outline = hairOutlineFor(traits);
-    const strand = hairStrandTones(hair).low;
     const layer = behind ? "behind" : "front";
+    // rim = a single outline of the whole lock mass (outer silhouette + spiral concavities), which is
+    // what makes curl/horn shapes read. fill = solid colour. We deliberately DON'T draw the old
+    // per-lock seam strokes: they outlined every lock individually and ghosted through overlaps.
     const rim = renderHairLockRim(items, seed, hair, outline, layer, behind ? 3.4 : 4.2);
     const fill = renderHairLockPartGroup(items, seed, hair, outline, "fill");
-    const seam = behind
-      ? ""
-      : renderHairLockPartGroup(items, seed, hair, outline, "seam", { seam: strand, seamWidth: 2.8, seamOpacity: 0.28 });
-    return `${rim}${fill}${seam}`;
+    return `${rim}${fill}`;
   }
 
   function renderHairLockPartGroup(items, seed, hair, outline, mode, extraCtx) {
@@ -1392,10 +1391,12 @@
     return `
       <defs>
         <filter id='${id}' x='-128' y='-128' width='512' height='512' filterUnits='userSpaceOnUse'>
+          <!-- Solid dilated silhouette in the outline colour (NOT a hollow ring). The fill is drawn
+               on top (inside the shape) and overlaps this rim's inner half, so there's no fill/outline
+               seam for antialiasing to bleed the background through. Only the dilated margin shows. -->
           <feMorphology in='SourceAlpha' operator='dilate' radius='${radius}' result='expanded'/>
-          <feComposite in='expanded' in2='SourceAlpha' operator='out' result='rim'/>
           <feFlood flood-color='${outline}' result='rimColor'/>
-          <feComposite in='rimColor' in2='rim' operator='in'/>
+          <feComposite in='rimColor' in2='expanded' operator='in'/>
         </filter>
       </defs>
       <g filter='url(#${id})'>${mass}</g>
@@ -1668,13 +1669,15 @@
   // lowlight so it works clothed or bare.
   function renderBust(traits, sh, lo) {
     const bust = Number(traits.bust) || 0;
-    if (bust <= 0) return "";
+    // Below this, it's slider dust (stray Face Studio exports like Aaron's 0.1) — draw nothing so a
+    // faint Y never appears on a bare chest.
+    if (bust < 0.15) return "";
     const f = (n) => n.toFixed(1);
     const forkY = 246 - bust * 12;            // the fork (top of the cleavage)
     const spread = 18 + bust * 16;            // how far the branches reach out
     const branchTopY = forkY - 16 - bust * 12;
     const stemBotY = 257;                     // run the stem off the bottom edge
-    const op = (0.4 + bust * 0.22).toFixed(2);
+    const op = Math.min(0.62, bust * 0.85).toFixed(2);   // proportional, no floor: tiny busts fade out
     const w = 2.6;
     const branchL = `M${f(128 - spread)} ${f(branchTopY)}Q${f(128 - spread * 0.38)} ${f(forkY - 2)} 128 ${f(forkY)}`;
     const branchR = `M${f(128 + spread)} ${f(branchTopY)}Q${f(128 + spread * 0.38)} ${f(forkY - 2)} 128 ${f(forkY)}`;

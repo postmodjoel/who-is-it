@@ -292,10 +292,11 @@
     if (partMode === "mass") {
       (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${massFill}' stroke='none'/>`; });
     } else if (partMode === "fill") {
+      // Solid fill only. Per-lock dark/shine/lines overlays trace each lock's silhouette, so where
+      // locks OVERLAP (e.g. horn buns) the underlying lock's edges ghost through the one on top —
+      // reading as line artefacts. The outer shape is carried by the rim; texture by the base hair
+      // silhouette. (The studio's single-lock "full" preview still shows the shading.)
       (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${fill}' stroke='none'/>`; });
-      (lock.dark || []).forEach((d) => { body += `<path d='${d}' fill='${darkC}' opacity='0.22'/>`; });
-      (lock.shine || []).forEach((d) => { body += `<path d='${d}' fill='${shineC}' opacity='0.2'/>`; });
-      if (inst.lines !== false) (lock.lines || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`; });
     } else if (partMode === "seam") {
       if (inst.outline === "none") return "";
       const seamWidth = (ctx && ctx.seamWidth) || 3.2;

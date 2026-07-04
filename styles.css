@@ -4728,17 +4728,38 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .sp-fx:active { transform: translateY(1px); }
 
 /* ===================== Title PG toggle + adults-only riddle ===================== */
-.ts-pg {
-  min-width: 240px; display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
+/* .button.ts-pg (0,2,0) to override .button.secondary's width:100% and match the step buttons. */
+.button.ts-pg {
+  width: min(320px, 82vw); min-width: 240px; box-sizing: border-box;
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
   color: var(--card-ink); font: 900 0.86rem "Archivo", sans-serif; letter-spacing: 0.04em;
+  /* Fade in with the rest of the UI (it's below .ts-actions' 0.95s fade, so land just after it). */
+  animation: ts-fade 0.5s 1.05s both;
 }
 .ts-pg b { padding: 2px 7px; border-radius: 4px; background: #e01b1b; color: #fffdf7; font-size: 0.74rem; }
 .ts-pg.on b { background: #178a47; }
+.ts-discovered { margin: 0; font-weight: 800; font-size: 0.78rem; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.72); text-align: center; animation: ts-fade 0.5s 1.15s both; }
+
+/* First-play onboarding nudges (one-time). Non-interactive layer; any tap dismisses them. */
+.onboard-tips { position: fixed; inset: 0; z-index: 2050; pointer-events: none; transition: opacity 0.3s ease; }
+.onboard-tips.ob-out { opacity: 0; }
+.onboard-tip {
+  position: absolute; max-width: 190px; padding: 9px 13px; border-radius: 12px;
+  background: #ffd400; color: #14110d; font-weight: 800; font-size: 0.82rem; line-height: 1.25;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45); animation: ob-pop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.onboard-tip.ob-right { transform: translateY(-50%); }
+.onboard-tip.ob-below { transform: translateX(-50%); }
+.ob-arrow { position: absolute; width: 0; height: 0; }
+.ob-right .ob-arrow { left: -7px; top: 50%; margin-top: -7px; border: 7px solid transparent; border-right-color: #ffd400; border-left: 0; }
+.ob-below .ob-arrow { top: -7px; left: 50%; margin-left: -7px; border: 7px solid transparent; border-bottom-color: #ffd400; border-top: 0; }
+@keyframes ob-pop { from { opacity: 0; } to { opacity: 1; } }
 .riddle-overlay { position: fixed; inset: 0; z-index: 2100; display: grid; place-items: center; background: rgba(6, 8, 14, 0.82); animation: wed-in 0.2s ease-out; padding: 20px; }
 .riddle-box { width: min(420px, 94vw); padding: 22px; border-radius: 16px; text-align: center; background: var(--panel, #15171d); border: 2px solid var(--line); box-shadow: var(--shadow); color: var(--ink); }
 .riddle-eyebrow { margin: 0 0 10px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #ff9a6a; }
 .riddle-progress { margin: 0 0 8px; font-size: 0.72rem; font-weight: 900; color: #7dffa8; }
-.riddle-q { margin: 0 0 14px; font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
+.riddle-q { margin: 0 0 10px; font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
+.riddle-hint { margin: 0 0 14px; font-family: "Courier New", monospace; font-weight: 800; font-size: 1.15rem; letter-spacing: 0.06em; color: #ffd479; white-space: pre-wrap; }
 .riddle-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.08); color: #fffdf7; font: 700 1rem "Archivo", sans-serif; text-align: center; }
 .riddle-input.shake { animation: ts-shake 0.4s; border-color: #ff5a5a; }
 .riddle-msg { min-height: 1.1rem; margin: 8px 0 0; font-size: 0.74rem; font-weight: 700; color: #ff8f8f; }
@@ -5342,7 +5363,47 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .rr-label.rr-them { color: #7aa8ff; }
 .rr-name { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.3rem; text-transform: uppercase; color: #fffdf7; }
 .rr-vs { font-size: clamp(1.6rem, 5vw, 3rem); font-weight: 900; color: #e0341a; animation: ts-fade 0.5s 0.45s both; }
+.rr-next { margin-top: 6px; min-width: 240px; font-size: 1.05rem; font-weight: 900; letter-spacing: 0.02em; animation: ts-fade 0.5s 0.55s both; }
 @media (max-width: 560px) { .rr-cards { gap: 10px; } .rr-name { font-size: 0.95rem; } }
+
+/* Pre-round team announcement (3+ players) - shares .round-reveal's full-screen backdrop. */
+.team-reveal { cursor: pointer; }
+.tr-teams { display: flex; align-items: flex-start; justify-content: center; gap: clamp(16px, 5vw, 48px); animation: ts-fade 0.5s 0.3s both; }
+.tr-team { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: clamp(120px, 26vw, 220px); }
+.tr-head { font-family: "Archivo", sans-serif; font-weight: 900; font-size: clamp(1.2rem, 4vw, 2rem); letter-spacing: 0.04em; text-transform: uppercase; }
+.tr-a .tr-head { color: #ffbe0b; }
+.tr-b .tr-head { color: #7aa8ff; }
+.tr-members { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.tr-chip { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); }
+.tr-ini { display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 auto; border-radius: 50%; font-weight: 900; font-size: 0.85rem; color: #120c1e; background: #fffdf7; }
+.tr-a .tr-chip .tr-ini { background: #ffbe0b; }
+.tr-b .tr-chip .tr-ini { background: #7aa8ff; }
+.tr-nm { font-weight: 800; color: #fffdf7; font-size: 0.95rem; }
+.tr-tap { color: rgba(255, 255, 255, 0.55); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; animation: ts-fade 0.6s 0.9s both; }
+@media (max-width: 560px) { .tr-teams { gap: 12px; } .tr-nm { font-size: 0.82rem; } }
+
+/* Player-count stepper (title screen + online lobby). */
+.ts-count { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px; }
+.ts-count-label { font-weight: 900; letter-spacing: 0.14em; font-size: 0.78rem; color: rgba(255, 255, 255, 0.7); }
+.ts-count-btn {
+  width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06); color: #fffdf7; font-size: 1.4rem; font-weight: 900; line-height: 1; cursor: pointer;
+  display: grid; place-items: center; transition: background 0.15s, border-color 0.15s;
+}
+.ts-count-btn:hover { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.6); }
+.ts-count-val { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.6rem; min-width: 1.4ch; text-align: center; color: #fffdf7; }
+.ts-names-label { font-weight: 800; color: #fffdf7; margin-bottom: 8px; }
+.ts-names-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; width: min(320px, 80vw); }
+.ts-name-slot {
+  padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06); color: #fffdf7; font-size: 1rem; font-weight: 600;
+}
+.ts-name-slot::placeholder { color: rgba(255, 255, 255, 0.4); font-weight: 500; }
+
+/* Team labels on the local seat pill + online room team line. */
+.seat-roster.seat-teams .seat-half { flex-direction: column; gap: 2px; padding-top: 6px; padding-bottom: 6px; }
+.seat-teams .seat-sub { font-size: 0.62rem; font-weight: 700; opacity: 0.7; max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.or-team { font-weight: 800; color: #ffbe0b; font-size: 0.9rem; margin-top: 2px; }
 
 
 /* ===================== Sidebar chrome tweaks ===================== */
@@ -5417,9 +5478,58 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 
 /* ===================== LINKEDIN mode: corporate profiles + ticker feed ===================== */
 .character-board.linkedin-board { background: #f3f2ef; border-radius: 10px; }
+/* ===== LinkedIn mode reskins the WHOLE page into a plain corporate-white LinkedIn aesthetic ===== */
+body.mode-linkedin {
+  color-scheme: light;
+  --ink: #1d1d1d;
+  --muted: #5f6368;
+  --paper: #f4f2ee;           /* LinkedIn's warm feed grey */
+  --panel: #ffffff;
+  --panel-soft: #f3f2ef;
+  --card-surface: #ffffff;
+  --card-surface-2: #f3f2ef;
+  --surface: #ffffff;
+  --surface-soft: #eef3f8;
+  --surface-muted: #d0d5db;
+  --card-ink: #1d1d1d;
+  --line: #d6d6d6;
+  --accent: #0a66c2;          /* LinkedIn blue everywhere */
+  --accent-2: #0a66c2;
+  --accent-3: #0a66c2;
+  --accent-4: #378fe9;
+  --shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  --grid-line: rgba(0, 0, 0, 0.03);
+  --secret-bg: #ffffff;
+}
+/* Buttons/selects in the chrome are dark-themed by default (body:not([data-theme="light"])) — force
+   them light so they don't stay black on the white LinkedIn page. */
+body.mode-linkedin .topbar-actions .button,
+body.mode-linkedin .topbar-actions select,
+body.mode-linkedin .game-bar-actions .button {
+  background: #ffffff; color: #1d1d1d; border: 1px solid #c8ccd1; box-shadow: none;
+}
+body.mode-linkedin .topbar-actions .button:hover,
+body.mode-linkedin .game-bar-actions .button:hover { background: #eef3f8; }
+body.mode-linkedin .side-panel,
+body.mode-linkedin .topbar { background: #ffffff; border-color: #e0e0e0; }
+/* Give the page a LinkedIn-blue rule along the top, purely for the bit. */
+body.mode-linkedin .topbar { border-bottom: 3px solid #0a66c2; }
+body.mode-linkedin .cue-card { background: #ffffff; border: 1px solid #d6d6d6; color: #1d1d1d; }
+
 .character-card.linkedin { background: #fff; border: 1px solid #d6d6d6; color: #1d1d1d; }
 .character-card.linkedin .card-plate { background: none; padding: 5px 7px 7px; gap: 2px; min-width: 0; overflow: hidden; }
-.character-card.linkedin h3 { color: #0a0a0a; font-size: 0.82rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* LinkedIn mode owns the whole plate: the base UPPERCASE name h3 is hidden; the Sentence Case
+   "First Surname" is rendered inside the sheet (.li-name) so every card has an identical layout. */
+.character-card.linkedin h3 { display: none; }
+/* Base .card-meta is a centred flex-row-wrap, which collapses the banner to 0 width and lets the
+   sheet overflow (clipping the secret card's left edge). LinkedIn wants a plain block: full-width
+   banner stacked above a left-aligned sheet, identical on every card. */
+.character-card.linkedin .card-meta { display: block; width: 100%; text-align: left; }
+.character-card.linkedin .li-sheet { width: 100%; }
+.li-name { font-size: 0.74rem; font-weight: 800; color: #0a0a0a; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li-location { font-size: 0.5rem; color: #8a8a8a; margin-bottom: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.character-card.linkedin.li-power .li-name { color: #0a66c2; }
+.character-card.linkedin.li-flop .li-name { color: #6a6a6a; }
 /* Green #OpenToWork ring hugging the portrait. */
 .character-card.linkedin.li-otw .portrait-wrap { box-shadow: inset 0 0 0 4px #01754f; }
 .li-otw-badge {
@@ -5441,13 +5551,15 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .li-connections { font-size: 0.5rem; color: #8a8a8a; margin-bottom: 2px; overflow-wrap: anywhere; }
 
 /* Mini profile banner strip at the top of the info plate. */
-.li-banner { height: 26px; margin: -5px -7px 4px; background-size: cover; background-position: center; }
+.li-banner { height: 26px; box-sizing: border-box; margin: -5px -7px 4px; background-size: cover; background-position: center; }
 /* The inline background-image:url() always wins; this base colour shows through if that art 404s,
    so a missing banner still reads as an intentional (if plain) profile banner. */
 .li-banner-img { filter: blur(3px) saturate(0.9); transform: scale(1.15); background-color: #2f5d86; }
 .li-banner-plain { background: linear-gradient(90deg, #0a66c2, #378fe9); }
-.li-banner-premium { background: linear-gradient(90deg, #0a66c2 0 72%, #f5c518 72% 100%); }
 .li-banner-grey { background: repeating-linear-gradient(45deg, #d9d9d9, #d9d9d9 6px, #cfcfcf 6px, #cfcfcf 12px); }
+/* POWER tier: an elite, richer blurred banner. Same HEIGHT as every other tier (so the plate below
+   lines up identically across the board), but richer saturation + a gold bottom rule for prestige. */
+.li-banner-power { filter: blur(3px) saturate(1.1); border-bottom: 2px solid #f5c518; }
 
 /* Premium (POWER tier) flex + verified sheen. */
 .li-premium {

@@ -68,7 +68,7 @@ function scheduleReconnect(room) {
 }
 function netSend(type, data) {
   if (!net) return;
-  try { net.post({ type, seat: state.mySeat || 0, ...data }); } catch (e) { /* channel closed */ }
+  try { net.post({ type, seat: state.mySeat || 0, clientId: state.clientId || "", ...data }); } catch (e) { /* channel closed */ }
 }
 function markPeerOnline() {
   if (!state.onlinePeer) {
@@ -97,55 +97,81 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "hello") {
     markPeerOnline();
-    const seat = msg.seat === 0 ? 0 : 1;
-    if (state.inLobby) {
-      // Lobby: record the newcomer's name, announce their arrival, reply once so they learn us too.
-      state.lobby = state.lobby || {};
-      if (msg.pname && state.lobby[seat] !== msg.pname) { state.lobby[seat] = msg.pname; addLog(`${msg.pname} has arrived.`); }
-      updateLobby();
-      state.seenPeers = state.seenPeers || new Set();
-      if (!state.seenPeers.has(seat)) { state.seenPeers.add(seat); netSend("hello", { pname: state.pname }); }
+    // Only the host is the roster authority. A guest, on seeing anyone else's hello (the host
+    // connecting late, or another guest), re-announces itself once so the host (re)learns it -
+    // this covers the guest-connected-before-host race. seenPeers bounds it to one reply per peer.
+    if (!state.isHost) {
+      if (msg.clientId && msg.clientId !== state.clientId) {
+        state.seenPeers = state.seenPeers || new Set();
+        if (!state.seenPeers.has(msg.clientId)) { state.seenPeers.add(msg.clientId); netSend("hello", { pname: state.pname }); }
+      }
       return;
     }
-    // Mid-game newcomer: sync them into the current round.
-    netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick });
+    if (msg.clientId && !state.roster.some((r) => r.clientId === msg.clientId)) {
+      // A new client: register them in the next open slot (up to the cap).
+      if (state.roster.length < MAX_PLAYERS) {
+        state.roster.push({ name: msg.pname || `Player ${state.roster.length + 1}`, clientId: msg.clientId });
+        if (state.playerCount < state.roster.length) state.playerCount = state.roster.length;
+        addLog(`${msg.pname || "A player"} has arrived.`);
+      }
+    } else if (msg.clientId && msg.pname) {
+      // Known client updating their name.
+      const r = state.roster.find((x) => x.clientId === msg.clientId);
+      if (r) r.name = msg.pname;
+    }
+    if (state.inLobby) { broadcastLobby(); updateLobby(); }
+    // Mid-game newcomer: sync them into the current round (roster included).
+    else netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount });
+    return;
+  }
+  if (msg.type === "lobby") {
+    markPeerOnline();
+    if (state.isHost) return;   // host owns the roster; ignore echoes of its own broadcast
+    applyRosterFromMsg(msg);
+    if (state.inLobby) updateLobby();
     return;
   }
   if (msg.type === "sync") {
     markPeerOnline();
+    applyRosterFromMsg(msg);
     if (msg.salt && msg.salt !== state.gameSalt) {
       state.settings = { ...state.settings, ...(msg.settings || {}) };
-      state.mySeat = msg.seat === 0 ? 1 : 0;   // take the other seat
+      state.inLobby = false;
+      document.querySelector(".lobby-screen")?.remove();
+      state.gameSalt = msg.salt;
+      syncMySeatFromRoster();                 // clientId → my side (no more seat-collision dance)
       newGame(msg.salt, { remote: true, effectId: msg.effectId });
-    } else if ((state.mySeat || 0) === (msg.seat || 0)) {
-      // Same round (e.g. second tab resumed the same save) but we collided on the seat - the
-      // newcomer (that's us: we sent the hello this sync answers) yields to the other one.
-      state.mySeat = msg.seat === 0 ? 1 : 0;
-      state.currentPlayer = state.mySeat;
-      render();
     }
     return;
   }
   if (msg.type === "start") {
     markPeerOnline();
     state.settings = { ...state.settings, ...(msg.settings || {}) };
-    if (msg.names) { state.lobby = msg.names; state.pname = msg.names[state.mySeat || 0] || state.pname; }
+    applyRosterFromMsg(msg);
     state.inLobby = false;
     document.querySelector(".lobby-screen")?.remove();
+    state.gameSalt = msg.salt;
+    syncMySeatFromRoster();                    // derive my side from the shared roster + salt
     newGame(msg.salt, { remote: true, effectId: msg.effectId, first: msg.first === true });
     return;
   }
   if (msg.type === "elim") {
     markPeerOnline();
-    const seat = msg.seat === 0 ? 0 : 1;
-    if (seat === (state.mySeat || 0)) return;      // our own echo
-    const p = state.players[seat];
+    if (msg.clientId && msg.clientId === state.clientId) return;   // our own echo (WS relay path)
+    const side = sideFromMsg(msg);
+    const p = state.players[side];
     if (!p) return;
     if (msg.down) p.eliminated.add(msg.id); else p.eliminated.delete(msg.id);
-    // Feed shows CURRENT crossings only: un-crossing removes the entry (no add/remove/add doubling).
-    state.opponentLog = (state.opponentLog || []).filter((e) => !(e.seat === seat && e.id === msg.id));
-    if (msg.down) state.opponentLog.unshift({ seat, id: msg.id, t: Date.now() });
-    renderOpponentPanel();
+    if (side === (state.mySeat || 0)) {
+      // A TEAMMATE crossed a card on MY shared board - reflect it live and persist.
+      renderBoard();
+      scheduleSave();
+    } else {
+      // Opponent feed shows CURRENT crossings only: un-crossing removes the entry (no doubling).
+      state.opponentLog = (state.opponentLog || []).filter((e) => !(e.seat === side && e.id === msg.id));
+      if (msg.down) state.opponentLog.unshift({ seat: side, id: msg.id, t: Date.now() });
+      renderOpponentPanel();
+    }
     return;
   }
   if (msg.type === "baby") {
@@ -190,7 +216,9 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "endround") {
     markPeerOnline();
-    showRoundReveal();   // the follow-up "start" message deals the new round
+    // Show the reveal with a NEXT ROUND button; whoever clicks it deals + broadcasts "start" (and a
+    // remote "start" clears this reveal via newGame). No auto-advance, so everyone gets a breather.
+    showRoundReveal(() => newGame());
   }
 }
 // Strip a character down to what another client (or a save file) needs to rebuild them.

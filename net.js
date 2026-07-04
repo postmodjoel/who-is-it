@@ -202,6 +202,14 @@ function handleNetMsg(msg) {
     }
     return;
   }
+  if (msg.type === "chat") {
+    markPeerOnline();
+    // Habbo room chat: the sender already bobba-ized the text, so every client shows the same words.
+    if (state.global.mystery?.id === "habbo" && typeof habboSay === "function" && msg.charId && typeof msg.text === "string") {
+      habboSay(msg.charId, String(msg.text).slice(0, 90));
+    }
+    return;
+  }
   if (msg.type === "mode") {
     markPeerOnline();
     const eff = MysteryModes.byId(msg.id);

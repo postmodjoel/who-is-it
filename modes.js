@@ -716,7 +716,18 @@ function renderHabboSelectionUI(focusChat = false) {
     if (a.head) pixelateSrc(a.head, 30, (url) => { const img = bar.querySelector("img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
     const input = bar.querySelector("input");
     if (draft) input.value = draft;
-    const say = () => { const t = input.value.trim(); if (t) { habboSay(ch.id, t); input.value = ""; } input.focus(); };
+    // The bobba filter runs ONCE at send time (not per client), so everyone reads the same censored
+    // words - then the chat is broadcast so both online seats see every bubble.
+    const say = () => {
+      const t = input.value.trim();
+      if (t) {
+        const filtered = bobbaize(t);
+        habboSay(ch.id, filtered);
+        netSend("chat", { charId: ch.id, text: filtered });
+        input.value = "";
+      }
+      input.focus();
+    };
     bar.querySelector("button").addEventListener("click", say);
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") say(); if (e.key === "Escape") selectHabbo(habboSelected); });
     if (focusChat || hadFocus) setTimeout(() => { if (input.isConnected) input.focus({ preventScroll: true }); }, 60);
@@ -725,6 +736,22 @@ function renderHabboSelectionUI(focusChat = false) {
 function banHabbo(id) {
   toggleEliminated(id);
   if (habboSelected !== id) habboSelected = id;
+}
+// The Habbo word filter: random words become "bobba", exactly like the hotel's censor - the joke is
+// that it fires on completely innocent words, and the table has to guess what was really said.
+// PG mode censors MORE aggressively (it's a children's hotel, after all). Local randomness is fine:
+// the text is bobba-ized once at send time and travels the wire already censored.
+function bobbaize(text) {
+  const rate = state.settings.pg ? 0.45 : 0.28;
+  const words = String(text).split(/(\s+)/);
+  const out = words.map((w) => {
+    if (!w.trim() || w.length < 3) return w;
+    if (Math.random() >= rate) return w;
+    const tail = /[.,!?…]+$/.exec(w);
+    return "bobba" + (tail ? tail[0] : "");
+  });
+  // Never censor the whole message into nothing but bobba... actually, sometimes that's funnier.
+  return out.join("");
 }
 // Habbo chat: the new bubble lands at the head; older ones float upward and expire.
 function habboSay(id, text) {

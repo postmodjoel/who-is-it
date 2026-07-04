@@ -1422,18 +1422,19 @@ function endRound() {
 // Disabling PG mode requires solving adults-only riddles (free text) - the answers are all bits of
 // grown-up life a 10-year-old wouldn't know. cb(true) if solved, cb(false) if cancelled/given up.
 const ADULT_RIDDLES = [
-  { q: "I visit every adult once a year, take a cut of all you earned, and no child has ever paid me. What am I?", a: ["tax", "taxes", "taxman", "the taxman", "income tax", "hmrc", "irs"] },
-  { q: "I'm the loan that chains you to one house for thirty years. One word — what am I?", a: ["mortgage", "a mortgage"] },
-  { q: "\"Nothing in life is certain except death and ___.\" Fill in the blank.", a: ["taxes", "tax"] },
-  { q: "I'm taken from your wage before it even lands, I pay for the roads and hospitals, and grown-ups dread me every payslip. What am I?", a: ["tax", "taxes", "national insurance", "ni"] },
-  { q: "Adults sign me to rent a home, I list what you can't do, and I always want a deposit. What am I?", a: ["lease", "tenancy", "a lease", "tenancy agreement", "rental agreement", "contract"] },
-  { q: "I am the dull monthly fee that keeps the lights on. Forget me and everything goes dark. What am I?", a: ["electric bill", "power bill", "utility bill", "utilities", "bill"] },
-  { q: "I am the percentage a bank adds because you borrowed its money. What am I?", a: ["interest", "interest rate", "apr"] },
-  { q: "I am the document you send to an employer before an interview. What am I?", a: ["resume", "cv", "curriculum vitae"] },
-  { q: "I am the savings pot grown-ups are meant to keep for old age. What am I?", a: ["pension", "retirement fund", "superannuation", "super"] },
-  { q: "I am the yearly form where you confess your income to the government. What am I?", a: ["tax return", "return", "income tax return"] },
-  { q: "I am the insurance amount you pay before the insurer starts helping. What am I?", a: ["excess", "deductible"] },
-  { q: "I am the meeting invite that could have been an email. One word — what am I?", a: ["meeting", "a meeting"] }
+  { q: "I'm the super-fund pot your boss is legally forced to top up, and you can't touch me till you're old. What am I?", a: ["super", "superannuation", "my super", "the super"] },
+  { q: "I'm the tax office every Aussie adult dreads at return time. Three letters — what am I?", a: ["ato", "the ato", "australian taxation office", "tax office"] },
+  { q: "I'm the nine-digit number you give a new employer so they don't tax you to death. Three letters for short — what am I?", a: ["tfn", "tax file number", "a tfn"] },
+  { q: "I'm the uni debt that quietly follows you around and comes out of your pay once you earn enough. What am I?", a: ["hecs", "help", "hecs debt", "help debt", "hecs-help", "uni debt", "student debt"] },
+  { q: "I'm the extra 2% on your tax that helps pay for the public hospital system. Two words — what am I?", a: ["medicare levy", "the medicare levy", "medicare"] },
+  { q: "I'm the yearly fee that keeps your car legal to drive on the road. What am I (Aussie slang)?", a: ["rego", "registration", "car rego", "the rego"] },
+  { q: "I'm the nasty government tax you cop when you buy a house or a car. Two words — what am I?", a: ["stamp duty", "the stamp duty", "duty"] },
+  { q: "I'm the property-investor tax trick where your rental loses money on paper so you pay less tax. Two words — what am I?", a: ["negative gearing", "negatively geared", "gearing"] },
+  { q: "I'm the loan that chains you to one house for thirty years. One word — what am I?", a: ["mortgage", "a mortgage", "home loan"] },
+  { q: "I'm the interest rate the Reserve Bank sets that makes every mortgage holder sweat. Two words — what am I?", a: ["cash rate", "the cash rate", "rba cash rate", "interest rate", "rate"] },
+  { q: "I'm the quarterly form a small business lodges to sort out their GST. Three letters — what am I?", a: ["bas", "business activity statement", "a bas"] },
+  { q: "I'm the doctor's visit that costs you nothing because Medicare foots the bill. Two words — what am I?", a: ["bulk billing", "bulk billed", "bulkbilling"] },
+  { q: "I'm the ongoing fee you pay to the body corporate for living in an apartment block. What am I?", a: ["strata", "strata fees", "body corporate", "strata levy", "levies"] }
 ];
 function normalizeAdultAnswer(value) {
   return String(value).trim().toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();

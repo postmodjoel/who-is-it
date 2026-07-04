@@ -4728,8 +4728,10 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .sp-fx:active { transform: translateY(1px); }
 
 /* ===================== Title PG toggle + adults-only riddle ===================== */
-.ts-pg {
-  min-width: 240px; display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
+/* .button.ts-pg (0,2,0) to override .button.secondary's width:100% and match the step buttons. */
+.button.ts-pg {
+  width: min(320px, 82vw); min-width: 240px; box-sizing: border-box;
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
   color: var(--card-ink); font: 900 0.86rem "Archivo", sans-serif; letter-spacing: 0.04em;
 }
 .ts-pg b { padding: 2px 7px; border-radius: 4px; background: #e01b1b; color: #fffdf7; font-size: 0.74rem; }

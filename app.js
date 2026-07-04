@@ -1581,6 +1581,7 @@ function showReceipt() {
       <p class="rc-thanks">THANK YOU FOR EXISTING<br>IN THIS UNIVERSE</p>
       <div class="rc-barcode" aria-hidden="true"></div>
       <p class="rc-serial">#${escapeHtml(String(stableHash(state.gameSalt || "void")).slice(0, 10))}</p>
+      <p class="rc-foot">*nothing was resolved</p>
     </div>`;
   document.body.appendChild(ov);
   // Printer chatter while the paper feeds out.

@@ -5922,3 +5922,7 @@ body.mode-linkedin .cue-card { background: #ffffff; border: 1px solid #d6d6d6; c
   background: #c0281c; color: #fff; font-size: 10px; border-radius: 2px;
 }
 .character-card.gal-ukiyoe .portrait-wrap img { filter: sepia(0.22) saturate(1.35) hue-rotate(-12deg) contrast(1.05); }
+
+/* Gallery rows hang level: plaques share a minimum height so the wall reads as one exhibition. */
+.gal-plaque { min-height: 86px; display: flex; flex-direction: column; justify-content: center; }
+.rc-foot { margin: 6px 0 0; text-align: center; font-size: 0.52rem; font-style: italic; opacity: 0.55; }

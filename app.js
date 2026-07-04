@@ -244,7 +244,12 @@ const state = {
   roundAge: 0,         // how many rounds deep this session is (0 = the plain opening round). Drives prompt "heat".
   gameMode: "local",   // "local" (pass-and-play) or "online" (room-synced)
   board: [],
-  players: [],
+  players: [],          // ALWAYS length 2 - these are SIDES/teams, never per-human. See roster below.
+  playerCount: 2,       // 2-8 humans this game
+  roster: [],           // [{ name, clientId?, side }] - humans mapped onto the two sides. Empty ≙ classic 2p.
+  clientId: "",         // online: minted once per tab session so teammates on one side are distinguishable
+  myRosterIndex: 0,     // online: which roster slot is me
+  isHost: false,        // online: did I open this room (roster authority)
   location: null,
   locationVariant: "day",
   roomCode: "0000",
@@ -394,6 +399,7 @@ function newGame(seedSalt, opts = {}) {
   // from each round's salt, or every new round would move rooms and the peer would miss the deal.
   // Local mode just needs a display code, so it can track the salt.
   if (state.gameMode !== "online") state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
+  assignRosterTeams();   // salt is final now; derive team sides (no-op for classic <=2 rosters)
   const takenSecrets = new Set();
   state.players = [makePlayer(0, takenSecrets), makePlayer(1, takenSecrets)];
   state.currentPlayer = state.mySeat || 0;
@@ -427,35 +433,42 @@ function newGame(seedSalt, opts = {}) {
   replayBrand();   // WHO? / IS IT? slides back in for the fresh round
   stopOpponentSim();
   if (opts.resume) return;   // resume path applies the effect itself (silently, no wheel animation)
-  // The first round: skip the roulette entirely - it just looks like a normal game of Guess Who.
-  if (plainRound) { render(); return; }
-  // A joiner deals a throwaway round just to populate the UI - no wheel, no opponent sim; the host's
-  // sync will replace it in a moment.
-  if (opts.silentEffect) {
-    if (state.settings.mystery && state.wheelPick) applyMysteryEffect(state.wheelPick);
-    render();
-    return;
-  }
-  // The Wheel of Fate spins at the start of the round to pick the chaos mode BOTH seats will share.
-  // The landing spot is a hash of the salt, so every client's wheel lands on the SAME mode.
-  if (state.settings.mystery) {
-    spinModeRoulette((id) => {
-      if (id) {
-        const eff = MysteryModes.byId(id);
-        applyMysteryEffect(id);
-        if (eff) {
-          if (typeof playEffectAnnouncement === "function") playEffectAnnouncement(eff.name);
-          showMysteryAnnouncement(eff.name, eff.exampleQuestion);
-          addLog(`Wheel of Fate landed on "${eff.name}" - shared by both seats.`);
-        }
-      } else {
-        drawPrompt();
-      }
+  // The rest of the round setup (plain deal / joiner throwaway / wheel spin) is unchanged from the
+  // two-player build. For 3+ players we just show a brief team-reveal first, then run it.
+  const proceed = () => {
+    // The first round: skip the roulette entirely - it just looks like a normal game of Guess Who.
+    if (plainRound) { render(); return; }
+    // A joiner deals a throwaway round just to populate the UI - no wheel, no opponent sim; the host's
+    // sync will replace it in a moment.
+    if (opts.silentEffect) {
+      if (state.settings.mystery && state.wheelPick) applyMysteryEffect(state.wheelPick);
       render();
-      scheduleSave();
-    });
-  }
-  scheduleSave();
+      return;
+    }
+    // The Wheel of Fate spins at the start of the round to pick the chaos mode BOTH seats will share.
+    // The landing spot is a hash of the salt, so every client's wheel lands on the SAME mode.
+    if (state.settings.mystery) {
+      spinModeRoulette((id) => {
+        if (id) {
+          const eff = MysteryModes.byId(id);
+          applyMysteryEffect(id);
+          if (eff) {
+            if (typeof playEffectAnnouncement === "function") playEffectAnnouncement(eff.name);
+            showMysteryAnnouncement(eff.name, eff.exampleQuestion);
+            addLog(`Wheel of Fate landed on "${eff.name}" - shared by both seats.`);
+          }
+        } else {
+          drawPrompt();
+        }
+        render();
+        scheduleSave();
+      });
+    }
+    scheduleSave();
+  };
+  // 3+ players: announce the two teams before the wheel/plain deal (never on resume). 2p is unchanged.
+  if (rosterTeamMode()) showTeamReveal(proceed);
+  else proceed();
 }
 
 function makePlayer(index, taken) {
@@ -466,12 +479,82 @@ function makePlayer(index, taken) {
   if (taken) { while (taken.has(idx)) idx = (idx + 1) % state.board.length; taken.add(idx); }
   return {
     name: `Seat ${String.fromCharCode(65 + index)}`,
-    pname: (state.lobby && state.lobby[index]) || (state.gameMode === "online" && index === (state.mySeat || 0) ? state.pname : null),
+    pname: rosterPname(index),
     secretId: state.board[idx].id,
     eliminated: new Set(),
     mysteryUsed: false,
     secretVisible: true
   };
+}
+
+// ===================== Roster / teams (2-8 players over two sides) =====================
+// The engine is a two-SIDE game forever (state.players.length === 2). A roster of 2-8 humans is
+// mapped deterministically onto those two sides; teammates share a side (and its secret/board).
+// Empty roster (or length <= 2) means "classic" - the game looks and behaves exactly like the
+// original two-player build.
+const SIDE_COUNT = 2, MIN_PLAYERS = 2, MAX_PLAYERS = 8;
+
+function rosterTeamMode() { return !!(state.roster && state.roster.length > 2); }
+function ensureClientId() {
+  if (!state.clientId) state.clientId = `c-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return state.clientId;
+}
+// Build a clean roster of {name} from a count + a names array/object (blank names get "Player N").
+function normalizeRoster(count, names) {
+  const n = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, count | 0));
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const raw = Array.isArray(names) ? names[i] : (names && names[i]);
+    const nm = (raw == null ? "" : String(raw)).trim();
+    out.push({ name: nm || `Player ${i + 1}` });
+  }
+  return out;
+}
+// Deterministic team split from the salt: identical on every client (same salt + same roster order).
+// Writes `side` (0|1) onto each roster entry. Re-runs every round so teams rotate.
+function assignRosterTeams() {
+  const roster = state.roster || [];
+  const n = roster.length;
+  if (n === 0) return;
+  if (n <= SIDE_COUNT) { roster.forEach((r, i) => { r.side = i < SIDE_COUNT ? i : 1; }); return; }
+  const order = roster.map((_, i) => i).sort((a, b) =>
+    stableHash(`${state.gameSalt}:team:${a}:${roster[a].name}`) - stableHash(`${state.gameSalt}:team:${b}:${roster[b].name}`)
+  );
+  const base = Math.floor(n / 2);                              // even → balanced; odd → one side gets the extra
+  const bigSide = stableHash(`${state.gameSalt}:teambig`) % 2; // which side gets the extra, derived from the salt
+  const size0 = bigSide === 0 ? n - base : base;               // n - base === ceil(n/2)
+  order.forEach((rosterIdx, pos) => { roster[rosterIdx].side = pos < size0 ? 0 : 1; });
+}
+function teamMembers(side) { return (state.roster || []).filter((r) => r.side === side); }
+// Display label for a side: team name in 3+ games, else the human's/classic A-B label.
+function teamLabel(side) {
+  if (rosterTeamMode()) return side === 0 ? "TEAM A" : "TEAM B";
+  const rname = state.roster && state.roster[side] && state.roster[side].name;
+  return rname || (state.players[side] && state.players[side].pname) || (side === 0 ? "A" : "B");
+}
+// pname for makePlayer: team label for 3+, roster/lobby name otherwise (preserves classic behavior).
+function rosterPname(index) {
+  if (rosterTeamMode()) return teamLabel(index);
+  if (state.roster && state.roster[index] && state.roster[index].name) return state.roster[index].name;
+  return (state.lobby && state.lobby[index]) || (state.gameMode === "online" && index === (state.mySeat || 0) ? state.pname : null);
+}
+function sideFromMsg(msg) { return msg && msg.seat === 0 ? 0 : 1; }
+// A wire-safe copy of the roster (names + clientIds, no derived `side`).
+function rosterForWire() { return (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId })); }
+// Adopt a roster broadcast by the host and locate myself in it by clientId.
+function applyRosterFromMsg(msg) {
+  if (!Array.isArray(msg.roster)) return;
+  state.roster = msg.roster.map((r) => ({ name: r.name, clientId: r.clientId }));
+  state.playerCount = msg.playerCount || state.roster.length;
+  const mine = state.roster.findIndex((r) => r.clientId && r.clientId === state.clientId);
+  if (mine >= 0) state.myRosterIndex = mine;
+}
+// After the salt + roster are known, derive teams and set which side is mine.
+function syncMySeatFromRoster() {
+  if (!state.roster || !state.roster.length || !state.gameSalt) return;
+  assignRosterTeams();
+  const me = state.roster[state.myRosterIndex];
+  if (me && typeof me.side === "number") state.mySeat = me.side;
 }
 
 function render() {
@@ -599,12 +682,16 @@ function renderRoom() {
   els.roomStatus.textContent = "";
   els.seatRoster.innerHTML = "";
   if (online) {
-    // ONLINE: no seat toggle (you only ever control your own seat). Instead, a big shareable room
-    // number so a friend can JOIN it, plus a live connection status.
+    // ONLINE: no seat toggle (you only ever control your own side). Instead, a big shareable room
+    // number so a friend can JOIN it, plus a live connection status. In 3+ games, also show my team.
     els.seatRoster.className = "seat-roster online-room";
+    const teamLine = rosterTeamMode()
+      ? `<p class="or-team">${escapeHtml(teamLabel(state.mySeat || 0))} — ${teamMembers(state.mySeat || 0).map((m) => escapeHtml(m.clientId && m.clientId === state.clientId ? "you" : m.name)).join(", ")}</p>`
+      : "";
     els.seatRoster.innerHTML = `
       <p class="or-label">Your room</p>
       <div class="or-code">#${escapeHtml(state.roomCode)} <button type="button" class="or-copy" title="Copy room number">📋</button></div>
+      ${teamLine}
       <p class="or-status">${state.onlinePeer ? "🟢 friend connected" : "⏳ waiting for a friend to join…"}</p>`;
     const copyBtn = els.seatRoster.querySelector(".or-copy");
     if (copyBtn) copyBtn.addEventListener("click", () => {
@@ -613,14 +700,18 @@ function renderRoom() {
     });
     return;
   }
-  // LOCAL: one joined segmented toggle, the active seat lit. Tap a half (or the ⇄ badge) to hand off.
-  els.seatRoster.className = "seat-roster seat-pill";
-  els.seatRoster.innerHTML = state.players.map((player, i) => {
-    const label = player.pname || (i === 0 ? "A" : "B");
-    return `<button type="button" class="seat-half ${i === state.currentPlayer ? "active" : ""}" data-seat="${i}">
-        <span class="seat-glyph">${i === state.currentPlayer ? "YOU" : escapeHtml(label)}</span>
+  // LOCAL: one joined segmented toggle, the active side lit. Tap a half (or the ⇄ badge) to hand off
+  // the device. In 3+ games the two halves are TEAMS (with member names); in 2p it's the classic pill.
+  els.seatRoster.className = "seat-roster seat-pill" + (rosterTeamMode() ? " seat-teams" : "");
+  const teamMode = rosterTeamMode();
+  els.seatRoster.innerHTML = [0, 1].map((i) => {
+    const active = i === state.currentPlayer;
+    const label = teamMode ? teamLabel(i) : (state.players[i].pname || (i === 0 ? "A" : "B"));
+    const sub = teamMode ? `<span class="seat-sub">${escapeHtml(teamMembers(i).map((m) => m.name).join(", "))}</span>` : "";
+    return `<button type="button" class="seat-half ${active ? "active" : ""}" data-seat="${i}">
+        <span class="seat-glyph">${active ? "YOU" : escapeHtml(label)}</span>${sub}
       </button>`;
-  }).join("") + `<button type="button" class="seat-swap" data-seat="${(state.currentPlayer + 1) % state.players.length}" aria-label="Swap turn">⇄</button>`;
+  }).join("") + `<button type="button" class="seat-swap" data-seat="${(state.currentPlayer + 1) % SIDE_COUNT}" aria-label="${teamMode ? "Swap team" : "Swap turn"}">⇄</button>`;
   els.seatRoster.querySelectorAll(".seat-half, .seat-swap").forEach((b) => b.addEventListener("click", () => {
     state.currentPlayer = Number(b.dataset.seat);
     render();
@@ -1141,7 +1232,7 @@ function toggleSoundPanel() {
   panel = document.createElement("div");
   panel.id = "soundPanel"; panel.className = "sound-panel";
   const S = window.Sound;
-  const host = state.gameMode !== "online" || (state.mySeat || 0) === 0;
+  const host = state.gameMode !== "online" || state.isHost;
   const trackOpts = S.trackNames().map((n, i) => `<option value="${i}" ${i === S.currentTrack() ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
   panel.innerHTML = `
     <div class="sp-head"><b>🔊 Sound</b><button type="button" class="sp-x" aria-label="close">✕</button></div>
@@ -1185,8 +1276,14 @@ function saveGameState() {
       settings: state.settings,
       gameMode: state.gameMode || "local",
       mySeat: state.mySeat || 0,
+      roomCode: state.roomCode,   // online: the channel isn't re-derivable for a joiner, so persist it
       currentPlayer: state.currentPlayer,
       roundAge: state.roundAge || 0,
+      playerCount: state.playerCount || 2,
+      roster: (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side })),
+      clientId: state.clientId || "",
+      myRosterIndex: state.myRosterIndex || 0,
+      isHost: !!state.isHost,
       boardIds: state.board.map((c) => c.id),   // pin the exact deal: the pool can grow mid-round (fresh GAYBYs)
       effectId: state.global.mystery ? state.global.mystery.id : null,   // debug-picked/mystery-swapped modes survive too
       babies: state.board.filter((c) => c.isBaby || (c.isGayby && !c.persistedGayby)).map(serializeCharacter),
@@ -1203,8 +1300,21 @@ function resumeGame(saved) {
   state.settings = { ...state.settings, ...(saved.settings || {}) };
   state.gameMode = saved.gameMode || "local";
   state.mySeat = saved.mySeat || 0;
+  // The online room code must be restored BEFORE newGame's netConnect, or a resumed client would
+  // reconnect to the default "0000" channel and silently stop syncing. Fall back to the salt-derived
+  // code (valid for a host, whose code IS the salt hash) for older saves without a stored roomCode.
+  if ((saved.gameMode || "local") === "online") {
+    state.roomCode = saved.roomCode || String((stableHash(saved.salt) % 9000) + 1000);
+  }
   state.roundAge = saved.roundAge || 0;   // restored before newGame's resume path (which preserves it)
   state.abortedBabies = saved.abortedBabies || [];
+  // Restore the roster BEFORE newGame so assignRosterTeams re-derives the same sides from the same
+  // salt + roster (and the seat pill / team labels come back intact).
+  state.playerCount = saved.playerCount || 2;
+  state.roster = Array.isArray(saved.roster) ? saved.roster.map((r) => ({ name: r.name, clientId: r.clientId, side: r.side })) : [];
+  state.clientId = saved.clientId || state.clientId;
+  state.myRosterIndex = saved.myRosterIndex || 0;
+  state.isHost = !!saved.isHost;
   newGame(saved.salt, { resume: true, remote: true });
   // Rebuild the EXACT dealt board from the save: re-dealing from the salt isn't enough because the
   // pool can have grown mid-round (a fresh GAYBY persists into it instantly and would displace
@@ -1256,6 +1366,31 @@ function showRoundOverSplash(done) {
   document.body.appendChild(ov);
   setTimeout(() => { ov.remove(); if (done) done(); }, 1600);
 }
+// Pre-round team announcement (3+ players only). Same full-screen language as the round reveal.
+function showTeamReveal(done) {
+  const chip = (m) => `<div class="tr-chip"><span class="tr-ini">${escapeHtml((m.name || "?").slice(0, 1).toUpperCase())}</span><span class="tr-nm">${escapeHtml(m.name || "?")}</span></div>`;
+  const teamCol = (side) => `<div class="tr-team tr-${side === 0 ? "a" : "b"}">
+      <div class="tr-head">${escapeHtml(teamLabel(side))}</div>
+      <div class="tr-members">${teamMembers(side).map(chip).join("")}</div>
+    </div>`;
+  const ov = document.createElement("div");
+  ov.className = "round-reveal team-reveal";
+  ov.innerHTML = `
+    <div class="rr-title">TEAMS</div>
+    <div class="tr-teams">${teamCol(0)}<div class="rr-vs">VS</div>${teamCol(1)}</div>
+    <p class="tr-tap">tap to continue</p>`;
+  document.body.appendChild(ov);
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    ov.classList.add("rr-out");
+    setTimeout(() => ov.remove(), 450);
+    if (done) done();
+  };
+  ov.addEventListener("click", finish);
+  setTimeout(finish, 3000);
+}
 // End of round: the big reveal - BOTH secret characters side by side, then the next round deals.
 function showRoundReveal(done) {
   const secA = characterById(state.players[0].secretId);
@@ -1263,12 +1398,13 @@ function showRoundReveal(done) {
   const my = state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer;
   const mine = my === 0 ? secA : secB;
   const theirs = my === 0 ? secB : secA;
+  const teamMode = rosterTeamMode();
   const ov = document.createElement("div");
   ov.className = "round-reveal";
   ov.innerHTML = `
     <div class="rr-title">ROUND OVER</div>
     <div class="rr-cards">
-      <div class="rr-card"><span class="rr-label rr-you">YOU WERE</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span></div>
+      <div class="rr-card"><span class="rr-label rr-you">${teamMode ? "YOUR TEAM WAS" : "YOU WERE"}</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span></div>
       <div class="rr-vs">×</div>
       <div class="rr-card"><span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span></div>
     </div>`;
@@ -1371,9 +1507,21 @@ function showTitleScreen() {
     </div>
     <div class="ts-actions">
       <div class="ts-step ts-step-main">
+        <div class="ts-count" role="group" aria-label="Number of players">
+          <span class="ts-count-label">PLAYERS</span>
+          <button type="button" class="ts-count-btn ts-count-dn" aria-label="Fewer players">−</button>
+          <b class="ts-count-val">2</b>
+          <button type="button" class="ts-count-btn ts-count-up" aria-label="More players">+</button>
+        </div>
         <button type="button" class="button primary ts-local">🛋 LOCAL GAME</button>
         <button type="button" class="button secondary ts-online">🌐 ONLINE GAME</button>
         ${saved ? `<button type="button" class="button ghost ts-resume">↩ RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</button>` : ""}
+      </div>
+      <div class="ts-step ts-step-names" hidden>
+        <p class="ts-names-label">Name your players</p>
+        <div class="ts-names-list"></div>
+        <button type="button" class="button primary ts-names-go">DEAL →</button>
+        <button type="button" class="button ghost ts-back">← back</button>
       </div>
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
@@ -1400,11 +1548,32 @@ function showTitleScreen() {
   });
   const steps = {
     main: ov.querySelector(".ts-step-main"),
+    names: ov.querySelector(".ts-step-names"),
     online: ov.querySelector(".ts-step-online"),
     join: ov.querySelector(".ts-step-join")
   };
   const show = (name) => Object.entries(steps).forEach(([k, el]) => { el.hidden = k !== name; });
-  ov.querySelector(".ts-local").addEventListener("click", () => { close(); startLocalGame(); });
+  // Player-count stepper (drives LOCAL games; online host picks count in the lobby).
+  let localCount = MIN_PLAYERS;
+  const countVal = ov.querySelector(".ts-count-val");
+  const setCount = (c) => { localCount = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, c)); countVal.textContent = localCount; };
+  ov.querySelector(".ts-count-dn").addEventListener("click", () => { setCount(localCount - 1); sfx("blip"); });
+  ov.querySelector(".ts-count-up").addEventListener("click", () => { setCount(localCount + 1); sfx("blip"); });
+  ov.querySelector(".ts-local").addEventListener("click", () => {
+    if (localCount <= 2) { close(); startLocalGame(); return; }   // classic path unchanged
+    // 3+ players: collect names first.
+    const list = ov.querySelector(".ts-names-list");
+    list.innerHTML = Array.from({ length: localCount }, (_, i) =>
+      `<input class="ts-name-slot" type="text" maxlength="16" placeholder="Player ${i + 1}" aria-label="Player ${i + 1} name">`
+    ).join("");
+    show("names");
+    setTimeout(() => list.querySelector("input")?.focus(), 50);
+  });
+  ov.querySelector(".ts-names-go").addEventListener("click", () => {
+    const names = [...ov.querySelectorAll(".ts-name-slot")].map((el) => el.value);
+    close();
+    startLocalGame(localCount, names);
+  });
   ov.querySelector(".ts-online").addEventListener("click", () => show("online"));
   const nameOf = () => (ov.querySelector(".ts-name-input")?.value || "").trim();
   ov.querySelector(".ts-host").addEventListener("click", () => { close(); startOnlineGame(nameOf() || "Host"); });
@@ -1418,27 +1587,45 @@ function showTitleScreen() {
   if (res) res.addEventListener("click", () => { close(); resumeGame(saved); });
 }
 
-// LOCAL: pass-and-play on one screen - the YOU/B seat toggle is how you swap turns.
-function startLocalGame() { state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; newGame(undefined, { first: true }); }
+// LOCAL: pass-and-play on one screen - the YOU/B (or team) toggle is how you hand off the device.
+// No args (or count <= 2) is the classic two-player game: empty roster, identical to the old build.
+function startLocalGame(count, names) {
+  state.gameMode = "local"; state.mySeat = 0; state.inLobby = false;
+  if (count && count > 2) {
+    state.roster = normalizeRoster(count, names);
+    state.playerCount = state.roster.length;
+  } else {
+    state.roster = []; state.playerCount = 2;
+  }
+  newGame(undefined, { first: true });
+  // The plain opening round returns before newGame's own scheduleSave, so a fresh multi-player
+  // setup would vanish on an immediate refresh - pin it now.
+  if (rosterTeamMode()) scheduleSave();
+}
 
 // ONLINE host: open a LOBBY (no round dealt yet). The room's salt is fixed now so the room code is
 // stable through the eventual deal; players gather, then the host presses START.
 function startOnlineGame(name) {
-  state.gameMode = "online"; state.mySeat = 0; state.inLobby = true;
+  state.gameMode = "online"; state.isHost = true; state.mySeat = 0; state.inLobby = true;
+  ensureClientId();
   state.pname = name || "Player 1";
   state.gameSalt = `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
-  state.lobby = { 0: state.pname };
+  state.playerCount = 2;
+  state.roster = [{ name: state.pname, clientId: state.clientId }];   // host is roster slot 0
+  state.myRosterIndex = 0;
   state.seenPeers = new Set();
   netConnect();
   showLobby();
 }
-// ONLINE guest: connect to the host's room and wait in the lobby for them to start.
+// ONLINE guest: connect to the host's room and wait for the host's roster broadcast + START.
 function joinRoom(code, name) {
-  state.gameMode = "online"; state.mySeat = 1; state.inLobby = true;
+  state.gameMode = "online"; state.isHost = false; state.mySeat = 1; state.inLobby = true;
+  ensureClientId();
   state.pname = name || "Player 2";
   state.roomCode = code;
-  state.lobby = { 1: state.pname };
+  state.roster = [];               // populated from the host's "lobby" broadcast
+  state.myRosterIndex = -1;
   state.seenPeers = new Set();
   netConnect();
   showLobby();
@@ -1447,12 +1634,18 @@ function joinRoom(code, name) {
 // The waiting room: room number, who's arrived, and (host only) a START button once a friend joins.
 function showLobby() {
   document.querySelector(".lobby-screen")?.remove();
-  const host = (state.mySeat || 0) === 0;
+  const host = state.isHost;
   const ov = document.createElement("div");
   ov.className = "lobby-screen title-screen";
   ov.innerHTML = `
     <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">IS IT?</span></div>
     <p class="lobby-code">ROOM <b>#${escapeHtml(state.roomCode)}</b></p>
+    ${host ? `<div class="ts-count lobby-count" role="group" aria-label="Number of players">
+      <span class="ts-count-label">PLAYERS</span>
+      <button type="button" class="ts-count-btn lobby-count-dn" aria-label="Fewer players">−</button>
+      <b class="ts-count-val lobby-count-val">${state.playerCount}</b>
+      <button type="button" class="ts-count-btn lobby-count-up" aria-label="More players">+</button>
+    </div>` : ""}
     <div class="lobby-players"></div>
     <p class="lobby-status"></p>
     <div class="lobby-actions">
@@ -1461,30 +1654,52 @@ function showLobby() {
     </div>`;
   document.body.appendChild(ov);
   ov.querySelector(".lobby-leave").addEventListener("click", () => { state.inLobby = false; try { net && net.close(); } catch (e) {} ov.remove(); showTitleScreen(); });
+  if (host) {
+    // The count is the number of SLOTS shown; it can't drop below the humans already here.
+    const setCount = (c) => {
+      state.playerCount = Math.max(Math.max(MIN_PLAYERS, state.roster.length), Math.min(MAX_PLAYERS, c));
+      broadcastLobby();
+      updateLobby();
+    };
+    ov.querySelector(".lobby-count-dn").addEventListener("click", () => setCount(state.playerCount - 1));
+    ov.querySelector(".lobby-count-up").addEventListener("click", () => setCount(state.playerCount + 1));
+  }
   const startBtn = ov.querySelector(".lobby-start");
   if (startBtn) startBtn.addEventListener("click", () => {
     state.inLobby = false;
     ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 400);
-    // The opening online round is plain Guess Who (no effect, no wheel) for both seats.
+    // Finalize the roster to the humans actually present, then deal. The opening online round is
+    // plain Guess Who (no effect, no wheel) for every seat.
+    state.playerCount = state.roster.length;
     state.wheelPickShared = null;
-    netSend("start", { salt: state.gameSalt, settings: state.settings, names: state.lobby, effectId: null, first: true });
+    syncMySeatFromRoster();
+    netSend("start", { salt: state.gameSalt, settings: state.settings, roster: rosterForWire(), playerCount: state.playerCount, effectId: null, first: true });
     newGame(state.gameSalt, { effectId: null, announced: true, first: true });
   });
   updateLobby();
 }
+// Host → everyone: the authoritative roster + target player count. Guests render their lobby from it.
+function broadcastLobby() {
+  if (!state.isHost) return;
+  netSend("lobby", { roster: rosterForWire(), playerCount: state.playerCount });
+}
 function updateLobby() {
   const ov = document.querySelector(".lobby-screen");
   if (!ov) return;
-  const names = state.lobby || {};
-  const both = names[0] && names[1];
-  ov.querySelector(".lobby-players").innerHTML = [0, 1].map((s) => {
-    const nm = names[s];
-    const me = s === (state.mySeat || 0);
-    return `<div class="lobby-player ${nm ? "here" : "empty"}">${nm ? `✅ ${escapeHtml(nm)}${me ? " (you)" : ""}` : "⏳ waiting for a friend…"}</div>`;
+  const roster = state.roster || [];
+  const slots = Math.max(state.playerCount || 2, roster.length, 2);
+  const cv = ov.querySelector(".lobby-count-val"); if (cv) cv.textContent = state.playerCount;
+  ov.querySelector(".lobby-players").innerHTML = Array.from({ length: slots }, (_, i) => {
+    const r = roster[i];
+    const me = r && r.clientId && r.clientId === state.clientId;
+    return `<div class="lobby-player ${r ? "here" : "empty"}">${r ? `✅ ${escapeHtml(r.name)}${me ? " (you)" : ""}` : "⏳ waiting…"}</div>`;
   }).join("");
-  ov.querySelector(".lobby-status").textContent = both ? ((state.mySeat || 0) === 0 ? "Everyone's here — press START." : "Waiting for the host to start…") : `Share room #${state.roomCode} with a friend.`;
+  const enough = roster.length >= 2;
+  ov.querySelector(".lobby-status").textContent = enough
+    ? (state.isHost ? "Ready when you are — press START." : "Waiting for the host to start…")
+    : `Share room #${state.roomCode} with friends.`;
   const startBtn = ov.querySelector(".lobby-start");
-  if (startBtn) startBtn.disabled = !both;
+  if (startBtn) startBtn.disabled = !enough;
 }
 
 // ===================== SEED codes (share a whole setup) =====================

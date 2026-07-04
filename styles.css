@@ -5344,6 +5344,45 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .rr-vs { font-size: clamp(1.6rem, 5vw, 3rem); font-weight: 900; color: #e0341a; animation: ts-fade 0.5s 0.45s both; }
 @media (max-width: 560px) { .rr-cards { gap: 10px; } .rr-name { font-size: 0.95rem; } }
 
+/* Pre-round team announcement (3+ players) - shares .round-reveal's full-screen backdrop. */
+.team-reveal { cursor: pointer; }
+.tr-teams { display: flex; align-items: flex-start; justify-content: center; gap: clamp(16px, 5vw, 48px); animation: ts-fade 0.5s 0.3s both; }
+.tr-team { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: clamp(120px, 26vw, 220px); }
+.tr-head { font-family: "Archivo", sans-serif; font-weight: 900; font-size: clamp(1.2rem, 4vw, 2rem); letter-spacing: 0.04em; text-transform: uppercase; }
+.tr-a .tr-head { color: #ffbe0b; }
+.tr-b .tr-head { color: #7aa8ff; }
+.tr-members { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.tr-chip { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); }
+.tr-ini { display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 auto; border-radius: 50%; font-weight: 900; font-size: 0.85rem; color: #120c1e; background: #fffdf7; }
+.tr-a .tr-chip .tr-ini { background: #ffbe0b; }
+.tr-b .tr-chip .tr-ini { background: #7aa8ff; }
+.tr-nm { font-weight: 800; color: #fffdf7; font-size: 0.95rem; }
+.tr-tap { color: rgba(255, 255, 255, 0.55); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; animation: ts-fade 0.6s 0.9s both; }
+@media (max-width: 560px) { .tr-teams { gap: 12px; } .tr-nm { font-size: 0.82rem; } }
+
+/* Player-count stepper (title screen + online lobby). */
+.ts-count { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px; }
+.ts-count-label { font-weight: 900; letter-spacing: 0.14em; font-size: 0.78rem; color: rgba(255, 255, 255, 0.7); }
+.ts-count-btn {
+  width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06); color: #fffdf7; font-size: 1.4rem; font-weight: 900; line-height: 1; cursor: pointer;
+  display: grid; place-items: center; transition: background 0.15s, border-color 0.15s;
+}
+.ts-count-btn:hover { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.6); }
+.ts-count-val { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.6rem; min-width: 1.4ch; text-align: center; color: #fffdf7; }
+.ts-names-label { font-weight: 800; color: #fffdf7; margin-bottom: 8px; }
+.ts-names-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; width: min(320px, 80vw); }
+.ts-name-slot {
+  padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06); color: #fffdf7; font-size: 1rem; font-weight: 600;
+}
+.ts-name-slot::placeholder { color: rgba(255, 255, 255, 0.4); font-weight: 500; }
+
+/* Team labels on the local seat pill + online room team line. */
+.seat-roster.seat-teams .seat-half { flex-direction: column; gap: 2px; padding-top: 6px; padding-bottom: 6px; }
+.seat-teams .seat-sub { font-size: 0.62rem; font-weight: 700; opacity: 0.7; max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.or-team { font-weight: 800; color: #ffbe0b; font-size: 0.9rem; margin-top: 2px; }
+
 
 /* ===================== Sidebar chrome tweaks ===================== */
 /* Nudge the WHO?/IS IT? logo up a touch (it read too snug against the card). */

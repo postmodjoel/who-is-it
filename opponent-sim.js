@@ -29,7 +29,7 @@ function renderOpponentPanel() {
   const otherIdx = state.currentPlayer === 0 ? 1 : 0;
   const log = (state.opponentLog || []).filter((e) => e.seat === otherIdx);
   const mode = state.global.mystery;
-  const seatLabel = `Seat ${String.fromCharCode(65 + otherIdx)}`;
+  const seatLabel = (typeof teamLabel === "function") ? teamLabel(otherIdx) : `Seat ${String.fromCharCode(65 + otherIdx)}`;
   const cards = log.slice(0, 8).map((e, i) => {
     const c = characterById(e.id);
     if (!c) return "";

@@ -1391,10 +1391,12 @@
     return `
       <defs>
         <filter id='${id}' x='-128' y='-128' width='512' height='512' filterUnits='userSpaceOnUse'>
+          <!-- Solid dilated silhouette in the outline colour (NOT a hollow ring). The fill is drawn
+               on top (inside the shape) and overlaps this rim's inner half, so there's no fill/outline
+               seam for antialiasing to bleed the background through. Only the dilated margin shows. -->
           <feMorphology in='SourceAlpha' operator='dilate' radius='${radius}' result='expanded'/>
-          <feComposite in='expanded' in2='SourceAlpha' operator='out' result='rim'/>
           <feFlood flood-color='${outline}' result='rimColor'/>
-          <feComposite in='rimColor' in2='rim' operator='in'/>
+          <feComposite in='rimColor' in2='expanded' operator='in'/>
         </filter>
       </defs>
       <g filter='url(#${id})'>${mass}</g>

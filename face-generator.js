@@ -1667,13 +1667,15 @@
   // lowlight so it works clothed or bare.
   function renderBust(traits, sh, lo) {
     const bust = Number(traits.bust) || 0;
-    if (bust <= 0) return "";
+    // Below this, it's slider dust (stray Face Studio exports like Aaron's 0.1) — draw nothing so a
+    // faint Y never appears on a bare chest.
+    if (bust < 0.15) return "";
     const f = (n) => n.toFixed(1);
     const forkY = 246 - bust * 12;            // the fork (top of the cleavage)
     const spread = 18 + bust * 16;            // how far the branches reach out
     const branchTopY = forkY - 16 - bust * 12;
     const stemBotY = 257;                     // run the stem off the bottom edge
-    const op = (0.4 + bust * 0.22).toFixed(2);
+    const op = Math.min(0.62, bust * 0.85).toFixed(2);   // proportional, no floor: tiny busts fade out
     const w = 2.6;
     const branchL = `M${f(128 - spread)} ${f(branchTopY)}Q${f(128 - spread * 0.38)} ${f(forkY - 2)} 128 ${f(forkY)}`;
     const branchR = `M${f(128 + spread)} ${f(branchTopY)}Q${f(128 + spread * 0.38)} ${f(forkY - 2)} 128 ${f(forkY)}`;

@@ -1445,6 +1445,23 @@ window.GameData = {
     "Circling back on this 🔄", "Facts. No notes.", "Commenting for reach 🚀",
     "As a fellow thought leader…", "Well said, and brave."
   ],
+  // Sad titles for the FLOP tier (low endorsements, generic grey banner, no verification).
+  linkedinFlopTitles: [
+    "Aspiring Intern (Unpaid)", "Between Opportunities", "Freelance Vibes Curator",
+    "Recent Graduate ✨", "Actively Seeking Work", "Self-Employed (it's not going well)",
+    "Currently Reinventing Myself", "MLM Girlboss", "Dropshipping Entrepreneur",
+    "Professional Networker", "Content Creator (0 views)", "Founder of Nothing Yet",
+    "Barista & Future Billionaire", "Student of Life", "Ex-Something, Currently Nothing"
+  ],
+  // The #OpenToWork banner text — mostly the real one, salted with unhinged variants.
+  linkedinOpenToWork: [
+    "#OpenToWork", "#OpenToWork", "#OpenToWork", "#OpenToWork",
+    "#DesperatelyOpenToWork", "#NotAllWomen", "#HireMePlease", "#WillWorkForExposure",
+    "#OpenToWork (crying)", "#PleaseGodAnything", "#ManifestingEmployment", "#OpenToGrindset",
+    "#OpenToWorkAndTherapy", "#StillOpenToWork", "#OpenToAnythingLegal", "#RentIsDueOpenToWork"
+  ],
+  // Premium flexes for the POWER tier (verified, thousands of endorsements, nice banner).
+  linkedinPremium: ["⭐ Top Voice", "✔ Verified", "🏆 Influencer", "🔵 Premium", "💼 500K+ Reach"],
 
   // Themed question decks for SWIPE / Judgement Day / Sims are added at the end of modePrompts.
   _modePools: true

@@ -3550,13 +3550,19 @@ function getMysteryCardData(character) {
     const a = assignment;
     const skills = (a.skills || []).map((s) =>
       `<div class="li-skill"><span>${escapeHtml(s.name)}</span><b>${s.count.toLocaleString()}</b></div>`).join("");
+    const bn = a.banner || { type: "plain" };
+    const bannerHtml = bn.type === "image"
+      ? `<div class="li-banner li-banner-img" style="background-image:url('${encodeURI(bn.src)}')"></div>`
+      : `<div class="li-banner li-banner-${bn.type}"></div>`;
+    const premium = a.premium ? `<span class="li-premium">${escapeHtml(a.premium)}</span>` : "";
     return {
       effectName: mystery.name,
-      cardClass: `linkedin${a.openToWork ? " li-otw" : ""}`,
-      cornerHtml: a.openToWork ? `<span class="li-otw-badge" title="Open to work">#OpenToWork</span>` : "",
-      html: `<div class="li-sheet">
-        <div class="li-title">${escapeHtml(a.title)}</div>
+      cardClass: `linkedin li-${a.tier || "mid"}${a.openToWork ? " li-otw" : ""}`,
+      cornerHtml: a.openToWork ? `<span class="li-otw-badge" title="Open to work">${escapeHtml(a.otwText || "#OpenToWork")}</span>` : "",
+      html: `${bannerHtml}<div class="li-sheet">
+        <div class="li-title">${escapeHtml(a.title)}${premium}</div>
         <div class="li-company">${escapeHtml(a.company)}</div>
+        <div class="li-connections">${escapeHtml(a.connections || "")}</div>
         <div class="li-skills">${skills}</div>
       </div>`
     };
@@ -4533,22 +4539,50 @@ function applyWork(effect) {
 function applyLinkedin(effect) {
   const D = window.GameData;
   const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:li:${salt}`) % arr.length];
+  const locs = D.locations || [];
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:linkedin:${ch.id}`);
-    const skillN = 1 + (h % 3);
+    // Success tier: FLOP (sad, low endorsements, grey banner) / MID / POWER (verified, thousands,
+    // nice blurred banner). Roughly 35% flop, 45% mid, 20% power - salt-deterministic.
+    const t = h % 100;
+    const tier = t < 35 ? "flop" : t >= 80 ? "power" : "mid";
+    const skillN = tier === "flop" ? 1 + (h % 2) : 1 + (h % 3);
     const skills = [];
     for (let k = 0; k < skillN; k++) {
       const name = pick(D.linkedinSkills, `${ch.id}:sk${k}`);
       if (skills.some((s) => s.name === name)) continue;
-      const count = 3 + (stableHash(`${state.gameSalt}:li:${ch.id}:ec${k}`) % 9997);   // 3..9999
+      const ch2 = stableHash(`${state.gameSalt}:li:${ch.id}:ec${k}`);
+      const count = tier === "flop" ? (ch2 % 15)              // 0..14, genuinely sad
+        : tier === "power" ? 1500 + (ch2 % 8499)              // 1500..9999
+        : 30 + (ch2 % 1170);                                  // 30..1199
       skills.push({ name, count });
     }
+    // Banner: POWER gets a nice blurred location banner; MID is 50/50 blurred banner vs plain
+    // gradient; FLOP gets the generic grey default. Reuses the location banner art, blurred.
+    let banner = { type: "plain" };
+    const wantsImage = tier === "power" || (tier === "mid" && (h >>> 9) % 2 === 0);
+    if (wantsImage && locs.length) {
+      const slug = locs[stableHash(`${state.gameSalt}:li:${ch.id}:bn`) % locs.length].slug;
+      banner = { type: "image", src: `${LOCATION_ART_DIR}/${slug}_day_banner.png` };
+    } else if (tier === "flop") {
+      banner = { type: "grey" };
+    }
+    // #OpenToWork: flops flaunt it most (~60%), mids sometimes (~30%), power never (they're winning).
+    const otwRoll = (h >>> 5) % 10;
+    const openToWork = tier === "power" ? false : otwRoll < (tier === "flop" ? 6 : 3);
     assignments[ch.id] = {
-      title: pick(D.linkedinTitles, `${ch.id}:t`),
+      tier,
+      title: tier === "flop" ? pick(D.linkedinFlopTitles, `${ch.id}:ft`) : pick(D.linkedinTitles, `${ch.id}:t`),
       company: pick(D.linkedinCompanies, `${ch.id}:co`),
       skills,
-      openToWork: (h >>> 5) % 10 < 3   // ~30%
+      banner,
+      connections: tier === "flop" ? `${1 + (h % 40)} connections`
+        : tier === "power" ? `${(2000 + (h % 18000)).toLocaleString()} followers`
+        : "500+ connections",
+      premium: tier === "power" ? pick(D.linkedinPremium, `${ch.id}:pr`) : null,
+      openToWork,
+      otwText: openToWork ? pick(D.linkedinOpenToWork, `${ch.id}:otw`) : null
     };
   });
   // Build the deterministic post feed: up to 10 board members "posting", each an assembled

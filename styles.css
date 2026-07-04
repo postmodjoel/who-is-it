@@ -5476,6 +5476,32 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   font-size: 0.54rem; color: #333; padding: 1px 4px; background: #eef3f8; border-radius: 3px;
 }
 .li-skill b { color: #0a66c2; font-family: "Courier New", monospace; }
+.li-connections { font-size: 0.5rem; color: #8a8a8a; margin-bottom: 2px; }
+
+/* Mini profile banner strip at the top of the info plate. */
+.li-banner { height: 26px; margin: -5px -7px 4px; background-size: cover; background-position: center; }
+/* The inline background-image:url() always wins; this base colour shows through if that art 404s,
+   so a missing banner still reads as an intentional (if plain) profile banner. */
+.li-banner-img { filter: blur(3px) saturate(0.9); transform: scale(1.15); background-color: #2f5d86; }
+.li-banner-plain { background: linear-gradient(90deg, #0a66c2, #378fe9); }
+.li-banner-grey { background: repeating-linear-gradient(45deg, #d9d9d9, #d9d9d9 6px, #cfcfcf 6px, #cfcfcf 12px); }
+
+/* Premium (POWER tier) flex + verified sheen. */
+.li-premium {
+  display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 3px;
+  font-size: 0.48rem; font-weight: 800; color: #6a4e00; background: #f5c518; vertical-align: middle;
+}
+.character-card.linkedin.li-power { border-color: #f5c518; box-shadow: 0 0 0 1px #f5c518 inset; }
+.character-card.linkedin.li-power .li-title { color: #0a66c2; }
+
+/* FLOP tier: washed-out, sad, low-effort. */
+.character-card.linkedin.li-flop { background: #fafafa; border-color: #e2e2e2; }
+.character-card.linkedin.li-flop .portrait-wrap { filter: grayscale(0.55) contrast(0.95) brightness(1.02); }
+.character-card.linkedin.li-flop .li-title { color: #7a7a7a; font-style: italic; }
+.character-card.linkedin.li-flop .li-skill b { color: #b04a4a; }
+
+/* #OpenToWork badge — variants can be long, so keep it tidy. */
+.li-otw-badge { max-width: 96%; overflow: hidden; text-overflow: ellipsis; }
 
 /* The brainrot ticker strip above the board. */
 .li-ticker {

@@ -583,9 +583,13 @@ function newGame(seedSalt, opts = {}) {
   state.board.forEach((character, index) => {
     state.global.roleMap[character.id] = state.settings.roles ? characterRoles[index % characterRoles.length] : character.role;
   });
+  // The very FIRST round of any fresh game is plain, ordinary Guess Who - no effect, no wheel spin,
+  // no sort. The strangeness only creeps in from round two onward.
+  const plainRound = opts.first === true;
+  state.plainRound = plainRound;
   // The wheel outcome is picked from the no-repeat bag now, so the "start" message can carry it
   // (a remote client's own bag may disagree - the dealer's pick wins).
-  state.wheelPick = opts.effectId !== undefined ? opts.effectId : (state.settings.mystery ? wheelTargetFromBag() : null);
+  state.wheelPick = plainRound ? null : (opts.effectId !== undefined ? opts.effectId : (state.settings.mystery ? wheelTargetFromBag() : null));
   // Networking only runs in ONLINE mode. Local (pass-and-play) never touches the channel.
   if (state.gameMode === "online") {
     netConnect();   // no-op if already on this room's socket (won't drop the peer)
@@ -598,6 +602,8 @@ function newGame(seedSalt, opts = {}) {
   replayBrand();   // WHO? / IS IT? slides back in for the fresh round
   stopOpponentSim();
   if (opts.resume) return;   // resume path applies the effect itself (silently, no wheel animation)
+  // The first round: skip the roulette entirely - it just looks like a normal game of Guess Who.
+  if (plainRound) { render(); return; }
   // A joiner deals a throwaway round just to populate the UI - no wheel, no opponent sim; the host's
   // sync will replace it in a moment.
   if (opts.silentEffect) {
@@ -648,9 +654,9 @@ function wheelBag() {
 // and gets progressively more feral, finishing on WOKE (the everything-at-once finale). Within the
 // current tier the pick is salt-random for variety. Once the whole gauntlet is seen the bag resets.
 const WHEEL_TIERS = [
-  ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "habbo", null],
-  ["knockoff-manor", "family-tree-disaster", "heads-only", "yugioh", "pixall", "horny-potter"],
-  ["hidden-agendas", "monocultural", "witness-protection-filter", "gay-frogged", "swipe", "fireworks", "sims"],
+  ["prop-panic", "ps1-mode", "face-first", "emotional-audit", "role-reveal", "astrology", "pantone", "habbo", "heads-only", null],
+  ["knockoff-manor", "family-tree-disaster", "yugioh", "pixall", "horny-potter", "witness-protection-filter"],
+  ["hidden-agendas", "monocultural", "gay-frogged", "swipe", "fireworks", "sims"],
   ["drugs", "disguise", "disease", "fertility", "orgy", "judgement", "work"],
   ["woke"]
 ];
@@ -758,8 +764,8 @@ const MODE_SORTS = {
 function rebuildSortOptions() {
   const sel = els.sortSelect;
   if (!sel) return;
-  // PG mode hides the sort dropdown entirely - the stat sorts (horniness, cum count…) are not for kids.
-  if (state.settings.pg) { state.sortKey = ""; sel.value = ""; sel.style.display = "none"; return; }
+  // PG mode - and the plain FIRST round - hide the sort dropdown entirely (ordinary Guess Who has none).
+  if (state.settings.pg || state.plainRound) { state.sortKey = ""; sel.value = ""; sel.style.display = "none"; return; }
   sel.style.display = "";
   const opts = [...BASE_SORTS, ...(MODE_SORTS[state.global.mystery?.id] || [])];
   if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = "";   // drop a sort the new mode can't do
@@ -5737,7 +5743,7 @@ function handleNetMsg(msg) {
     if (msg.names) { state.lobby = msg.names; state.pname = msg.names[state.mySeat || 0] || state.pname; }
     state.inLobby = false;
     document.querySelector(".lobby-screen")?.remove();
-    newGame(msg.salt, { remote: true, effectId: msg.effectId });
+    newGame(msg.salt, { remote: true, effectId: msg.effectId, first: msg.first === true });
     return;
   }
   if (msg.type === "elim") {
@@ -6014,7 +6020,7 @@ function showTitleScreen() {
 }
 
 // LOCAL: pass-and-play on one screen - the YOU/B seat toggle is how you swap turns.
-function startLocalGame() { state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; newGame(); }
+function startLocalGame() { state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; newGame(undefined, { first: true }); }
 
 // ONLINE host: open a LOBBY (no round dealt yet). The room's salt is fixed now so the room code is
 // stable through the eventual deal; players gather, then the host presses START.
@@ -6060,9 +6066,10 @@ function showLobby() {
   if (startBtn) startBtn.addEventListener("click", () => {
     state.inLobby = false;
     ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 400);
-    state.wheelPickShared = wheelTargetFromBag();
-    netSend("start", { salt: state.gameSalt, settings: state.settings, names: state.lobby, effectId: state.wheelPickShared });
-    newGame(state.gameSalt, { effectId: state.wheelPickShared, announced: true });
+    // The opening online round is plain Guess Who (no effect, no wheel) for both seats.
+    state.wheelPickShared = null;
+    netSend("start", { salt: state.gameSalt, settings: state.settings, names: state.lobby, effectId: null, first: true });
+    newGame(state.gameSalt, { effectId: null, announced: true, first: true });
   });
   updateLobby();
 }

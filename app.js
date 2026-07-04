@@ -574,7 +574,8 @@ function newGame(seedSalt, opts = {}) {
   state.location = state.settings.locations ? locations[stableHash(`${state.gameSalt}:loc`) % locations.length] : null;
   state.locationVariant = stableHash(`${state.gameSalt}:var`) % 2 ? "night" : "day";
   state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
-  state.players = [makePlayer(0), makePlayer(1)];
+  const takenSecrets = new Set();
+  state.players = [makePlayer(0, takenSecrets), makePlayer(1, takenSecrets)];
   state.currentPlayer = state.mySeat || 0;
   state.log = [];
   state.global.hints = [[], []];
@@ -688,12 +689,16 @@ function markWheelSeen(id) {
   } catch (e) { /* fine */ }
 }
 
-function makePlayer(index) {
+function makePlayer(index, taken) {
+  // Deterministic per seat (both online clients agree), but collision-FREE: seat 0 takes its hashed
+  // index; a later seat whose hash lands on a taken index walks forward until it finds a free one, so
+  // two seats never share the same secret.
+  let idx = stableHash(`${state.gameSalt}:secret:${index}`) % state.board.length;
+  if (taken) { while (taken.has(idx)) idx = (idx + 1) % state.board.length; taken.add(idx); }
   return {
     name: `Seat ${String.fromCharCode(65 + index)}`,
     pname: (state.lobby && state.lobby[index]) || (state.gameMode === "online" && index === (state.mySeat || 0) ? state.pname : null),
-    // Deterministic per seat, so both online clients agree on BOTH secrets.
-    secretId: state.board[stableHash(`${state.gameSalt}:secret:${index}`) % state.board.length].id,
+    secretId: state.board[idx].id,
     eliminated: new Set(),
     mysteryUsed: false,
     secretVisible: true

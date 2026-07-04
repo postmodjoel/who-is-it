@@ -877,6 +877,32 @@ button:disabled {
 .hp-darklord { border-color: #6a6a78 !important; box-shadow: 0 0 0 1px #2a2a34, 0 0 18px rgba(120,140,160,0.25); }
 .hp-darklord .hp-tag { background: #101018; border: 1px solid #454560; letter-spacing: 0.08em; }
 .hp-darklord .card-plate h3 { letter-spacing: 0.06em; }
+/* The big, confidently-wrong gender/label stamp across the bottom of the portrait. */
+.hp-gender {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 8;
+  text-align: center; padding: 3px 0; font: 900 0.92rem "Archivo", sans-serif; letter-spacing: 0.14em;
+  color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.hp-gender.g-male { background: rgba(38, 108, 214, 0.94); }
+.hp-gender.g-female { background: rgba(224, 60, 150, 0.94); }
+.hp-gender.g-asian { background: rgba(222, 172, 40, 0.95); color: #1a1206; text-shadow: none; }
+.hp-gender.g-ethnic { background: rgba(120, 80, 50, 0.95); }
+/* Death Eater / Dark Lord smoke - three puffs, per-card + per-puff offset so none are ever in sync. */
+.hp-smoke { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.hp-smoke i {
+  position: absolute; bottom: -18%; width: 62%; height: 62%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(188, 176, 208, 0.55), transparent 68%); filter: blur(7px);
+  animation: hp-smoke-rise 7s ease-in-out infinite; animation-delay: var(--smoke-delay, 0s);
+}
+.hp-smoke i:nth-child(1) { left: 2%; animation-duration: 7.3s; }
+.hp-smoke i:nth-child(2) { left: 36%; animation-duration: 9.1s; animation-delay: calc(var(--smoke-delay, 0s) - 2.4s); }
+.hp-smoke i:nth-child(3) { left: 66%; animation-duration: 6.1s; animation-delay: calc(var(--smoke-delay, 0s) - 4.7s); }
+@keyframes hp-smoke-rise {
+  0% { transform: translateY(22%) scale(0.55); opacity: 0; }
+  28% { opacity: 0.7; }
+  100% { transform: translateY(-125%) scale(1.35); opacity: 0; }
+}
+.hp-deatheater .portrait-wrap img, .hp-darklord .portrait-wrap img { position: relative; z-index: 2; }
 /* Avada Kedavra: a green killing-curse flash + jolt when the Dark Lord is dragged onto a victim. */
 .hp-avada-hit { animation: hp-avada-shake 0.5s ease-out; }
 @keyframes hp-avada-shake { 0%,100% { transform: translateX(0); } 15% { transform: translateX(-4px); } 30% { transform: translateX(4px); } 45% { transform: translateX(-3px); } 60% { transform: translateX(3px); } 80% { transform: translateX(-1px); } }
@@ -4200,10 +4226,12 @@ body.mode-pixall .secret-card img {
 .editor-dialog .dialog-head { display: flex; justify-content: space-between; align-items: flex-start; }
 .editor-dialog .icon-button { background: none; border: 1px solid rgba(255,255,255,.18); color: inherit; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; }
 .editor-body { display: grid; grid-template-columns: 180px 1fr; gap: 16px; margin-top: 8px; }
-.editor-preview { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.editor-preview { display: flex; flex-direction: column; align-items: center; gap: 6px; position: sticky; top: 0; align-self: start; }
 .editor-preview img { width: 170px; height: 170px; border-radius: 12px; background: #cdd6e0; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
 .editor-preview small { font-size: 0.6rem; color: #9aa2b1; text-align: center; }
-.editor-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; align-content: start; }
+.editor-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; align-content: start; max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+.ed-group { grid-column: 1 / -1; margin: 9px 0 1px; font: 800 0.62rem "Archivo", sans-serif; text-transform: uppercase; letter-spacing: 0.06em; color: #ffbe0b; border-bottom: 1px solid rgba(255,255,255,.12); padding-bottom: 3px; }
+.ed-group:first-child { margin-top: 0; }
 .ed-field { display: flex; flex-direction: column; gap: 2px; font-size: 0.62rem; font-weight: 600; color: #aab2c2; }
 .ed-field input[type="text"], .ed-field select {
   width: 100%; padding: 4px 6px; border-radius: 7px; border: 1px solid rgba(255,255,255,.14);
@@ -4715,6 +4743,20 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .riddle-actions { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
 .riddle-actions .button { flex: 1; }
 
+/* NEW THINKING UNLOCKED banner (hidden-agendas baby invents a fresh conviction). */
+.new-thinking { position: fixed; inset: 0; z-index: 1004; display: grid; place-items: center; pointer-events: none; }
+.new-thinking .nt-box {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 34px; border-radius: 16px;
+  background: linear-gradient(180deg, #1a2f6a, #0d1636); border: 2px solid #6f9bff;
+  box-shadow: 0 0 0 4px rgba(111, 155, 255, 0.25), 0 18px 50px rgba(0, 0, 0, 0.6);
+  animation: nt-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.new-thinking.nt-out .nt-box { animation: nt-fade 0.45s ease-in forwards; }
+.nt-top { font: 800 0.78rem "Archivo", sans-serif; letter-spacing: 0.08em; color: #a8c4ff; text-transform: uppercase; }
+.nt-for { font: 900 1.9rem "Archivo", sans-serif; letter-spacing: 0.02em; color: #fff; text-shadow: 0 2px 0 #2a4d9e, 0 0 18px rgba(120, 160, 255, 0.7); }
+@keyframes nt-pop { 0% { transform: scale(0.4) rotate(-4deg); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes nt-fade { to { transform: scale(1.1); opacity: 0; } }
+
 /* ===================== Astrology mode ===================== */
 .character-board.astrology-board {
   border-color: #2a2350 !important;
@@ -5045,12 +5087,13 @@ img.pol-mascot {
 .title-screen {
   position: fixed; inset: 0; z-index: 2000;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px;
-  background:
-    radial-gradient(circle at 30% 20%, rgba(120, 90, 240, 0.18), transparent 50%),
-    radial-gradient(circle at 75% 80%, rgba(255, 190, 11, 0.12), transparent 46%),
-    #0b0a14;
+  /* A slow-drifting theme-coloured gradient (navy → violet → warm) so the 3D title reads against it. */
+  background: linear-gradient(125deg, #0b0a14 0%, #1b1444 22%, #331d63 42%, #10203f 60%, #3a2610 80%, #0b0a14 100%);
+  background-size: 320% 320%;
+  animation: ts-bg-drift 20s ease-in-out infinite;
   transition: opacity 0.45s ease;
 }
+@keyframes ts-bg-drift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 .title-screen.ts-out { opacity: 0; pointer-events: none; }
 .ts-words { display: flex; flex-direction: column; align-items: center; line-height: 0.92; overflow: hidden; }
 .ts-who, .ts-isit {

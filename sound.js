@@ -69,8 +69,28 @@
     ding:      () => { tone(1319, 0.4, { type: "triangle", vol: 0.4 }); tone(1976, 0.4, { type: "triangle", vol: 0.18 }); },
     buzzer:    () => { tone(150, 0.35, { type: "sawtooth", vol: 0.42 }); tone(158, 0.35, { type: "sawtooth", vol: 0.3 }); },
     sparkle:   () => seq([1568, 1760, 2093, 2637], 45, (f) => tone(f, 0.1, { type: "triangle", vol: 0.28 })),
-    fart:      () => { tone(120, 0.28, { type: "sawtooth", vol: 0.4, slide: 70 }); noise(0.28, { vol: 0.2, filter: "lowpass", freq: 400 }); }
+    fart:      () => { tone(120, 0.28, { type: "sawtooth", vol: 0.4, slide: 70 }); noise(0.28, { vol: 0.2, filter: "lowpass", freq: 400 }); },
+    tick:      () => tone(2100, 0.016, { type: "square", vol: 0.22 }),
+    trash:     () => { noise(0.2, { vol: 0.42, filter: "bandpass", freq: 1000 }); tone(320, 0.14, { type: "sawtooth", vol: 0.3, slide: 90 }); setTimeout(() => { noise(0.1, { vol: 0.3, filter: "lowpass", freq: 500 }); tone(110, 0.12, { type: "square", vol: 0.35, slide: 60 }); }, 150); }
   };
+  // Spinner ticks: fire the tick SFX with a gap that eases from `fromGap` to `toGap` over `durationMs`,
+  // so a decelerating wheel ticks fast then slow (or pass equal gaps for a constant spin). Returns a
+  // canceller. Guards against Date/perf being unavailable by using a running accumulator.
+  function spinTicks(durationMs, fromGap, toGap) {
+    if (!enabled) return function () {};
+    fromGap = fromGap || 40; toGap = toGap || 40;
+    let elapsed = 0, cancelled = false;
+    const step = () => {
+      if (cancelled || elapsed >= durationMs) return;
+      if (SFX.tick) { try { SFX.tick(); } catch (e) { /* blocked */ } }
+      const p = Math.min(1, elapsed / durationMs);
+      const gap = fromGap + (toGap - fromGap) * (p * p);   // quadratic ease so it slows near the end
+      elapsed += gap;
+      setTimeout(step, gap);
+    };
+    step();
+    return function () { cancelled = true; };
+  }
 
   // Background tracks: a bassline + arpeggio over a looping chord progression. `prog` is a list of
   // chords (arrays of MIDI notes); the scheduler walks 8th-notes across them.
@@ -112,6 +132,7 @@
     currentTrack: () => track,
     isMusicOn: () => musicOn && track > 0,
     setTrack(i) { track = Math.max(0, Math.min(TRACKS.length - 1, i | 0)); if (musicOn && track > 0) startMusic(); else stopMusic(); },
-    setMusic(on) { musicOn = !!on; if (musicOn && track > 0) startMusic(); else stopMusic(); }
+    setMusic(on) { musicOn = !!on; if (musicOn && track > 0) startMusic(); else stopMusic(); },
+    spinTicks(durationMs, fromGap, toGap) { ac(); return spinTicks(durationMs, fromGap, toGap); }
   };
 })();

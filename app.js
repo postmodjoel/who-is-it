@@ -758,6 +758,9 @@ const MODE_SORTS = {
 function rebuildSortOptions() {
   const sel = els.sortSelect;
   if (!sel) return;
+  // PG mode hides the sort dropdown entirely - the stat sorts (horniness, cum count…) are not for kids.
+  if (state.settings.pg) { state.sortKey = ""; sel.value = ""; sel.style.display = "none"; return; }
+  sel.style.display = "";
   const opts = [...BASE_SORTS, ...(MODE_SORTS[state.global.mystery?.id] || [])];
   if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = "";   // drop a sort the new mode can't do
   sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
@@ -900,6 +903,7 @@ const BREED_MODES = ["fertility", "orgy", "gay-frogged", "disease", "woke", "fam
 const PRONOUN_REEL = ["he/him", "she/her", "they/them", "ze/zir", "xe/xem", "it/its", "any/all"];
 const GENDER_REEL = ["Male", "Female", "Non-Binary", "Genderfluid", "Agender", "Two-Spirit", "Demiboy", "Demigirl", "Bigender", "Genderqueer"];
 const ETHNICITY_REEL = ["White", "Black", "Asian", "Latino", "Indigenous", "Pacific Islander", "Middle Eastern", "Mixed", "Ambiguously Ethnic"];
+const KINK_REEL = ["vanilla", "switch", "dom", "sub", "brat", "voyeur", "exhibitionist", "praise kink", "degradation", "bondage", "roleplay", "sensory play", "monogamish", "polycurious", "into feet", "cosplay only", "car enthusiast", "danger streak"];
 function spinIdentityReels(title, reels, done) {
   const ov = document.createElement("div");
   ov.className = "reel-overlay";
@@ -909,6 +913,9 @@ function spinIdentityReels(title, reels, done) {
   document.body.appendChild(ov);
   const results = new Array(reels.length);
   let landedCount = 0;
+  // A ticking spin sound while any reel is still turning.
+  const lastLand = 1100 + (reels.length - 1) * 750;
+  const stopTicks = window.Sound ? window.Sound.spinTicks(lastLand, 55, 130) : null;
   reels.forEach((r, i) => {
     const valEl = ov.querySelector(`.reel[data-i="${i}"] .reel-value`);
     const spin = setInterval(() => { valEl.textContent = r.values[Math.floor(Math.random() * r.values.length)]; }, 70);
@@ -917,8 +924,27 @@ function spinIdentityReels(title, reels, done) {
       results[i] = r.values[Math.floor(Math.random() * r.values.length)];
       valEl.textContent = results[i];
       valEl.closest(".reel").classList.add("landed");
-      if (++landedCount === reels.length) setTimeout(() => { ov.remove(); done(results); }, 900);
+      sfx("pop");
+      if (++landedCount === reels.length) { if (stopTicks) stopTicks(); setTimeout(() => { ov.remove(); done(results); }, 900); }
     }, 1100 + i * 750);
+  });
+}
+// The gambling reels EVERY breeding mode now runs, once the baby exists and BEFORE keep/abort:
+// pronouns, gender, a kink (+ ethnicity in WOKE). Skipped entirely in PG mode. Sets baby.identity.
+function babyIdentityReels(baby, mode, cb) {
+  if (state.settings.pg) { cb(); return; }
+  const reels = [
+    { label: "PRONOUNS", values: PRONOUN_REEL },
+    { label: "GENDER", values: GENDER_REEL },
+    { label: "KINK", values: KINK_REEL }
+  ];
+  if (mode === "woke") reels.push({ label: "ETHNICITY", values: ETHNICITY_REEL });
+  spinIdentityReels("🎰 ASSIGNING THE BABY…", reels, (res) => {
+    const [pro, gen, kink, eth] = res;
+    baby.identity = { pronouns: pro, gender: gen, kink };
+    baby.pronouns = pro.startsWith("he") ? "he" : pro.startsWith("she") ? "she" : "they";
+    if (mode === "woke") baby.wokeIdentity = { pronouns: pro, gender: gen, ethnicity: eth };
+    cb();
   });
 }
 // Combine two parents' disease sheets into a mutant derivative for a disease-mode baby.
@@ -946,17 +972,32 @@ function combineDiseaseAssignment(A, B) {
 function mixAgendaAssignment(A, B) {
   const asg = state.global.mystery.assignments;
   const pa = asg[A.id] || {}, pb = asg[B.id] || {};
-  const pool = [...new Set([...(pa.stances?.for || []), ...(pa.stances?.against || []), ...(pb.stances?.for || []), ...(pb.stances?.against || [])])]
-    .sort(() => Math.random() - 0.5);
+  const parentAll = new Set([...(pa.stances?.for || []), ...(pa.stances?.against || []), ...(pb.stances?.for || []), ...(pb.stances?.against || [])]);
+  const pool = [...parentAll].sort(() => Math.random() - 0.5);
   const nFor = Math.min(pool.length, 2 + Math.floor(Math.random() * 2));
   const nAg = Math.min(Math.max(0, pool.length - nFor), 2 + Math.floor(Math.random() * 2));
+  const forList = pool.slice(0, nFor);
+  // The baby develops a conviction NEITHER parent held - the "new thinking" the game announces.
+  const fresh = STANCE_POOL.filter((s) => !parentAll.has(s));
+  const newThinking = fresh.length ? fresh[Math.floor(Math.random() * fresh.length)] : null;
+  if (newThinking) forList.unshift(newThinking);
   return {
     party: pa.party || pb.party || "Democrat",
     state: Math.random() < 0.5 ? pa.state : pb.state,
     mood: Math.random() < 0.5 ? pa.mood : pb.mood,
     emoji: Math.random() < 0.5 ? pa.emoji : pb.emoji,
-    stances: { for: pool.slice(0, nFor), against: pool.slice(nFor, nFor + nAg) }
+    stances: { for: forList, against: pool.slice(nFor, nFor + nAg) },
+    newThinking
   };
+}
+// The dramatic "NEW THINKING UNLOCKED: FOR ___" banner when a hidden-agendas baby invents a conviction.
+function showNewThinking(stance) {
+  const ov = document.createElement("div");
+  ov.className = "new-thinking";
+  ov.innerHTML = `<div class="nt-box"><span class="nt-top">💡 NEW THINKING UNLOCKED</span><span class="nt-for">FOR ${escapeHtml(String(stance).toUpperCase())}</span></div>`;
+  document.body.appendChild(ov);
+  sfx("magic");
+  setTimeout(() => { ov.classList.add("nt-out"); setTimeout(() => ov.remove(), 450); }, 2400);
 }
 // Drop character `aId` onto `bId` -> a baby joins the board for THIS game only (never saved).
 function breedCharacters(aId, bId) {
@@ -1014,7 +1055,7 @@ function breedCharacters(aId, bId) {
     // FRESH MEAT: a newborn starts with 0 cummies and a huge fresh clutch of eggs.
     asg[baby.id] = { cum: "0M", eggs: 300 + Math.floor(Math.random() * 400), barren: false, hrs: 71, mins: 59, defect: null, hasCount: true, hasEggs: true, freshMeat: true };
     renderBoard();                                            // show the deducted balances immediately
-    playBirthAnimation(A.image, B.image, baby, true, () => offerKeepOrAbort(baby, () => {
+    playBirthAnimation(A.image, B.image, baby, true, () => babyIdentityReels(baby, mode, () => offerKeepOrAbort(baby, () => {
       state.board.push(baby);
       if (baby.isGayby) persistGayby(baby);
       netAnnounceBaby(baby); scheduleSave();
@@ -1022,7 +1063,7 @@ function breedCharacters(aId, bId) {
       renderBoard();
       state.justBorn = null;
       if (typeof addLog === "function") addLog(`${A.name} + ${B.name} bred ${baby.name}!`);
-    }, () => abortBaby(baby, A, B)));
+    }, () => abortBaby(baby, A, B))));
     return;
   }
 
@@ -1032,9 +1073,9 @@ function breedCharacters(aId, bId) {
     const asg = state.global.mystery.assignments;
     const fa = asg[A.id], fb = asg[B.id];
     if (!fa || !fb) return;
-    const gaybyKid = sameSex(A, B);
+    const gaybyKid = state.settings.pg ? false : sameSex(A, B);   // PG family tree: only boys/girls
     const baby = makeBaby(A, B, gaybyKid);
-    playBirthAnimation(A.image, B.image, baby, true, () => offerKeepOrAbort(baby, () => {
+    playBirthAnimation(A.image, B.image, baby, true, () => babyIdentityReels(baby, mode, () => offerKeepOrAbort(baby, () => {
       state.board.push(baby);
       const clusters = state.global.mystery.clusters || [];
       // The dragged one leaves their old family and joins the drop target's.
@@ -1056,7 +1097,7 @@ function breedCharacters(aId, bId) {
       if (typeof addLog === "function") addLog(`${A.name} married into ${home ? home.name : "the family"} — ${baby.name} branches off!`);
       renderBoard();
       state.justBorn = null;
-    }, () => abortBaby(baby, A, B)));
+    }, () => abortBaby(baby, A, B))));
     return;
   }
 
@@ -1067,13 +1108,14 @@ function breedCharacters(aId, bId) {
   const baby = makeBaby(A, B, gayby);
   if (mode === "drugs") baby.isCrack = true;   // druggie parents make a CRACK BABY / CRACK GAYBY
   const woohoo = mode === "sims";   // Sims "woohoo" before the baby
-  playBirthAnimation(A.image, B.image, baby, woohoo, () => offerKeepOrAbort(baby, () => {
+  playBirthAnimation(A.image, B.image, baby, woohoo, () => babyIdentityReels(baby, mode, () => offerKeepOrAbort(baby, () => {
     state.board.push(baby);
     if (mode === "disease") {
       state.global.mystery.assignments[baby.id] = diseaseBaby;   // baby inherits mutant combined diseases
     } else if (mode === "hidden-agendas") {
       state.global.mystery.assignments[baby.id] = agendaBaby;    // fresh ideology remixed from the parents
       addLog(`${baby.name} has developed NEW political opinions.`);
+      if (agendaBaby && agendaBaby.newThinking) showNewThinking(agendaBaby.newThinking);
     } else if (mode === "sims") {
       state.global.mystery.assignments[baby.id] = { mood: "green", needs: { hunger: 92, social: 95, bladder: 70, fun: 98 }, action: "Being a fresh newborn", career: "Unemployed", simoleons: 0, ...simsPortrait(baby) };
     } else if (state.global.mystery) {
@@ -1086,19 +1128,8 @@ function breedCharacters(aId, bId) {
     if (typeof addLog === "function") addLog(`${A.name} + ${B.name} made a baby: ${baby.name}!`);
     renderBoard();
     state.justBorn = null;
-    // Woke babies get the identity slot machine: pronouns / gender / ethnicity land at random.
-    if (mode === "woke") {
-      spinIdentityReels("THE ALGORITHM IS ASSIGNING…", [
-        { label: "PRONOUNS", values: PRONOUN_REEL },
-        { label: "GENDER", values: GENDER_REEL },
-        { label: "ETHNICITY", values: ETHNICITY_REEL }
-      ], ([pro, gen, eth]) => {
-        baby.wokeIdentity = { pronouns: pro, gender: gen, ethnicity: eth };
-        baby.pronouns = pro.startsWith("he") ? "he" : pro.startsWith("she") ? "she" : "they";
-        renderBoard();
-      });
-    }
-    // Disease babies get the pathology roulette: a random severity + a random bonus disease.
+    // Disease babies get the pathology roulette: a random severity + a random bonus disease. (Pronouns/
+    // gender/kink already rolled BEFORE keep/abort via babyIdentityReels, for every breeding mode.)
     if (mode === "disease") {
       const names = ((window.GameData && window.GameData.diseases) || [["Novel Ailment", "MAJOR"]]).map((d) => d[0]);
       spinIdentityReels("PATHOLOGY ROULETTE…", [
@@ -1110,7 +1141,7 @@ function breedCharacters(aId, bId) {
         renderBoard();
       });
     }
-  }, () => abortBaby(baby, A, B)), { woohoo });
+  }, () => abortBaby(baby, A, B))), { woohoo });
 }
 // A transparent-background portrait + the original backdrop colour, so Sims relief animations can
 // move JUST the person while the card background holds still.
@@ -1163,6 +1194,7 @@ function abortBaby(baby, parentA, parentB) {
   }
   const line = ABORT_LINES[Math.floor(Math.random() * ABORT_LINES.length)];
   flashToast(`👼 ${baby.name} ${line}`);
+  sfx("trash");                                    // the sound of being thrown out
   if (typeof addLog === "function") addLog(`${baby.name} ${line}`);
   renderBoard();
   scheduleSave();
@@ -1294,29 +1326,60 @@ function renderEditorPreview() {
 function renderEditorControls() {
   const T = window.faceGenerator.traitBook, t = editorState.traits;
   const field = (label, html) => `<label class="ed-field"><span>${label}</span>${html}</label>`;
-  const selVal = (key, val) => `<select data-key="${key}">`;
-  const sel = (key, opts, val) => selVal(key) + opts.map((o) => `<option ${o === val ? "selected" : ""}>${o}</option>`).join("") + "</select>";
+  const group = (title) => `<div class="ed-group">${title}</div>`;
+  const sel = (key, opts, val) => `<select data-key="${key}">` + (opts || []).map((o) => `<option ${o === val ? "selected" : ""}>${o}</option>`).join("") + "</select>";
   const slide = (key, label, min, max, step, val) => field(label, `<input type="range" data-key="${key}" data-num="1" min="${min}" max="${max}" step="${step}" value="${val}">`);
+  const color = (key, label, def) => field(label, `<input type="color" data-key="${key}" value="${t[key] || def}">`);
+  const num = (k, d) => (t[k] != null ? t[k] : d);
   editorDialog.querySelector(".editor-controls").innerHTML =
+    group("Identity") +
     field("Name", `<input type="text" data-key="__name" value="${escapeHtml(editorState.name)}" maxlength="16">`) +
     field("Pronouns", sel("__pronouns", ["she", "he", "they"], editorState.pronouns)) +
     field("Skin", sel("skin", T.skinTones, t.skin)) +
-    field("Hair", sel("hair", T.hairStyles, t.hair)) +
-    field("Hair colour", sel("hairColor", T.hairColors, t.hairColor)) +
     field("Expression", sel("expression", T.expressions, t.expression)) +
-    field("Face shape", sel("faceShape", T.faceShapes, t.faceShape)) +
-    field("Nose", sel("noseTip", T.noseTips, t.noseTip || "round")) +
-    field("Brow", sel("browShape", T.browShapes, t.browShape || T.browShapes[0])) +
-    field("Clothing", sel("clothing", T.clothing, t.clothing)) +
-    field("Accessory", sel("accessory", T.accessories, t.accessory || "none")) +
     field("Animation", sel("animMode", EDITOR_ANIM, t.animMode || "still")) +
-    field("Eye colour", `<input type="color" data-key="eyeColor" value="${t.eyeColor || "#5a3d28"}">`) +
-    field("Shirt", `<input type="color" data-key="shirt" value="${t.shirt || "#3a86ff"}">`) +
-    slide("eyeScale", "Eye size", 0.8, 1.2, 0.01, t.eyeScale != null ? t.eyeScale : 1) +
-    slide("browThick", "Brow weight", 0.7, 1.4, 0.01, t.browThick != null ? t.browThick : 1) +
-    slide("noseWidth", "Nose width", 0.7, 1.3, 0.01, t.noseWidth != null ? t.noseWidth : 1) +
-    slide("mouthScale", "Mouth size", 0.85, 1.2, 0.01, t.mouthScale != null ? t.mouthScale : 1) +
-    slide("build", "Build", 60, 110, 1, t.build != null ? t.build : 82);
+    group("Hair") +
+    field("Hair style", sel("hair", T.hairStyles, t.hair)) +
+    field("Hair colour", sel("hairColor", T.hairColors, t.hairColor)) +
+    color("hairOutline", "Hair outline", "#1f2330") +
+    slide("frontHairY", "Front hair Y", -24, 24, 1, num("frontHairY", 0)) +
+    slide("backHairY", "Back hair Y", -24, 24, 1, num("backHairY", 0)) +
+    group("Beard & brows") +
+    field("Accessory", sel("accessory", T.accessories, t.accessory || "none")) +
+    slide("beardLength", "Beard length", 0, 0.5, 0.01, num("beardLength", 0)) +
+    slide("beardScale", "Beard size", 0.6, 1.6, 0.02, num("beardScale", 1)) +
+    slide("moustacheScale", "Moustache", 0, 1.6, 0.02, num("moustacheScale", 0)) +
+    field("Brow", sel("browShape", T.browShapes, t.browShape || (T.browShapes || [])[0])) +
+    slide("browThick", "Brow weight", 0.4, 2, 0.01, num("browThick", 1)) +
+    slide("browY", "Brow height", -6, 6, 0.5, num("browY", 0)) +
+    group("Face") +
+    field("Face shape", sel("faceShape", T.faceShapes, t.faceShape)) +
+    field("Nose tip", sel("noseTip", T.noseTips, t.noseTip || "round")) +
+    field("Chin", sel("chinShape", T.chinShapes, t.chinShape || "none")) +
+    field("Ears", sel("earVariant", T.earVariants, t.earVariant || "round")) +
+    slide("headScaleX", "Head width", 0.85, 1.15, 0.01, num("headScaleX", 1)) +
+    slide("headScaleY", "Head height", 0.85, 1.15, 0.01, num("headScaleY", 1)) +
+    slide("jawLength", "Jaw length", -0.2, 0.5, 0.01, num("jawLength", 0)) +
+    slide("noseWidth", "Nose width", 0.7, 1.3, 0.01, num("noseWidth", 1)) +
+    slide("noseY", "Nose height", -8, 8, 0.5, num("noseY", 0)) +
+    group("Eyes") +
+    color("eyeColor", "Eye colour", "#5a3d28") +
+    slide("eyeScale", "Eye size", 0.8, 1.25, 0.01, num("eyeScale", 1)) +
+    slide("eyeGap", "Eye spacing", 42, 62, 1, num("eyeGap", 47)) +
+    slide("lashes", "Lashes", 0, 1.6, 0.05, num("lashes", 0)) +
+    group("Mouth & teeth") +
+    field("Mouth", sel("mouthStyle", T.mouthStyles, t.mouthStyle)) +
+    field("Teeth", sel("teethStyle", T.teethStyles, t.teethStyle || "even")) +
+    field("Lips", sel("lips", T.lipStyles, t.lips || "soft")) +
+    color("lipColor", "Lip colour", "#a55a52") +
+    slide("mouthScale", "Mouth size", 0.85, 1.25, 0.01, num("mouthScale", 1)) +
+    slide("mouthY", "Mouth height", -6, 14, 0.5, num("mouthY", 0)) +
+    group("Body") +
+    field("Clothing", sel("clothing", T.clothing, t.clothing)) +
+    color("shirt", "Shirt", "#3a86ff") +
+    color("background", "Background", "#a9c4e0") +
+    slide("build", "Build", 55, 115, 1, num("build", 82)) +
+    slide("bust", "Bust", 0, 0.9, 0.01, num("bust", 0));
 }
 function renderEditorSaved() {
   const list = loadCustomChars();
@@ -2613,6 +2676,7 @@ function spinModeRoulette(done) {
   const jitter = (Math.random() - 0.5) * (CELL * 0.5);
   const finalX = -(landIndex * CELL + CELL / 2 - center + jitter);
   strip.style.transform = "translateX(0)";
+  if (window.Sound) window.Sound.spinTicks(3400, 32, 340);   // fast-then-slow ticks match the deceleration
   requestAnimationFrame(() => {
     strip.style.transition = "transform 3.4s cubic-bezier(.1,.62,.2,1)";
     strip.style.transform = `translateX(${finalX}px)`;
@@ -3193,12 +3257,16 @@ function getMysteryCardData(character) {
     };
   }
   if (mystery.id === "horny-potter") {
+    const genderCls = { MALE: "g-male", FEMALE: "g-female", ASIAN: "g-asian", ETHNIC: "g-ethnic" }[assignment.gender] || "g-male";
+    const smoke = (assignment.role === "deatheater" || assignment.role === "darklord")
+      ? `<span class="hp-smoke" aria-hidden="true"><i></i><i></i><i></i></span>` : "";
     return {
       effectName: mystery.name,
       cardClass: `hp-mode hp-${assignment.role}`,
       image: assignment.image || undefined,
-      style: `--hp-color:${assignment.color}`,
-      dataset: { hpHouse: assignment.house, hpSpell: assignment.spell },
+      style: `--hp-color:${assignment.color};--smoke-delay:${assignment.smokeDelay || 0}s`,
+      dataset: { hpHouse: assignment.house, hpSpell: assignment.spell, hpGender: assignment.gender },
+      cornerHtml: smoke + `<span class="hp-gender ${genderCls}">${escapeHtml(assignment.gender)}</span>`,
       html: `<div class="hp-tag"><span class="hp-crest">${assignment.crest}</span> ${escapeHtml(assignment.house)}</div>`
         + `<table class="hp-sheet"><tbody>`
         + `<tr><th>Wand</th><td>${escapeHtml(assignment.wand)}</td></tr>`
@@ -3913,12 +3981,14 @@ function simsInteract(A, B) {
   const label = ov.querySelector(".wed-slot-label");
   const face = (act) => `${{ MARRIED: "💍", SLAP: "👋", WOOHOO: "🛏️" }[act]} ${act}`;
   // Rattle through the options, then lock on the chosen one.
+  const stopTk = window.Sound ? window.Sound.spinTicks(1900, 95, 160) : null;
   let t = 0;
   const spin = setInterval(() => { label.textContent = face(ACTIONS[t % ACTIONS.length]); t++; }, 110);
   setTimeout(() => {
-    clearInterval(spin);
+    clearInterval(spin); if (stopTk) stopTk();
     label.textContent = face(action);
     ov.classList.add("wed-locked", `act-${action.toLowerCase()}`);
+    sfx("pop");
   }, 1900);
   setTimeout(() => {
     ov.remove();
@@ -4127,24 +4197,38 @@ function applyHornyPotter(effect) {
     const h = stableHash(`${state.gameSalt}:hp:${ch.id}`);
     let wand = `${woods[h % woods.length]}, ${cores[(h >>> 3) % cores.length]} core, ${flexes[(h >>> 6) % flexes.length]}`;
     if (i === cursedIdx) wand = "Flesh, human hair, actually his cock";
+    const gender = hpGenderLabel(ch);
+    const smokeDelay = -((h >>> 2) % 800) / 100;   // per-death-eater smoke offset (never in sync)
     if (i === 0) {                                   // the single Dark Lord - pasty repaint on a dark tint
       const image = tinted(ch, "#101018", "#2b2740", 0.1, 0.5, { hair: "bald", hairLocks: [], accessory: "none", skinHex: "#e6e7de", browThick: 0.15, noseScale: 0.62, lipColor: "#b7a6a6" });
       const s = dark[(h >>> 9) % dark.length];
-      assignments[ch.id] = { role: "darklord", house: "The Dark Lord", color: "#3a3358", crest: "☇", wand: "Elder, thestral tail-hair core, unyielding", spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`), image };
+      assignments[ch.id] = { role: "darklord", house: "The Dark Lord", color: "#3a3358", crest: "☇", wand: "Elder, thestral tail-hair core, unyielding", spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`), image, gender, smokeDelay };
       return;
     }
-    if (h % 5 === 0) {                               // ~1 in 5 are house-less Death Eaters - dark tint
+    if (h % 5 === 0) {                               // ~1 in 5 are house-less Death Eaters - smoky dark card
       const s = dark[(h >>> 9) % dark.length];
-      const image = tinted(ch, "#241a2e", "#4a2f52", 0.15, 0.6);
-      assignments[ch.id] = { role: "deatheater", house: "Death Eater", color: "#5a3a6e", crest: "☠", wand, spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`), image };
+      const image = tinted(ch, "#1a1420", "#3a2846", 0.15, 0.55);
+      assignments[ch.id] = { role: "deatheater", house: "Death Eater", color: "#5a3a6e", crest: "☠", wand, spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`), image, gender, smokeDelay };
       return;
     }
     const house = houses[(h >>> 4) % houses.length];
     const s = spells[(h >>> 9) % spells.length];
-    const image = tinted(ch, house[1], "#f4f1ea", 0.68, 0.84);   // light, house-tinted, per-char varied
-    assignments[ch.id] = { role: "house", house: house[0], color: house[1], crest: house[2], vibe: house[3], wand, spell: s[0], spellHint: s[1], patronus: pick(patronuses, `pat:${ch.id}`), boggart: pick(boggarts, `bog:${ch.id}`), image };
+    const image = tinted(ch, house[1], "#f7f3ea", 0.44, 0.6);   // VIBRANT house tint (clearly the colour), per-char varied
+    assignments[ch.id] = { role: "house", house: house[0], color: house[1], crest: house[2], vibe: house[3], wand, spell: s[0], spellHint: s[1], patronus: pick(patronuses, `pat:${ch.id}`), boggart: pick(boggarts, `bog:${ch.id}`), image, gender };
   });
   return { id: effect.id, name: effect.name, assignments };
+}
+// JK Rowling's "gender detector": crude, confident and wrong. Everyone is stamped MALE or FEMALE by
+// how the game reckons they "should" present (they/them people get force-binaried) - except the two
+// deliberately-broken cases: Olivia is misgendered MALE, and non-white characters get racialised
+// labels (Kai -> ASIAN, dark-skinned -> ETHNIC) instead of a gender. It's satire of the bigoted logic.
+function hpGenderLabel(ch) {
+  if (ch.id === "gen-olivia") return "MALE";
+  if (ch.id === "gen-kai") return "ASIAN";
+  if (["brown", "deep", "ebony"].includes(ch.traits && ch.traits.skin)) return "ETHNIC";
+  if (ch.pronouns === "he") return "MALE";
+  if (ch.pronouns === "she") return "FEMALE";
+  return (Number(ch.traits && ch.traits.bust) || 0) > 0.15 ? "FEMALE" : "MALE";   // they/them -> forced binary
 }
 // Dark Lord's kill: a green killing-curse flash over the victim's card, then they're crossed off (the
 // HP way to mark a NO). If already down, un-cross them (drag the Dark Lord on again to revive).

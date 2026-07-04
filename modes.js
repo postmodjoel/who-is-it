@@ -535,10 +535,6 @@ function resetHabbo() {
   clearInterval(habboWanderTimer); habboWanderTimer = null;
   document.getElementById("habboCam")?.remove();
   document.getElementById("habboChat")?.remove();
-  // The void UI is Habbo-only too: an open DE-VOID panel left over a NEW round would fire stale
-  // toggleEliminated(oldId) handlers. Both are recreated by the next Habbo render.
-  document.getElementById("voidPanel")?.remove();
-  document.getElementById("deVoidBtn")?.remove();
 }
 
 // ===================== Sims bladder cycle =====================
@@ -635,17 +631,18 @@ function renderHabboSelectionUI(focusChat = false) {
   const ch = characterById(habboSelected);
   if (!ch) return;
   const a = state.global.mystery.assignments[ch.id] || {};
+  const banned = currentPlayer().eliminated.has(ch.id);
   const cam = document.createElement("div");
   cam.id = "habboCam"; cam.className = "hb-cam";
   cam.innerHTML = `<p class="hb-cam-top"><span class="hb-rec">● REC</span><span>ROOM CAM</span></p>`
     + `<div class="hb-cam-screen"><img src="${a.head || ch.image}" alt=""></div>`
     + `<p class="hb-cam-name">${displayName(ch)}</p>`
-    + `<button type="button" class="hb-cam-void">🕳 INTO THE VOID</button>`;
+    + `<button type="button" class="hb-cam-ban ${banned ? "is-banned" : ""}">${banned ? "UNBAN" : "BAN"}</button>`;
   wrap.appendChild(cam);
   // Gentler crunch (84px vs the room's 30) - recognisable, still pixel-art.
   if (a.head) pixelateSrc(a.head, 84, (url) => { const img = cam.querySelector(".hb-cam-screen img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
-  cam.querySelector(".hb-cam-void").addEventListener("click", () => voidHabbo(ch.id));
-  if (HABBO_HAS_KEYBOARD) {
+  cam.querySelector(".hb-cam-ban").addEventListener("click", () => banHabbo(ch.id));
+  if (HABBO_HAS_KEYBOARD && !banned) {
     const bar = document.createElement("div");
     bar.id = "habboChat"; bar.className = "hb-chatbar";
     bar.dataset.forId = ch.id;
@@ -661,6 +658,10 @@ function renderHabboSelectionUI(focusChat = false) {
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") say(); if (e.key === "Escape") selectHabbo(habboSelected); });
     if (focusChat || hadFocus) setTimeout(() => { if (input.isConnected) input.focus({ preventScroll: true }); }, 60);
   }
+}
+function banHabbo(id) {
+  toggleEliminated(id);
+  if (habboSelected !== id) habboSelected = id;
 }
 // Habbo chat: the new bubble lands at the head; older ones float upward and expire.
 function habboSay(id, text) {
@@ -678,27 +679,6 @@ function habboSay(id, text) {
   el.appendChild(bub);
   setTimeout(() => { bub.classList.add("hb-bubble-out"); setTimeout(() => bub.remove(), 350); }, 12000);
 }
-// Dropping someone into the void: spin-shrink-fall on the spot, then the re-render removes them from
-// the room (the DE-VOID panel can pull them back). Lives on the ROOM CAM now - no ✕ over the room.
-function voidHabbo(id) {
-  const el = habboCtx?.figEls.get(id);
-  const pos = habboPos.get(id);
-  if (!el || !pos || el.classList.contains("hb-voiding")) return;
-  if (habboSelected === id) selectHabbo(id);      // deselect: zooms out + clears the cam/chat
-  el._walk = (el._walk || 0) + 1;                 // cancel any in-flight walk (its steps would clobber the fall)
-  el.classList.remove("walking");
-  // Fall from wherever they visibly are (mid-walk they're not on their habboPos tile yet).
-  const m = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(el.style.transform || "");
-  const here = m ? { x: Number(m[1]), y: Number(m[2]) } : habboIso(pos.col, pos.row);
-  el.classList.add("hb-voiding");
-  el.style.transition = "transform 0.55s cubic-bezier(0.5, 0, 0.9, 0.5), opacity 0.55s ease-in";
-  el.style.transform = `translate(${here.x.toFixed(0)}px, ${(here.y + 60).toFixed(0)}px) rotate(420deg) scale(0.03)`;
-  el.style.opacity = "0";
-  // Guard the delayed toggle against a round change landing inside the window (online: a peer's
-  // "start" can deal a new round mid-fall - a stale toggle would corrupt + net-sync it).
-  const salt = state.gameSalt;
-  setTimeout(() => { if (state.gameSalt === salt && state.global.mystery?.id === "habbo") toggleEliminated(id); }, 560);
-}
 // An L-shaped path along the grid (columns first, then rows). Each hop is to an ADJACENT tile, which
 // on screen is a pure isometric diagonal - so the avatar walks the grid like a real Habbo, turning at
 // the corner, instead of sliding straight across the room.
@@ -713,7 +693,7 @@ function habboWalk(id, col, row) {
   for (const [oid, p] of habboPos) if (oid !== id && p.col === col && p.row === row) return; // tile taken
   const el = habboCtx.figEls.get(id);
   const cur = habboPos.get(id);
-  if (!el || !cur || el.classList.contains("hb-voiding")) return;
+  if (!el || !cur || el.classList.contains("is-down")) return;
   const path = habboPath(cur.col, cur.row, col, row);
   if (!path.length) return;
   habboPos.set(id, { col, row });                      // final tile (kept for persistence)
@@ -742,12 +722,12 @@ function habboMoveTo(col, row) { if (habboSelected) habboWalk(habboSelected, col
 // as a real populated Habbo hotel instead of a museum of statues.
 function habboWander() {
   if (state.global.mystery?.id !== "habbo" || !habboCtx) return;
-  const ids = [...habboCtx.figEls.keys()].filter((id) => id !== habboSelected);
+  const ids = [...habboCtx.figEls.keys()].filter((id) => id !== habboSelected && !habboCtx.figEls.get(id)?.classList.contains("is-down"));
   if (!ids.length) return;
   const id = ids[Math.floor(Math.random() * ids.length)];
   const el = habboCtx.figEls.get(id);
   const cur = habboPos.get(id);
-  if (!el || !cur || el.classList.contains("walking") || el.classList.contains("hb-voiding")) return;
+  if (!el || !cur || el.classList.contains("walking")) return;
   const taken = new Set([...habboPos.entries()].filter(([oid]) => oid !== id).map(([, p]) => `${p.col},${p.row}`));
   const opts = [];
   for (let dc = -2; dc <= 2; dc++) for (let dr = -2; dr <= 2; dr++) {
@@ -755,6 +735,46 @@ function habboWander() {
     if ((dc || dr) && Math.abs(dc) + Math.abs(dr) <= 2 && c >= 0 && c < HABBO_GW && r >= 0 && r < HABBO_GH && !taken.has(`${c},${r}`)) opts.push({ c, r });
   }
   if (opts.length) { const t = opts[Math.floor(Math.random() * opts.length)]; habboWalk(id, t.c, t.r); }
+}
+
+const habboWallpaperCache = new Map();
+function habboLocationBannerSrc() {
+  const slug = state.location && state.location.slug;
+  if (!slug) return "";
+  return `${LOCATION_ART_DIR}/${slug}_${state.locationVariant || "day"}_banner.png`;
+}
+function applyHabboWallpaper(wall) {
+  const src = habboLocationBannerSrc();
+  if (!src || !wall) return;
+  const apply = (url) => {
+    wall.style.setProperty("--hb-wallpaper", `url('${url}')`);
+    wall.classList.add("hbw-wallpaper");
+  };
+  if (habboWallpaperCache.has(src)) { apply(habboWallpaperCache.get(src)); return; }
+  const im = new Image();
+  im.onload = () => {
+    const W = 64, H = 28;
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const x = c.getContext("2d");
+    x.imageSmoothingEnabled = false;
+    x.drawImage(im, 0, 0, W, H);
+    try {
+      const d = x.getImageData(0, 0, W, H);
+      const a = d.data;
+      for (let i = 0; i < a.length; i += 4) {
+        a[i] = Math.round(a[i] / 32) * 32;
+        a[i + 1] = Math.round(a[i + 1] / 32) * 32;
+        a[i + 2] = Math.round(a[i + 2] / 32) * 32;
+      }
+      x.putImageData(d, 0, 0);
+    } catch (e) { /* tainted - keep the low-res draw without quantising */ }
+    const url = c.toDataURL("image/png");
+    habboWallpaperCache.set(src, url);
+    apply(url);
+  };
+  im.onerror = () => {};
+  im.src = src;
 }
 // In Habbo mode the location banner gets crunched down to chunky pixels + quantised colours so the
 // whole top of the screen reads as one pixel-art scene. Restored when the mode ends.
@@ -806,8 +826,8 @@ function renderHabboBoard(player) {
   const RISE = (HABBO_GH - 1) * (HABBO_TH / 2);         // vertical drop of one wall edge (126px)
   const WALL_H = 112;
   const locName = ((state.location && state.location.name) || "").toLowerCase();
-  // Every location maps to a full room skin (walls / floor / rug) so a Ski Lodge READS as a ski
-  // lodge, a Hot Spring as a steamy spa, a Diner as a checker-floor greasy spoon, etc.
+  // Every location maps to a minimal room skin. The left wall gets pixel-art wallpaper from the
+  // current banner; the right wall stays a flat, location-suitable colour.
   const HABBO_THEMES = [
     [/ski|snow|ice|arctic|lodge|mountain/, { wall: "#6a4a2e", cap: "#8a6742", skirt: "#4a3018", ground: "#dce9f4", tile: "#f4f8fc", tileAlt: "#dfe9f2", side: "#a2b6ca", room: "#141c28", rug: "#a83a3a", rug2: "#7e2626", trim: "#e0b04a" }],
     [/spring|spa|pool|aquarium|bath|sauna/, { wall: "#2e6f78", cap: "#4c99a2", skirt: "#1d4a50", ground: "#7fccc4", tile: "#cdeeea", tileAlt: "#b2e0da", side: "#5f9a94", room: "#12262e", rug: "#1e5a62", rug2: "#174a50", trim: "#7fccc4" }],
@@ -830,10 +850,11 @@ function renderHabboBoard(player) {
       <polygon points="${EDGE},0 ${EDGE * 2},${RISE} ${EDGE},${RISE * 2} 0,${RISE}" fill="var(--hb-ground)"/>
     </svg>`;
   // Walls: parallelograms whose bottom edges ride the floor's two back edges exactly (skewY ±26.565°,
-  // tan = TH/TW = 0.5). Left wall shaded a touch darker than the right, Habbo-style.
+  // tan = TH/TW = 0.5). Left wall gets a low-res sampled location wallpaper.
   const wallL = document.createElement("div");
   wallL.className = "hb-wallpanel hbw-left";
   wallL.style.cssText = `left:${wallX - EDGE}px;top:${150 - WALL_H}px;width:${EDGE}px;height:${WALL_H}px`;
+  applyHabboWallpaper(wallL);
   const wallR = document.createElement("div");
   wallR.className = "hb-wallpanel hbw-right";
   wallR.style.cssText = `left:${wallX}px;top:${150 - WALL_H}px;width:${EDGE}px;height:${WALL_H}px`;
@@ -857,38 +878,6 @@ function renderHabboBoard(player) {
     tile.addEventListener("click", () => habboMoveTo(c, r));
     floor.appendChild(tile);
   }
-  // Original room decor (NOT Habbo's copyrighted art): a rug on the floor, framed abstract paintings on
-  // the back wall, and a pot plant.
-  const mid = habboIso((HABBO_GW - 1) / 2, (HABBO_GH - 1) / 2);
-  const decor = document.createElement("div");
-  decor.className = "habbo-decor";
-  // The paintings are ACTUAL tiny pixel-art scenes (16x12 SVG grids, crisp edges): a sunset over the
-  // sea, green hills with a tree, and a starry night - not abstract colour mush.
-  const PXA = `xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 12" width="100%" height="100%" preserveAspectRatio="none" shape-rendering="crispEdges"`;
-  const r = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
-  const paintSunset = `<svg ${PXA}>`
-    + r(0, 0, 16, 3, "#8a2c3e") + r(0, 3, 16, 2, "#c8503a") + r(0, 5, 16, 2, "#e8843a") + r(0, 7, 16, 1, "#f0b04a")
-    + r(6, 4, 4, 4, "#ffd24d") + r(7, 3, 2, 1, "#ffd24d") + r(7, 8, 2, 1, "#ffe9a0")   // sun + top notch + glint
-    + r(0, 8, 16, 4, "#1a4a6a") + r(5, 9, 6, 1, "#3a7a9a") + r(6, 10, 4, 1, "#3a7a9a") // sea + reflection
-    + `</svg>`;
-  const paintHills = `<svg ${PXA}>`
-    + r(0, 0, 16, 8, "#8ac8e8") + r(2, 2, 4, 1, "#ffffff") + r(3, 1, 2, 1, "#ffffff") + r(10, 3, 3, 1, "#ffffff")  // sky + clouds
-    + r(0, 8, 16, 4, "#4a9a3a") + r(0, 7, 7, 1, "#4a9a3a") + r(9, 7, 7, 1, "#3a8030")   // rolling hills
-    + r(11, 4, 2, 3, "#6a4a2a") + r(9, 1, 6, 4, "#2c7a2c") + r(10, 0, 4, 1, "#2c7a2c")  // tree trunk + canopy
-    + `</svg>`;
-  const paintNight = `<svg ${PXA}>`
-    + r(0, 0, 16, 9, "#1a1440") + r(2, 1, 3, 3, "#f0eccc") + r(3, 2, 3, 2, "#1a1440")   // sky + crescent moon
-    + r(8, 2, 1, 1, "#ffffff") + r(12, 1, 1, 1, "#ffffff") + r(10, 5, 1, 1, "#ffe9a0") + r(14, 4, 1, 1, "#ffffff") + r(6, 6, 1, 1, "#ffffff")
-    + r(0, 9, 16, 3, "#33245c") + r(0, 8, 5, 1, "#33245c") + r(11, 8, 5, 1, "#33245c")  // purple hills
-    + `</svg>`;
-  decor.innerHTML =
-    `<div class="hb-rug" style="left:${mid.x}px;top:${mid.y}px"></div>` +
-    `<div class="hb-plant" style="left:${wallX - EDGE - 6}px;top:${150 + RISE - 54}px"><span class="hb-pot"></span></div>`;
-  room.appendChild(decor);
-  // Paintings hang INSIDE the wall panels, so they inherit the wall's skew and sit flat on it.
-  wallL.innerHTML = `<div class="hb-painting" style="left:34px;top:20px">${paintSunset}</div>`
-    + `<div class="hb-painting" style="left:150px;top:26px">${paintHills}</div>`;
-  wallR.innerHTML = `<div class="hb-painting" style="left:96px;top:22px">${paintNight}</div>`;
   // Give any character without a tile a starting spot, strided so they scatter across the whole floor
   // rather than bunching in the back rows.
   const total = HABBO_GW * HABBO_GH;
@@ -906,11 +895,10 @@ function renderHabboBoard(player) {
   room.appendChild(figs);
   const figEls = new Map();
   list.forEach((ch) => {
-    // Voided avatars aren't in the room at all - they're in the void (DE-VOID panel brings them back).
-    if (player.eliminated.has(ch.id)) return;
     const a = state.global.mystery.assignments[ch.id] || {};
     const pos = habboPos.get(ch.id);
     const p = habboIso(pos.col, pos.row);
+    const isDown = player.eliminated.has(ch.id);
     // Iso facing: instead of staring at the camera, everyone looks diagonally toward the room's
     // centre - pupils shifted sideways+down and a slight head turn, Habbo-style.
     const facing = pos.col >= pos.row ? -1 : 1;   // right half of the room looks left, left half right
@@ -925,9 +913,9 @@ function renderHabboBoard(player) {
     }
     const el = document.createElement("button");
     el.type = "button";
-    el.className = `habbo-fig ${facing === 1 ? "hb-face-r" : "hb-face-l"} ${ch.id === habboSelected ? "selected" : ""}`.trim();
+    el.className = `habbo-fig ${facing === 1 ? "hb-face-r" : "hb-face-l"} ${isDown ? "is-down" : ""} ${ch.id === habboSelected ? "selected" : ""}`.trim();
     el.dataset.id = ch.id;
-    el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
+    el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)${isDown ? " rotate(-8deg)" : ""}`;
     el.style.zIndex = String(100 + pos.col + pos.row);
     // Proper Habbo anatomy: big pixel head on a little torso with arms (skin-tone hands), legs and
     // shoes - the parts animate a real step-gait while walking. The bottom half wears the SAME
@@ -939,21 +927,18 @@ function renderHabboBoard(player) {
       + `<i class="hb-arm hb-arm-l"></i><i class="hb-arm hb-arm-r"></i><i class="hb-torso"></i>`
       + `<i class="hb-leg hb-leg-l"></i><i class="hb-leg hb-leg-r"></i></span>`
       + `<span class="hb-shadow"></span>`;
-    // Click an avatar to select: the room camera zooms onto them, the ROOM CAM shows their face
-    // properly, and (with a keyboard) the chat bar lets you talk as them.
-    el.addEventListener("click", () => selectHabbo(ch.id));
+    el.addEventListener("click", (e) => { e.stopPropagation(); selectHabbo(ch.id); });
     figs.appendChild(el);
     figEls.set(ch.id, el);
     // Pixelate the head into chunky Habbo pixels once it loads. Crop tight to the head first so the
     // whole pixel budget lands on the face (not transparent margins) - readable AND properly pixel-art.
-    if (a.head) pixelateSrc(a.head, 30, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
+    if (a.head) pixelateSrc(a.head, 36, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
   });
   habboCtx = { figEls, room };
-  if (habboSelected && !figEls.has(habboSelected)) habboSelected = null;   // selection voided/gone
-  if (habboSelected) habboCamera(habboSelected);   // keep the camera on re-render
-  renderHabboSelectionUI();                        // rebuild the ROOM CAM + chat bar for the selection
+  if (habboSelected && !figEls.has(habboSelected)) habboSelected = null;
+  if (habboSelected) habboCamera(habboSelected);
+  renderHabboSelectionUI();
   if (!habboWanderTimer) habboWanderTimer = setInterval(habboWander, 2600);   // idle strolling
-  renderVoidControls(player);                      // the void + DE-VOID panel is a Habbo-only feature
 }
 
 
@@ -1134,8 +1119,6 @@ function renderModeHouseMap() {
 function beforeRenderModeBoard() {
   resetTransientBoardRenders();
   habboizeBanner(currentMysteryEffect()?.id === "habbo");
-  const dvb = document.getElementById("deVoidBtn");
-  if (dvb) dvb.style.display = "none";
 }
 
 function resetTransientBoardRenders() {
@@ -2737,17 +2720,69 @@ const PANTONE_COLORS = [
   { c: "18-0601", n: "Pewter", h: "#67686a" }, { c: "19-4007", n: "Anthracite", h: "#28292b" }, { c: "18-1306", n: "Fossil", h: "#79736b" },
   { c: "16-1305", n: "Aluminum", h: "#a29c94" }, { c: "19-0303", n: "Jet Black", h: "#2a2a2c" },
 ];
+const PANTONE_VARIANCE_FAMILIES = [
+  ["Rosewood", 348], ["Cerise", 338], ["Flamingo", 4], ["Vermilion", 12],
+  ["Persimmon", 22], ["Amber", 34], ["Sunflower", 48], ["Lemon", 58],
+  ["Citron", 72], ["Sprout", 92], ["Clover", 122], ["Juniper", 146],
+  ["Jade", 162], ["Seafoam", 174], ["Lagoon", 188], ["Glacier", 198],
+  ["Azure", 208], ["Denim", 222], ["Cobalt", 238], ["Iris", 252],
+  ["Violet", 270], ["Orchid", 292], ["Magenta", 316], ["Mulberry", 330]
+];
+const PANTONE_VARIANCE_STEPS = [
+  ["Tint", "11", 34, 91], ["Mist", "12", 42, 83], ["Bloom", "13", 50, 75],
+  ["Wash", "14", 44, 66], ["Pop", "15", 62, 56], ["Satin", "16", 58, 46],
+  ["Velvet", "18", 50, 34], ["Shadow", "19", 42, 23]
+];
+const PANTONE_NEUTRAL_VARIANCES = [
+  { c: "11-2000", n: "Porcelain Tint", h: "#f5f0e8" }, { c: "12-2001", n: "Rice Paper", h: "#eee6d8" },
+  { c: "13-2002", n: "Warm Plaster", h: "#dfd4c4" }, { c: "14-2003", n: "Linen Grey", h: "#cbc7bd" },
+  { c: "15-2004", n: "Pumice", h: "#b6b0a6" }, { c: "16-2005", n: "Wet Cement", h: "#99968e" },
+  { c: "17-2006", n: "Smoke Taupe", h: "#767168" }, { c: "18-2007", n: "Graphite Wash", h: "#555452" },
+  { c: "19-2008", n: "Soft Black", h: "#222326" }, { c: "13-2100", n: "Milk Glass", h: "#eef2ef" },
+  { c: "14-2101", n: "Blue Chalk", h: "#ced8dc" }, { c: "15-2102", n: "Storm Pearl", h: "#aeb8bf" },
+  { c: "16-2103", n: "Steel Wool", h: "#8d969c" }, { c: "17-2104", n: "Slate Pencil", h: "#68727b" },
+  { c: "18-2105", n: "Ink Wash", h: "#3f4852" }, { c: "19-2106", n: "Night Charcoal", h: "#1c222b" }
+];
+function pantoneHslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return "#" + [f(0), f(8), f(4)].map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("");
+}
+const PANTONE_VARIANCE_COLORS = PANTONE_VARIANCE_FAMILIES.flatMap(([family, hue], familyIndex) =>
+  PANTONE_VARIANCE_STEPS.map(([suffix, level, sat, light], stepIndex) => ({
+    c: `${level}-${String(1000 + familyIndex * 10 + stepIndex).padStart(4, "0")}`,
+    n: `${family} ${suffix}`,
+    h: pantoneHslToHex(hue, sat, light)
+  }))
+).concat(PANTONE_NEUTRAL_VARIANCES);
+const PANTONE_SWATCHES = (() => {
+  const out = [], codes = new Set(), names = new Set();
+  [...PANTONE_COLORS, ...PANTONE_VARIANCE_COLORS].forEach((p) => {
+    const code = String(p.c).toLowerCase();
+    const name = String(p.n).toLowerCase();
+    if (codes.has(code) || names.has(name)) return;
+    codes.add(code); names.add(name); out.push(p);
+  });
+  return out;
+})();
 function pantoneRgb(hex) { const h = hex.replace("#", ""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
 function pantoneDist(a, b) {
   // "redmean" weighted distance - matches perceived colour closeness better than raw RGB.
   const rm = (a[0] + b[0]) / 2, dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
   return (2 + rm / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rm) / 256) * db * db;
 }
-function nearestPantone(hex) {
+function nearestPantone(hex, avoidCodes = []) {
   const t = pantoneRgb(hex);
-  let best = PANTONE_COLORS[0], bd = Infinity;
-  for (const p of PANTONE_COLORS) { const d = pantoneDist(t, pantoneRgb(p.h)); if (d < bd) { bd = d; best = p; } }
-  return best;
+  const avoid = new Set(avoidCodes.filter(Boolean));
+  let best = null, bd = Infinity, fallback = PANTONE_SWATCHES[0], fd = Infinity;
+  for (const p of PANTONE_SWATCHES) {
+    const d = pantoneDist(t, pantoneRgb(p.h));
+    if (d < fd) { fd = d; fallback = p; }
+    if (!avoid.has(p.c) && d < bd) { bd = d; best = p; }
+  }
+  return best || fallback;
 }
 function applyPantone(effect) {
   const assignments = {};
@@ -2776,10 +2811,8 @@ function mixPantonePair(A, B) {
   // (retry the jitter a few times until their nearest chips differ).
   const shift = (ch, ownBg, otherBg, ownSkin, otherSkin, avoidCode) => {
     const baseBg = mixHex(ownBg, otherBg, PANTONE_MIX_T);
-    let bg = baseBg, p = nearestPantone(bg);
-    for (let tries = 0; avoidCode && p.c === avoidCode && tries < 6; tries++) { bg = jitterHex(baseBg, 0.05); p = nearestPantone(bg); }
-    if (!avoidCode) bg = jitterHex(baseBg, 0.03);   // still nudge the first one a little
-    p = nearestPantone(bg);
+    const bg = avoidCode ? baseBg : jitterHex(baseBg, 0.03);
+    const p = nearestPantone(bg, avoidCode ? [avoidCode] : []);
     ch.traits = { ...ch.traits, background: bg, skinHex: jitterHex(mixHex(ownSkin, otherSkin, PANTONE_MIX_T), 0.03) };
     delete ch.traits.skin;          // let the mixed hex render instead of the named palette tone
     ch.image = window.faceGenerator.renderPortrait(ch.seed, ch.traits);
@@ -2974,13 +3007,15 @@ function applyLinkedin(effect) {
         : 30 + (ch2 % 1170);                                  // 30..1199
       skills.push({ name, count });
     }
-    // Banner: POWER gets a nice blurred location banner; MID is 50/50 blurred banner vs plain
-    // gradient; FLOP gets the generic grey default. Reuses the location banner art, blurred.
+    // Banner: POWER gets a clean premium strip; MID is 50/50 blurred banner vs plain gradient;
+    // FLOP gets the generic grey default.
     let banner = { type: "plain" };
-    const wantsImage = tier === "power" || (tier === "mid" && (h >>> 9) % 2 === 0);
+    const wantsImage = tier === "mid" && (h >>> 9) % 2 === 0;
     if (wantsImage && locs.length) {
       const slug = locs[stableHash(`${state.gameSalt}:li:${ch.id}:bn`) % locs.length].slug;
       banner = { type: "image", src: `${LOCATION_ART_DIR}/${slug}_day_banner.png` };
+    } else if (tier === "power") {
+      banner = { type: "premium" };
     } else if (tier === "flop") {
       banner = { type: "grey" };
     }
@@ -3173,6 +3208,22 @@ function politicsTug(A, B) {
 
 // Rasterise an SVG portrait down to `size` px and quantise its colours for a real 8-bit look.
 const pixelCache = new Map();
+function quantizePixelData(imageData, step = 51) {
+  const a = imageData.data;
+  for (let i = 0; i < a.length; i += 4) {
+    const r = a[i], g = a[i + 1], b = a[i + 2];
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    // Tiny teeth/sclera pixels are often only one or two source pixels wide. Keep true near-whites
+    // bright before bucket rounding so they do not collapse into grey or skin-coloured mush.
+    if (r >= 235 && g >= 230 && b >= 215 && max - min <= 50) {
+      a[i] = 255; a[i + 1] = 252; a[i + 2] = 240;
+    } else {
+      a[i] = Math.round(r / step) * step;
+      a[i + 1] = Math.round(g / step) * step;
+      a[i + 2] = Math.round(b / step) * step;
+    }
+  }
+}
 // `crop` (optional) is [fx, fy, fw, fh] as FRACTIONS of the source (0-1) - use it to spend the whole
 // pixel budget on a region (e.g. just the head) instead of wasting it on transparent margins. Given
 // as fractions so it survives whatever intrinsic size the SVG happens to rasterise at.
@@ -3200,12 +3251,7 @@ function pixelateSrc(src, size, done, crop) {
     }
     try {
       const d = x.getImageData(0, 0, size, size);
-      const a = d.data;
-      for (let i = 0; i < a.length; i += 4) {
-        a[i] = Math.round(a[i] / 51) * 51;
-        a[i + 1] = Math.round(a[i + 1] / 51) * 51;
-        a[i + 2] = Math.round(a[i + 2] / 51) * 51;
-      }
+      quantizePixelData(d, 51);
       x.putImageData(d, 0, 0);
     } catch (e) { /* tainted canvas - skip quantise */ }
     const url = c.toDataURL();
@@ -3252,8 +3298,8 @@ function startPixallLoop() {
       x.clearRect(0, 0, SIZE, SIZE);
       x.drawImage(tmp, CROP[0] * BASE, CROP[1] * BASE, CROP[2] * BASE, CROP[3] * BASE, 0, 0, SIZE, SIZE);
       try {
-        const d = x.getImageData(0, 0, SIZE, SIZE); const a = d.data;
-        for (let i = 0; i < a.length; i += 4) { a[i] = Math.round(a[i] / 51) * 51; a[i + 1] = Math.round(a[i + 1] / 51) * 51; a[i + 2] = Math.round(a[i + 2] / 51) * 51; }
+        const d = x.getImageData(0, 0, SIZE, SIZE);
+        quantizePixelData(d, 51);
         x.putImageData(d, 0, 0);
       } catch (e) { /* tainted - leave unquantised */ }
     });

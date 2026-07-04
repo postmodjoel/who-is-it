@@ -237,7 +237,7 @@ const state = {
     mystery: true,
     locations: true,
     roles: true,
-    pg: false,          // "PG mode" - the wheel only lands on kid-safe modes, no breeding/woohoo
+    pg: true,           // "PG mode" - the wheel only lands on kid-safe modes, no breeding/woohoo
     boardSize: 24
   },
   currentPlayer: 0,
@@ -752,45 +752,6 @@ function toggleEliminated(id) {
   scheduleSave();
 }
 
-// ===================== The Void (elimination) + DE-VOID panel =====================
-function renderVoidControls(player) {
-  const wrap = document.querySelector(".board-wrap");
-  if (!wrap) return;
-  const voided = state.board.filter((c) => player.eliminated.has(c.id));
-  let btn = document.getElementById("deVoidBtn");
-  if (!btn) {
-    btn = document.createElement("button");
-    btn.id = "deVoidBtn"; btn.type = "button"; btn.className = "de-void-btn";
-    btn.addEventListener("click", toggleVoidPanel);
-    wrap.appendChild(btn);
-  }
-  btn.innerHTML = `<span class="dv-hole">🕳</span> DE-VOID REQUIRED? <span class="dv-count">${voided.length}</span>`;
-  btn.style.display = voided.length ? "" : "none";
-  if (!voided.length) { const p = document.getElementById("voidPanel"); if (p) p.classList.remove("open"); }
-  const panel = document.getElementById("voidPanel");
-  if (panel && panel.classList.contains("open")) fillVoidPanel(player);
-}
-function toggleVoidPanel() {
-  let panel = document.getElementById("voidPanel");
-  if (!panel) {
-    panel = document.createElement("div"); panel.id = "voidPanel"; panel.className = "void-panel";
-    document.querySelector(".board-wrap").appendChild(panel);
-  }
-  panel.classList.toggle("open");
-  if (panel.classList.contains("open")) fillVoidPanel(currentPlayer());
-}
-function fillVoidPanel(player) {
-  const panel = document.getElementById("voidPanel");
-  if (!panel) return;
-  const voided = state.board.filter((c) => player.eliminated.has(c.id));
-  panel.innerHTML = `<p class="vp-title">DE-VOID REQUIRED? <span>tap a face to pull them back out</span></p>`
-    + `<div class="vp-faces">${voided.map((c) => {
-      const m = getMysteryCardData(c);
-      return `<button type="button" class="vp-face" data-id="${c.id}"><img src="${m.image || c.image}" alt=""><span class="vp-name">${escapeHtml(displayName(c))}</span></button>`;
-    }).join("")}</div>`;
-  panel.querySelectorAll(".vp-face").forEach((b) => b.addEventListener("click", () => toggleEliminated(b.dataset.id)));
-}
-
 // Per-mode question decks - when a special mode is active, every drawn question matches its flavour.
 const modePrompts = window.GameData.modePrompts;
 
@@ -1089,6 +1050,13 @@ function rebuildDebugPicker() {
     els.debugEffectPicker.appendChild(opt);
   });
 }
+function setPgMode(on) {
+  state.settings.pg = !!on;
+  if (els.settingPG) els.settingPG.checked = state.settings.pg;
+  const debugPg = document.querySelector("#debugPgToggle input");
+  if (debugPg) debugPg.checked = state.settings.pg;
+  rebuildDebugPicker();
+}
 if (els.debugEffectPicker) {
   rebuildDebugPicker();
   // Debug-only PG toggle in the topbar - lets you flip PG on/off to test it without opening setup.
@@ -1098,10 +1066,16 @@ if (els.debugEffectPicker) {
   const pgInput = pgWrap.querySelector("input");
   pgInput.checked = !!state.settings.pg;
   pgInput.addEventListener("change", () => {
-    state.settings.pg = pgInput.checked;
-    if (els.settingPG) els.settingPG.checked = pgInput.checked;
-    rebuildDebugPicker();
-    flashToast(pgInput.checked ? "🧒 PG mode ON — adult modes hidden" : "PG mode OFF");
+    if (pgInput.checked) {
+      setPgMode(true);
+      flashToast("🧒 PG mode ON — adult modes hidden");
+      return;
+    }
+    pgInput.checked = true;
+    askAdultGate((ok) => {
+      if (ok) { setPgMode(false); flashToast("PG mode OFF"); }
+      else { setPgMode(true); flashToast("PG mode stays ON"); }
+    });
   });
   els.debugEffectPicker.parentNode.insertBefore(pgWrap, els.debugEffectPicker.nextSibling);
   els.debugEffectPicker.addEventListener("change", () => {
@@ -1145,7 +1119,7 @@ els.saveSetupButton.addEventListener("click", () => {
 if (els.settingPG) els.settingPG.addEventListener("change", () => {
   if (els.settingPG.checked) return;                       // turning ON is free
   els.settingPG.checked = true;                            // hold it on until the riddle is solved
-  askAdultRiddle((ok) => { els.settingPG.checked = !ok; state.settings.pg = !ok; });
+  askAdultGate((ok) => { setPgMode(!ok); });
 });
 
 // ===================== Sound & music controls =====================
@@ -1309,22 +1283,39 @@ function endRound() {
   netSend("endround", {});
   showRoundReveal(() => newGame());
 }
-// Disabling PG mode requires solving an adults-only riddle (free text) - the answers are all bits of
+// Disabling PG mode requires solving adults-only riddles (free text) - the answers are all bits of
 // grown-up life a 10-year-old wouldn't know. cb(true) if solved, cb(false) if cancelled/given up.
 const ADULT_RIDDLES = [
   { q: "I visit every adult once a year, take a cut of all you earned, and no child has ever paid me. What am I?", a: ["tax", "taxes", "taxman", "the taxman", "income tax", "hmrc", "irs"] },
   { q: "I'm the loan that chains you to one house for thirty years. One word — what am I?", a: ["mortgage", "a mortgage"] },
   { q: "\"Nothing in life is certain except death and ___.\" Fill in the blank.", a: ["taxes", "tax"] },
   { q: "I'm taken from your wage before it even lands, I pay for the roads and hospitals, and grown-ups dread me every payslip. What am I?", a: ["tax", "taxes", "national insurance", "ni"] },
-  { q: "Adults sign me to rent a home, I list what you can't do, and I always want a deposit. What am I?", a: ["lease", "tenancy", "a lease", "tenancy agreement", "rental agreement", "contract"] }
+  { q: "Adults sign me to rent a home, I list what you can't do, and I always want a deposit. What am I?", a: ["lease", "tenancy", "a lease", "tenancy agreement", "rental agreement", "contract"] },
+  { q: "I am the dull monthly fee that keeps the lights on. Forget me and everything goes dark. What am I?", a: ["electric bill", "power bill", "utility bill", "utilities", "bill"] },
+  { q: "I am the percentage a bank adds because you borrowed its money. What am I?", a: ["interest", "interest rate", "apr"] },
+  { q: "I am the document you send to an employer before an interview. What am I?", a: ["resume", "cv", "curriculum vitae"] },
+  { q: "I am the savings pot grown-ups are meant to keep for old age. What am I?", a: ["pension", "retirement fund", "superannuation", "super"] },
+  { q: "I am the yearly form where you confess your income to the government. What am I?", a: ["tax return", "return", "income tax return"] },
+  { q: "I am the insurance amount you pay before the insurer starts helping. What am I?", a: ["excess", "deductible"] },
+  { q: "I am the meeting invite that could have been an email. One word — what am I?", a: ["meeting", "a meeting"] }
 ];
-function askAdultRiddle(cb) {
-  const r = ADULT_RIDDLES[Math.floor(Math.random() * ADULT_RIDDLES.length)];
+function normalizeAdultAnswer(value) {
+  return String(value).trim().toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+}
+function askAdultGate(cb, required = 3) {
+  const needed = Math.max(1, Math.min(required, ADULT_RIDDLES.length));
+  const riddles = ADULT_RIDDLES
+    .map((r, i) => ({ r, k: Math.random() + i / 1000 }))
+    .sort((a, b) => a.k - b.k)
+    .slice(0, needed)
+    .map((entry) => entry.r);
+  let solved = 0;
   const ov = document.createElement("div");
   ov.className = "riddle-overlay";
   ov.innerHTML = `<div class="riddle-box">
-      <p class="riddle-eyebrow">🔞 Adults only — solve this to turn PG off</p>
-      <p class="riddle-q">${escapeHtml(r.q)}</p>
+      <p class="riddle-eyebrow">🔞 Adults only — solve 3 to turn PG off</p>
+      <p class="riddle-progress"></p>
+      <p class="riddle-q"></p>
       <input class="riddle-input" type="text" placeholder="type your answer…" autocomplete="off" spellcheck="false">
       <p class="riddle-msg"></p>
       <div class="riddle-actions">
@@ -1332,19 +1323,41 @@ function askAdultRiddle(cb) {
         <button type="button" class="button primary riddle-go">Answer</button>
       </div>
     </div>`;
-  document.body.appendChild(ov);
+  const riddleHost = els.setupDialog && els.setupDialog.open ? els.setupDialog : document.body;
+  riddleHost.appendChild(ov);
   const input = ov.querySelector(".riddle-input");
   const msg = ov.querySelector(".riddle-msg");
+  const progress = ov.querySelector(".riddle-progress");
+  const question = ov.querySelector(".riddle-q");
   setTimeout(() => input.focus(), 60);
   const done = (ok) => { ov.remove(); cb(ok); };
+  const paint = () => {
+    const r = riddles[solved];
+    progress.textContent = `${solved} / ${needed} correct`;
+    question.textContent = r.q;
+    msg.textContent = "";
+    input.value = "";
+    input.focus();
+  };
   const submit = () => {
-    const val = input.value.trim().toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
-    if (r.a.includes(val)) done(true);
-    else { msg.textContent = "That's not it — PG mode stays on. (Ask a grown-up.)"; input.classList.add("shake"); setTimeout(() => input.classList.remove("shake"), 400); input.select(); }
+    const r = riddles[solved];
+    const val = normalizeAdultAnswer(input.value);
+    const answers = r.a.map(normalizeAdultAnswer);
+    if (answers.includes(val)) {
+      solved += 1;
+      if (solved >= needed) { done(true); return; }
+      paint();
+      return;
+    }
+    msg.textContent = "That's not it — PG mode stays on. Keep going or ask a grown-up.";
+    input.classList.add("shake");
+    setTimeout(() => input.classList.remove("shake"), 400);
+    input.select();
   };
   ov.querySelector(".riddle-go").addEventListener("click", submit);
   ov.querySelector(".riddle-cancel").addEventListener("click", () => done(false));
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") done(false); });
+  paint();
 }
 
 function showTitleScreen() {
@@ -1375,16 +1388,15 @@ function showTitleScreen() {
         <button type="button" class="button ghost ts-back">← back</button>
       </div>
     </div>
-    <button type="button" class="ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}">🧒 PG mode: <b>${state.settings.pg ? "ON" : "OFF"}</b></button>
-    <p class="ts-hint">Local = pass one screen back and forth. Online = share your room number with a friend.</p>`;
+    <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>`;
   document.body.appendChild(ov);
   const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
   // PG toggle: turning it ON is free; turning it OFF is gated behind an adults-only riddle.
   const pgBtn = ov.querySelector(".ts-pg");
   const paintPg = () => { pgBtn.classList.toggle("on", state.settings.pg); pgBtn.querySelector("b").textContent = state.settings.pg ? "ON" : "OFF"; pgBtn.setAttribute("aria-pressed", String(state.settings.pg)); };
   pgBtn.addEventListener("click", () => {
-    if (!state.settings.pg) { state.settings.pg = true; if (els.settingPG) els.settingPG.checked = true; paintPg(); sfx("blip"); return; }
-    askAdultRiddle((ok) => { if (ok) { state.settings.pg = false; if (els.settingPG) els.settingPG.checked = false; paintPg(); sfx("coin"); } else { sfx("buzzer"); } });
+    if (!state.settings.pg) { setPgMode(true); paintPg(); sfx("blip"); return; }
+    askAdultGate((ok) => { if (ok) { setPgMode(false); paintPg(); sfx("coin"); } else { setPgMode(true); paintPg(); sfx("buzzer"); } });
   });
   const steps = {
     main: ov.querySelector(".ts-step-main"),

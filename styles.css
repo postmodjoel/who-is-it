@@ -5785,3 +5785,55 @@ body.mode-linkedin .cue-card { background: #ffffff; border: 1px solid #d6d6d6; c
 .al-fact { margin: 0 0 3px; font-size: 0.7rem; line-height: 1.35; }
 .al-fact b { color: #1533cc; }
 .al-fact.al-none { font-style: italic; opacity: 0.55; }
+
+/* ===================== The Night Receipt: thermal printout ===================== */
+.receipt-overlay {
+  position: fixed; inset: 0; z-index: 335;
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(10, 10, 16, 0.85);
+  animation: loreIn 0.3s ease;
+  overflow: hidden;
+}
+.receipt-overlay.lore-out { opacity: 0; transition: opacity 0.35s ease; }
+.rc-printer {
+  flex: 0 0 auto; width: min(78vw, 340px); height: 26px; margin-top: 7vh;
+  background: linear-gradient(180deg, #3c4048, #23262c);
+  border-radius: 8px 8px 3px 3px; position: relative; z-index: 2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.rc-printer i {
+  position: absolute; left: 6%; right: 6%; bottom: 4px; height: 5px;
+  background: #0c0d10; border-radius: 3px;
+}
+.receipt-paper {
+  width: min(70vw, 300px); max-height: 68vh; overflow-y: auto;
+  background: #fbfaf4; color: #23211c;
+  padding: 18px 16px 26px; margin-top: -4px;
+  font-family: "Courier New", monospace; font-size: 0.68rem; line-height: 1.45;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  /* torn bottom edge */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px),
+    95% 100%, 90% calc(100% - 7px), 85% 100%, 80% calc(100% - 7px), 75% 100%,
+    70% calc(100% - 7px), 65% 100%, 60% calc(100% - 7px), 55% 100%, 50% calc(100% - 7px),
+    45% 100%, 40% calc(100% - 7px), 35% 100%, 30% calc(100% - 7px), 25% 100%,
+    20% calc(100% - 7px), 15% 100%, 10% calc(100% - 7px), 5% 100%, 0 calc(100% - 8px));
+  animation: rcFeed 1.6s steps(22, end);
+  transform-origin: top center;
+}
+@keyframes rcFeed { from { transform: translateY(-92%); } to { transform: translateY(0); } }
+.rc-logo { margin: 0; text-align: center; font-weight: 900; font-size: 1rem; letter-spacing: 0.08em; }
+.rc-sub { margin: 0; text-align: center; font-weight: 700; letter-spacing: 0.3em; font-size: 0.6rem; }
+.rc-meta { margin: 2px 0 0; text-align: center; font-size: 0.6rem; opacity: 0.7; }
+.rc-rule { margin: 8px 0; border-top: 1px dashed rgba(35, 33, 28, 0.55); }
+.rc-line { display: flex; justify-content: space-between; gap: 8px; }
+.rc-line b { font-weight: 700; white-space: nowrap; }
+.rc-head { margin: 0; font-weight: 700; }
+.rc-cast { margin: 2px 0 0; font-weight: 400; text-transform: uppercase; }
+.rc-thanks { margin: 0; text-align: center; font-weight: 700; letter-spacing: 0.05em; }
+.rc-barcode {
+  height: 30px; margin: 10px 8px 4px;
+  background: repeating-linear-gradient(90deg,
+    #23211c 0 2px, transparent 2px 4px, #23211c 4px 5px, transparent 5px 9px,
+    #23211c 9px 12px, transparent 12px 14px, #23211c 14px 15px, transparent 15px 19px);
+}
+.rc-serial { margin: 0; text-align: center; font-size: 0.58rem; letter-spacing: 0.2em; opacity: 0.7; }

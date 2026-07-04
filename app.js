@@ -283,6 +283,7 @@ const els = {
   setupButton: document.querySelector("#setupButton"),
   editorButton: document.querySelector("#editorButton"),
   almanacButton: document.querySelector("#almanacButton"),
+  receiptButton: document.querySelector("#receiptButton"),
   soundButton: document.querySelector("#soundButton"),
   settingSeed: document.querySelector("#settingSeed"),
   copySeedButton: document.querySelector("#copySeedButton"),
@@ -1542,6 +1543,51 @@ function almanacRecord(secA, secB, eff) {
   });
   almanacSave(a);
 }
+// ===================== The Night Receipt: an old-school printout of the session =====================
+// Feeds out of a printer slot, thermal-paper style: every round as a line item with a stamped
+// verdict, the cast you played as, dubious totals, a barcode, NO REFUNDS.
+const RECEIPT_TAGS = ["[OK]", "[INCIDENT]", "[UNDER REVIEW]", "[NO SURVIVORS]", "[SEALED]", "[DO NOT ASK]", "[RESOLVED*]", "[ONGOING]"];
+function showReceipt() {
+  document.querySelector(".receipt-overlay")?.remove();
+  const lore = state.lore || [];
+  const season = (() => { try { return parseInt(localStorage.getItem("whoisit_season_v1") || "1", 10) || 1; } catch (e) { return 1; } })();
+  const items = lore.length
+    ? lore.map((e, i) => {
+      const tag = RECEIPT_TAGS[stableHash(`${e.modeName || "plain"}:${i}:tag`) % RECEIPT_TAGS.length];
+      return `<div class="rc-line"><span>1x ${escapeHtml((e.modeName || "AN ORDINARY ROUND").toUpperCase())}</span><b>${tag}</b></div>`;
+    }).join("")
+    : `<div class="rc-line"><span>0x ROUNDS ON RECORD</span><b>[SUSPICIOUS]</b></div>`;
+  const you = [...new Set(lore.map((e) => e.you).filter(Boolean))];
+  const secretsBurned = lore.reduce((n, e) => n + e.names.length, 0);
+  const ov = document.createElement("div");
+  ov.className = "receipt-overlay";
+  ov.innerHTML = `
+    <div class="rc-printer" aria-hidden="true"><i></i></div>
+    <div class="receipt-paper" role="document">
+      <p class="rc-logo">WHO? IS IT?</p>
+      <p class="rc-sub">UNIVERSE RECEIPT</p>
+      <p class="rc-meta">ROOM #${escapeHtml(state.roomCode || "0000")} · SEASON ${season}</p>
+      <div class="rc-rule"></div>
+      ${items}
+      <div class="rc-rule"></div>
+      <p class="rc-head">TONIGHT YOU WERE:</p>
+      <p class="rc-cast">${you.length ? you.map(escapeHtml).join(", ") : "NOBODY (YET)"}</p>
+      <div class="rc-rule"></div>
+      <div class="rc-line"><span>ROUNDS PLAYED</span><b>${lore.length}</b></div>
+      <div class="rc-line"><span>SECRETS BURNED</span><b>${secretsBurned}</b></div>
+      <div class="rc-line"><span>WINNERS</span><b>N/A</b></div>
+      <div class="rc-line"><span>REFUNDS</span><b>NONE</b></div>
+      <div class="rc-rule"></div>
+      <p class="rc-thanks">THANK YOU FOR EXISTING<br>IN THIS UNIVERSE</p>
+      <div class="rc-barcode" aria-hidden="true"></div>
+      <p class="rc-serial">#${escapeHtml(String(stableHash(state.gameSalt || "void")).slice(0, 10))}</p>
+    </div>`;
+  document.body.appendChild(ov);
+  // Printer chatter while the paper feeds out.
+  try { if (window.Sound && Sound.spinTicks) Sound.spinTicks(1500, 55, 55); } catch (e) { /* silent printer */ }
+  ov.addEventListener("click", (e) => { if (e.target === ov) { ov.classList.add("lore-out"); setTimeout(() => ov.remove(), 380); } });
+}
+
 function showAlmanac() {
   document.querySelector(".almanac-overlay")?.remove();
   const a = almanacLoad();
@@ -1959,6 +2005,7 @@ mergeGaybiesIntoPool();                // and the persistent GAYBYs
 wirePainScaleDrag();                   // drag the disease pain scale to change emotions
 if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
 if (els.almanacButton) els.almanacButton.addEventListener("click", showAlmanac);
+if (els.receiptButton) els.receiptButton.addEventListener("click", showReceipt);
 showTitleScreen();                     // WHO? / IS IT? slides in; deal or resume from there
 wireCueCardClick();
 wireFloatingSecret();

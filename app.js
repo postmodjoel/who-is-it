@@ -569,6 +569,7 @@ function render() {
   renderBoard();
   renderMystery();
   renderOpponentPanel();
+  maybeShowOnboarding();   // one-time first-play nudges (no-op after the first dismissal)
 }
 
 // ===================== Board sorting =====================
@@ -1311,6 +1312,47 @@ function markModeDiscovered(id) {
     const set = loadDiscoveredModes();
     if (!set.includes(id)) { set.push(id); localStorage.setItem(DISCOVERED_KEY, JSON.stringify(set)); }
   } catch (e) { /* storage off - meta is cosmetic */ }
+}
+
+// First-time onboarding: two one-shot nudges (the old on-screen buttons were retired, so new players
+// need to be told the cue card rerolls on tap and the secret card flips on tap). Shown once ever.
+const ONBOARD_KEY = "whoisit_onboarded_v1";
+let onboardDone = false;
+function maybeShowOnboarding() {
+  if (onboardDone) return;
+  try { if (localStorage.getItem(ONBOARD_KEY)) { onboardDone = true; return; } } catch (e) { onboardDone = true; return; }
+  // Wait until the board is actually visible (no title/lobby/reveal overlay covering it).
+  if (document.querySelector(".title-screen, .lobby-screen, .round-reveal, .onboard-tips")) return;
+  const cue = document.querySelector(".cue-card");
+  const secret = els.secretCard;
+  if (!cue || !secret) return;
+  const cueR = cue.getBoundingClientRect();
+  const secR = secret.getBoundingClientRect();
+  if (!cueR.width || !secR.width) return;   // not laid out yet
+  onboardDone = true;
+  const layer = document.createElement("div");
+  layer.className = "onboard-tips";
+  const addTip = (r, text) => {
+    const rightRoom = window.innerWidth - r.right > 210;
+    const b = document.createElement("div");
+    b.className = "onboard-tip " + (rightRoom ? "ob-right" : "ob-below");
+    b.innerHTML = `<span class="ob-arrow"></span><span class="ob-text">${text}</span>`;
+    if (rightRoom) { b.style.left = `${Math.round(r.right + 14)}px`; b.style.top = `${Math.round(r.top + r.height / 2)}px`; }
+    else { b.style.left = `${Math.round(Math.min(window.innerWidth - 110, Math.max(110, r.left + r.width / 2)))}px`; b.style.top = `${Math.round(r.bottom + 14)}px`; }
+    layer.appendChild(b);
+  };
+  document.body.appendChild(layer);
+  addTip(secR, "👆 Tap your card to hide / show your face");
+  addTip(cueR, "👆 Tap the question for a new one");
+  const dismiss = () => {
+    try { localStorage.setItem(ONBOARD_KEY, "1"); } catch (e) { /* fine */ }
+    document.removeEventListener("pointerdown", dismiss, true);
+    layer.classList.add("ob-out");
+    setTimeout(() => layer.remove(), 300);
+  };
+  // Any tap dismisses (and still reaches the card underneath - capture listener, no preventDefault).
+  setTimeout(() => document.addEventListener("pointerdown", dismiss, true), 500);
+  setTimeout(dismiss, 9000);   // fallback so it never lingers
 }
 function resumeGame(saved) {
   state.settings = { ...state.settings, ...(saved.settings || {}) };

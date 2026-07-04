@@ -4739,6 +4739,21 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .ts-pg b { padding: 2px 7px; border-radius: 4px; background: #e01b1b; color: #fffdf7; font-size: 0.74rem; }
 .ts-pg.on b { background: #178a47; }
 .ts-discovered { margin: 0; font-weight: 800; font-size: 0.78rem; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.72); text-align: center; animation: ts-fade 0.5s 1.15s both; }
+
+/* First-play onboarding nudges (one-time). Non-interactive layer; any tap dismisses them. */
+.onboard-tips { position: fixed; inset: 0; z-index: 2050; pointer-events: none; transition: opacity 0.3s ease; }
+.onboard-tips.ob-out { opacity: 0; }
+.onboard-tip {
+  position: absolute; max-width: 190px; padding: 9px 13px; border-radius: 12px;
+  background: #ffd400; color: #14110d; font-weight: 800; font-size: 0.82rem; line-height: 1.25;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45); animation: ob-pop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.onboard-tip.ob-right { transform: translateY(-50%); }
+.onboard-tip.ob-below { transform: translateX(-50%); }
+.ob-arrow { position: absolute; width: 0; height: 0; }
+.ob-right .ob-arrow { left: -7px; top: 50%; margin-top: -7px; border: 7px solid transparent; border-right-color: #ffd400; border-left: 0; }
+.ob-below .ob-arrow { top: -7px; left: 50%; margin-left: -7px; border: 7px solid transparent; border-bottom-color: #ffd400; border-top: 0; }
+@keyframes ob-pop { from { opacity: 0; } to { opacity: 1; } }
 .riddle-overlay { position: fixed; inset: 0; z-index: 2100; display: grid; place-items: center; background: rgba(6, 8, 14, 0.82); animation: wed-in 0.2s ease-out; padding: 20px; }
 .riddle-box { width: min(420px, 94vw); padding: 22px; border-radius: 16px; text-align: center; background: var(--panel, #15171d); border: 2px solid var(--line); box-shadow: var(--shadow); color: var(--ink); }
 .riddle-eyebrow { margin: 0 0 10px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #ff9a6a; }

@@ -1853,6 +1853,113 @@ function modeEpilogue(character) {
   }
 }
 
+// Last words: when a character gets flipped down, they sometimes protest - one line, in the voice
+// of the active mode, anchored to the card. Local-only (the eliminator hears the complaint; the
+// other seat just sees the flip), so Math.random is fine here.
+const LAST_WORDS_GENERIC = [
+  "I wasn't even THERE.",
+  "You'll regret this at the reunion.",
+  "Tell my plants I loved them.",
+  "This is defamation, actually.",
+  "I demand to speak to the board.",
+  "Wow. WOW.",
+  "I was about to say something important.",
+  "My lawyer will flip me back up.",
+  "You've made an enemy for life. A small one.",
+  "Fine. FINE. I didn't want to be guessed anyway."
+];
+function modeLastWords(character) {
+  const m = state.global.mystery;
+  const a = m && m.assignments ? m.assignments[character.id] : null;
+  const generic = () => LAST_WORDS_GENERIC[Math.floor(Math.random() * LAST_WORDS_GENERIC.length)];
+  if (!m) return generic();
+  const roll = Math.random();
+  if (roll < 0.35) return generic();   // even in a mode, sometimes they just complain normally
+  switch (m.id) {
+    case "disease": {
+      const d = a && (a.diseases || [])[0];
+      return d ? `But it was only ${d.tier} ${d.name}!` : "I was getting BETTER.";
+    }
+    case "drugs": {
+      const habit = a && (a.habits || [])[0];
+      return habit ? `The ${habit.name} was for a FRIEND.` : "I can quit being eliminated whenever I want.";
+    }
+    case "linkedin":
+      return a && a.openToWork ? "Eliminated?? I'm putting this on my profile." : "I'd like to connect about this.";
+    case "neighbourhood-watch":
+      return a && a.feudWith ? `${a.feudWith} put you up to this. I HAVE FOOTAGE.` : "The group will hear about this. With screenshots.";
+    case "orgy":
+      return "I was told there'd be no judgement here.";
+    case "astrology":
+      return a && a.sun ? `A ${a.sun.name} would NEVER do this to you.` : "Mercury did this. Not you. Mercury.";
+    case "horny-potter":
+      return a && a.horcrux ? "Joke's on you. I have a horcrux." : "Avada kedavr— oh.";
+    case "work":
+      return a ? `${a.days} days left and NOW this.` : "I was almost paroled.";
+    case "judgement":
+      return a && a.verdict === "HEAVEN" ? "I'll be watching from Cloud Nine. Smugly." : "See you downstairs.";
+    case "sims":
+      return "Sul sul... sul...";
+    case "swipe":
+      return "Unmatched?? UNMATCHED???";
+    case "fertility":
+      return "My stock! My beautiful stock!";
+    case "pantone":
+      return a && a.name ? `You'll never find "${a.name}" again.` : "You'll never match this shade again.";
+    case "habbo":
+      return "bobba.";
+    case "yugioh":
+      return "You've activated my trap card. (I have no trap card.)";
+    case "knockoff-manor":
+      return "The killer is still among—";
+    case "witness-protection-filter":
+      return "You never saw me. Officially.";
+    case "gay-frogged":
+      return "The glow was real. WE were real.";
+    case "hidden-agendas":
+      return "My donors will hear of this.";
+    case "woke":
+      return "Cancelled. Again. Typical.";
+    case "pixall":
+      return "I was only 8 pixels. What did I ever do to you.";
+    case "ps1-mode":
+      return "*despawns loudly*";
+    case "disguise":
+      return "At least tell me WHO you just eliminated.";
+    case "prop-panic":
+      return a && a.value ? `The ${a.value} was NEVER mine.` : "It was planted on me.";
+    case "family-tree-disaster":
+      return "My twin will avenge me.";
+    case "emotional-audit":
+      return a ? `My ${a.meter} was at ${a.value}% and it was all for you.` : "I FELT things, you know.";
+    case "role-reveal":
+      return a && a.value ? `But who will ${String(a.value).toLowerCase()} now?` : "The town needed me.";
+    case "face-first":
+      return "It was the face, wasn't it.";
+    case "monocultural":
+      return "We all look identical and you chose ME.";
+    case "heads-only":
+      return "You can't keep a good head down.";
+    case "fireworks":
+      return "I regret nothing.";
+    default:
+      return generic();
+  }
+}
+// Anchor the bubble to the (freshly re-rendered) card or floating head. Comic-bubble, ~3s life.
+function showLastWords(charId) {
+  const ch = characterById(charId);
+  if (!ch) return;
+  const el = document.getElementById(`card-${charId}`) || document.querySelector(`.float-head[data-id="${charId}"]`);
+  if (!el) return;
+  el.querySelectorAll(".lastwords-bubble").forEach((b) => b.remove());
+  const bub = document.createElement("span");
+  bub.className = "lastwords-bubble";
+  bub.textContent = modeLastWords(ch);
+  el.appendChild(bub);
+  setTimeout(() => { bub.classList.add("lw-out"); setTimeout(() => bub.remove(), 380); }, 3200);
+}
+
 function getMysteryCardData(character) {
   const mystery = state.global.mystery;
   if (!mystery || !mystery.assignments) return { html: "", dataset: {} };

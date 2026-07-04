@@ -829,8 +829,11 @@ function toggleEliminated(id) {
   renderBoard();
   state.justEliminated = null;
   state.justRestored = null;
-  sfx(player.eliminated.has(id) ? "eliminate" : "revive");
-  netSend("elim", { id, down: player.eliminated.has(id) });   // live-sync the cross-off
+  const down = player.eliminated.has(id);
+  // Last words: the freshly-flipped character sometimes protests (~40%, local-only theatre).
+  if (down && Math.random() < 0.4 && typeof showLastWords === "function") showLastWords(id);
+  sfx(down ? "eliminate" : "revive");
+  netSend("elim", { id, down });   // live-sync the cross-off
   scheduleSave();
 }
 

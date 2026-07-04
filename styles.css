@@ -5461,6 +5461,44 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 
 /* ===================== LINKEDIN mode: corporate profiles + ticker feed ===================== */
 .character-board.linkedin-board { background: #f3f2ef; border-radius: 10px; }
+/* ===== LinkedIn mode reskins the WHOLE page into a plain corporate-white LinkedIn aesthetic ===== */
+body.mode-linkedin {
+  color-scheme: light;
+  --ink: #1d1d1d;
+  --muted: #5f6368;
+  --paper: #f4f2ee;           /* LinkedIn's warm feed grey */
+  --panel: #ffffff;
+  --panel-soft: #f3f2ef;
+  --card-surface: #ffffff;
+  --card-surface-2: #f3f2ef;
+  --surface: #ffffff;
+  --surface-soft: #eef3f8;
+  --surface-muted: #d0d5db;
+  --card-ink: #1d1d1d;
+  --line: #d6d6d6;
+  --accent: #0a66c2;          /* LinkedIn blue everywhere */
+  --accent-2: #0a66c2;
+  --accent-3: #0a66c2;
+  --accent-4: #378fe9;
+  --shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  --grid-line: rgba(0, 0, 0, 0.03);
+  --secret-bg: #ffffff;
+}
+/* Buttons/selects in the chrome are dark-themed by default (body:not([data-theme="light"])) — force
+   them light so they don't stay black on the white LinkedIn page. */
+body.mode-linkedin .topbar-actions .button,
+body.mode-linkedin .topbar-actions select,
+body.mode-linkedin .game-bar-actions .button {
+  background: #ffffff; color: #1d1d1d; border: 1px solid #c8ccd1; box-shadow: none;
+}
+body.mode-linkedin .topbar-actions .button:hover,
+body.mode-linkedin .game-bar-actions .button:hover { background: #eef3f8; }
+body.mode-linkedin .side-panel,
+body.mode-linkedin .topbar { background: #ffffff; border-color: #e0e0e0; }
+/* Give the page a LinkedIn-blue rule along the top, purely for the bit. */
+body.mode-linkedin .topbar { border-bottom: 3px solid #0a66c2; }
+body.mode-linkedin .cue-card { background: #ffffff; border: 1px solid #d6d6d6; color: #1d1d1d; }
+
 .character-card.linkedin { background: #fff; border: 1px solid #d6d6d6; color: #1d1d1d; }
 .character-card.linkedin .card-plate { background: none; padding: 5px 7px 7px; gap: 2px; min-width: 0; overflow: hidden; }
 /* LinkedIn mode owns the whole plate: the base UPPERCASE name h3 is hidden; the Sentence Case

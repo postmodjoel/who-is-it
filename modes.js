@@ -205,7 +205,7 @@ const MYSTERY_MODE_META = {
   pixall: { tier: 2, wheelOrder: 40, pgSafe: true, glyph: "▦", boardClasses: ["pixall-board"], bodyClasses: ["mode-pixall"], flash: "#5dff8f", afterDefaultBoard: startPixallLoop, teardown: stopPixallLoop },
   "horny-potter": { tier: 2, wheelOrder: 50, pgSafe: false, glyph: "☇", boardClasses: ["hp-board"] },
   "witness-protection-filter": { tier: 2, wheelOrder: 60, pgSafe: true, glyph: "⊘", flash: "#c9d200" },
-  linkedin: { tier: 2, wheelOrder: 70, pgSafe: true, glyph: "in", boardClasses: ["linkedin-board"], afterDefaultBoard: renderLinkedinTicker, teardown: resetLinkedinTicker },
+  linkedin: { tier: 2, wheelOrder: 70, pgSafe: true, glyph: "in", boardClasses: ["linkedin-board"], bodyClasses: ["mode-linkedin"], afterDefaultBoard: renderLinkedinTicker, teardown: resetLinkedinTicker },
   "hidden-agendas": { tier: 3, wheelOrder: 10, pgSafe: false, glyph: "⚿", flash: "#3a5fd0" },
   monocultural: { tier: 3, wheelOrder: 20, pgSafe: false, glyph: "⧉", flash: "#c88968" },
   "gay-frogged": { tier: 3, wheelOrder: 30, pgSafe: false, glyph: "⚧", flash: "rainbow", decorateLocation: decorateGayFroggedLocation },

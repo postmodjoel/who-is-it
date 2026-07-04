@@ -1448,16 +1448,18 @@ function maskRiddleAnswer(answer) {
 }
 function askAdultGate(cb, required = 3) {
   const needed = Math.max(1, Math.min(required, ADULT_RIDDLES.length));
+  // Shuffle ALL riddles into a queue (not just `needed`): a hard one can be SKIPPED to a fresh one,
+  // so `idx` (which riddle is showing) is tracked separately from `solved` (how many you've got).
   const riddles = ADULT_RIDDLES
     .map((r, i) => ({ r, k: Math.random() + i / 1000 }))
     .sort((a, b) => a.k - b.k)
-    .slice(0, needed)
     .map((entry) => entry.r);
   let solved = 0;
+  let idx = 0;
   const ov = document.createElement("div");
   ov.className = "riddle-overlay";
   ov.innerHTML = `<div class="riddle-box">
-      <p class="riddle-eyebrow">🔞 Adults only — solve 3 to turn PG off</p>
+      <p class="riddle-eyebrow">🔞 Adults only — solve ${needed} to turn PG off</p>
       <p class="riddle-progress"></p>
       <p class="riddle-q"></p>
       <p class="riddle-hint" aria-label="answer hint"></p>
@@ -1465,6 +1467,7 @@ function askAdultGate(cb, required = 3) {
       <p class="riddle-msg"></p>
       <div class="riddle-actions">
         <button type="button" class="button ghost riddle-cancel">Never mind</button>
+        <button type="button" class="button ghost riddle-skip">Skip ↻</button>
         <button type="button" class="button primary riddle-go">Answer</button>
       </div>
     </div>`;
@@ -1478,7 +1481,7 @@ function askAdultGate(cb, required = 3) {
   setTimeout(() => input.focus(), 60);
   const done = (ok) => { ov.remove(); cb(ok); };
   const paint = () => {
-    const r = riddles[solved];
+    const r = riddles[idx];
     progress.textContent = `${solved} / ${needed} correct`;
     question.textContent = r.q;
     hint.textContent = maskRiddleAnswer(r.a[0]);   // these are hard - give a hangman-style skeleton
@@ -1486,22 +1489,24 @@ function askAdultGate(cb, required = 3) {
     input.value = "";
     input.focus();
   };
+  const nextRiddle = () => { idx = (idx + 1) % riddles.length; paint(); };
   const submit = () => {
-    const r = riddles[solved];
+    const r = riddles[idx];
     const val = normalizeAdultAnswer(input.value);
     const answers = r.a.map(normalizeAdultAnswer);
     if (answers.includes(val)) {
       solved += 1;
       if (solved >= needed) { done(true); return; }
-      paint();
+      nextRiddle();
       return;
     }
-    msg.textContent = "That's not it — PG mode stays on. Keep going or ask a grown-up.";
+    msg.textContent = "That's not it — PG mode stays on. Keep going, Skip it, or ask a grown-up.";
     input.classList.add("shake");
     setTimeout(() => input.classList.remove("shake"), 400);
     input.select();
   };
   ov.querySelector(".riddle-go").addEventListener("click", submit);
+  ov.querySelector(".riddle-skip").addEventListener("click", nextRiddle);   // too hard? grab a different one
   ov.querySelector(".riddle-cancel").addEventListener("click", () => done(false));
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") done(false); });
   paint();

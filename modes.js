@@ -219,7 +219,7 @@ const MYSTERY_MODE_META = {
   "horny-potter": { tier: 2, wheelOrder: 50, pgSafe: false, glyph: "☇", boardClasses: ["hp-board"] },
   "witness-protection-filter": { tier: 2, wheelOrder: 60, pgSafe: true, glyph: "⊘", flash: "#c9d200" },
   linkedin: { tier: 2, wheelOrder: 70, pgSafe: true, glyph: "in", boardClasses: ["linkedin-board"], bodyClasses: ["mode-linkedin"], afterDefaultBoard: renderLinkedinTicker, teardown: resetLinkedinTicker },
-  "neighbourhood-watch": { tier: 2, wheelOrder: 75, pgSafe: true, glyph: "⚑", boardClasses: ["nw-board"], flash: "#4267b2", afterDefaultBoard: renderNwTicker, teardown: resetNwTicker },
+  "neighbourhood-watch": { tier: 2, wheelOrder: 75, pgSafe: true, glyph: "⚑", boardClasses: ["nw-board"], bodyClasses: ["mode-neighbourhood-watch"], flash: "#4267b2", afterDefaultBoard: renderNwTicker, teardown: resetNwTicker },
   "hidden-agendas": { tier: 3, wheelOrder: 10, pgSafe: false, glyph: "⚿", flash: "#3a5fd0" },
   monocultural: { tier: 3, wheelOrder: 20, pgSafe: false, glyph: "⧉", flash: "#c88968" },
   "gay-frogged": { tier: 3, wheelOrder: 30, pgSafe: false, glyph: "⚧", flash: "rainbow", decorateLocation: decorateGayFroggedLocation },
@@ -671,10 +671,13 @@ function habboCamera(id) {
   if (!room) return;
   if (!id || !habboPos.has(id)) { room.style.transform = ""; return; }
   const p = habboIso(habboPos.get(id).col, habboPos.get(id).row);
-  const rect = els.characterBoard.getBoundingClientRect();
-  const scale = 2.0;
-  const cx = p.x, cy = p.y - 44;                 // aim at the head, not the feet
-  room.style.transform = `translate(${(rect.width / 2 - cx * scale).toFixed(0)}px, ${(rect.height / 2 - cy * scale).toFixed(0)}px) scale(${scale})`;
+  // clientWidth/Height = the visible viewport (excludes scrollbars); getBoundingClientRect can read
+  // odd during transitions. The room's transform-origin is 0 0, so we just map (cx,cy) → viewport centre.
+  const vw = els.characterBoard.clientWidth || els.characterBoard.getBoundingClientRect().width;
+  const vh = els.characterBoard.clientHeight || els.characterBoard.getBoundingClientRect().height;
+  const scale = 2.6;                             // a proper Habbo close-up, not a distant wide shot
+  const cx = p.x, cy = p.y - 62;                 // aim at the FACE (upper body), not the mid-torso
+  room.style.transform = `translate(${(vw / 2 - cx * scale).toFixed(0)}px, ${(vh / 2 - cy * scale).toFixed(0)}px) scale(${scale})`;
 }
 function selectHabbo(id) {
   // Click the already-selected avatar again to zoom back out.
@@ -839,13 +842,18 @@ function habboWalk(id, col, row) {
   const token = (el._walk = (el._walk || 0) + 1);      // cancels any walk already in progress
   const STEP = 360;                                    // one Habbo beat per tile
   el.classList.add("walking");
+  updateHabboFigSprite(el);                            // swap to the walk frame set
   let i = 0, prevX = habboIso(cur.col, cur.row).x;
   const stepTo = () => {
     if (el._walk !== token) return;
-    if (i >= path.length) { el.classList.remove("walking"); return; }   // arrived: stop the gait
+    if (i >= path.length) { el.classList.remove("walking"); updateHabboFigSprite(el); return; }   // arrived: stop the gait
     const s = path[i]; const p = habboIso(s.col, s.row);
     // Habbos face the way they're walking - flip at every turn of the L-path.
-    if (p.x !== prevX) { el.classList.toggle("hb-face-l", p.x < prevX); el.classList.toggle("hb-face-r", p.x > prevX); }
+    if (p.x !== prevX) {
+      el.classList.toggle("hb-face-l", p.x < prevX);
+      el.classList.toggle("hb-face-r", p.x > prevX);
+      updateHabboFigSprite(el);                        // real directional sprite, not a CSS mirror
+    }
     prevX = p.x;
     el.style.transitionDuration = `${STEP}ms`;
     el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
@@ -954,8 +962,76 @@ function habboizeBanner(on) {
 // re-render) hangs the same room. Floor props claim their tile in habboBlocked - figures can't
 // stand there and walks route around them. If habbo-assets.js isn't present the room simply stays
 // its classic CSS-art self.
+// Curated-catalogue room dressing: props come ONLY from assets/habbo/habbo-room-catalogue.json via
+// window.HabboRooms.pick (deterministic per salt + location, locationAliases decide the category,
+// hotel->park fallback). background pieces hang on the walls; large/medium/small sit on tiles,
+// claim habboBlocked, and may never split the walkable floor.
+function renderHabboCatalogueFurni(room, wallL, wallR) {
+  const locName = (state.location && state.location.name) || "";
+  const seedBase = `${state.gameSalt}:habbofurni:${locName.toLowerCase()}`;
+  const picked = window.HabboRooms.pick(locName, seedBase, stableHash);
+  if (!picked || !picked.items.length) return;
+  const keepsFloorConnected = (cand) => {
+    const blocked = new Set(habboBlocked); blocked.add(cand);
+    let start = null, free = 0;
+    for (let r = 0; r < HABBO_GH; r++) for (let c = 0; c < HABBO_GW; c++) {
+      if (!blocked.has(`${c},${r}`)) { free++; if (!start) start = [c, r]; }
+    }
+    if (!start) return false;
+    const seen = new Set([`${start[0]},${start[1]}`]);
+    const queue = [start];
+    while (queue.length) {
+      const [c, r] = queue.pop();
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nc = c + dc, nr = r + dr, k = `${nc},${nr}`;
+        if (nc < 0 || nc >= HABBO_GW || nr < 0 || nr >= HABBO_GH || seen.has(k) || blocked.has(k)) continue;
+        seen.add(k); queue.push([nc, nr]);
+      }
+    }
+    return seen.size === free;
+  };
+  const layer = document.createElement("div");
+  layer.className = "habbo-furni-layer";
+  let wallFlip = stableHash(`${seedBase}:wf`) % 2;
+  picked.items.forEach((item, i) => {
+    if (item.size === "background") {
+      const host = (wallFlip++ % 2) ? wallR : wallL;
+      const img = document.createElement("img");
+      img.className = "hb-furni hb-furni-wall";
+      img.src = item.path; img.alt = ""; img.draggable = false;
+      img.style.left = `${8 + (stableHash(`${seedBase}:wx${i}`) % 62)}%`;
+      img.style.top = `${14 + (stableHash(`${seedBase}:wy${i}`) % 30)}px`;
+      host.appendChild(img);
+      return;
+    }
+    let c = stableHash(`${seedBase}:fc${i}`) % HABBO_GW;
+    let r = stableHash(`${seedBase}:fr${i}`) % HABBO_GH;
+    let tries = 0;
+    while ((habboBlocked.has(`${c},${r}`) || !keepsFloorConnected(`${c},${r}`)) && tries < HABBO_GW * HABBO_GH) {
+      c = (c + 1) % HABBO_GW;
+      if (c === 0) r = (r + 1) % HABBO_GH;
+      tries++;
+    }
+    if (habboBlocked.has(`${c},${r}`) || !keepsFloorConnected(`${c},${r}`)) return;
+    habboBlocked.add(`${c},${r}`);
+    const p = habboIso(c, r);
+    const img = document.createElement("img");
+    img.className = `hb-furni hb-furni-floor hb-furni-${item.size}`;
+    img.src = item.path; img.alt = ""; img.draggable = false;
+    img.title = item.label;
+    img.style.left = `${p.x.toFixed(0)}px`;
+    img.style.top = `${p.y.toFixed(0)}px`;
+    img.style.zIndex = String(100 + c + r);   // same sort space as the figures
+    layer.appendChild(img);
+  });
+  room.appendChild(layer);
+}
+
 function renderHabboFurni(room, wallL, wallR) {
   habboBlocked = new Set();
+  // Curated catalogue first; the legacy tag-based pool only remains as a fallback when the
+  // catalogue script isn't loaded.
+  if (window.HabboRooms && window.HabboRoomCatalogue) { renderHabboCatalogueFurni(room, wallL, wallR); return; }
   const props = window.HabboFurniProps;
   if (!Array.isArray(props) || !props.length) return;
   const locName = ((state.location && state.location.name) || "").toLowerCase();
@@ -1152,9 +1228,11 @@ function renderHabboBoard(player) {
     // The figure: one local Habbo-style pixel sprite (habbo-avatar.js) built from the character's
     // traits. Facing is handled by CSS scaleX on .hb-avatar - never re-rendered mid-walk. Falls back
     // to the classic pixelated-head + CSS-body anatomy if the sprite generator isn't loaded.
-    if (a.avatar) {
+    if (a.sprites) {
+      // Real directional sprite matching the initial facing (no CSS mirroring - hb-real).
+      el.classList.add("hb-real");
       el.innerHTML = `<span class="hb-name">${escapeHtml(displayName(ch))}</span>`
-        + `<img class="hb-avatar" src="${a.avatar}" alt="" draggable="false">`
+        + `<img class="hb-avatar" src="${habboSpriteSrc(a.sprites, facing === 1, false)}" alt="" draggable="false">`
         + `<span class="hb-shadow"></span>`;
     } else {
       const pants = mixHex(a.shirt || "#4a90e2", "#14161c", 0.45);
@@ -3372,6 +3450,49 @@ function avadaKedavra(ch) {
 // HABBO HOTEL: an isometric room. Every character becomes a blocky Habbo-style avatar (a pixelated
 // head on a shirt-coloured body) standing on an iso floor. Click an avatar to select it, then click a
 // tile to walk them there.
+// Which APPROVED avatar a character wears in the hotel. Babies/new creations never get their own
+// Habbo avatar (no runtime fetching, no approval card): they INHERIT a parent's approved sprite -
+// the first parent with a manifest entry wins.
+function getHabboAvatarId(character) {
+  if (!character) return null;
+  const sprites = window.HabboAvatarSprites || {};
+  const isCreation = character.isBaby || character.isGayby || character.isNewCreation
+    || character.parentId || character.sourceParentId || character.generatedFrom || character.createdFrom
+    || (Array.isArray(character.parents) && character.parents.length);
+  if (isCreation) {
+    const candidates = []
+      .concat(Array.isArray(character.parents) ? character.parents : [])
+      .concat([character.parentId, character.sourceParentId, character.generatedFrom, character.createdFrom])
+      .filter(Boolean)
+      .map((p) => (typeof p === "object" ? p.id : p));
+    for (const pid of candidates) if (sprites[pid]) return pid;
+    return null;   // no resolvable parent avatar -> classic figure fallback
+  }
+  return character.id;
+}
+// The sprite src for a figure: requested direction if it exists, else d3, else the default body.
+// Facing left = SW (dir 5), facing right = SE (dir 3); walking swaps to the walk frame set.
+// Cache-busted with the manifest version so re-approved PNGs actually show up.
+function habboSpriteSrc(entry, facingRight, walking) {
+  if (!entry) return null;
+  const dir = facingRight ? "3" : "5";
+  const set = walking && entry.walk ? entry.walk : (entry.directions || {});
+  const src = set[dir] || (entry.directions || {})["3"] || entry.body;
+  return src ? `${src}?v=${window.HabboAvatarVersion || 1}` : null;
+}
+// Re-point a figure's <img> at the sprite matching its current facing/walking state.
+function updateHabboFigSprite(el) {
+  const img = el && el.querySelector && el.querySelector(".hb-avatar");
+  if (!img) return;
+  const a = state.global.mystery?.assignments?.[el.dataset.id];
+  if (!a || !a.sprites) return;
+  const src = habboSpriteSrc(a.sprites, el.classList.contains("hb-face-r"), el.classList.contains("walking"));
+  if (src && img.getAttribute("src") !== src) img.setAttribute("src", src);
+}
+
+// HABBO HOTEL: an isometric room. Every character renders as their APPROVED local Habbo sprite
+// (assets/habbo/avatars + avatar manifest; zero runtime Habbo API calls). Click an avatar to
+// select it, then click a tile to walk them there.
 function applyHabbo(effect) {
   const tb = window.faceGenerator?.traitBook;
   const assignments = {};
@@ -3380,11 +3501,14 @@ function applyHabbo(effect) {
       ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, headOnly: true })
       : ch.image;
     const shirt = ch.traits?.shirt || (tb?.skinToneHex?.[ch.traits?.skin]) || "#4a90e2";
-    // The room figure: a REAL Habbo sprite, generated once offline via habbo-imaging from this
-    // character's traits (tools/fetch-habbo-avatars.py) and served locally. Characters without a
-    // pre-fetched sprite (babies, customs) fall back to the classic head+CSS-body figure.
-    const sprite = window.HabboAvatarSprites && window.HabboAvatarSprites[ch.id];
-    assignments[ch.id] = { head, shirt, avatar: sprite ? sprite.body : null, avatarHead: sprite ? sprite.head : null };
+    // Babies/creations inherit a parent's approved sprite (getHabboAvatarId); anyone without a
+    // resolvable manifest entry falls back to the classic head+CSS-body figure.
+    const sprites = (window.HabboAvatarSprites || {})[getHabboAvatarId(ch)] || null;
+    assignments[ch.id] = {
+      head, shirt, sprites,
+      avatar: sprites ? habboSpriteSrc(sprites, false, false) : null,
+      avatarHead: sprites ? sprites.head : null
+    };
   });
   return { id: effect.id, name: effect.name, assignments };
 }

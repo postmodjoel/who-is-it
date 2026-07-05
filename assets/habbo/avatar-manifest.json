@@ -1,0 +1,1002 @@
+{
+ "gen-aaron": {
+  "body": "assets/habbo/avatars/gen-aaron.png",
+  "head": "assets/habbo/avatars/gen-aaron_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-aaron_d0.png",
+   "1": "assets/habbo/avatars/gen-aaron_d1.png",
+   "2": "assets/habbo/avatars/gen-aaron_d2.png",
+   "3": "assets/habbo/avatars/gen-aaron_d3.png",
+   "4": "assets/habbo/avatars/gen-aaron_d4.png",
+   "5": "assets/habbo/avatars/gen-aaron_d5.png",
+   "6": "assets/habbo/avatars/gen-aaron_d6.png",
+   "7": "assets/habbo/avatars/gen-aaron_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-aaron_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-aaron_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-aaron_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-aaron_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-aaron_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-aaron_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-aaron_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-aaron_walk_d7.png"
+  },
+  "figure": "hd-180-14.hr-3090-45.ch-255-68.lg-280-64.sh-290-85"
+ },
+ "gen-maya": {
+  "body": "assets/habbo/avatars/gen-maya.png",
+  "head": "assets/habbo/avatars/gen-maya_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-maya_d0.png",
+   "1": "assets/habbo/avatars/gen-maya_d1.png",
+   "2": "assets/habbo/avatars/gen-maya_d2.png",
+   "3": "assets/habbo/avatars/gen-maya_d3.png",
+   "4": "assets/habbo/avatars/gen-maya_d4.png",
+   "5": "assets/habbo/avatars/gen-maya_d5.png",
+   "6": "assets/habbo/avatars/gen-maya_d6.png",
+   "7": "assets/habbo/avatars/gen-maya_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-maya_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-maya_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-maya_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-maya_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-maya_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-maya_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-maya_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-maya_walk_d7.png"
+  },
+  "figure": "hd-600-1371.hr-679-45.ch-680-75.lg-3023-64.sh-905-85.fa-1205-45"
+ },
+ "gen-leon": {
+  "body": "assets/habbo/avatars/gen-leon.png",
+  "head": "assets/habbo/avatars/gen-leon_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-leon_d0.png",
+   "1": "assets/habbo/avatars/gen-leon_d1.png",
+   "2": "assets/habbo/avatars/gen-leon_d2.png",
+   "3": "assets/habbo/avatars/gen-leon_d3.png",
+   "4": "assets/habbo/avatars/gen-leon_d4.png",
+   "5": "assets/habbo/avatars/gen-leon_d5.png",
+   "6": "assets/habbo/avatars/gen-leon_d6.png",
+   "7": "assets/habbo/avatars/gen-leon_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-leon_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-leon_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-leon_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-leon_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-leon_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-leon_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-leon_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-leon_walk_d7.png"
+  },
+  "figure": "hd-180-1371.hr-3090-45.ch-3030-85.lg-280-85.sh-290-85"
+ },
+ "gen-naomi": {
+  "body": "assets/habbo/avatars/gen-naomi.png",
+  "head": "assets/habbo/avatars/gen-naomi_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-naomi_d0.png",
+   "1": "assets/habbo/avatars/gen-naomi_d1.png",
+   "2": "assets/habbo/avatars/gen-naomi_d2.png",
+   "3": "assets/habbo/avatars/gen-naomi_d3.png",
+   "4": "assets/habbo/avatars/gen-naomi_d4.png",
+   "5": "assets/habbo/avatars/gen-naomi_d5.png",
+   "6": "assets/habbo/avatars/gen-naomi_d6.png",
+   "7": "assets/habbo/avatars/gen-naomi_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-naomi_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-naomi_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-naomi_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-naomi_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-naomi_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-naomi_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-naomi_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-naomi_walk_d7.png"
+  },
+  "figure": "hd-600-14.hr-515-40.ch-680-76.lg-3023-64.sh-905-85"
+ },
+ "gen-javier": {
+  "body": "assets/habbo/avatars/gen-javier.png",
+  "head": "assets/habbo/avatars/gen-javier_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-javier_d0.png",
+   "1": "assets/habbo/avatars/gen-javier_d1.png",
+   "2": "assets/habbo/avatars/gen-javier_d2.png",
+   "3": "assets/habbo/avatars/gen-javier_d3.png",
+   "4": "assets/habbo/avatars/gen-javier_d4.png",
+   "5": "assets/habbo/avatars/gen-javier_d5.png",
+   "6": "assets/habbo/avatars/gen-javier_d6.png",
+   "7": "assets/habbo/avatars/gen-javier_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-javier_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-javier_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-javier_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-javier_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-javier_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-javier_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-javier_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-javier_walk_d7.png"
+  },
+  "figure": "hd-180-1370.hr-3339-45.ch-3321-68.lg-280-91.sh-290-85.fa-1211-45"
+ },
+ "gen-tiana": {
+  "body": "assets/habbo/avatars/gen-tiana.png",
+  "head": "assets/habbo/avatars/gen-tiana_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-tiana_d0.png",
+   "1": "assets/habbo/avatars/gen-tiana_d1.png",
+   "2": "assets/habbo/avatars/gen-tiana_d2.png",
+   "3": "assets/habbo/avatars/gen-tiana_d3.png",
+   "4": "assets/habbo/avatars/gen-tiana_d4.png",
+   "5": "assets/habbo/avatars/gen-tiana_d5.png",
+   "6": "assets/habbo/avatars/gen-tiana_d6.png",
+   "7": "assets/habbo/avatars/gen-tiana_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-tiana_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-tiana_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-tiana_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-tiana_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-tiana_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-tiana_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-tiana_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-tiana_walk_d7.png"
+  },
+  "figure": "hd-600-14.ch-665-64.lg-3023-85.sh-905-85"
+ },
+ "gen-diego": {
+  "body": "assets/habbo/avatars/gen-diego.png",
+  "head": "assets/habbo/avatars/gen-diego_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-diego_d0.png",
+   "1": "assets/habbo/avatars/gen-diego_d1.png",
+   "2": "assets/habbo/avatars/gen-diego_d2.png",
+   "3": "assets/habbo/avatars/gen-diego_d3.png",
+   "4": "assets/habbo/avatars/gen-diego_d4.png",
+   "5": "assets/habbo/avatars/gen-diego_d5.png",
+   "6": "assets/habbo/avatars/gen-diego_d6.png",
+   "7": "assets/habbo/avatars/gen-diego_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-diego_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-diego_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-diego_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-diego_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-diego_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-diego_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-diego_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-diego_walk_d7.png"
+  },
+  "figure": "hd-180-1370.hr-889-45.ch-210-66.lg-280-88.sh-290-85.fa-1211-45"
+ },
+ "gen-sophia": {
+  "body": "assets/habbo/avatars/gen-sophia.png",
+  "head": "assets/habbo/avatars/gen-sophia_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-sophia_d0.png",
+   "1": "assets/habbo/avatars/gen-sophia_d1.png",
+   "2": "assets/habbo/avatars/gen-sophia_d2.png",
+   "3": "assets/habbo/avatars/gen-sophia_d3.png",
+   "4": "assets/habbo/avatars/gen-sophia_d4.png",
+   "5": "assets/habbo/avatars/gen-sophia_d5.png",
+   "6": "assets/habbo/avatars/gen-sophia_d6.png",
+   "7": "assets/habbo/avatars/gen-sophia_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-sophia_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-sophia_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-sophia_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-sophia_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-sophia_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-sophia_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-sophia_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-sophia_walk_d7.png"
+  },
+  "figure": "hd-180-1370.hr-100-43.ch-665-85.lg-280-85.sh-290-85"
+ },
+ "gen-zeke": {
+  "body": "assets/habbo/avatars/gen-zeke.png",
+  "head": "assets/habbo/avatars/gen-zeke_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-zeke_d0.png",
+   "1": "assets/habbo/avatars/gen-zeke_d1.png",
+   "2": "assets/habbo/avatars/gen-zeke_d2.png",
+   "3": "assets/habbo/avatars/gen-zeke_d3.png",
+   "4": "assets/habbo/avatars/gen-zeke_d4.png",
+   "5": "assets/habbo/avatars/gen-zeke_d5.png",
+   "6": "assets/habbo/avatars/gen-zeke_d6.png",
+   "7": "assets/habbo/avatars/gen-zeke_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-zeke_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-zeke_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-zeke_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-zeke_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-zeke_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-zeke_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-zeke_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-zeke_walk_d7.png"
+  },
+  "figure": "hd-180-1371.hr-3339-45.ch-255-1320.lg-280-76.sh-290-85.fa-1210-85"
+ },
+ "gen-meilin": {
+  "body": "assets/habbo/avatars/gen-meilin.png",
+  "head": "assets/habbo/avatars/gen-meilin_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-meilin_d0.png",
+   "1": "assets/habbo/avatars/gen-meilin_d1.png",
+   "2": "assets/habbo/avatars/gen-meilin_d2.png",
+   "3": "assets/habbo/avatars/gen-meilin_d3.png",
+   "4": "assets/habbo/avatars/gen-meilin_d4.png",
+   "5": "assets/habbo/avatars/gen-meilin_d5.png",
+   "6": "assets/habbo/avatars/gen-meilin_d6.png",
+   "7": "assets/habbo/avatars/gen-meilin_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-meilin_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-meilin_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-meilin_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-meilin_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-meilin_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-meilin_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-meilin_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-meilin_walk_d7.png"
+  },
+  "figure": "hd-600-1370.hr-679-39.ch-665-75.lg-3023-64.sh-905-85.ea-6331-85"
+ },
+ "gen-gianni": {
+  "body": "assets/habbo/avatars/gen-gianni.png",
+  "head": "assets/habbo/avatars/gen-gianni_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-gianni_d0.png",
+   "1": "assets/habbo/avatars/gen-gianni_d1.png",
+   "2": "assets/habbo/avatars/gen-gianni_d2.png",
+   "3": "assets/habbo/avatars/gen-gianni_d3.png",
+   "4": "assets/habbo/avatars/gen-gianni_d4.png",
+   "5": "assets/habbo/avatars/gen-gianni_d5.png",
+   "6": "assets/habbo/avatars/gen-gianni_d6.png",
+   "7": "assets/habbo/avatars/gen-gianni_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-gianni_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-gianni_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-gianni_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-gianni_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-gianni_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-gianni_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-gianni_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-gianni_walk_d7.png"
+  },
+  "figure": "hd-180-1370.hr-100-40.ch-235-91.lg-280-91.sh-290-85.fa-1211-40"
+ },
+ "gen-aisha": {
+  "body": "assets/habbo/avatars/gen-aisha.png",
+  "head": "assets/habbo/avatars/gen-aisha_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-aisha_d0.png",
+   "1": "assets/habbo/avatars/gen-aisha_d1.png",
+   "2": "assets/habbo/avatars/gen-aisha_d2.png",
+   "3": "assets/habbo/avatars/gen-aisha_d3.png",
+   "4": "assets/habbo/avatars/gen-aisha_d4.png",
+   "5": "assets/habbo/avatars/gen-aisha_d5.png",
+   "6": "assets/habbo/avatars/gen-aisha_d6.png",
+   "7": "assets/habbo/avatars/gen-aisha_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-aisha_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-aisha_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-aisha_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-aisha_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-aisha_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-aisha_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-aisha_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-aisha_walk_d7.png"
+  },
+  "figure": "hd-600-1371.hr-679-45.ch-3321-85.lg-3023-85.sh-905-85.fa-1201-85"
+ },
+ "gen-lucas": {
+  "body": "assets/habbo/avatars/gen-lucas.png",
+  "head": "assets/habbo/avatars/gen-lucas_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-lucas_d0.png",
+   "1": "assets/habbo/avatars/gen-lucas_d1.png",
+   "2": "assets/habbo/avatars/gen-lucas_d2.png",
+   "3": "assets/habbo/avatars/gen-lucas_d3.png",
+   "4": "assets/habbo/avatars/gen-lucas_d4.png",
+   "5": "assets/habbo/avatars/gen-lucas_d5.png",
+   "6": "assets/habbo/avatars/gen-lucas_d6.png",
+   "7": "assets/habbo/avatars/gen-lucas_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-lucas_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-lucas_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-lucas_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-lucas_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-lucas_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-lucas_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-lucas_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-lucas_walk_d7.png"
+  },
+  "figure": "hd-180-14.hr-889-45.ch-210-85.lg-280-85.sh-290-85.ea-3318-85"
+ },
+ "gen-stella": {
+  "body": "assets/habbo/avatars/gen-stella.png",
+  "head": "assets/habbo/avatars/gen-stella_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-stella_d0.png",
+   "1": "assets/habbo/avatars/gen-stella_d1.png",
+   "2": "assets/habbo/avatars/gen-stella_d2.png",
+   "3": "assets/habbo/avatars/gen-stella_d3.png",
+   "4": "assets/habbo/avatars/gen-stella_d4.png",
+   "5": "assets/habbo/avatars/gen-stella_d5.png",
+   "6": "assets/habbo/avatars/gen-stella_d6.png",
+   "7": "assets/habbo/avatars/gen-stella_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-stella_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-stella_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-stella_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-stella_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-stella_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-stella_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-stella_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-stella_walk_d7.png"
+  },
+  "figure": "hd-600-1370.hr-890-32.ch-680-85.lg-3023-85.sh-905-85.ea-1404-85"
+ },
+ "gen-jamal": {
+  "body": "assets/habbo/avatars/gen-jamal.png",
+  "head": "assets/habbo/avatars/gen-jamal_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-jamal_d0.png",
+   "1": "assets/habbo/avatars/gen-jamal_d1.png",
+   "2": "assets/habbo/avatars/gen-jamal_d2.png",
+   "3": "assets/habbo/avatars/gen-jamal_d3.png",
+   "4": "assets/habbo/avatars/gen-jamal_d4.png",
+   "5": "assets/habbo/avatars/gen-jamal_d5.png",
+   "6": "assets/habbo/avatars/gen-jamal_d6.png",
+   "7": "assets/habbo/avatars/gen-jamal_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-jamal_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-jamal_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-jamal_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-jamal_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-jamal_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-jamal_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-jamal_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-jamal_walk_d7.png"
+  },
+  "figure": "hd-180-1371.hr-100-45.ch-3030-68.lg-280-90.sh-290-85.ha-1004-85"
+ },
+ "gen-olivia": {
+  "body": "assets/habbo/avatars/gen-olivia.png",
+  "head": "assets/habbo/avatars/gen-olivia_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-olivia_d0.png",
+   "1": "assets/habbo/avatars/gen-olivia_d1.png",
+   "2": "assets/habbo/avatars/gen-olivia_d2.png",
+   "3": "assets/habbo/avatars/gen-olivia_d3.png",
+   "4": "assets/habbo/avatars/gen-olivia_d4.png",
+   "5": "assets/habbo/avatars/gen-olivia_d5.png",
+   "6": "assets/habbo/avatars/gen-olivia_d6.png",
+   "7": "assets/habbo/avatars/gen-olivia_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-olivia_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-olivia_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-olivia_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-olivia_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-olivia_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-olivia_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-olivia_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-olivia_walk_d7.png"
+  },
+  "figure": "hd-600-14.hr-3090-40.ch-680-68.lg-3023-64.sh-905-85.fa-1201-85"
+ },
+ "gen-arjun": {
+  "body": "assets/habbo/avatars/gen-arjun.png",
+  "head": "assets/habbo/avatars/gen-arjun_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-arjun_d0.png",
+   "1": "assets/habbo/avatars/gen-arjun_d1.png",
+   "2": "assets/habbo/avatars/gen-arjun_d2.png",
+   "3": "assets/habbo/avatars/gen-arjun_d3.png",
+   "4": "assets/habbo/avatars/gen-arjun_d4.png",
+   "5": "assets/habbo/avatars/gen-arjun_d5.png",
+   "6": "assets/habbo/avatars/gen-arjun_d6.png",
+   "7": "assets/habbo/avatars/gen-arjun_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-arjun_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-arjun_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-arjun_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-arjun_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-arjun_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-arjun_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-arjun_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-arjun_walk_d7.png"
+  },
+  "figure": "hd-180-1371.hr-100-45.ch-665-82.lg-280-64.sh-290-85.ea-6332-85"
+ },
+ "gen-matilda": {
+  "body": "assets/habbo/avatars/gen-matilda.png",
+  "head": "assets/habbo/avatars/gen-matilda_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-matilda_d0.png",
+   "1": "assets/habbo/avatars/gen-matilda_d1.png",
+   "2": "assets/habbo/avatars/gen-matilda_d2.png",
+   "3": "assets/habbo/avatars/gen-matilda_d3.png",
+   "4": "assets/habbo/avatars/gen-matilda_d4.png",
+   "5": "assets/habbo/avatars/gen-matilda_d5.png",
+   "6": "assets/habbo/avatars/gen-matilda_d6.png",
+   "7": "assets/habbo/avatars/gen-matilda_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-matilda_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-matilda_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-matilda_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-matilda_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-matilda_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-matilda_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-matilda_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-matilda_walk_d7.png"
+  },
+  "figure": "hd-600-14.hr-889-43.ch-3112-66.lg-3023-88.sh-905-85.ha-1009-66"
+ },
+ "gen-niko": {
+  "body": "assets/habbo/avatars/gen-niko.png",
+  "head": "assets/habbo/avatars/gen-niko_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-niko_d0.png",
+   "1": "assets/habbo/avatars/gen-niko_d1.png",
+   "2": "assets/habbo/avatars/gen-niko_d2.png",
+   "3": "assets/habbo/avatars/gen-niko_d3.png",
+   "4": "assets/habbo/avatars/gen-niko_d4.png",
+   "5": "assets/habbo/avatars/gen-niko_d5.png",
+   "6": "assets/habbo/avatars/gen-niko_d6.png",
+   "7": "assets/habbo/avatars/gen-niko_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-niko_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-niko_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-niko_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-niko_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-niko_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-niko_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-niko_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-niko_walk_d7.png"
+  },
+  "figure": "hd-600-14.hr-679-45.ch-665-85.lg-3023-85.sh-905-85"
+ },
+ "gen-celeste": {
+  "body": "assets/habbo/avatars/gen-celeste.png",
+  "head": "assets/habbo/avatars/gen-celeste_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-celeste_d0.png",
+   "1": "assets/habbo/avatars/gen-celeste_d1.png",
+   "2": "assets/habbo/avatars/gen-celeste_d2.png",
+   "3": "assets/habbo/avatars/gen-celeste_d3.png",
+   "4": "assets/habbo/avatars/gen-celeste_d4.png",
+   "5": "assets/habbo/avatars/gen-celeste_d5.png",
+   "6": "assets/habbo/avatars/gen-celeste_d6.png",
+   "7": "assets/habbo/avatars/gen-celeste_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-celeste_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-celeste_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-celeste_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-celeste_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-celeste_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-celeste_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-celeste_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-celeste_walk_d7.png"
+  },
+  "figure": "hd-600-14.hr-3377-43.ch-3321-82.lg-3023-85.sh-905-85.ha-1013-82"
+ },
+ "gen-ryan": {
+  "body": "assets/habbo/avatars/gen-ryan.png",
+  "head": "assets/habbo/avatars/gen-ryan_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-ryan_d0.png",
+   "1": "assets/habbo/avatars/gen-ryan_d1.png",
+   "2": "assets/habbo/avatars/gen-ryan_d2.png",
+   "3": "assets/habbo/avatars/gen-ryan_d3.png",
+   "4": "assets/habbo/avatars/gen-ryan_d4.png",
+   "5": "assets/habbo/avatars/gen-ryan_d5.png",
+   "6": "assets/habbo/avatars/gen-ryan_d6.png",
+   "7": "assets/habbo/avatars/gen-ryan_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-ryan_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-ryan_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-ryan_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-ryan_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-ryan_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-ryan_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-ryan_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-ryan_walk_d7.png"
+  },
+  "figure": "hd-180-14.hr-100-45.ch-255-85.lg-280-85.sh-290-85.fa-1211-45"
+ },
+ "gen-amira": {
+  "body": "assets/habbo/avatars/gen-amira.png",
+  "head": "assets/habbo/avatars/gen-amira_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-amira_d0.png",
+   "1": "assets/habbo/avatars/gen-amira_d1.png",
+   "2": "assets/habbo/avatars/gen-amira_d2.png",
+   "3": "assets/habbo/avatars/gen-amira_d3.png",
+   "4": "assets/habbo/avatars/gen-amira_d4.png",
+   "5": "assets/habbo/avatars/gen-amira_d5.png",
+   "6": "assets/habbo/avatars/gen-amira_d6.png",
+   "7": "assets/habbo/avatars/gen-amira_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-amira_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-amira_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-amira_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-amira_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-amira_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-amira_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-amira_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-amira_walk_d7.png"
+  },
+  "figure": "hd-600-19.hr-890-32.ch-665-76.lg-3023-64.sh-905-85.fa-1201-85"
+ },
+ "gen-eli": {
+  "body": "assets/habbo/avatars/gen-eli.png",
+  "head": "assets/habbo/avatars/gen-eli_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-eli_d0.png",
+   "1": "assets/habbo/avatars/gen-eli_d1.png",
+   "2": "assets/habbo/avatars/gen-eli_d2.png",
+   "3": "assets/habbo/avatars/gen-eli_d3.png",
+   "4": "assets/habbo/avatars/gen-eli_d4.png",
+   "5": "assets/habbo/avatars/gen-eli_d5.png",
+   "6": "assets/habbo/avatars/gen-eli_d6.png",
+   "7": "assets/habbo/avatars/gen-eli_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-eli_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-eli_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-eli_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-eli_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-eli_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-eli_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-eli_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-eli_walk_d7.png"
+  },
+  "figure": "hd-180-14.hr-155-43.ch-210-90.lg-280-91.sh-290-85"
+ },
+ "gen-sanaa": {
+  "body": "assets/habbo/avatars/gen-sanaa.png",
+  "head": "assets/habbo/avatars/gen-sanaa_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-sanaa_d0.png",
+   "1": "assets/habbo/avatars/gen-sanaa_d1.png",
+   "2": "assets/habbo/avatars/gen-sanaa_d2.png",
+   "3": "assets/habbo/avatars/gen-sanaa_d3.png",
+   "4": "assets/habbo/avatars/gen-sanaa_d4.png",
+   "5": "assets/habbo/avatars/gen-sanaa_d5.png",
+   "6": "assets/habbo/avatars/gen-sanaa_d6.png",
+   "7": "assets/habbo/avatars/gen-sanaa_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-sanaa_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-sanaa_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-sanaa_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-sanaa_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-sanaa_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-sanaa_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-sanaa_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-sanaa_walk_d7.png"
+  },
+  "figure": "hd-600-30.hr-3090-45.ch-665-72.lg-3023-91.sh-905-85"
+ },
+ "gen-milo": {
+  "body": "assets/habbo/avatars/gen-milo.png",
+  "head": "assets/habbo/avatars/gen-milo_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-milo_d0.png",
+   "1": "assets/habbo/avatars/gen-milo_d1.png",
+   "2": "assets/habbo/avatars/gen-milo_d2.png",
+   "3": "assets/habbo/avatars/gen-milo_d3.png",
+   "4": "assets/habbo/avatars/gen-milo_d4.png",
+   "5": "assets/habbo/avatars/gen-milo_d5.png",
+   "6": "assets/habbo/avatars/gen-milo_d6.png",
+   "7": "assets/habbo/avatars/gen-milo_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-milo_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-milo_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-milo_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-milo_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-milo_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-milo_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-milo_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-milo_walk_d7.png"
+  },
+  "figure": "hd-180-14.hr-3339-40.ch-3030-1320.lg-280-90.sh-290-85"
+ },
+ "gen-lara": {
+  "body": "assets/habbo/avatars/gen-lara.png",
+  "head": "assets/habbo/avatars/gen-lara_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-lara_d0.png",
+   "1": "assets/habbo/avatars/gen-lara_d1.png",
+   "2": "assets/habbo/avatars/gen-lara_d2.png",
+   "3": "assets/habbo/avatars/gen-lara_d3.png",
+   "4": "assets/habbo/avatars/gen-lara_d4.png",
+   "5": "assets/habbo/avatars/gen-lara_d5.png",
+   "6": "assets/habbo/avatars/gen-lara_d6.png",
+   "7": "assets/habbo/avatars/gen-lara_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-lara_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-lara_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-lara_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-lara_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-lara_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-lara_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-lara_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-lara_walk_d7.png"
+  },
+  "figure": "hd-600-1370.hr-545-45.ch-3321-85.lg-3023-85.sh-905-85"
+ },
+ "gen-bruno": {
+  "body": "assets/habbo/avatars/gen-bruno.png",
+  "head": "assets/habbo/avatars/gen-bruno_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-bruno_d0.png",
+   "1": "assets/habbo/avatars/gen-bruno_d1.png",
+   "2": "assets/habbo/avatars/gen-bruno_d2.png",
+   "3": "assets/habbo/avatars/gen-bruno_d3.png",
+   "4": "assets/habbo/avatars/gen-bruno_d4.png",
+   "5": "assets/habbo/avatars/gen-bruno_d5.png",
+   "6": "assets/habbo/avatars/gen-bruno_d6.png",
+   "7": "assets/habbo/avatars/gen-bruno_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-bruno_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-bruno_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-bruno_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-bruno_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-bruno_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-bruno_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-bruno_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-bruno_walk_d7.png"
+  },
+  "figure": "hd-180-1371.hr-889-45.ch-210-74.lg-280-75.sh-290-85.fa-1211-45"
+ },
+ "gen-yara": {
+  "body": "assets/habbo/avatars/gen-yara.png",
+  "head": "assets/habbo/avatars/gen-yara_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-yara_d0.png",
+   "1": "assets/habbo/avatars/gen-yara_d1.png",
+   "2": "assets/habbo/avatars/gen-yara_d2.png",
+   "3": "assets/habbo/avatars/gen-yara_d3.png",
+   "4": "assets/habbo/avatars/gen-yara_d4.png",
+   "5": "assets/habbo/avatars/gen-yara_d5.png",
+   "6": "assets/habbo/avatars/gen-yara_d6.png",
+   "7": "assets/habbo/avatars/gen-yara_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-yara_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-yara_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-yara_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-yara_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-yara_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-yara_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-yara_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-yara_walk_d7.png"
+  },
+  "figure": "hd-600-1370.ch-665-84.lg-3023-85.sh-905-85.ha-1013-84"
+ },
+ "gen-asher": {
+  "body": "assets/habbo/avatars/gen-asher.png",
+  "head": "assets/habbo/avatars/gen-asher_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-asher_d0.png",
+   "1": "assets/habbo/avatars/gen-asher_d1.png",
+   "2": "assets/habbo/avatars/gen-asher_d2.png",
+   "3": "assets/habbo/avatars/gen-asher_d3.png",
+   "4": "assets/habbo/avatars/gen-asher_d4.png",
+   "5": "assets/habbo/avatars/gen-asher_d5.png",
+   "6": "assets/habbo/avatars/gen-asher_d6.png",
+   "7": "assets/habbo/avatars/gen-asher_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-asher_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-asher_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-asher_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-asher_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-asher_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-asher_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-asher_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-asher_walk_d7.png"
+  },
+  "figure": "hd-180-14.hr-165-43.ch-255-85.lg-280-85.sh-290-85.fa-1208-85"
+ },
+ "gen-elena": {
+  "body": "assets/habbo/avatars/gen-elena.png",
+  "head": "assets/habbo/avatars/gen-elena_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-elena_d0.png",
+   "1": "assets/habbo/avatars/gen-elena_d1.png",
+   "2": "assets/habbo/avatars/gen-elena_d2.png",
+   "3": "assets/habbo/avatars/gen-elena_d3.png",
+   "4": "assets/habbo/avatars/gen-elena_d4.png",
+   "5": "assets/habbo/avatars/gen-elena_d5.png",
+   "6": "assets/habbo/avatars/gen-elena_d6.png",
+   "7": "assets/habbo/avatars/gen-elena_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-elena_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-elena_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-elena_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-elena_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-elena_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-elena_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-elena_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-elena_walk_d7.png"
+  },
+  "figure": "hd-600-1370.hr-679-43.ch-3321-1408.lg-3023-76.sh-905-85.fa-1201-85"
+ },
+ "gen-kai": {
+  "body": "assets/habbo/avatars/gen-kai.png",
+  "head": "assets/habbo/avatars/gen-kai_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-kai_d0.png",
+   "1": "assets/habbo/avatars/gen-kai_d1.png",
+   "2": "assets/habbo/avatars/gen-kai_d2.png",
+   "3": "assets/habbo/avatars/gen-kai_d3.png",
+   "4": "assets/habbo/avatars/gen-kai_d4.png",
+   "5": "assets/habbo/avatars/gen-kai_d5.png",
+   "6": "assets/habbo/avatars/gen-kai_d6.png",
+   "7": "assets/habbo/avatars/gen-kai_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-kai_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-kai_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-kai_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-kai_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-kai_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-kai_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-kai_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-kai_walk_d7.png"
+  },
+  "figure": "hd-180-14.hr-100-45.ch-210-82.lg-280-85.sh-290-85"
+ },
+ "gen-lucy": {
+  "body": "assets/habbo/avatars/gen-lucy.png",
+  "head": "assets/habbo/avatars/gen-lucy_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-lucy_d0.png",
+   "1": "assets/habbo/avatars/gen-lucy_d1.png",
+   "2": "assets/habbo/avatars/gen-lucy_d2.png",
+   "3": "assets/habbo/avatars/gen-lucy_d3.png",
+   "4": "assets/habbo/avatars/gen-lucy_d4.png",
+   "5": "assets/habbo/avatars/gen-lucy_d5.png",
+   "6": "assets/habbo/avatars/gen-lucy_d6.png",
+   "7": "assets/habbo/avatars/gen-lucy_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-lucy_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-lucy_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-lucy_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-lucy_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-lucy_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-lucy_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-lucy_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-lucy_walk_d7.png"
+  },
+  "figure": "hd-600-14.hr-545-45.ch-665-72.lg-3023-73.sh-905-85.ha-1010-84"
+ },
+ "gen-romeo": {
+  "body": "assets/habbo/avatars/gen-romeo.png",
+  "head": "assets/habbo/avatars/gen-romeo_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-romeo_d0.png",
+   "1": "assets/habbo/avatars/gen-romeo_d1.png",
+   "2": "assets/habbo/avatars/gen-romeo_d2.png",
+   "3": "assets/habbo/avatars/gen-romeo_d3.png",
+   "4": "assets/habbo/avatars/gen-romeo_d4.png",
+   "5": "assets/habbo/avatars/gen-romeo_d5.png",
+   "6": "assets/habbo/avatars/gen-romeo_d6.png",
+   "7": "assets/habbo/avatars/gen-romeo_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-romeo_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-romeo_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-romeo_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-romeo_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-romeo_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-romeo_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-romeo_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-romeo_walk_d7.png"
+  },
+  "figure": "hd-180-30.hr-596-43.ch-210-85.lg-280-85.sh-290-85.fa-1206-85"
+ },
+ "gen-adeline": {
+  "body": "assets/habbo/avatars/gen-adeline.png",
+  "head": "assets/habbo/avatars/gen-adeline_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-adeline_d0.png",
+   "1": "assets/habbo/avatars/gen-adeline_d1.png",
+   "2": "assets/habbo/avatars/gen-adeline_d2.png",
+   "3": "assets/habbo/avatars/gen-adeline_d3.png",
+   "4": "assets/habbo/avatars/gen-adeline_d4.png",
+   "5": "assets/habbo/avatars/gen-adeline_d5.png",
+   "6": "assets/habbo/avatars/gen-adeline_d6.png",
+   "7": "assets/habbo/avatars/gen-adeline_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-adeline_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-adeline_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-adeline_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-adeline_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-adeline_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-adeline_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-adeline_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-adeline_walk_d7.png"
+  },
+  "figure": "hd-600-14.hr-545-45.ch-680-1320.lg-3023-76.sh-905-85"
+ },
+ "gen-felix": {
+  "body": "assets/habbo/avatars/gen-felix.png",
+  "head": "assets/habbo/avatars/gen-felix_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-felix_d0.png",
+   "1": "assets/habbo/avatars/gen-felix_d1.png",
+   "2": "assets/habbo/avatars/gen-felix_d2.png",
+   "3": "assets/habbo/avatars/gen-felix_d3.png",
+   "4": "assets/habbo/avatars/gen-felix_d4.png",
+   "5": "assets/habbo/avatars/gen-felix_d5.png",
+   "6": "assets/habbo/avatars/gen-felix_d6.png",
+   "7": "assets/habbo/avatars/gen-felix_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-felix_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-felix_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-felix_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-felix_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-felix_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-felix_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-felix_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-felix_walk_d7.png"
+  },
+  "figure": "hd-180-1370.ch-3030-66.lg-280-88.sh-290-85"
+ },
+ "gen-ines": {
+  "body": "assets/habbo/avatars/gen-ines.png",
+  "head": "assets/habbo/avatars/gen-ines_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-ines_d0.png",
+   "1": "assets/habbo/avatars/gen-ines_d1.png",
+   "2": "assets/habbo/avatars/gen-ines_d2.png",
+   "3": "assets/habbo/avatars/gen-ines_d3.png",
+   "4": "assets/habbo/avatars/gen-ines_d4.png",
+   "5": "assets/habbo/avatars/gen-ines_d5.png",
+   "6": "assets/habbo/avatars/gen-ines_d6.png",
+   "7": "assets/habbo/avatars/gen-ines_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-ines_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-ines_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-ines_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-ines_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-ines_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-ines_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-ines_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-ines_walk_d7.png"
+  },
+  "figure": "hd-600-14.hr-676-45.ch-255-75.lg-3023-91.sh-905-85.ha-1013-75"
+ },
+ "gen-priya": {
+  "body": "assets/habbo/avatars/gen-priya.png",
+  "head": "assets/habbo/avatars/gen-priya_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-priya_d0.png",
+   "1": "assets/habbo/avatars/gen-priya_d1.png",
+   "2": "assets/habbo/avatars/gen-priya_d2.png",
+   "3": "assets/habbo/avatars/gen-priya_d3.png",
+   "4": "assets/habbo/avatars/gen-priya_d4.png",
+   "5": "assets/habbo/avatars/gen-priya_d5.png",
+   "6": "assets/habbo/avatars/gen-priya_d6.png",
+   "7": "assets/habbo/avatars/gen-priya_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-priya_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-priya_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-priya_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-priya_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-priya_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-priya_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-priya_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-priya_walk_d7.png"
+  },
+  "figure": "hd-600-1371.hr-893-45.ch-665-76.lg-3023-64.sh-905-85.fa-1206-85"
+ },
+ "gen-hugo": {
+  "body": "assets/habbo/avatars/gen-hugo.png",
+  "head": "assets/habbo/avatars/gen-hugo_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-hugo_d0.png",
+   "1": "assets/habbo/avatars/gen-hugo_d1.png",
+   "2": "assets/habbo/avatars/gen-hugo_d2.png",
+   "3": "assets/habbo/avatars/gen-hugo_d3.png",
+   "4": "assets/habbo/avatars/gen-hugo_d4.png",
+   "5": "assets/habbo/avatars/gen-hugo_d5.png",
+   "6": "assets/habbo/avatars/gen-hugo_d6.png",
+   "7": "assets/habbo/avatars/gen-hugo_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-hugo_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-hugo_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-hugo_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-hugo_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-hugo_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-hugo_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-hugo_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-hugo_walk_d7.png"
+  },
+  "figure": "hd-180-14.hr-889-45.ch-210-82.lg-280-64.sh-290-85"
+ },
+ "gen-noor": {
+  "body": "assets/habbo/avatars/gen-noor.png",
+  "head": "assets/habbo/avatars/gen-noor_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-noor_d0.png",
+   "1": "assets/habbo/avatars/gen-noor_d1.png",
+   "2": "assets/habbo/avatars/gen-noor_d2.png",
+   "3": "assets/habbo/avatars/gen-noor_d3.png",
+   "4": "assets/habbo/avatars/gen-noor_d4.png",
+   "5": "assets/habbo/avatars/gen-noor_d5.png",
+   "6": "assets/habbo/avatars/gen-noor_d6.png",
+   "7": "assets/habbo/avatars/gen-noor_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-noor_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-noor_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-noor_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-noor_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-noor_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-noor_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-noor_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-noor_walk_d7.png"
+  },
+  "figure": "hd-180-30.hr-3339-45.ch-255-85.lg-280-85.sh-290-85.fa-1211-45"
+ },
+ "gen-tyler": {
+  "body": "assets/habbo/avatars/gen-tyler.png",
+  "head": "assets/habbo/avatars/gen-tyler_head.png",
+  "directions": {
+   "0": "assets/habbo/avatars/gen-tyler_d0.png",
+   "1": "assets/habbo/avatars/gen-tyler_d1.png",
+   "2": "assets/habbo/avatars/gen-tyler_d2.png",
+   "3": "assets/habbo/avatars/gen-tyler_d3.png",
+   "4": "assets/habbo/avatars/gen-tyler_d4.png",
+   "5": "assets/habbo/avatars/gen-tyler_d5.png",
+   "6": "assets/habbo/avatars/gen-tyler_d6.png",
+   "7": "assets/habbo/avatars/gen-tyler_d7.png"
+  },
+  "walk": {
+   "0": "assets/habbo/avatars/gen-tyler_walk_d0.png",
+   "1": "assets/habbo/avatars/gen-tyler_walk_d1.png",
+   "2": "assets/habbo/avatars/gen-tyler_walk_d2.png",
+   "3": "assets/habbo/avatars/gen-tyler_walk_d3.png",
+   "4": "assets/habbo/avatars/gen-tyler_walk_d4.png",
+   "5": "assets/habbo/avatars/gen-tyler_walk_d5.png",
+   "6": "assets/habbo/avatars/gen-tyler_walk_d6.png",
+   "7": "assets/habbo/avatars/gen-tyler_walk_d7.png"
+  },
+  "figure": "hd-180-14.hr-165-45.ch-3321-85.lg-280-85.sh-290-85"
+ }
+}

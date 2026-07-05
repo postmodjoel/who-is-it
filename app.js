@@ -500,8 +500,18 @@ function makePlayer(index, taken) {
 const SIDE_COUNT = 2, MIN_PLAYERS = 2, MAX_PLAYERS = 8;
 
 function rosterTeamMode() { return !!(state.roster && state.roster.length > 2); }
+// The client id is a PERSISTENT device identity (localStorage), not a per-tab one: after an
+// accidental refresh the same id reconnects, so the host recognises the returning player instead
+// of seating a duplicate. Minted once per device, reused forever.
+const CLIENT_ID_KEY = "whoisit_client_v1";
 function ensureClientId() {
-  if (!state.clientId) state.clientId = `c-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  if (!state.clientId) {
+    try { state.clientId = localStorage.getItem(CLIENT_ID_KEY) || ""; } catch (e) { /* fine */ }
+  }
+  if (!state.clientId) {
+    state.clientId = `c-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    try { localStorage.setItem(CLIENT_ID_KEY, state.clientId); } catch (e) { /* fine */ }
+  }
   return state.clientId;
 }
 // Build a clean roster of {name} from a count + a names array/object (blank names get "Player N").
@@ -566,6 +576,7 @@ function applyRosterFromMsg(msg) {
   state.playerCount = msg.playerCount || state.roster.length;
   const mine = state.roster.findIndex((r) => r.clientId && r.clientId === state.clientId);
   if (mine >= 0) state.myRosterIndex = mine;
+  if (state.inLobby) scheduleSave();   // a guest's lobby save tracks the roster too
 }
 // After the salt + roster are known, derive teams and set which side is mine.
 function syncMySeatFromRoster() {
@@ -1239,10 +1250,15 @@ if (els.debugEffectPicker) {
     if (!effect) return;
     if (currentPlayer()) currentPlayer().mysteryUsed = true;
     applyMysteryEffect(effect.id);
+    state.wheelPick = effect.id;   // persists through refresh/resume like a wheel-picked mode
     playEffectAnnouncement(effect.name);
     showMysteryAnnouncement(effect.name, effect.exampleQuestion);
     addLog(`Debug: triggered "${effect.name}".`);
+    // Online: the debug pick rides the existing "mode" message so every seat switches together.
+    netSend("mode", { id: effect.id });
+    drawPrompt();                  // cue card immediately speaks the new mode's deck
     render();
+    scheduleSave();
   });
 }
 document.addEventListener("keydown", handleTestTextTrigger);
@@ -1329,35 +1345,45 @@ function syncSettingsToForm() {
 const GAME_SAVE_KEY = "whoisit_game_v1";
 let saveTimer = null;
 function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveGameState, 400); }
+// One save shape for everything: refresh-resume, lobby rejoin, AND the host->reconnector snapshot
+// sent over the wire (see the "snapshot" net message). Never fork this schema.
+function buildGameSave() {
+  return {
+    v: 1,
+    salt: state.gameSalt,
+    settings: state.settings,
+    gameMode: state.gameMode || "local",
+    inLobby: !!state.inLobby,   // a refresh mid-lobby rejoins the lobby, not a half-dealt round
+    pname: state.pname || "",
+    mySeat: state.mySeat || 0,
+    roomCode: state.roomCode,   // online: the channel isn't re-derivable for a joiner, so persist it
+    currentPlayer: state.currentPlayer,
+    roundAge: state.roundAge || 0,
+    lore: state.lore || [],
+    stats: state.stats || {},
+    playerCount: state.playerCount || 2,
+    roster: (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side })),
+    clientId: state.clientId || "",
+    myRosterIndex: state.myRosterIndex || 0,
+    isHost: !!state.isHost,
+    boardIds: state.board.map((c) => c.id),   // pin the exact deal: the pool can grow mid-round (fresh GAYBYs)
+    effectId: state.global.mystery ? state.global.mystery.id : null,   // debug-picked/mystery-swapped modes survive too
+    babies: state.board.filter((c) => c.isBaby || (c.isGayby && !c.persistedGayby)).map(serializeCharacter),
+    abortedBabies: state.abortedBabies || [],   // purgatory souls carry across rounds this session
+    players: state.players.map((p) => ({ secretId: p.secretId, eliminated: [...p.eliminated], mysteryUsed: p.mysteryUsed }))
+  };
+}
 function saveGameState() {
   try {
-    localStorage.setItem(GAME_SAVE_KEY, JSON.stringify({
-      v: 1,
-      salt: state.gameSalt,
-      settings: state.settings,
-      gameMode: state.gameMode || "local",
-      mySeat: state.mySeat || 0,
-      roomCode: state.roomCode,   // online: the channel isn't re-derivable for a joiner, so persist it
-      currentPlayer: state.currentPlayer,
-      roundAge: state.roundAge || 0,
-      lore: state.lore || [],
-      stats: state.stats || {},
-      playerCount: state.playerCount || 2,
-      roster: (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side })),
-      clientId: state.clientId || "",
-      myRosterIndex: state.myRosterIndex || 0,
-      isHost: !!state.isHost,
-      boardIds: state.board.map((c) => c.id),   // pin the exact deal: the pool can grow mid-round (fresh GAYBYs)
-      effectId: state.global.mystery ? state.global.mystery.id : null,   // debug-picked/mystery-swapped modes survive too
-      babies: state.board.filter((c) => c.isBaby || (c.isGayby && !c.persistedGayby)).map(serializeCharacter),
-      abortedBabies: state.abortedBabies || [],   // purgatory souls carry across rounds this session
-      players: state.players.map((p) => ({ secretId: p.secretId, eliminated: [...p.eliminated], mysteryUsed: p.mysteryUsed }))
-    }));
+    localStorage.setItem(GAME_SAVE_KEY, JSON.stringify(buildGameSave()));
   } catch (e) { /* storage full/blocked - play on */ }
 }
 function loadGameSave() {
-  try { const s = JSON.parse(localStorage.getItem(GAME_SAVE_KEY) || "null"); return s && s.v === 1 && s.salt ? s : null; }
-  catch (e) { return null; }
+  // A save is resumable with a salt (a dealt round) OR as a lobby rejoin (online room, no deal yet).
+  try {
+    const s = JSON.parse(localStorage.getItem(GAME_SAVE_KEY) || "null");
+    return s && s.v === 1 && (s.salt || (s.inLobby && s.gameMode === "online" && s.roomCode)) ? s : null;
+  } catch (e) { return null; }
 }
 // Collection meta: every mode the player has ever seen, persisted, shown as "N / total" on the title.
 const DISCOVERED_KEY = "whoisit_discovered_v1";
@@ -1414,8 +1440,12 @@ function maybeShowOnboarding() {
   setTimeout(dismiss, 9000);   // fallback so it never lingers
 }
 function resumeGame(saved) {
+  // A refresh mid-LOBBY (online, nothing dealt yet): rejoin the room as the same person instead of
+  // trying to resume a round that never existed.
+  if (saved.inLobby && (saved.gameMode || "") === "online") { resumeOnlineLobby(saved); return; }
   state.settings = { ...state.settings, ...(saved.settings || {}) };
   state.gameMode = saved.gameMode || "local";
+  state.pname = saved.pname || state.pname;
   state.mySeat = saved.mySeat || 0;
   // The online room code must be restored BEFORE newGame's netConnect, or a resumed client would
   // reconnect to the default "0000" channel and silently stop syncing. Fall back to the salt-derived
@@ -1655,8 +1685,14 @@ const RECEIPT_STAT_LABELS = {
   headsPopped: "HEADS POPPED",
   bobbas: "BOBBAS SAID"
 };
-function buildReceiptPaper() {
-  const lore = state.lore || [];
+// The thermal printout. opts.data overrides the live state (the scanned summary page rebuilds the
+// same receipt from the QR payload); opts.qrUrl prints a scannable QR + link under the barcode.
+function buildReceiptPaper(opts = {}) {
+  const d = opts.data || {};
+  const lore = d.lore || state.lore || [];
+  const stats = d.stats || state.stats || {};
+  const roomCode = d.room || state.roomCode || "0000";
+  const serialSrc = d.serial || state.gameSalt || "void";
   const season = (() => { try { return parseInt(localStorage.getItem("whoisit_season_v1") || "1", 10) || 1; } catch (e) { return 1; } })();
   const items = lore.length
     ? lore.map((e, i) => {
@@ -1665,15 +1701,30 @@ function buildReceiptPaper() {
     }).join("")
     : `<div class="rc-line"><span>0x ROUNDS ON RECORD</span><b>[SUSPICIOUS]</b></div>`;
   const you = [...new Set(lore.map((e) => e.you).filter(Boolean))];
-  const secretsBurned = lore.reduce((n, e) => n + e.names.length, 0);
+  const secretsBurned = lore.reduce((n, e) => n + (e.names ? e.names.length : 0), 0);
   const statLines = Object.entries(RECEIPT_STAT_LABELS)
-    .filter(([key]) => (state.stats && state.stats[key]) > 0)
-    .map(([key, label]) => `<div class="rc-line"><span>${label}</span><b>${state.stats[key]}</b></div>`).join("");
+    .filter(([key]) => stats[key] > 0)
+    .map(([key, label]) => `<div class="rc-line"><span>${label}</span><b>${stats[key]}</b></div>`).join("");
+  // The QR: local generation (vendor-qrcode.js), graceful fallback to a plain link if it fails.
+  let qrBlock = "";
+  if (opts.qrUrl) {
+    let svg = "";
+    try {
+      const qr = qrcode(0, "M");
+      qr.addData(opts.qrUrl);
+      qr.make();
+      svg = qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true });
+    } catch (e) { svg = ""; }
+    qrBlock = `<div class="rc-rule"></div>
+      <div class="rc-qr">${svg}</div>
+      <p class="rc-qr-label">SCAN FOR SUMMARY<br>PLAY THIS DECK AGAIN</p>
+      <p class="rc-qr-open"><a href="${opts.qrUrl.replace(/"/g, "&quot;")}">OPEN SUMMARY ↗</a></p>`;
+  }
   return `
     <div class="receipt-paper" role="document">
       <p class="rc-logo">WHO? IS IT?</p>
       <p class="rc-sub">UNIVERSE RECEIPT</p>
-      <p class="rc-meta">ROOM #${escapeHtml(state.roomCode || "0000")} · SEASON ${season}</p>
+      <p class="rc-meta">ROOM #${escapeHtml(roomCode)} · SEASON ${season}</p>
       <div class="rc-rule"></div>
       ${items}
       <div class="rc-rule"></div>
@@ -1689,9 +1740,83 @@ function buildReceiptPaper() {
       <div class="rc-rule"></div>
       <p class="rc-thanks">THANK YOU FOR EXISTING<br>IN THIS UNIVERSE</p>
       <div class="rc-barcode" aria-hidden="true"></div>
-      <p class="rc-serial">#${escapeHtml(String(stableHash(state.gameSalt || "void")).slice(0, 10))}</p>
+      <p class="rc-serial">#${escapeHtml(String(stableHash(serialSrc)).slice(0, 10))}</p>
+      ${qrBlock}
       <p class="rc-foot">*nothing was resolved</p>
     </div>`;
+}
+
+// ===================== Session summary: what the receipt's QR opens =====================
+// The payload is self-contained (settings + players + lore-lite + stats) and rides the URL hash as
+// base64, so a scanned phone needs no live room, no localStorage, no server - just the game URL.
+function buildSessionSummaryPayload() {
+  const s = state.settings || {};
+  return {
+    v: 1,
+    set: { prompts: s.prompts, mystery: s.mystery, locations: s.locations, roles: s.roles, pg: s.pg, boardSize: s.boardSize },
+    pc: state.playerCount || 2,
+    names: (state.roster || []).map((r) => r.name).filter(Boolean),   // names only - no client ids in a QR
+    room: state.roomCode || "0000",
+    serial: state.gameSalt || "void",
+    lore: (state.lore || []).slice(-12).map((e) => ({ modeName: e.modeName, names: e.names, you: e.you })),
+    stats: state.stats || {},
+    disc: loadDiscoveredModes().length
+  };
+}
+function summaryUrl() {
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify(buildSessionSummaryPayload()))));
+  const base = location.protocol === "file:" ? location.href.split("#")[0] : location.origin + location.pathname;
+  return `${base}#summary=${payload}`;
+}
+function parseSummaryHash() {
+  const m = /#summary=([^&]+)/.exec(location.hash || "");
+  if (!m) return null;
+  try {
+    const p = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    return p && p.v === 1 ? p : null;
+  } catch (e) { return null; }
+}
+// Boot hook: a #summary= URL opens the summary screen instead of the title. Returns true if shown.
+function maybeShowSummaryPage() {
+  const p = parseSummaryHash();
+  if (!p) return false;
+  showSummaryPage(p);
+  return true;
+}
+function showSummaryPage(p) {
+  document.querySelector(".session-end")?.remove();
+  const setup = [
+    `${p.pc || 2} player${(p.pc || 2) === 1 ? "" : "s"}`,
+    (p.names || []).length ? (p.names || []).map(escapeHtml).join(", ") : null,
+    p.set && p.set.pg ? "PG mode" : null,
+    p.set && p.set.boardSize ? `${p.set.boardSize} faces` : null
+  ].filter(Boolean).join(" · ");
+  const ov = document.createElement("div");
+  ov.className = "session-end summary-page";
+  ov.innerHTML = `
+    <div class="se-stage">
+      <div class="se-head">
+        <p class="sf-eyebrow">FROM THE RECEIPT</p>
+        <h2 class="sf-title se-title">SESSION<br>SUMMARY</h2>
+        <p class="se-sub">${setup}${p.disc ? ` · 🎡 ${p.disc} modes discovered` : ""}</p>
+      </div>
+      <div class="rc-printarea"><div class="rc-window">${buildReceiptPaper({ data: p })}</div></div>
+      <button type="button" class="button primary su-again">▶ PLAY THIS DECK AGAIN</button>
+      <button type="button" class="button ghost se-home">← TITLE</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const clearHash = () => { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { location.hash = ""; } };
+  ov.querySelector(".su-again").addEventListener("click", () => {
+    // Same deck & crew, fresh universe: restore settings + player config, new salt, clean slate.
+    clearHash();
+    state.settings = { ...state.settings, ...(p.set || {}) };
+    state.stats = {}; state.lore = [];
+    ov.remove();
+    document.querySelector(".title-screen")?.remove();
+    if ((p.pc || 2) > 2 && (p.names || []).length) startLocalGame(p.pc, p.names);
+    else startLocalGame();
+  });
+  ov.querySelector(".se-home").addEventListener("click", () => { clearHash(); ov.remove(); showTitleScreen(); });
 }
 // The end-of-session CREDITS screen: FINISH SESSION leads here. Its own full-screen world (no
 // game board): drifting dark gradient, a huge title, tiki hold-music, an endlessly scrolling
@@ -1728,7 +1853,7 @@ function showSessionEnd() {
       </div>
       <div class="rc-printarea">
         <div class="rc-printer" aria-hidden="true"><i></i></div>
-        <div class="rc-window">${buildReceiptPaper()}</div>
+        <div class="rc-window">${buildReceiptPaper({ qrUrl: summaryUrl() })}</div>
       </div>
       <button type="button" class="button primary se-home">BACK TO TITLE</button>
     </div>`;
@@ -1997,7 +2122,9 @@ function showTitleScreen() {
         </div>
         <button type="button" class="button primary ts-local">🛋 LOCAL GAME</button>
         <button type="button" class="button secondary ts-online">🌐 ONLINE GAME</button>
-        ${saved ? `<button type="button" class="button ghost ts-resume">↩ RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</button>` : ""}
+        ${saved ? `<button type="button" class="button ghost ts-resume">${saved.gameMode === "online"
+          ? `🌐 ${saved.inLobby ? "REJOIN LOBBY" : "RESUME ONLINE"} · #${escapeHtml(saved.roomCode || "?")}`
+          : `↩ RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}`}</button>` : ""}
       </div>
       <div class="ts-step ts-step-names" hidden>
         <p class="ts-names-label">Name your players</p>
@@ -2107,6 +2234,7 @@ function startOnlineGame(name) {
   state.seenPeers = new Set();
   netConnect();
   showLobby();
+  saveGameState();   // the lobby itself is resumable - an accidental refresh rejoins this room
 }
 // ONLINE guest: connect to the host's room and wait for the host's roster broadcast + START.
 function joinRoom(code, name) {
@@ -2119,6 +2247,28 @@ function joinRoom(code, name) {
   state.seenPeers = new Set();
   netConnect();
   showLobby();
+  saveGameState();   // the lobby itself is resumable - an accidental refresh rejoins this room
+}
+// Refresh mid-lobby: reconnect to the same room as the same clientId. The host restores its
+// authoritative roster and re-broadcasts; a guest re-announces itself (same persistent clientId,
+// so the host updates the existing slot instead of adding a duplicate).
+function resumeOnlineLobby(saved) {
+  state.gameMode = "online"; state.inLobby = true;
+  state.isHost = !!saved.isHost;
+  state.pname = saved.pname || (saved.isHost ? "Host" : "Guest");
+  state.clientId = saved.clientId || ensureClientId();
+  state.roomCode = saved.roomCode;
+  state.gameSalt = saved.salt || "";
+  state.playerCount = saved.playerCount || 2;
+  state.roster = state.isHost && Array.isArray(saved.roster)
+    ? saved.roster.map((r) => ({ name: r.name, clientId: r.clientId }))
+    : [];
+  state.myRosterIndex = state.isHost ? 0 : -1;
+  state.mySeat = state.isHost ? 0 : 1;
+  state.seenPeers = new Set();
+  netConnect();
+  showLobby();
+  if (state.isHost) { broadcastLobby(); updateLobby(); }
 }
 
 // The waiting room: room number, who's arrived, and (host only) a START button once a friend joins.
@@ -2143,7 +2293,13 @@ function showLobby() {
       <button type="button" class="button ghost lobby-leave">← leave</button>
     </div>`;
   document.body.appendChild(ov);
-  ov.querySelector(".lobby-leave").addEventListener("click", () => { state.inLobby = false; try { net && net.close(); } catch (e) {} ov.remove(); showTitleScreen(); });
+  ov.querySelector(".lobby-leave").addEventListener("click", () => {
+    state.inLobby = false;
+    netSend("bye", { pname: state.pname });                          // tell the room we left on purpose
+    try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }   // don't offer a rejoin to a room we quit
+    try { net && net.close(); } catch (e) { /* fine */ }
+    ov.remove(); showTitleScreen();
+  });
   if (host) {
     // The count is the number of SLOTS shown; it can't drop below the humans already here.
     const setCount = (c) => {
@@ -2172,6 +2328,7 @@ function showLobby() {
 function broadcastLobby() {
   if (!state.isHost) return;
   netSend("lobby", { roster: rosterForWire(), playerCount: state.playerCount });
+  if (state.inLobby) scheduleSave();   // the lobby roster survives a host refresh
 }
 function updateLobby() {
   const ov = document.querySelector(".lobby-screen");
@@ -2223,7 +2380,8 @@ mergeGaybiesIntoPool();                // and the persistent GAYBYs
 wirePainScaleDrag();                   // drag the disease pain scale to change emotions
 if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
 if (els.almanacButton) els.almanacButton.addEventListener("click", showAlmanac);
-showTitleScreen();                     // WHO? / IS IT? slides in; deal or resume from there
+// A scanned receipt QR (#summary=...) opens the summary screen; otherwise the title as usual.
+if (!maybeShowSummaryPage()) showTitleScreen();
 wireCueCardClick();
 wireFloatingSecret();
 if (els.sortSelect) {

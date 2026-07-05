@@ -6216,3 +6216,14 @@ body.mode-linkedin .cue-card { background: #ffffff; border: 1px solid #d6d6d6; c
   .round-reveal.rr-teamgrid .rr-cards { flex-direction: column; align-items: center; }
   .round-reveal.rr-teamgrid .rr-card { max-width: 92vw; }
 }
+
+/* Receipt QR: scan for the session summary / replay this deck. Thermal-printer friendly. */
+.rc-qr { display: flex; justify-content: center; margin: 8px auto 4px; }
+.rc-qr svg { width: 132px; height: 132px; display: block; background: #fbfaf4; }
+.rc-qr-label { margin: 2px 0 0; text-align: center; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.12em; }
+.rc-qr-open { margin: 3px 0 0; text-align: center; font-size: 0.58rem; }
+.rc-qr-open a { color: #23211c; font-weight: 700; text-decoration: underline; }
+/* Summary page shares the credits-screen shell; just no roll behind it. */
+.summary-page .se-stage { background: radial-gradient(60% 50% at 50% 42%, rgba(8, 8, 14, 0.85), rgba(8, 8, 14, 0.4) 70%, transparent); }
+.summary-page .su-again { margin-top: 18px; }
+.summary-page .se-home { margin: 12px 0 48px; }

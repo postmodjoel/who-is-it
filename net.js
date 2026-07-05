@@ -9,7 +9,48 @@ let net = null;
 let netRoom = null;          // the room the current socket is connected to
 let netReconnectTimer = null;
 // Close the transport when the tab goes away so the relay/channel isn't left holding a dead peer.
+// (No "bye" here: a refresh must NOT read as leaving - the heartbeat covers real disappearances.)
 window.addEventListener("beforeunload", () => { try { if (net) net.close(); } catch (e) { /* fine */ } });
+
+// ===================== Presence: who's here, who dropped, who left =====================
+// Every message stamps its sender's clientId, so presence is just "when did we last hear from
+// them". A 4s heartbeat ping keeps quiet players visible; 13s of silence = disconnected (kept in
+// the roster - a refresh comes back on the same persistent clientId); an explicit "bye" = left.
+const netPeers = new Map();   // clientId -> { name, lastSeen, gone }
+let netHeartbeatTimer = null;
+function notePeer(msg) {
+  if (!msg.clientId || msg.clientId === state.clientId) return;
+  let p = netPeers.get(msg.clientId);
+  if (!p) { p = { name: msg.pname || "A friend", lastSeen: 0, gone: false }; netPeers.set(msg.clientId, p); }
+  if (msg.pname) p.name = msg.pname;
+  if (p.gone) {
+    p.gone = false;
+    state.onlinePeer = true;
+    addLog(`${p.name} reconnected.`);
+    if (typeof flashToast === "function") flashToast(`🟢 ${p.name} is back.`);
+    renderRoom(); updateLobby();
+  }
+  p.lastSeen = Date.now();
+}
+function peerGone(p, how) {
+  if (!p || p.gone) return;
+  p.gone = true;
+  const line = how === "left" ? `${p.name} left the room.` : `${p.name} disconnected — waiting for them to reconnect…`;
+  addLog(line);
+  if (typeof flashToast === "function") flashToast(how === "left" ? `👋 ${line}` : `🔌 ${line}`);
+  // Roster slot is PRESERVED either way - a refreshed player rejoins the same seat.
+  if (![...netPeers.values()].some((x) => !x.gone)) { state.onlinePeer = false; renderRoom(); }
+  updateLobby();
+}
+function startNetHeartbeat() {
+  clearInterval(netHeartbeatTimer);
+  netHeartbeatTimer = setInterval(() => {
+    if (state.gameMode !== "online" || !net) return;
+    netSend("ping", { pname: state.pname });
+    const now = Date.now();
+    netPeers.forEach((p) => { if (!p.gone && p.lastSeen && now - p.lastSeen > 13000) peerGone(p, "dropped"); });
+  }, 4000);
+}
 function setNetStatus(s) { state.netStatus = s; const el = document.querySelector(".or-status"); if (el && state.gameMode === "online") el.textContent = s === "open" ? (state.onlinePeer ? "🟢 friend connected" : "🟡 connected — waiting for a friend…") : s === "connecting" ? "🟠 connecting…" : "🔴 disconnected — retrying…"; updateLobby(); }
 // Cross-device transport: add ?relay=ws://<host>:8765 to the URL on every device and run
 // `python3 relay.py` on one machine - the relay fans messages out per room. Without the param the
@@ -50,6 +91,7 @@ function netConnect(force) {
       post: (m) => { const s = JSON.stringify(m); if (ws.readyState === 1) ws.send(s); else if (ws.readyState === 0) queue.push(s); },
       close: () => { try { ws.onclose = null; ws.close(); } catch (e) { /* fine */ } }
     };
+    startNetHeartbeat();
     return;
   }
   try {
@@ -59,6 +101,7 @@ function netConnect(force) {
     setNetStatus("open");
     netSend("hello", { pname: state.pname });
   } catch (e) { net = null; /* no BroadcastChannel - offline only */ }
+  startNetHeartbeat();
 }
 // Reconnect to the SAME room after a drop (the room is stable through a game, so this recovers a
 // flaky connection instead of silently going dead).
@@ -83,6 +126,11 @@ function markPeerOnline() {
 }
 function handleNetMsg(msg) {
   if (!msg || typeof msg !== "object") return;
+  // Presence first: any message from another client proves they're alive (and revives them if we
+  // thought they'd dropped).
+  if (msg.clientId && msg.clientId !== state.clientId) notePeer(msg);
+  if (msg.type === "ping") return;
+  if (msg.type === "bye") { peerGone(netPeers.get(msg.clientId), "left"); return; }
   if (msg.type === "sfx") { if (window.Sound && typeof msg.name === "string") window.Sound.play(msg.name); return; }
   if (msg.type === "music") { if (window.Sound) { window.Sound.setTrack(Number(msg.track) || 0); window.Sound.setMusic(!!msg.on); } return; }
   if (msg.type === "editchar") {
@@ -122,8 +170,41 @@ function handleNetMsg(msg) {
       if (r) r.name = msg.pname;
     }
     if (state.inLobby) { broadcastLobby(); updateLobby(); }
-    // Mid-game newcomer: sync them into the current round (roster included).
+    // Mid-game hello (a reconnecting refresh OR a fresh joiner): ship the FULL authoritative
+    // snapshot - same shape as the on-disk save - so they restore the exact round: board,
+    // secrets, eliminations, babies, effect, lore, the lot. (The old salt-only "sync" couldn't
+    // bring back crossings.)
+    else if (typeof buildGameSave === "function") netSend("snapshot", { for: msg.clientId, save: buildGameSave() });
     else netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount });
+    return;
+  }
+  if (msg.type === "snapshot") {
+    // Host's authoritative game state, addressed to a (re)connecting client. Everyone else ignores.
+    if (msg.for && msg.for !== state.clientId) return;
+    if (state.isHost) return;                        // the host never adopts a snapshot
+    const save = msg.save;
+    if (!save || !save.salt) return;
+    // Already fully in this round? Don't re-deal under our own feet.
+    if (save.salt === state.gameSalt && state.board.length && !state.inLobby) return;
+    markPeerOnline();
+    // Adopt the host's game but keep MY identity: locate myself in the shipped roster.
+    const idx = (save.roster || []).findIndex((r) => r.clientId === state.clientId);
+    const mySide = idx >= 0 && typeof save.roster[idx].side === "number"
+      ? save.roster[idx].side
+      : (save.mySeat === 0 ? 1 : 0);                 // classic 2p fallback: the other seat
+    state.inLobby = false;
+    document.querySelector(".lobby-screen")?.remove();
+    resumeGame({
+      ...save,
+      inLobby: false,
+      isHost: false,
+      clientId: state.clientId,
+      pname: state.pname,
+      myRosterIndex: idx >= 0 ? idx : 0,
+      mySeat: mySide,
+      currentPlayer: mySide
+    });
+    addLog("Rejoined the room — right where you left off.");
     return;
   }
   if (msg.type === "lobby") {
@@ -214,11 +295,14 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "mode") {
     markPeerOnline();
+    if (msg.clientId && msg.clientId === state.clientId) return;   // our own echo (WS relay path)
     const eff = MysteryModes.byId(msg.id);
     if (eff) {
       applyMysteryEffect(eff.id);
+      state.wheelPick = eff.id;      // survives refresh: the snapshot/save carry this effect id
       playEffectAnnouncement(eff.name);
       showMysteryAnnouncement(eff.name, eff.exampleQuestion);
+      drawPrompt();                  // the cue card speaks the new mode's deck immediately
       render();
       scheduleSave();
     }

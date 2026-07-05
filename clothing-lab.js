@@ -17,6 +17,18 @@
     deep: { label: "Deep", value: "#5b341f" }
   };
 
+  const rendererSkinTones = {
+    porcelain: "#f4c9a6",
+    fair: "#efbd94",
+    olive: "#c39b6a",
+    tan: "#c88968",
+    fakeTan: "#cf8038",
+    amber: "#ad704e",
+    brown: "#865335",
+    deep: "#5b341f",
+    ebony: "#3f2417"
+  };
+
   const colourSwatches = ["#2f7a78", "#d84e40", "#e0a33a", "#5369b8", "#763f9d", "#267c4f", "#313640", "#f1f1eb"];
 
   const currentOutfits = [
@@ -56,12 +68,21 @@
   const REVIEW_KEY = "who-is-that-clothing-lab-reviews";
   const catalog = currentOutfits.concat(newOutfits);
   const baseOutfits = catalog.filter((item) => item.kind !== "layer");
+  const faceApi = window.faceGenerator || null;
+  const characters = faceApi
+    ? faceApi.createCharacters((name, secret, role) => [name, secret, role], [])
+    : [];
+  const rendererClothing = new Set(faceApi?.traitBook?.clothing || []);
+  const neckAccessoryTypes = new Set(["choker", "necklace", "chain", "scarf"]);
+  const defaultCharacter = characters.find((character) => !neckAccessoryTypes.has(character.traits?.accessory)) || characters[0] || null;
 
   const state = {
     selectedId: newOutfits[0].id,
     view: "all",
     colour: newOutfits[0].color,
     underLayer: "tee",
+    characterId: defaultCharacter?.id || "",
+    skinMode: "character",
     skin: skinPresets.fair.value,
     body: { ...bodyPresets.average },
     reviews: readReviews()
@@ -70,6 +91,7 @@
   const els = {
     viewFilter: document.querySelector("#viewFilter"),
     underLayer: document.querySelector("#underLayer"),
+    characterSelect: document.querySelector("#characterSelect"),
     bodyPreset: document.querySelector("#bodyPreset"),
     skinPreset: document.querySelector("#skinPreset"),
     colourInput: document.querySelector("#colourInput"),
@@ -152,6 +174,296 @@
   function baseForLayer(item) {
     const id = item.kind === "layer" ? (state.underLayer || item.defaultBase || "tee") : item.id;
     return baseItemFor(id);
+  }
+
+  function selectedCharacter() {
+    return characters.find((character) => character.id === state.characterId) || characters[0] || null;
+  }
+
+  function syncBodyToCharacter() {
+    const character = selectedCharacter();
+    if (!character) return;
+    const traits = character.traits || {};
+    state.body = {
+      ...state.body,
+      build: Number(traits.build) || bodyPresets.average.build,
+      shoulderSlope: Number(traits.shoulderSlope) || bodyPresets.average.shoulderSlope,
+      bodyWidth: Number(traits.bodyWidth) || bodyPresets.average.bodyWidth,
+      belly: Number(traits.belly) || 0
+    };
+  }
+
+  function rendererTypeFor(item) {
+    if (!item) return "tee";
+    if (rendererClothing.has(item.type)) return item.type;
+    const closest = {
+      rugby: "tee",
+      flannel: "tee",
+      denim: "jacket",
+      varsity: "jacket",
+      bomber: "jacket",
+      cardigan: "vneck",
+      sweaterVest: "collared",
+      labCoat: "vneck",
+      scrubs: "vneck",
+      chefCoat: "collared",
+      apron: "collared",
+      securityVest: "tee",
+      tracksuit: "jacket",
+      raincoat: "jacket",
+      pinafore: "tee",
+      sariDrape: "vneck",
+      kurta: "collared",
+      sequin: "tee",
+      leather: "jacket"
+    };
+    return closest[item.type] || "tee";
+  }
+
+  function basePortraitItem(item) {
+    if (item.status === "current" && item.kind !== "layer") return item;
+    if (item.status === "current" && item.type === "overalls") return item;
+    if (item.kind === "layer") return baseForLayer(item);
+    const fallback = {
+      rugby: "tee",
+      scrubs: "vneck",
+      chefCoat: "collared",
+      tracksuit: "jacket",
+      sariDrape: "vneck",
+      kurta: "collared",
+      sequin: "tee"
+    };
+    return baseItemFor(fallback[item.type] || "tee");
+  }
+
+  function portraitTraitsFor(item, color) {
+    const character = selectedCharacter();
+    const baseTraits = character?.traits || {};
+    const portraitItem = basePortraitItem(item);
+    const conceptBase = item.status === "new" && item.kind !== "layer";
+    const shirt = item.kind === "layer" ? portraitItem.color : color;
+    const traits = {
+      ...baseTraits,
+      clothing: conceptBase ? "bare" : rendererTypeFor(portraitItem),
+      shirt,
+      build: state.body.build,
+      shoulderSlope: state.body.shoulderSlope,
+      bodyWidth: state.body.bodyWidth,
+      belly: state.body.belly
+    };
+    if (state.skinMode !== "character") {
+      traits.skinHex = skinPresets[state.skinMode]?.value || state.skin;
+    } else {
+      delete traits.skinHex;
+    }
+    return traits;
+  }
+
+  function portraitUrlFor(item, color) {
+    const character = selectedCharacter();
+    if (!faceApi || !character) return "";
+    return faceApi.renderPortrait(character.seed || 0, portraitTraitsFor(item, color));
+  }
+
+  function skinForTraits(traits) {
+    return traits.skinHex || rendererSkinTones[traits.skin] || skinPresets.fair.value;
+  }
+
+  function realShoulderPath(traits) {
+    const sh = Math.max(60, Math.min(104, Number(traits.build) || 82));
+    const slope = traits.shoulderSlope != null
+      ? Math.max(0, Math.min(1, Number(traits.shoulderSlope)))
+      : Math.max(0.18, Math.min(0.9, 0.92 - (sh - 68) / 42));
+    const neckHalf = sh < 76 ? 22 : 24;
+    const neckY = 200;
+    const tipY = 211 + slope * 20;
+    const botHalf = sh * (Number(traits.bodyWidth) || 1);
+    const r = 7 + slope * 4;
+    const nl = 128 - neckHalf;
+    const nr = 128 + neckHalf;
+    const tl = 128 - sh;
+    const tr = 128 + sh;
+    const bl = 128 - botHalf;
+    const br = 128 + botHalf;
+    const belly = Math.max(0, Math.min(1, Number(traits.belly) || 0)) * 18;
+    const dropY = neckY + 4 + slope * 7;
+    return `M${f(nl)} ${f(neckY)}`
+      + ` C ${f(nl - 7)} ${f(dropY)} ${f(tl + r)} ${f(tipY - r - 2)} ${f(tl)} ${f(tipY)}`
+      + ` C ${f(tl - r + 2)} ${f(tipY + r)} ${f(bl - 1 - belly)} ${f(tipY + 13)} ${f(bl - belly * 0.8)} 256`
+      + ` L ${f(br + belly * 0.8)} 256`
+      + ` C ${f(br + 1 + belly)} ${f(tipY + 13)} ${f(tr + r - 2)} ${f(tipY + r)} ${f(tr)} ${f(tipY)}`
+      + ` C ${f(tr - r)} ${f(tipY - r - 2)} ${f(nr + 7)} ${f(dropY)} ${f(nr)} ${f(neckY)} Z`;
+  }
+
+  function conceptNeedsOverlay(item) {
+    return item.status === "new";
+  }
+
+  function realNecklineY(traits) {
+    return 200 + (Number(traits.neckLength) || 0);
+  }
+
+  function realBodyFill(c, traits, extra = "") {
+    const lo = shadeColor(c, 0.82);
+    const sh = Math.max(60, Math.min(104, Number(traits.build) || 82));
+    const arc = `M${f(128 - sh * 0.5)} 248C${f(128 - sh * 0.3)} 228 ${f(128 - sh * 0.14)} 220 128 220C${f(128 + sh * 0.14)} 220 ${f(128 + sh * 0.3)} 228 ${f(128 + sh * 0.5)} 248`;
+    return `
+      <path d='${realShoulderPath(traits)}' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.32'/>
+      ${extra}
+    `;
+  }
+
+  function realNeckOpening(traits, dip = 18, half = 23) {
+    const skin = skinForTraits(traits);
+    const y = realNecklineY(traits);
+    return `<path d='M${f(128 - half)} ${f(y - 3)} Q128 ${f(y + dip)} ${f(128 + half)} ${f(y - 3)} L${f(128 + half - 5)} ${f(y + 8)} Q128 ${f(y + dip + 8)} ${f(128 - half + 5)} ${f(y + 8)} Z' fill='${skin}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>`;
+  }
+
+  function realConceptBase(item, c, traits) {
+    if (item.kind === "layer") return "";
+    const a = item.accent || shadeColor(c, 1.25);
+    const lo = shadeColor(c, 0.76);
+    const hi = shadeColor(c, 1.14);
+    const y = realNecklineY(traits);
+    const bodyClipId = `real-base-${item.id}-${selectedCharacter()?.id || "fallback"}`.replace(/[^a-z0-9_-]/gi, "-");
+    const clipped = (content) => `<defs><clipPath id='${bodyClipId}'><path d='${realShoulderPath(traits)}'/></clipPath></defs><g clip-path='url(#${bodyClipId})'>${content}</g>`;
+
+    if (item.type === "rugby") {
+      const stripes = Array.from({ length: 7 }, (_, i) => `<rect x='24' y='${f(y + 9 + i * 18)}' width='208' height='10' fill='${i % 2 ? shadeColor(c, 0.82) : a}' opacity='${i % 2 ? ".78" : ".95"}'/>`).join("");
+      return realBodyFill(c, traits, `
+        ${clipped(stripes)}
+        ${realNeckOpening(traits, 10, 24)}
+        <path d='M101 ${f(y - 1)} Q128 ${f(y + 12)} 155 ${f(y - 1)} L160 ${f(y + 11)} Q128 ${f(y + 28)} 96 ${f(y + 11)} Z' fill='#f2efe7' stroke='${ink}' stroke-width='2.3' stroke-linejoin='round'/>
+        <path d='M112 ${f(y + 1)} L128 ${f(y + 20)} L144 ${f(y + 1)}' fill='none' stroke='${shadeColor(c, 0.52)}' stroke-width='2.1' stroke-linejoin='round'/>
+      `);
+    }
+
+    if (item.type === "scrubs") {
+      return realBodyFill(c, traits, `
+        ${realNeckOpening(traits, 12, 24)}
+        <path d='M100 ${f(y - 2)} L128 ${f(y + 31)} L156 ${f(y - 2)}' fill='none' stroke='${ink}' stroke-width='5.2' stroke-linejoin='round'/>
+        <path d='M102 ${f(y - 2)} L128 ${f(y + 25)} L154 ${f(y - 2)}' fill='none' stroke='${shadeColor(c, 0.66)}' stroke-width='2.8' stroke-linejoin='round'/>
+        <rect x='145' y='${f(y + 22)}' width='21' height='24' fill='${lo}' stroke='${ink}' stroke-width='1.8'/>
+        <path d='M151 ${f(y + 27)} V${f(y + 43)}' stroke='${a}' stroke-width='1.7' stroke-linecap='round'/>
+      `);
+    }
+
+    if (item.type === "chefCoat") {
+      return realBodyFill(c, traits, `
+        ${realNeckOpening(traits, 9, 22)}
+        <path d='M103 ${f(y - 2)} Q128 ${f(y + 10)} 153 ${f(y - 2)} L153 ${f(y + 13)} Q128 ${f(y + 26)} 103 ${f(y + 13)} Z' fill='${c}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
+        <path d='M95 ${f(y + 2)} C115 ${f(y + 24)} 128 ${f(y + 52)} 128 256M161 ${f(y + 2)} C141 ${f(y + 24)} 128 ${f(y + 52)} 128 256' fill='none' stroke='${shadeColor(c, 0.72)}' stroke-width='2'/>
+        ${buttonPlacket(115, y + 27, 4, 14, a)}
+        ${buttonPlacket(141, y + 27, 4, 14, a)}
+      `);
+    }
+
+    if (item.type === "tracksuit") {
+      return realBodyFill(c, traits, `
+        <path d='M98 ${f(y - 3)} Q128 ${f(y + 11)} 158 ${f(y - 3)} L158 ${f(y + 14)} Q128 ${f(y + 31)} 98 ${f(y + 14)} Z' fill='${lo}' stroke='${ink}' stroke-width='2.5' stroke-linejoin='round'/>
+        <path d='M128 ${f(y + 8)}V256' stroke='${ink}' stroke-width='2.7'/>
+        <path d='M78 ${f(y + 4)}C92 ${f(y + 15)} 105 ${f(y + 28)} 115 ${f(y + 51)}M178 ${f(y + 4)}C164 ${f(y + 15)} 151 ${f(y + 28)} 141 ${f(y + 51)}' fill='none' stroke='${a}' stroke-width='5' stroke-linecap='round'/>
+      `);
+    }
+
+    if (item.type === "kurta") {
+      return realBodyFill(c, traits, `
+        <path d='M104 ${f(y - 2)}Q128 ${f(y + 8)} 152 ${f(y - 2)}L152 ${f(y + 11)}Q128 ${f(y + 21)} 104 ${f(y + 11)}Z' fill='${hi}' stroke='${ink}' stroke-width='2.3'/>
+        <path d='M128 ${f(y + 11)}V${f(y + 91)}' stroke='${a}' stroke-width='3' stroke-linecap='round'/>
+        ${buttonPlacket(128, y + 25, 4, 14, "#f1df9c")}
+      `);
+    }
+
+    if (item.type === "sequin") {
+      const stars = Array.from({ length: 22 }, (_, i) => {
+        const x = 83 + (i * 29) % 91;
+        const sy = y + 20 + (i * 37) % 50;
+        return `<path d='M${x} ${sy - 3}L${x + 2} ${sy}L${x + 5} ${sy}L${x + 2.4} ${sy + 2}L${x + 3.5} ${sy + 5}L${x} ${sy + 3}L${x - 3.5} ${sy + 5}L${x - 2.4} ${sy + 2}L${x - 5} ${sy}L${x - 2} ${sy}Z' fill='${a}' opacity='.8'/>`;
+      }).join("");
+      return realBodyFill(c, traits, `
+        <path d='M98 ${f(y - 1)}C115 ${f(y + 12)} 136 ${f(y + 12)} 158 ${f(y - 1)}' fill='none' stroke='${a}' stroke-width='3.2' stroke-linecap='round'/>
+        ${clipped(stars)}
+      `);
+    }
+
+    return "";
+  }
+
+  function realLayerCoverage(item, c, traits) {
+    if (item.kind !== "layer") return "";
+    const fullCoverage = new Set(["flannel", "denim", "varsity", "bomber", "cardigan", "labCoat", "raincoat", "leather"]);
+    if (!fullCoverage.has(item.type)) return "";
+    const base = baseForLayer(item);
+    const under = base.color;
+    const openFront = new Set(["flannel", "denim", "varsity", "cardigan", "labCoat", "leather"]);
+    const body = `<path d='${realShoulderPath(traits)}' fill='${c}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>`;
+    const opening = openFront.has(item.type)
+      ? `<path d='M106 203C115 210 121 222 128 241C135 222 141 210 150 203L139 256H117Z' fill='${under}'/>`
+      : "";
+    return `${body}${opening}`;
+  }
+
+  function layerNeckCover(item, c, traits) {
+    if (item.kind !== "layer") return "";
+    const coverTypes = new Set(["flannel", "denim", "varsity", "bomber", "cardigan", "labCoat", "raincoat", "leather", "securityVest"]);
+    if (!coverTypes.has(item.type)) return "";
+    const y = realNecklineY(traits);
+    const lo = shadeColor(c, 0.78);
+    const hi = shadeColor(c, 1.12);
+    const under = baseForLayer(item).color;
+    const left = `M68 ${f(y + 8)} C 87 ${f(y - 4)} 110 ${f(y - 2)} 123 ${f(y + 8)} L116 ${f(y + 22)} C101 ${f(y + 12)} 83 ${f(y + 13)} 68 ${f(y + 24)} Z`;
+    const right = `M188 ${f(y + 8)} C 169 ${f(y - 4)} 146 ${f(y - 2)} 133 ${f(y + 8)} L140 ${f(y + 22)} C155 ${f(y + 12)} 173 ${f(y + 13)} 188 ${f(y + 24)} Z`;
+    const openLine = `<path d='M108 ${f(y + 3)} L128 ${f(y + 23)} L148 ${f(y + 3)}' fill='none' stroke='${ink}' stroke-width='2.2' stroke-linejoin='round' opacity='.88'/>`;
+    if (item.type === "raincoat" || item.type === "bomber") {
+      return `
+        <path d='M93 ${f(y + 2)} Q128 ${f(y + 19)} 163 ${f(y + 2)} L159 ${f(y + 17)} Q128 ${f(y + 34)} 97 ${f(y + 17)} Z' fill='${c}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
+        <path d='M101 ${f(y + 7)} Q128 ${f(y + 20)} 155 ${f(y + 7)}' fill='none' stroke='${lo}' stroke-width='2.2' stroke-linecap='round'/>
+      `;
+    }
+    if (item.type === "labCoat") {
+      const lapelL = `M96 ${f(y - 4)} L127 ${f(y + 8)} L118 ${f(y + 32)} L92 ${f(y + 16)} Z`;
+      const lapelR = `M160 ${f(y - 4)} L129 ${f(y + 8)} L138 ${f(y + 32)} L164 ${f(y + 16)} Z`;
+      return `
+        <path d='${left}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='${right}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='${lapelL}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='${lapelR}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='M121 ${f(y + 15)} L128 ${f(y + 34)} L135 ${f(y + 15)}' fill='none' stroke='${under}' stroke-width='3' stroke-linejoin='round'/>
+      `;
+    }
+    if (item.type === "securityVest") {
+      return `
+        <path d='${left}' fill='${item.accent || c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='${right}' fill='${item.accent || c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+      `;
+    }
+    return `
+      <path d='${left}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+      <path d='${right}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+      ${openLine}
+      <path d='M76 ${f(y + 15)} C94 ${f(y + 8)} 106 ${f(y + 9)} 118 ${f(y + 17)} M180 ${f(y + 15)} C162 ${f(y + 8)} 150 ${f(y + 9)} 138 ${f(y + 17)}' fill='none' stroke='${hi}' stroke-width='1.3' stroke-linecap='round' opacity='.35'/>
+    `;
+  }
+
+  function conceptOverlay(item, c, traits) {
+    if (!conceptNeedsOverlay(item)) return "";
+    const directBase = realConceptBase(item, c, traits);
+    if (directBase) return directBase;
+    const raw = item.kind === "layer"
+      ? renderLayer(item, state.body, c)
+      : renderNew(item, state.body, c);
+    const id = `body-fit-${item.id}-${selectedCharacter()?.id || "fallback"}`.replace(/[^a-z0-9_-]/gi, "-");
+    return `
+      <defs><clipPath id='${id}'><path d='${realShoulderPath(traits)}'/></clipPath></defs>
+      <g clip-path='url(#${id})'>
+        ${realLayerCoverage(item, c, traits)}
+        <g transform='translate(0 200) scale(1 .62) translate(0 -142)'>
+          ${raw}
+        </g>
+      </g>
+      ${layerNeckCover(item, c, traits)}
+    `;
   }
 
   function bodyPath(t) {
@@ -649,12 +961,23 @@
   function renderOutfitSvg(item, opts = {}) {
     const c = opts.color || itemColor(item);
     const width = opts.large ? 360 : 256;
+    const label = escapeHtml(item.name);
+    const portraitUrl = portraitUrlFor(item, c);
+    if (portraitUrl) {
+      const traits = portraitTraitsFor(item, c);
+      return `
+        <svg viewBox='0 0 256 256' role='img' aria-label='${label} clothing preview' xmlns='http://www.w3.org/2000/svg'>
+          <image href="${portraitUrl}" x='0' y='0' width='256' height='256'/>
+          ${conceptOverlay(item, c, traits)}
+          <path d='M0 255H256' stroke='rgba(31,35,48,.2)'/>
+        </svg>
+      `.replace("<svg", `<svg width='${width}' height='${width}'`);
+    }
     const base = baseForLayer(item);
     const baseColor = base.color;
     const body = item.kind === "layer"
       ? renderBaseGarment(base, state.body, baseColor) + renderLayer(item, state.body, c)
       : renderBaseGarment(item, state.body, c);
-    const label = escapeHtml(item.name);
     return `
       <svg viewBox='0 0 256 256' role='img' aria-label='${label} clothing preview' xmlns='http://www.w3.org/2000/svg'>
         <rect width='256' height='256' rx='16' fill='#dfe9ec'/>
@@ -699,6 +1022,8 @@
       name: item.name,
       status: item.status,
       review: vote || "unreviewed",
+      character: selectedCharacter()?.name || "fallback mannequin",
+      renderer: faceApi ? "faceGenerator.renderPortrait + clipped concept overlay" : "lab fallback mannequin",
       layerable: item.kind === "layer",
       underLayer: item.kind === "layer" ? base.id : null,
       renderType: item.type,
@@ -771,10 +1096,20 @@
   function setupControls() {
     els.underLayer.innerHTML = baseOutfits.map((item) => `<option value='${item.id}'>${item.name}</option>`).join("");
     els.underLayer.value = state.underLayer;
+    if (els.characterSelect) {
+      els.characterSelect.innerHTML = characters.length
+        ? characters.map((character) => `<option value='${character.id}'>${escapeHtml(character.name)}</option>`).join("")
+        : "<option value=''>Fallback mannequin</option>";
+      els.characterSelect.value = state.characterId;
+      syncBodyToCharacter();
+    }
     els.bodyPreset.innerHTML = Object.entries(bodyPresets).map(([id, preset]) => `<option value='${id}'>${preset.label}</option>`).join("");
     els.bodyPreset.value = "average";
-    els.skinPreset.innerHTML = Object.entries(skinPresets).map(([id, preset]) => `<option value='${id}'>${preset.label}</option>`).join("");
-    els.skinPreset.value = "fair";
+    els.skinPreset.innerHTML = [
+      "<option value='character'>Character</option>",
+      ...Object.entries(skinPresets).map(([id, preset]) => `<option value='${id}'>${preset.label}</option>`)
+    ].join("");
+    els.skinPreset.value = state.skinMode;
     syncRanges();
 
     els.viewFilter.addEventListener("change", () => {
@@ -785,13 +1120,24 @@
       state.underLayer = els.underLayer.value;
       render();
     });
+    if (els.characterSelect) {
+      els.characterSelect.addEventListener("change", () => {
+        state.characterId = els.characterSelect.value;
+        syncBodyToCharacter();
+        syncRanges();
+        render();
+      });
+    }
     els.bodyPreset.addEventListener("change", () => {
       state.body = { ...bodyPresets[els.bodyPreset.value] };
       syncRanges();
       render();
     });
     els.skinPreset.addEventListener("change", () => {
-      state.skin = skinPresets[els.skinPreset.value].value;
+      state.skinMode = els.skinPreset.value;
+      if (state.skinMode !== "character") {
+        state.skin = skinPresets[state.skinMode].value;
+      }
       render();
     });
     els.colourInput.addEventListener("input", () => {
@@ -845,5 +1191,5 @@
 
   setupControls();
   render();
-  window.clothingLab = { catalog, renderOutfitSvg, bodyPresets, skinPresets };
+  window.clothingLab = { catalog, renderOutfitSvg, bodyPresets, skinPresets, state };
 })();

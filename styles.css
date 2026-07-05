@@ -6085,6 +6085,43 @@ body.mode-nw .cue-card {
 }
 @keyframes seDrift { 0%, 100% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } }
 /* The endless credit roll of everyone encountered, drifting up behind the stage. */
+/* ===================== "New dimension" game-intro warp ===================== */
+.dimension-warp {
+  position: fixed; inset: 0; z-index: 3000; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 50%, #1c0b40 0%, #0a0618 62%, #000 100%);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.dimension-warp.dw-out { opacity: 0; transform: scale(1.5); pointer-events: none; }
+.dw-swirl {
+  position: absolute; width: 230vmax; height: 230vmax; left: 50%; top: 50%;
+  margin: -115vmax 0 0 -115vmax;
+  background: conic-gradient(from 0deg, transparent, rgba(124, 58, 237, 0.38), transparent, rgba(0, 200, 255, 0.32), transparent, rgba(255, 64, 129, 0.34), transparent);
+  animation: dw-spin 3.4s linear infinite, dw-zoom 3.1s cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+.dw-vortex {
+  position: absolute; width: 58vmax; height: 58vmax; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 0 22px rgba(255, 255, 255, 0.045), 0 0 0 64px rgba(255, 255, 255, 0.03), 0 0 0 128px rgba(255, 255, 255, 0.02);
+  animation: dw-pulse 3.1s ease-out both;
+}
+@keyframes dw-spin { to { transform: rotate(360deg); } }
+@keyframes dw-zoom { from { transform: scale(0.28); } to { transform: scale(1.7); } }
+@keyframes dw-pulse { from { transform: scale(0.2); opacity: 0; } 28% { opacity: 1; } to { transform: scale(2.5); opacity: 0; } }
+.dw-copy { position: relative; z-index: 2; text-align: center; padding: 0 18px; }
+.dw-line { font-family: "Archivo", sans-serif; font-weight: 800; font-size: clamp(1.1rem, 3.6vw, 2rem); color: #ece4ff; margin: 0 0 6px; opacity: 0; text-shadow: 0 2px 22px rgba(124, 58, 237, 0.7); animation: dw-fade 0.6s 0.3s both; }
+.dw-line2 { animation-delay: 0.95s; }
+.dw-who { display: flex; flex-direction: column; align-items: center; line-height: 0.9; margin-top: 12px; }
+.dw-who span { font-family: "Archivo", sans-serif; font-weight: 900; font-size: clamp(3rem, 12vw, 7rem); letter-spacing: -0.02em; }
+.dw-who1 { color: #ffd400; text-shadow: 0.045em 0.045em 0 #7c3aed; animation: dw-slam 0.5s 1.45s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.dw-who2 { color: #fffdf7; text-shadow: 0.045em 0.045em 0 #e0341a; animation: dw-slam 0.5s 1.75s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+@keyframes dw-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes dw-slam { from { opacity: 0; transform: scale(2.6) rotate(-7deg); } to { opacity: 1; transform: scale(1) rotate(-2deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .dw-swirl, .dw-vortex { animation: none; opacity: 0.5; }
+  .dw-line, .dw-who1, .dw-who2 { animation-duration: 0.01s; }
+}
+
 .se-credits {
   position: absolute; inset: 0; overflow: hidden; pointer-events: none;
   mask-image: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);
@@ -6279,7 +6316,11 @@ body.mode-nw .cue-card {
 
 /* ===================== Editor: colour widget + lock designer rows ===================== */
 .ed-colorwrap { display: flex; align-items: center; gap: 5px; position: relative; }
-.ed-colorwrap input[type="color"] { width: 34px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: none; cursor: pointer; }
+.ed-colorwrap input[type="color"] { position: absolute; width: 0; height: 0; padding: 0; opacity: 0; pointer-events: none; }
+.ed-colorchip {
+  width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 5px;
+  background: var(--chip, #5a3d28); cursor: pointer; padding: 0;
+}
 .ed-hex {
   width: 70px; padding: 3px 6px; font-family: "Courier New", monospace; font-size: 0.72rem;
   border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink);
@@ -6290,12 +6331,21 @@ body.mode-nw .cue-card {
 }
 .ed-swatchpop {
   position: absolute; top: 30px; right: 0; z-index: 40;
-  display: grid; grid-template-columns: repeat(6, 22px); gap: 4px;
+  display: grid; gap: 7px; min-width: 210px;
   padding: 7px; background: var(--card, #fffdf7); border: 2px solid var(--line);
   border-radius: 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
 }
-.ed-swatchpop button { width: 22px; height: 22px; border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 4px; cursor: pointer; padding: 0; }
-.ed-swatchpop button:hover { transform: scale(1.15); }
+.ed-pop-top { display: flex; align-items: center; gap: 8px; }
+.ed-pop-chip { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--line); background: var(--chip, #5a3d28); }
+.ed-pop-hex {
+  width: 100%; min-width: 0; padding: 5px 7px; font-family: "Courier New", monospace; font-size: 0.72rem;
+  border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink);
+}
+.ed-pop-row { display: grid; grid-template-columns: 14px 1fr; align-items: center; gap: 8px; font-size: 0.68rem; font-weight: 800; color: var(--ink); }
+.ed-pop-row input[type="range"] { width: 100%; }
+.ed-pop-swatches { display: grid; grid-template-columns: repeat(6, 22px); gap: 4px; }
+.ed-pop-swatches button { width: 22px; height: 22px; border: 1px solid rgba(0, 0, 0, 0.35); border-radius: 4px; cursor: pointer; padding: 0; }
+.ed-pop-swatches button:hover { transform: scale(1.15); }
 .ed-lockrow { border: 1px dashed var(--line); border-radius: 8px; padding: 6px 8px; margin-bottom: 8px; }
 .ed-lockhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 0.78rem; }
 .ed-lockdel { border: none; background: none; color: #c0281c; font-weight: 900; cursor: pointer; }
@@ -6356,8 +6406,8 @@ body.mode-nw .cue-card {
 }
 
 /* Receipt QR: scan for the session summary / replay this deck. Thermal-printer friendly. */
-.rc-qr { display: flex; justify-content: center; margin: 8px auto 4px; }
-.rc-qr svg { width: 132px; height: 132px; display: block; background: #fbfaf4; }
+.rc-qr { display: flex; justify-content: center; margin: 10px auto 4px; }
+.rc-qr svg { width: 188px; height: 188px; display: block; background: #fbfaf4; padding: 6px; border-radius: 4px; }
 .rc-qr-label { margin: 2px 0 0; text-align: center; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.12em; }
 .rc-qr-open { margin: 3px 0 0; text-align: center; font-size: 0.58rem; }
 .rc-qr-open a { color: #23211c; font-weight: 700; text-decoration: underline; }

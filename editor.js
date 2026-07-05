@@ -2,7 +2,6 @@
 
 // ===================== Custom character editor (persisted to localStorage) =====================
 const CUSTOM_KEY = "whoisit_custom_chars_v1";
-const EDITOR_ANIM = ["still", "calm", "curious", "serious", "shifty", "alert", "smug", "sleepy", "googly", "sideeye", "crosseyed", "nervous", "nod", "bobble", "dreamy", "lean", "squint"];
 function loadCustomChars() { try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || []; } catch (e) { return []; } }
 function saveCustomChars(list) { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(list)); } catch (e) { /* storage disabled */ } }
 function buildCustomCharacter(data) {
@@ -35,14 +34,50 @@ function deleteCustom(id) {
 }
 
 let editorDialog = null, editorState = null;
+let editorPreviewFrame = 0, pendingEditorPreview = null;
 function newEditorState() {
   const bases = generatedCharacters.filter((c) => !c.isCustom);
   const base = JSON.parse(JSON.stringify((bases.length ? pick(bases) : generatedCharacters[0]).traits || {}));
   return { id: `custom-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`, name: "New Face", pronouns: "they", traits: base, seed: 96000 + Math.floor(Math.random() * 3000), existing: false };
 }
 function renderEditorPreview() {
-  const img = editorDialog.querySelector("#edPreview");
-  if (img) img.src = window.faceGenerator.renderPortrait(editorState.seed, editorState.traits);
+  if (!editorDialog || !editorState) return;
+  pendingEditorPreview = {
+    seed: editorState.seed,
+    traits: JSON.parse(JSON.stringify(editorState.traits))
+  };
+  if (editorPreviewFrame) return;
+  editorPreviewFrame = requestAnimationFrame(() => {
+    editorPreviewFrame = 0;
+    if (!pendingEditorPreview) return;
+    const src = window.faceGenerator.renderPortrait(pendingEditorPreview.seed, pendingEditorPreview.traits);
+    const img = editorDialog.querySelector("#edPreview");
+    if (img && img.src !== src) img.src = src;
+    pendingEditorPreview = null;
+  });
+}
+function wireEditorHotspots() {
+  const root = editorDialog.querySelector(".ed-hotspots");
+  if (!root) return;
+  root.innerHTML = EDITOR_HOTSPOTS.map((spot) => `
+    <button type="button" class="ed-hotspot" data-hotkey="${escapeHtml(spot.key)}"
+      style="left:${spot.left}%;top:${spot.top}%;width:${spot.width}%;height:${spot.height}%;"
+      title="${escapeHtml(spot.label)}"><span>${escapeHtml(spot.label)}</span></button>
+  `).join("");
+  root.querySelectorAll("[data-hotkey]").forEach((btn) => btn.addEventListener("click", () => jumpEditorToKey(btn.dataset.hotkey)));
+}
+function jumpEditorToKey(key) {
+  const root = editorDialog.querySelector(".editor-controls");
+  if (!root) return;
+  const target = root.querySelector(`[data-key="${CSS.escape(key)}"]`);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  const field = target.closest(".ed-field, .ed-lockrow, .ed-tatrow");
+  if (field) {
+    field.classList.add("is-hot");
+    setTimeout(() => field.classList.remove("is-hot"), 1200);
+  }
+  try { target.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
 }
 // Curated swatch palette for the colour widget (skin/hair naturals, De Stijl primaries, brights).
 const EDITOR_SWATCHES = [
@@ -53,6 +88,20 @@ const EDITOR_SWATCHES = [
   "#ff5a72", "#ff8c42", "#5dff8f", "#4dd2ff", "#c46bff", "#ff2d6f",
   "#73497e", "#2d5a4e", "#7a1f1f", "#0a66c2", "#d25184", "#998880"
 ];
+const EDITOR_HOTSPOTS = [
+  { label: "Face", key: "faceShape", left: 2, top: 2, width: 18, height: 10 },
+  { label: "Hair", key: "hair", left: 22, top: 2, width: 56, height: 24 },
+  { label: "Ear", key: "earVariant", left: 4, top: 46, width: 14, height: 18 },
+  { label: "Ear", key: "earVariant", left: 82, top: 46, width: 14, height: 18 },
+  { label: "Brows", key: "browShape", left: 26, top: 36, width: 48, height: 10 },
+  { label: "Eyes", key: "eyeScale", left: 26, top: 44, width: 48, height: 12 },
+  { label: "Nose", key: "noseTip", left: 40, top: 52, width: 20, height: 16 },
+  { label: "Cheeks", key: "cheekOpacity", left: 18, top: 54, width: 18, height: 14 },
+  { label: "Cheeks", key: "cheekOpacity", left: 64, top: 54, width: 18, height: 14 },
+  { label: "Mouth", key: "mouthStyle", left: 36, top: 64, width: 28, height: 10 },
+  { label: "Jaw / Beard", key: "beardLength", left: 28, top: 72, width: 44, height: 18 },
+  { label: "Outfit", key: "clothing", left: 20, top: 88, width: 60, height: 12 }
+];
 // lockShade returns rgb(...) strings; <input type="color"> only speaks #rrggbb.
 function editorToHex(c) {
   if (!c) return "#5a3d28";
@@ -61,34 +110,148 @@ function editorToHex(c) {
   if (!m) return "#5a3d28";
   return "#" + [m[1], m[2], m[3]].map((n) => (+n).toString(16).padStart(2, "0")).join("");
 }
-// A colour control = spectrum picker + hex field + swatch-grid button, all kept in sync.
+
+function editorHexToRgb(hex) {
+  const clean = editorToHex(hex).slice(1);
+  return {
+    r: parseInt(clean.slice(0, 2), 16),
+    g: parseInt(clean.slice(2, 4), 16),
+    b: parseInt(clean.slice(4, 6), 16)
+  };
+}
+
+function editorRgbToHex(r, g, b) {
+  return "#" + [r, g, b].map((part) => Math.max(0, Math.min(255, Math.round(part))).toString(16).padStart(2, "0")).join("");
+}
+
+function editorRgbToHsl(r, g, b) {
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d) {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case rn: h = ((gn - bn) / d + (gn < bn ? 6 : 0)); break;
+      case gn: h = ((bn - rn) / d + 2); break;
+      default: h = ((rn - gn) / d + 4); break;
+    }
+    h /= 6;
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function editorHslToRgb(h, s, l) {
+  const hn = ((h % 360) + 360) % 360 / 360;
+  const sn = Math.max(0, Math.min(100, s)) / 100;
+  const ln = Math.max(0, Math.min(100, l)) / 100;
+  if (!sn) {
+    const v = Math.round(ln * 255);
+    return { r: v, g: v, b: v };
+  }
+  const hue2rgb = (p, q, t) => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+  const q = ln < 0.5 ? ln * (1 + sn) : ln + sn - ln * sn;
+  const p = 2 * ln - q;
+  return {
+    r: Math.round(hue2rgb(p, q, hn + 1 / 3) * 255),
+    g: Math.round(hue2rgb(p, q, hn) * 255),
+    b: Math.round(hue2rgb(p, q, hn - 1 / 3) * 255)
+  };
+}
+
+// A colour control = palette chip + hidden native fallback + hex field + swatch-grid button.
 function editorColorWidget(key, val) {
+  const hex = editorToHex(val);
   return `<span class="ed-colorwrap">
-    <input type="color" data-key="${key}" value="${val}">
-    <input type="text" class="ed-hex" data-hexfor="${key}" value="${val}" maxlength="7" spellcheck="false" aria-label="Hex colour">
-    <button type="button" class="ed-swatchbtn" data-swatchfor="${key}" title="Swatches">▦</button>
+    <button type="button" class="ed-colorchip" data-swatchfor="${key}" style="--chip:${hex}" title="Open colour palette" aria-label="Colour"></button>
+    <input type="color" data-key="${key}" value="${hex}" tabindex="-1" aria-hidden="true">
+    <input type="text" class="ed-hex" data-hexfor="${key}" value="${hex}" maxlength="7" spellcheck="false" aria-label="Hex colour">
+    <button type="button" class="ed-swatchbtn" data-swatchfor="${key}" title="Palette">◫</button>
   </span>`;
+}
+function sharedEditorFieldList(traitBook) {
+  const shared = window.WhoEditorShared;
+  if (!shared || !shared.fieldsForFaceStudio) return [];
+  return shared.fieldsForFaceStudio(traitBook, traitBook.accessories || []);
+}
+function sharedGroupOrder() {
+  const shared = window.WhoEditorShared;
+  return Array.isArray(shared && shared.groupOrder) && shared.groupOrder.length
+    ? shared.groupOrder.slice()
+    : ["Face", "Skin", "Hair", "Brows", "Eyes", "Nose", "Face Lines", "Cheeks", "Ears", "Mouth", "Teeth", "Jaw", "Chin", "Clothing", "Accessory", "Jewellery", "Beard", "Animation", "Moustache", "Tattoo"];
+}
+function sharedGroupTitle(groupName) {
+  const shared = window.WhoEditorShared;
+  const map = (shared && shared.groupTitleMap) || {};
+  return map[groupName] || groupName;
+}
+function editorColorDefault(key, traits) {
+  if (key === "lipColor") return traits.lipColor || "#a55a52";
+  if (key === "shirt") return traits.shirt || "#3a86ff";
+  if (key === "background") return traits.background || "#a9c4e0";
+  if (key === "accessoryColor") return traits.accessoryColor || "#303840";
+  if (key === "jewelleryColor") return traits.jewelleryColor || "#e2b84f";
+  if (key === "jewelleryColor2") return traits.jewelleryColor2 || "#ff9bb0";
+  if (key === "hairOutline") return traits.hairOutline || "#1f2330";
+  if (key === "eyeColor") return traits.eyeColor || "#5a3d28";
+  if (key === "eyelashColor") return traits.eyelashColor || "#1f2330";
+  if (key === "eyeshadowColor") return traits.eyeshadowColor || "#6a527a";
+  if (key === "blushColor") return traits.blushColor || "#e7a18c";
+  return traits[key] || "#5a3d28";
 }
 function renderEditorControls() {
   const T = window.faceGenerator.traitBook, t = editorState.traits;
   const field = (label, html) => `<label class="ed-field"><span>${label}</span>${html}</label>`;
   const group = (title) => `<div class="ed-group">${title}</div>`;
   const sel = (key, opts, val) => `<select data-key="${key}">` + (opts || []).map((o) => `<option ${o === val ? "selected" : ""}>${o}</option>`).join("") + "</select>";
-  const slide = (key, label, min, max, step, val) => field(label, `<input type="range" data-key="${key}" data-num="1" min="${min}" max="${max}" step="${step}" value="${val}">`);
+  const slide = (key, label, min, max, step, val) => field(label, `
+    <span class="ed-range">
+      <input type="range" data-key="${key}" data-num="1" data-pair="${key}" min="${min}" max="${max}" step="${step}" value="${val}">
+      <input type="number" class="ed-num" data-key="${key}" data-num="1" data-pair="${key}" step="${step}" value="${val}">
+    </span>`);
   const color = (key, label, def) => field(label, editorColorWidget(key, t[key] || def));
   const num = (k, d) => (t[k] != null ? t[k] : d);
+  const renderSharedField = (item) => {
+    const value = t[item.key] != null ? t[item.key] : item.fallback;
+    if (item.type === "select") {
+      const opts = (item.options ? item.options() : []).map(([optValue, optLabel]) => `<option value="${escapeHtml(optValue)}" ${optValue === value ? "selected" : ""}>${escapeHtml(optLabel)}</option>`).join("");
+      return field(item.label, `<select data-key="${item.key}">${opts}</select>`);
+    }
+    if (item.type === "color") return color(item.key, item.label, editorColorDefault(item.key, t));
+    if (item.type === "text") return field(item.label, `<input type="text" data-key="${item.key}" value="${escapeHtml(value || "")}" maxlength="18" spellcheck="false">`);
+    return slide(item.key, item.label, item.min, item.max, item.step, value);
+  };
   // The hair-lock designer rows: every placed lock gets shape/position/colour controls. The four
   // lock colours are LINKED by default - repainting the fill re-derives dark/shine/line at the same
   // relative shades; only a colour the user edits directly goes independent (see applyEditorValue).
   const lockRows = (Array.isArray(t.hairLocks) ? t.hairLocks : []).map((inst, i) => {
-    if (inst.d) return `<div class="ed-lockrow"><b>Lock ${i + 1}</b> <i>(pen-drawn — edit in Face Studio)</i> <button type="button" class="ed-lockdel" data-lockdel="${i}">✕</button></div>`;
+    if (inst.d) {
+      const fill = editorToHex(inst.fill || "#5a3d28");
+      const outline = editorToHex(inst.outline && inst.outline !== "none" ? inst.outline : "#1f2330");
+      return `<div class="ed-lockrow">
+        <div class="ed-lockhead"><b>Lock ${i + 1}</b><span class="ed-note">drawn shape</span><span class="ed-rowtools"><button type="button" class="ed-rowbtn" data-lockup="${i}" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="ed-rowbtn" data-lockdown="${i}" ${i === t.hairLocks.length - 1 ? "disabled" : ""}>↓</button><button type="button" class="ed-lockdel" data-lockdel="${i}">✕</button></span></div>
+        ${field("Strand lines", sel(`__lockf:${i}:lines`, ["yes", "no"], inst.lines === false ? "no" : "yes"))}
+        ${field("Outline", sel(`__lockf:${i}:outlineOn`, ["yes", "no"], inst.outline === "none" ? "no" : "yes"))}
+        ${field("Colour", editorColorWidget(`__lock:${i}:fill`, fill))}
+        ${field("Outline Colour", editorColorWidget(`__lock:${i}:outline`, outline))}
+      </div>`;
+    }
     const cat = (window.facesHair && window.facesHair.lockCatalog) || [];
     const opts = cat.map((c) => `<option value="${c.key}" ${c.key === inst.lock ? "selected" : ""}>${c.label}</option>`).join("");
     const shade = window.facesHair && window.facesHair.lockShade;
     const baseFill = editorToHex(inst.fill || "#5a3d28");
     const colorOf = (colKey, k) => editorToHex(inst[colKey] || (shade ? shade(baseFill, k) : baseFill));
     return `<div class="ed-lockrow">
-      <div class="ed-lockhead"><b>Lock ${i + 1}</b><button type="button" class="ed-lockdel" data-lockdel="${i}">✕</button></div>
+      <div class="ed-lockhead"><b>Lock ${i + 1}</b><span class="ed-rowtools"><button type="button" class="ed-rowbtn" data-lockup="${i}" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="ed-rowbtn" data-lockdown="${i}" ${i === t.hairLocks.length - 1 ? "disabled" : ""}>↓</button><button type="button" class="ed-lockdel" data-lockdel="${i}">✕</button></span></div>
       ${field("Shape", `<select data-key="__lockf:${i}:lock">${opts}</select>`)}
       ${field("X", `<input type="range" data-key="__lockf:${i}:x" data-num="1" min="0" max="100" step="1" value="${inst.x != null ? inst.x : 50}">`)}
       ${field("Y", `<input type="range" data-key="__lockf:${i}:y" data-num="1" min="0" max="100" step="1" value="${inst.y != null ? inst.y : 32}">`)}
@@ -103,108 +266,71 @@ function renderEditorControls() {
       ${field("· lines", editorColorWidget(`__lock:${i}:line`, colorOf("line", 0.62)))}
     </div>`;
   }).join("");
-  editorDialog.querySelector(".editor-controls").innerHTML =
-    group("Identity") +
-    field("Name", `<input type="text" data-key="__name" value="${escapeHtml(editorState.name)}" maxlength="16">`) +
-    field("Pronouns", sel("__pronouns", ["she", "he", "they"], editorState.pronouns)) +
-    field("Skin", sel("skin", T.skinTones, t.skin)) +
-    field("Expression", sel("expression", T.expressions, t.expression)) +
-    field("Animation", sel("animMode", EDITOR_ANIM, t.animMode || "still")) +
-    slide("blinkRate", "Blink rate", 3, 16, 1, num("blinkRate", 8)) +
-    group("Hair") +
-    field("Hair style", sel("hair", T.hairStyles, t.hair)) +
-    field("Hair colour", sel("hairColor", T.hairColors, t.hairColor)) +
-    color("hairOutline", "Hair outline", "#1f2330") +
-    slide("frontHairY", "Front hair Y", -24, 24, 1, num("frontHairY", 0)) +
-    slide("backHairY", "Back hair Y", -24, 24, 1, num("backHairY", 0)) +
-    field("Lock blending", sel("lockBlend", ["merged", "separate"], t.lockBlend || "merged")) +
-    group("Hair locks") +
-    (lockRows || `<p class="ed-note">No extra locks placed.</p>`) +
-    `<button type="button" class="button ghost ed-lockadd">＋ Add lock</button>` +
-    group("Beard & brows") +
-    field("Accessory", sel("accessory", T.accessories, t.accessory || "none")) +
-    color("accessoryColor", "Accessory colour", "#303840") +
-    slide("accessoryScale", "Accessory size", 0.5, 1.7, 0.02, num("accessoryScale", 1)) +
-    slide("accessoryX", "Accessory X", -30, 30, 1, num("accessoryX", 0)) +
-    slide("accessoryY", "Accessory Y", -30, 30, 1, num("accessoryY", 0)) +
-    slide("beardLength", "Beard length", 0, 0.5, 0.01, num("beardLength", 0)) +
-    slide("beardScale", "Beard size", 0.6, 1.6, 0.02, num("beardScale", 1)) +
-    slide("beardY", "Beard height", -18, 10, 0.5, num("beardY", 0)) +
-    slide("moustacheScale", "Moustache", 0, 1.6, 0.02, num("moustacheScale", 0)) +
-    field("Brow", sel("browShape", T.browShapes, t.browShape || (T.browShapes || [])[0])) +
-    slide("browThick", "Brow weight", 0.4, 2, 0.01, num("browThick", 1)) +
-    slide("browY", "Brow height", -6, 6, 0.5, num("browY", 0)) +
-    slide("browScaleX", "Brow width", 0.7, 1.35, 0.01, num("browScaleX", 1)) +
-    group("Face") +
-    field("Face shape", sel("faceShape", T.faceShapes, t.faceShape)) +
-    field("Chin", sel("chinShape", T.chinShapes, t.chinShape || "none")) +
-    field("Ears", sel("earVariant", T.earVariants, t.earVariant || "round")) +
-    slide("headScaleX", "Head width", 0.85, 1.15, 0.01, num("headScaleX", 1)) +
-    slide("headScaleY", "Head height", 0.85, 1.15, 0.01, num("headScaleY", 1)) +
-    slide("headY", "Head lift", -14, 14, 1, num("headY", 0)) +
-    slide("jawLength", "Jaw length", -0.2, 0.5, 0.01, num("jawLength", 0)) +
-    slide("chinY", "Chin height", -12, 8, 0.5, num("chinY", 0)) +
-    slide("chinWidth", "Chin width", 0.7, 1.4, 0.02, num("chinWidth", 1)) +
-    slide("earScale", "Ear size", 0.7, 1.3, 0.02, num("earScale", 1)) +
-    slide("earY", "Ear height", -10, 10, 0.5, num("earY", 0)) +
-    group("Nose") +
-    field("Nose tip", sel("noseTip", T.noseTips, t.noseTip || "round")) +
-    slide("noseScale", "Nose size", 0.7, 1.3, 0.01, num("noseScale", 1)) +
-    slide("noseWidth", "Nose width", 0.7, 1.3, 0.01, num("noseWidth", 1)) +
-    slide("noseY", "Nose height", -8, 8, 0.5, num("noseY", 0)) +
-    group("Eyes") +
-    color("eyeColor", "Eye colour", "#5a3d28") +
-    slide("eyeScale", "Eye size", 0.8, 1.25, 0.01, num("eyeScale", 1)) +
-    slide("eyeOpen", "Eye openness", 0.4, 1.3, 0.02, num("eyeOpen", 1)) +
-    slide("irisScale", "Iris size", 0.55, 1, 0.01, num("irisScale", 0.8)) +
-    slide("eyeGap", "Eye spacing", 42, 62, 1, num("eyeGap", 47)) +
-    slide("eyeY", "Eye height", -6, 6, 0.5, num("eyeY", 0)) +
-    slide("pupilX", "Pupil X", -3, 3, 0.5, num("pupilX", 0)) +
-    slide("pupilY", "Pupil Y", -4, 4, 0.5, num("pupilY", 0)) +
-    slide("lazyEye", "Lazy eye", -8, 8, 0.5, num("lazyEye", 0)) +
-    slide("eyeDart", "Eye dart", 0, 0.5, 0.02, num("eyeDart", 0.2)) +
-    slide("lashes", "Lashes", 0, 1.6, 0.05, num("lashes", 0)) +
-    group("Skin detail") +
-    slide("cheekOpacity", "Blush", 0, 0.3, 0.01, num("cheekOpacity", 0.08)) +
-    slide("cheekY", "Blush height", -6, 6, 0.5, num("cheekY", 0)) +
-    slide("nasoOpacity", "Smile lines", 0, 1, 0.05, num("nasoOpacity", 0)) +
-    slide("foreheadLineOpacity", "Forehead lines", 0, 1, 0.05, num("foreheadLineOpacity", 0)) +
-    slide("underEyeOpacity", "Under-eye", 0, 1, 0.05, num("underEyeOpacity", 0)) +
-    slide("crowsFeetOpacity", "Crow's feet", 0, 1, 0.05, num("crowsFeetOpacity", 0)) +
-    slide("marionetteOpacity", "Marionette lines", 0, 1, 0.05, num("marionetteOpacity", 0)) +
-    group("Mouth & teeth") +
-    field("Mouth", sel("mouthStyle", T.mouthStyles, t.mouthStyle)) +
-    field("Teeth", sel("teethStyle", T.teethStyles, t.teethStyle || "even")) +
-    slide("teethGap", "Teeth gap", 0, 6, 0.5, num("teethGap", 0)) +
-    slide("teethScale", "Teeth size", 0.7, 1.3, 0.02, num("teethScale", 1)) +
-    slide("teethOverhang", "Overhang", 0, 8, 0.5, num("teethOverhang", 0)) +
-    field("Lips", sel("lips", T.lipStyles, t.lips || "soft")) +
-    field("Upper lip", sel("lipUpper", T.lipUppers, t.lipUpper || "soft")) +
-    field("Lower lip", sel("lipLower", T.lipLowers, t.lipLower || "round")) +
-    slide("lipUpperSize", "Upper size", 0.3, 1.6, 0.05, num("lipUpperSize", 1)) +
-    slide("lipLowerSize", "Lower size", 0.3, 1.6, 0.05, num("lipLowerSize", 1)) +
-    color("lipColor", "Lip colour", "#a55a52") +
-    slide("mouthScale", "Mouth size", 0.85, 1.25, 0.01, num("mouthScale", 1)) +
-    slide("mouthY", "Mouth height", -6, 14, 0.5, num("mouthY", 0)) +
-    slide("lipLineWidth", "Lip line width", 0.3, 3, 0.05, num("lipLineWidth", 1)) +
-    group("Body") +
-    field("Clothing", sel("clothing", T.clothing, t.clothing)) +
-    color("shirt", "Shirt", "#3a86ff") +
-    color("background", "Background", "#a9c4e0") +
-    slide("build", "Build", 55, 115, 1, num("build", 82)) +
-    slide("shoulderSlope", "Shoulder slope", 0, 1, 0.02, num("shoulderSlope", 0.5)) +
-    slide("bodyWidth", "Body width", 0.6, 1.4, 0.02, num("bodyWidth", 1)) +
-    slide("bust", "Bust", 0, 0.9, 0.01, num("bust", 0)) +
-    slide("belly", "Belly", 0, 0.6, 0.02, num("belly", 0)) +
-    group("Tattoo") +
-    field("Text", `<input type="text" data-key="tattooText" value="${escapeHtml(t.tattooText || "")}" maxlength="6" placeholder="❤ / txt">`) +
-    field("Placement", sel("tattooPlace", ["body", "face"], t.tattooPlace || "body")) +
-    slide("tattooX", "Tattoo X", -45, 45, 1, num("tattooX", 0)) +
-    slide("tattooY", "Tattoo Y", -40, 20, 1, num("tattooY", 0)) +
-    slide("tattooScale", "Tattoo size", 0.4, 1.6, 0.05, num("tattooScale", 1)) +
-    slide("tattooRot", "Tattoo angle", -60, 60, 1, num("tattooRot", 0));
+  const tattooRows = tattooList(t).map((tattoo, i) => {
+    const place = tattoo.place || "body";
+    const font = tattoo.font || "bold";
+    return `<div class="ed-lockrow ed-tatrow">
+      <div class="ed-lockhead"><b>Tattoo ${i + 1}</b><span class="ed-rowtools"><button type="button" class="ed-rowbtn" data-tatup="${i}" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="ed-rowbtn" data-tatdown="${i}" ${i === tattooList(t).length - 1 ? "disabled" : ""}>↓</button><button type="button" class="ed-tatdel" data-tatdel="${i}">✕</button></span></div>
+      ${field("Text", `<input type="text" data-key="__tat:${i}:text" value="${escapeHtml(tattoo.text || "")}" maxlength="18" spellcheck="false">`)}
+      ${field("Place", sel(`__tat:${i}:place`, T.tattooPlaces || ["body", "face"], place))}
+      ${field("Layer", sel(`__tat:${i}:layer`, ["overClothes", "onSkin"], tattoo.layer || "overClothes"))}
+      ${field("Font", sel(`__tat:${i}:font`, T.tattooFonts || ["bold"], font))}
+      ${field("Colour", editorColorWidget(`__tat:${i}:color`, editorToHex(tattoo.color || "#23232b")))}
+      ${slide(`__tat:${i}:x`, "X", -80, 80, 1, tattoo.x ?? 0)}
+      ${slide(`__tat:${i}:y`, "Y", -60, 50, 1, tattoo.y ?? 0)}
+      ${slide(`__tat:${i}:scale`, "Size", 0.25, 3.5, 0.05, tattoo.scale ?? 1)}
+      ${slide(`__tat:${i}:rot`, "Rotate", -90, 90, 1, tattoo.rot ?? 0)}
+      ${slide(`__tat:${i}:skewX`, "Skew", -45, 45, 1, tattoo.skewX ?? 0)}
+      ${slide(`__tat:${i}:warp`, "Warp", 0, 1, 0.02, tattoo.warp ?? 0)}
+      ${slide(`__tat:${i}:opacity`, "Fade", 0, 1, 0.05, tattoo.opacity ?? 1)}
+    </div>`;
+  }).join("");
+  const beardRows = beardBlobList(t).map((blob, i) => `
+    <div class="ed-lockrow ed-beardrow">
+      <div class="ed-lockhead"><b>Beard Blob ${i + 1}</b><button type="button" class="ed-bearddel" data-bearddel="${i}">✕</button></div>
+      ${slide(`__beard:${i}:r`, "Size", 6, 48, 1, blob.r ?? 16)}
+      ${slide(`__beard:${i}:dx`, "Spread", 0, 90, 1, Math.abs(blob.dx ?? 30))}
+      ${slide(`__beard:${i}:y`, "Y", 160, 228, 1, blob.y ?? 198)}
+    </div>`
+  ).join("");
+  const sharedFields = sharedEditorFieldList(T).filter((item) => {
+    if (!item || !item.key) return false;
+    if (item.group === "Tattoo") return false; // use the richer tattoo-list editor below
+    if (typeof item.when === "function" && !item.when(t)) return false;
+    return true;
+  });
+  const order = sharedGroupOrder().filter((groupName) => groupName !== "Tattoo");
+  const sections = [
+    group("Identity"),
+    field("Name", `<input type="text" data-key="__name" value="${escapeHtml(editorState.name)}" maxlength="16">`),
+    field("Pronouns", sel("__pronouns", ["she", "he", "they"], editorState.pronouns)),
+    field("Expression", sel("expression", T.expressions, t.expression))
+  ];
+  order.forEach((groupName) => {
+    const items = sharedFields.filter((item) => item.group === groupName);
+    if (!items.length) return;
+    sections.push(group(sharedGroupTitle(groupName)));
+    items.forEach((item) => sections.push(renderSharedField(item)));
+    if (groupName === "Hair") {
+      sections.push(group("Hair locks"));
+      sections.push(lockRows || `<p class="ed-note">No extra locks placed.</p>`);
+      sections.push(`<div class="ed-inlinebuttons"><button type="button" class="button ghost ed-lockadd">＋ Add lock</button>${lockRows ? `<button type="button" class="button ghost ed-lockclear">Clear locks</button>` : ""}</div>`);
+    }
+    if (groupName === "Beard") {
+      sections.push(group("Beard blobs"));
+      sections.push(beardRows || `<p class="ed-note">No beard blobs placed.</p>`);
+      sections.push(`<div class="ed-inlinebuttons"><button type="button" class="button ghost ed-beardadd">＋ Add beard blob</button>${beardRows ? `<button type="button" class="button ghost ed-beardclear">Clear beard blobs</button>` : ""}</div>`);
+    }
+  });
+  sections.push(group(sharedGroupTitle("Tattoo")));
+  sections.push(tattooRows || `<p class="ed-note">No extra tattoos placed.</p>`);
+  sections.push(`<div class="ed-inlinebuttons"><button type="button" class="button ghost ed-tatadd">＋ Add tattoo</button>${tattooRows ? `<button type="button" class="button ghost ed-tatclear">Clear tattoos</button>` : ""}</div>`);
+  editorDialog.querySelector(".editor-controls").innerHTML = sections.join("");
   wireEditorColorWidgets();
   wireEditorLockButtons();
+  wireEditorBeardButtons();
+  wireEditorTattooButtons();
+  wireEditorHotspots();
 }
 // Keep the three faces of each colour control (picker / hex / swatches) in lockstep.
 function wireEditorColorWidgets() {
@@ -224,21 +350,61 @@ function wireEditorColorWidgets() {
     btn.addEventListener("click", () => {
       document.querySelector(".ed-swatchpop")?.remove();
       const key = btn.dataset.swatchfor;
+      const picker = editorDialog.querySelector(`input[type="color"][data-key="${CSS.escape(key)}"]`);
+      const hexEl = editorDialog.querySelector(`.ed-hex[data-hexfor="${CSS.escape(key)}"]`);
+      const current = editorToHex((hexEl && hexEl.value) || (picker && picker.value) || "#5a3d28");
+      const hsl = editorRgbToHsl(...Object.values(editorHexToRgb(current)));
       const pop = document.createElement("div");
       pop.className = "ed-swatchpop";
-      pop.innerHTML = EDITOR_SWATCHES.map((c) => `<button type="button" style="background:${c}" data-c="${c}" aria-label="${c}"></button>`).join("");
+      pop.innerHTML = `
+        <div class="ed-pop-top">
+          <span class="ed-pop-chip" style="--chip:${current}"></span>
+          <input type="text" class="ed-pop-hex" value="${current}" maxlength="7" spellcheck="false" aria-label="Selected colour hex">
+        </div>
+        <label class="ed-pop-row"><span>H</span><input type="range" min="0" max="360" step="1" value="${hsl.h}" data-hsl="h"></label>
+        <label class="ed-pop-row"><span>S</span><input type="range" min="0" max="100" step="1" value="${hsl.s}" data-hsl="s"></label>
+        <label class="ed-pop-row"><span>L</span><input type="range" min="0" max="100" step="1" value="${hsl.l}" data-hsl="l"></label>
+        <div class="ed-pop-swatches">${EDITOR_SWATCHES.map((c) => `<button type="button" style="background:${c}" data-c="${c}" aria-label="${c}"></button>`).join("")}</div>
+      `;
       btn.parentElement.appendChild(pop);
-      pop.addEventListener("click", (e) => {
-        const c = e.target.dataset && e.target.dataset.c;
-        if (!c) return;
-        const picker = editorDialog.querySelector(`input[type="color"][data-key="${CSS.escape(key)}"]`);
-        const hexEl = editorDialog.querySelector(`.ed-hex[data-hexfor="${CSS.escape(key)}"]`);
-        if (picker) picker.value = c;
-        if (hexEl) hexEl.value = c;
-        applyEditorValue(key, c, false);
+      const chip = pop.querySelector(".ed-pop-chip");
+      const popHex = pop.querySelector(".ed-pop-hex");
+      const hInput = pop.querySelector('[data-hsl="h"]');
+      const sInput = pop.querySelector('[data-hsl="s"]');
+      const lInput = pop.querySelector('[data-hsl="l"]');
+      const syncColor = (color) => {
+        if (picker) picker.value = color;
+        if (hexEl) hexEl.value = color;
+        if (popHex) popHex.value = color;
+        if (chip) chip.style.setProperty("--chip", color);
+        const chipButton = editorDialog.querySelector(`.ed-colorchip[data-swatchfor="${CSS.escape(key)}"]`);
+        if (chipButton) chipButton.style.setProperty("--chip", color);
+        applyEditorValue(key, color, false);
         renderEditorPreview();
-        pop.remove();
+      };
+      const syncFromHsl = () => {
+        const rgb = editorHslToRgb(Number(hInput.value), Number(sInput.value), Number(lInput.value));
+        syncColor(editorRgbToHex(rgb.r, rgb.g, rgb.b));
+      };
+      [hInput, sInput, lInput].forEach((input) => input.addEventListener("input", syncFromHsl));
+      popHex.addEventListener("input", () => {
+        const raw = popHex.value.trim();
+        if (!/^#[0-9a-fA-F]{6}$/.test(raw)) return;
+        const next = raw.toLowerCase();
+        const nextHsl = editorRgbToHsl(...Object.values(editorHexToRgb(next)));
+        hInput.value = nextHsl.h;
+        sInput.value = nextHsl.s;
+        lInput.value = nextHsl.l;
+        syncColor(next);
       });
+      pop.querySelectorAll("[data-c]").forEach((swatch) => swatch.addEventListener("click", () => {
+        const next = swatch.dataset.c;
+        const nextHsl = editorRgbToHsl(...Object.values(editorHexToRgb(next)));
+        hInput.value = nextHsl.h;
+        sInput.value = nextHsl.s;
+        lInput.value = nextHsl.l;
+        syncColor(next);
+      }));
       setTimeout(() => document.addEventListener("pointerdown", function away(e) {
         if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener("pointerdown", away); }
       }), 0);
@@ -253,8 +419,101 @@ function wireEditorLockButtons() {
     editorState.traits.hairLocks.push({ lock: cat.length ? cat[0].key : "sideSwoop", x: 50, y: 30, scale: 0.5, rot: 0, lines: true });
     renderEditorControls(); renderEditorPreview();
   });
+  root.querySelector(".ed-lockclear")?.addEventListener("click", () => {
+    if (!Array.isArray(editorState.traits.hairLocks)) editorState.traits.hairLocks = [];
+    editorState.traits.hairLocks.splice(0);
+    renderEditorControls(); renderEditorPreview();
+  });
   root.querySelectorAll(".ed-lockdel").forEach((b) => b.addEventListener("click", () => {
     editorState.traits.hairLocks.splice(Number(b.dataset.lockdel), 1);
+    renderEditorControls(); renderEditorPreview();
+  }));
+  root.querySelectorAll("[data-lockup]").forEach((b) => b.addEventListener("click", () => {
+    const i = Number(b.dataset.lockup);
+    const list = editorState.traits.hairLocks || [];
+    if (i > 0) [list[i - 1], list[i]] = [list[i], list[i - 1]];
+    renderEditorControls(); renderEditorPreview();
+  }));
+  root.querySelectorAll("[data-lockdown]").forEach((b) => b.addEventListener("click", () => {
+    const i = Number(b.dataset.lockdown);
+    const list = editorState.traits.hairLocks || [];
+    if (i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
+    renderEditorControls(); renderEditorPreview();
+  }));
+}
+function tattooList(t) {
+  if (window.WhoEditorShared && window.WhoEditorShared.normalizeTattooList) {
+    return window.WhoEditorShared.normalizeTattooList(t);
+  }
+  if (Array.isArray(t.tattoos) && t.tattoos.length) return t.tattoos;
+  if (!t.tattooText) return [];
+  return [{
+    text: t.tattooText,
+    place: t.tattooPlace || "body",
+    layer: t.tattooLayer || "overClothes",
+    font: t.tattooFont || "bold",
+    color: t.tattooColor || "#23232b",
+    x: Number(t.tattooX) || 0,
+    y: Number(t.tattooY) || 0,
+    scale: Number(t.tattooScale) || 1,
+    rot: Number(t.tattooRot) || 0,
+    skewX: Number(t.tattooSkewX) || 0,
+    warp: Number(t.tattooWarp) || 0,
+    opacity: t.tattooOpacity == null ? 1 : Number(t.tattooOpacity)
+  }];
+}
+function ensureTattooList() {
+  if (!Array.isArray(editorState.traits.tattoos) || !editorState.traits.tattoos.length) {
+    editorState.traits.tattoos = tattooList(editorState.traits).map((tattoo) => ({ ...tattoo }));
+  }
+  return editorState.traits.tattoos;
+}
+function beardBlobList(t) {
+  return Array.isArray(t.beardBlobs) ? t.beardBlobs : [];
+}
+function ensureBeardBlobList() {
+  if (!Array.isArray(editorState.traits.beardBlobs)) editorState.traits.beardBlobs = [];
+  return editorState.traits.beardBlobs;
+}
+function wireEditorBeardButtons() {
+  const root = editorDialog.querySelector(".editor-controls");
+  root.querySelector(".ed-beardadd")?.addEventListener("click", () => {
+    ensureBeardBlobList().push({ dx: 30, y: 198, r: 16 });
+    renderEditorControls(); renderEditorPreview();
+  });
+  root.querySelector(".ed-beardclear")?.addEventListener("click", () => {
+    ensureBeardBlobList().splice(0);
+    renderEditorControls(); renderEditorPreview();
+  });
+  root.querySelectorAll(".ed-bearddel").forEach((b) => b.addEventListener("click", () => {
+    ensureBeardBlobList().splice(Number(b.dataset.bearddel), 1);
+    renderEditorControls(); renderEditorPreview();
+  }));
+}
+function wireEditorTattooButtons() {
+  const root = editorDialog.querySelector(".editor-controls");
+  root.querySelector(".ed-tatadd")?.addEventListener("click", () => {
+    ensureTattooList().push({ text: "ink", place: "body", layer: "overClothes", font: "bold", color: "#23232b", x: 0, y: 0, scale: 1, rot: 0, skewX: 0, warp: 0, opacity: 1 });
+    renderEditorControls(); renderEditorPreview();
+  });
+  root.querySelector(".ed-tatclear")?.addEventListener("click", () => {
+    ensureTattooList().splice(0);
+    renderEditorControls(); renderEditorPreview();
+  });
+  root.querySelectorAll(".ed-tatdel").forEach((b) => b.addEventListener("click", () => {
+    ensureTattooList().splice(Number(b.dataset.tatdel), 1);
+    renderEditorControls(); renderEditorPreview();
+  }));
+  root.querySelectorAll("[data-tatup]").forEach((b) => b.addEventListener("click", () => {
+    const i = Number(b.dataset.tatup);
+    const list = ensureTattooList();
+    if (i > 0) [list[i - 1], list[i]] = [list[i], list[i - 1]];
+    renderEditorControls(); renderEditorPreview();
+  }));
+  root.querySelectorAll("[data-tatdown]").forEach((b) => b.addEventListener("click", () => {
+    const i = Number(b.dataset.tatdown);
+    const list = ensureTattooList();
+    if (i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
     renderEditorControls(); renderEditorPreview();
   }));
 }
@@ -270,6 +529,7 @@ function applyEditorValue(key, val, isNum) {
     if (!inst) return;
     if (prop === "mirror" || prop === "behind") inst[prop] = val === "yes";
     else if (prop === "lines") inst.lines = val !== "no";
+    else if (prop === "outlineOn") inst.outline = val === "no" ? "none" : (inst.outline && inst.outline !== "none" ? inst.outline : "#1f2330");
     else if (prop === "lock") inst.lock = val;
     else inst[prop] = Number(val);
     return;
@@ -298,6 +558,20 @@ function applyEditorValue(key, val, isNum) {
       inst[col] = val;
       inst["_m" + col[0].toUpperCase() + col.slice(1)] = true;   // manually set → unlink from fill
     }
+    return;
+  }
+  if (key.startsWith("__tat:")) {
+    const [, iStr, prop] = key.split(":");
+    const inst = ensureTattooList()[Number(iStr)];
+    if (!inst) return;
+    inst[prop] = isNum ? Number(val) : val;
+    return;
+  }
+  if (key.startsWith("__beard:")) {
+    const [, iStr, prop] = key.split(":");
+    const inst = ensureBeardBlobList()[Number(iStr)];
+    if (!inst) return;
+    inst[prop] = Number(val);
     return;
   }
   editorState.traits[key] = isNum ? Number(val) : val;
@@ -356,7 +630,7 @@ function editorRand() {
     skin: () => pickA(T.skinTones), hair: () => pickA(T.hairStyles), hairColor: () => pickA(T.hairColors),
     expression: () => pickA(T.expressions), faceShape: () => pickA(T.faceShapes),
     noseTip: () => pickA(T.noseTips || ["round"]), browShape: () => pickA(T.browShapes),
-    clothing: () => pickA(T.clothing), accessory: () => pickA(T.accessories), animMode: () => pickA(EDITOR_ANIM),
+    clothing: () => pickA(T.clothing), accessory: () => pickA(T.accessories), animMode: () => pickA(T.animModes || ["still"]),
     eyeColor: hex, shirt: hex,
     eyeScale: () => num(0.8, 1.2, 2), browThick: () => num(0.7, 1.4, 2), noseWidth: () => num(0.7, 1.3, 2),
     mouthScale: () => num(0.85, 1.2, 2), build: () => Math.floor(num(60, 110, 0))
@@ -405,7 +679,10 @@ function buildEditorDialog() {
       </div>
       <div class="editor-body">
         <div class="editor-preview">
-          <img id="edPreview" alt="preview">
+          <div class="ed-preview-stage">
+            <img id="edPreview" alt="preview">
+            <div class="ed-hotspots" aria-label="Jump to character controls"></div>
+          </div>
           <small id="edHint">Saved faces get dealt into future games.</small>
           <div class="ed-rand">
             <button type="button" id="edRandAll" class="button ghost">🎲 Randomise all</button>
@@ -428,6 +705,19 @@ function buildEditorDialog() {
     const el = e.target, key = el.dataset.key;
     if (!key) return;
     applyEditorValue(key, el.value, !!el.dataset.num);
+    if (el.dataset.pair) {
+      d.querySelectorAll(`[data-pair="${CSS.escape(el.dataset.pair)}"]`).forEach((peer) => {
+        if (peer === el) return;
+        if (peer.type === "range") {
+          const min = Number(peer.min);
+          const max = Number(peer.max);
+          const val = Number(el.value);
+          if (Number.isFinite(val) && val >= min && val <= max) peer.value = el.value;
+        } else {
+          peer.value = el.value;
+        }
+      });
+    }
     // Spectrum picker moved → mirror the value into its hex twin.
     if (el.type === "color") {
       const hexEl = d.querySelector(`.ed-hex[data-hexfor="${CSS.escape(key)}"]`);

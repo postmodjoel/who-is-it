@@ -302,7 +302,26 @@
     turtleneck: { collar: "turtle" },
     overalls: { collar: "overall" },
     singlet: { collar: "none", bare: true },   // bare shoulders/arms + a thin-strap tank panel
-    bare: { collar: "none", bare: true, nude: true } // no shirt - skin shoulders/chest
+    bare: { collar: "none", bare: true, nude: true }, // no shirt - skin shoulders/chest
+    rugby: { collar: "custom", custom: true, defaultColor: "#246c5b", accent: "#f0d35f" },
+    flannel: { collar: "custom", custom: true, layer: true, defaultColor: "#b7443d", accent: "#253244", under: "#2f7a78" },
+    denim: { collar: "custom", custom: true, layer: true, defaultColor: "#3d6f9e", accent: "#d6a24e", under: "#2f7a78" },
+    varsity: { collar: "custom", custom: true, layer: true, defaultColor: "#a53845", accent: "#f0f0e7", under: "#2f7a78" },
+    bomber: { collar: "custom", custom: true, layer: true, defaultColor: "#566f40", accent: "#e0a33a", under: "#2f7a78" },
+    cardigan: { collar: "custom", custom: true, layer: true, defaultColor: "#7d5a8f", accent: "#f2dfcf", under: "#1f6f78" },
+    sweaterVest: { collar: "custom", custom: true, layer: true, defaultColor: "#c58b31", accent: "#283e6a", under: "#545454" },
+    labCoat: { collar: "custom", custom: true, layer: true, defaultColor: "#f4f6f4", accent: "#2f7a78", under: "#2f7a78" },
+    scrubs: { collar: "custom", custom: true, defaultColor: "#1e8c91", accent: "#cbe7e6" },
+    chefCoat: { collar: "custom", custom: true, defaultColor: "#f2f1e8", accent: "#cc453c" },
+    apron: { collar: "custom", custom: true, layer: true, defaultColor: "#2f7a78", accent: "#e7b64f", under: "#545454" },
+    securityVest: { collar: "custom", custom: true, layer: true, defaultColor: "#242b34", accent: "#e7f04a", under: "#2f7a78" },
+    tracksuit: { collar: "custom", custom: true, defaultColor: "#315eaa", accent: "#f3f0e7" },
+    raincoat: { collar: "custom", custom: true, layer: true, defaultColor: "#e3b83e", accent: "#384252", under: "#2f7a78" },
+    pinafore: { collar: "custom", custom: true, layer: true, defaultColor: "#4b5f9c", accent: "#f1f1eb", under: "#2f7a78" },
+    sariDrape: { collar: "custom", custom: true, defaultColor: "#d04e78", accent: "#e3b83e" },
+    kurta: { collar: "custom", custom: true, defaultColor: "#2f7a5d", accent: "#d8b65a" },
+    sequin: { collar: "custom", custom: true, defaultColor: "#4f3c8b", accent: "#f0c94d" },
+    leather: { collar: "custom", custom: true, layer: true, defaultColor: "#252933", accent: "#cdd2d6", under: "#2f7a78" }
   };
 
   // Preset metals for metal jewellery (chain, etc.).
@@ -365,24 +384,46 @@
         <path d='M${eyes.left - 8} ${y - 8}q6 -4 12 -2M${eyes.right - 4} ${y - 8}q6 -2 12 2' fill='none' stroke='rgba(255,255,255,.52)' stroke-width='1.6' stroke-linecap='round'/>
       `;
     },
-    hoops: () => `
+    hoops: (traits = {}) => {
+      const c = traits.accessoryColor || "#f6bd2f";
+      return `
       <circle cx='60' cy='145' r='7.5' fill='none' stroke='#f6bd2f' stroke-width='3'/>
       <circle cx='196' cy='145' r='7.5' fill='none' stroke='#f6bd2f' stroke-width='3'/>
       <path d='M60 137c2 1 3 2 4 4M196 137c-2 1-3 2-4 4' fill='none' stroke='rgba(255,255,255,.5)' stroke-width='1.6' stroke-linecap='round'/>
-    `,
-    studs: () => `
-      <circle cx='58' cy='145' r='4.4' fill='#ffd569' stroke='#171512' stroke-width='2'/>
-      <circle cx='198' cy='145' r='4.4' fill='#ffd569' stroke='#171512' stroke-width='2'/>
+    `.split("#f6bd2f").join(c);
+    },
+    studs: (traits = {}) => {
+      const c = traits.accessoryColor || "#ffd569";
+      return `
+      <circle cx='58' cy='145' r='4.4' fill='${c}' stroke='#171512' stroke-width='2'/>
+      <circle cx='198' cy='145' r='4.4' fill='${c}' stroke='#171512' stroke-width='2'/>
       <circle cx='58' cy='144' r='1.3' fill='rgba(255,255,255,.8)'/>
       <circle cx='198' cy='144' r='1.3' fill='rgba(255,255,255,.8)'/>
-    `,
-    dropEarrings: () => `
-      <circle cx='60' cy='139' r='3.2' fill='#ffd569' stroke='#171512' stroke-width='1.8'/>
-      <circle cx='196' cy='139' r='3.2' fill='#ffd569' stroke='#171512' stroke-width='1.8'/>
+    `;
+    },
+    dropEarrings: (traits = {}) => {
+      const top = traits.accessoryColor || "#ffd569";
+      const drop = traits.accessoryColor2 || traits.jewelleryColor2 || "#ff9bb0";
+      return `
+      <circle cx='60' cy='139' r='3.2' fill='${top}' stroke='#171512' stroke-width='1.8'/>
+      <circle cx='196' cy='139' r='3.2' fill='${top}' stroke='#171512' stroke-width='1.8'/>
       <path d='M60 142v8M196 142v8' fill='none' stroke='#171512' stroke-width='1.8' stroke-linecap='round'/>
-      <ellipse cx='60' cy='153' rx='4.8' ry='6.2' fill='#ff9bb0' stroke='#171512' stroke-width='2'/>
-      <ellipse cx='196' cy='153' rx='4.8' ry='6.2' fill='#ff9bb0' stroke='#171512' stroke-width='2'/>
-    `,
+      <ellipse cx='60' cy='153' rx='4.8' ry='6.2' fill='${drop}' stroke='#171512' stroke-width='2'/>
+      <ellipse cx='196' cy='153' rx='4.8' ry='6.2' fill='${drop}' stroke='#171512' stroke-width='2'/>
+    `;
+    },
+    noseRing: (traits = {}) => {
+      const c = traits.accessoryColor || "#e2b84f";
+      return `<path d='M137 157c5 1 8 4 7 8c-1 4-5 6-9 4' fill='none' stroke='${c}' stroke-width='2.6' stroke-linecap='round'/>`;
+    },
+    eyebrowRing: (traits = {}) => {
+      const c = traits.accessoryColor || "#cdd2d6";
+      return `<path d='M92 119c1 5 4 8 8 9' fill='none' stroke='${c}' stroke-width='2.4' stroke-linecap='round'/><circle cx='92' cy='119' r='2.3' fill='${c}' stroke='#171512' stroke-width='1.2'/><circle cx='100' cy='128' r='2.3' fill='${c}' stroke='#171512' stroke-width='1.2'/>`;
+    },
+    ring: (traits = {}) => {
+      const c = traits.accessoryColor || "#e2b84f";
+      return `<g transform='translate(128 232)'><ellipse cx='0' cy='0' rx='9' ry='6' fill='none' stroke='${c}' stroke-width='3'/><path d='M-5 -4q5 -5 10 0' fill='none' stroke='rgba(255,255,255,.55)' stroke-width='1.5' stroke-linecap='round'/></g>`;
+    },
     beard: (traits, faceShape) => {
       // Two distinct looks driven by one `beardLength` knob, both clipped to the real face silhouette
       // so the beard can never float past the jaw as a pasted-on blob:
@@ -831,7 +872,1356 @@
   // Per-character design overrides folded in from the studio (exported corrections). Keyed by the
   // base seed id (not the "gen-" portrait id). Drop an exported character's correction block here to
   // make its studio look the permanent default.
-  const studioBakes = {"javier": {"backHairY": -4, "hair": "locs", "hairOutline": "#3d1f10", "beardBlobs": [{"dx": 11, "y": 209, "r": 19}, {"dx": 12, "y": 199, "r": 8}, {"dx": 21, "y": 210, "r": 6}, {"dx": 24, "y": 201, "r": 9}], "beardLength": 0.16, "moustacheScale": 1.38, "build": 69, "shoulderSlope": 0.3, "bodyWidth": 0.94, "mouthStyle": "goofyTeeth", "mouthY": 2, "mouthScale": 1.14, "lips": "soft", "lipLowerSize": 0.5, "lipLower": "wide", "lipUpper": "cupid", "lipUpperSize": 0.7, "chinY": 4, "headY": -8, "hairLocks": [{"lock": "longSideLock", "x": 47, "y": 22, "scale": 0.3, "rot": 108, "lines": true, "outline": "none", "mirror": true}, {"lock": "sideSwoop", "x": 52, "y": 21, "scale": 0.3, "rot": 107, "lines": true, "outline": "none"}], "earScale": 0.86, "earY": -3, "earVariant": "attached", "chinShape": "round", "jawShadowY": -3.5, "animMode": "calm", "eyeColor": "#11263c", "irisScale": 0.76, "eyeOpen": 0.66}, "yara": {"accessory": "beard", "beardLength": 0.16, "beardY": -13, "beardScale": 1.04, "beardSkewX": 5, "mouthStyle": "buckTeeth", "mouthScale": 1.14, "teethGap": 2, "teethOverhang": 6.5, "chinShape": "round", "chinY": -7, "chinWidth": 0.84, "foreheadLineOpacity": 0.4, "nasoOpacity": 0.65, "crowsFeetOpacity": 0.45, "marionetteOpacity": 0.3, "frontHairY": -5, "hairLocks": [{"lock": "messyTufts", "x": 51, "y": 77, "scale": 0.3, "rot": 180, "lines": true, "behind": true, "outline": "none"}, {"lock": "curlyForelock", "x": 41, "y": 31, "scale": 0.3, "rot": 99, "lines": true, "outline": "none", "fill": "#998880", "dark": "#231d1a"}], "hairColor": "silver", "noseY": 3, "noseScale": 0.88, "noseTip": "straight", "lipUpperSize": 1.5, "lipLowerSize": 1.4, "lipLower": "pillow", "mouthY": 5}, "naomi": {"accessoryScale": 1.34, "accessoryX": 23, "accessoryY": -1, "hair": "cropped", "backHairY": 14, "hairColor": "silver", "hairLocks": [{"lock": "rightCascade", "x": 56, "y": 58, "scale": 1, "rot": 0, "lines": true, "behind": true}, {"lock": "longSStrand", "x": 64, "y": 30, "scale": 0.5, "rot": 97, "lines": true, "mirror": true}, {"lock": "leftCascade", "x": 52, "y": 48, "scale": 0.6, "rot": 71, "lines": true}], "eyeDart": 0.08, "eyeY": -3.5, "irisScale": 0.74, "eyeScale": 1.22, "eyeOpen": 1.2, "mouthStyle": "bigSmile", "skin": "porcelain", "browThick": 0.5, "browScaleX": 0.92, "browY": 2, "jawLength": 0.4, "headScaleX": 0.9, "headY": -10, "eyeGap": 53, "lips": "full", "lipUpper": "cupid", "lipLower": "flat", "lipUpperSize": 0.7, "lipLowerSize": 0.7, "lipColor": "#5c2f6a", "mouthY": 4, "mouthScale": 1.22, "chinY": 6, "chinWidth": 1.2, "clothing": "singlet", "shirt": "#73497e", "build": 62, "shoulderSlope": 1, "bust": 0.15, "bodyWidth": 1.06, "blinkRate": 11, "earY": 4, "earVariant": "narrow", "earScale": 0.96, "accessoryColor": "#2d2a51", "cheekY": 1, "cheekOpacity": 0.01, "foreheadLineOpacity": 0.25, "underEyeOpacity": 0.25, "crowsFeetOpacity": 0.35, "marionetteOpacity": 0.05, "cheekLineOpacity": 0.3, "tattooText": "🗡 ", "tattooX": -14, "tattooWarp": 0.12, "tattooSkewX": -19, "tattooY": -33, "tattooRot": -50, "tattooScale": 0.8}, "felix": {"accessory": "necklace", "chainLink": 1.05, "hair": "bald", "accessoryY": -16, "accessoryScale": 0.68, "accessoryColor": "#151c23", "hairLocks": [{"lock": "highPonytail", "x": 47, "y": 33, "scale": 0.42, "rot": -3, "lines": false, "outline": "none"}], "hairColor": "blonde", "browShape": "soft", "browY": -2.5, "browScaleX": 0.82, "browThick": 0.7, "eyeOpen": 0.72, "irisScale": 0.7, "pupilY": -4, "lazyEye": 3, "eyeDart": 0.1, "noseY": -5.5, "noseScale": 0.84, "noseWidth": 0.91, "teethGap": 1.5, "teethStyle": "spaced", "teethOverhang": 0.5, "teethX": -1, "teethScale": 1.08, "jawLength": -0.13, "jawShadowY": -2, "chinY": -12, "chinWidth": 1.34, "chinShape": "pointed", "chinScale": 0.82, "build": 67, "shoulderSlope": 0.06, "bodyWidth": 1.04, "skin": "tan", "headScaleX": 0.94, "headScaleY": 0.98, "headY": 8, "eyeGap": 49, "cheekY": 1.5}, "aaron": {"beardLength": 0.22, "build": 78, "shoulderSlope": 0.62, "bust": 0.1, "lips": "soft", "lipUpperSize": 0.6, "lipLowerSize": 0.8, "mouthScale": 1.08, "mouthY": 9, "lipColor": "#d25184", "irisScale": 0.86, "eyeOpen": 0.86, "eyeScale": 0.98, "eyeY": 2, "pupilY": -1, "noseY": 6.5, "noseScale": 1.02, "noseTip": "button", "noseWidth": 1.03, "foreheadLineOpacity": 0.35, "frownLineOpacity": 0.4, "underEyeOpacity": 0.1, "crowsFeetOpacity": 0.2, "marionetteOpacity": 0.1, "cheekLineOpacity": 0.2, "cheekY": 4.5, "cheekOpacity": 0.14}, "amira": {"backHairY": 7}, "adeline": {"accessoryScale": 1.16, "hairLocks": [{"lock": "centerPartWaves", "x": 50, "y": 36, "scale": 0.3, "rot": -180, "lines": false, "mirror": true, "outline": "none"}, {"lock": "shortCrop", "x": 34, "y": 39, "scale": 0.3, "rot": 143, "lines": false, "outline": "none"}, {"lock": "longSStrand", "x": 67, "y": 39, "scale": 0.3, "rot": 109, "lines": false, "outline": "none", "mirror": true}, {"lock": "splitSideLocks", "x": 53, "y": 49, "scale": 0.96, "rot": -2, "lines": true, "behind": true}, {"lock": "leftCascade", "x": 44, "y": 100, "scale": 1, "rot": 0, "lines": true, "behind": true}], "hair": "bob", "lipUpperSize": 0.6, "lipLowerSize": 0.8, "mouthY": 4, "mouthScale": 0.92, "lipColor": "#bd847a", "chinY": 3, "jawLength": -0.03, "hairColor": "darkBrown"}, "sophia": {"shirt": "#000000", "build": 68, "shoulderSlope": 0.88, "bodyWidth": 1.18, "animMode": "smug"}, "jamal": {"accessoryScale": 0.96, "accessoryColor": "#303840", "background": "#7dbf88", "eyeScale": 0.86, "eyeOpen": 0.64, "irisScale": 0.78, "eyeY": 2, "pupilX": -0.5, "pupilY": -1, "lazyEye": -6.5, "eyeDart": 0.36, "noseScale": 0.92, "noseY": 6.5, "noseWidth": 0.99, "lips": "soft", "lipUpper": "flat", "lipLower": "flat", "lipUpperSize": 0.65, "lipLowerSize": 0.8, "mouthY": 3, "chinShape": "dimple", "chinWidth": 0.86, "chinScale": 0.8, "shirt": "#ddc978", "build": 69, "shoulderSlope": 0.84, "bodyWidth": 1.21, "bust": 0.35, "earY": 9, "earScale": 1.06, "earVariant": "lobe", "tattooText": "❤︎", "tattooPlace": "face", "tattooY": -25, "tattooX": 41, "tattooScale": 0.75, "tattooRot": -14, "tattooSkewX": -17, "tattooWarp": 0.2, "eyeColor": "#0b0a0a"}, "bruno": {"shirt": "#ffffff", "shoulderSlope": 0.72, "build": 97, "bodyWidth": 1.28, "hairLocks": [{"lock": "sideSwoop", "x": 51, "y": 31, "scale": 0.3, "rot": -70, "lines": false, "outline": "none"}], "frontHairY": -5, "backHairY": 4, "skin": "brown", "beardBlobs": [{"dx": 47, "y": 174, "r": 12}, {"dx": 30, "y": 184, "r": 17}, {"dx": 14, "y": 197, "r": 15}, {"dx": 34, "y": 196, "r": 23}, {"dx": 8, "y": 210, "r": 27}, {"dx": 44, "y": 188, "r": 15}], "accessory": "necklace", "accessoryY": 22, "accessoryMetal": "gold", "accessoryColor": "#161d1a", "accessoryScale": 1.36, "chainLink": 0.65, "browShape": "bushy", "browY": 4.5, "browScaleX": 1.24, "browThick": 2, "eyeOpen": 0.54, "eyeScale": 0.98, "irisScale": 0.8, "eyeY": -2.5}, "noor": {"skin": "ebony", "hair": "bald", "frontHairY": -6, "backHairY": -5, "hairLocks": [{"lock": "curtainBangs", "x": 50, "y": 24, "scale": 0.46, "rot": 180, "lines": true}, {"lock": "angularArc", "x": 53, "y": 24, "scale": 0.4, "rot": -55, "lines": true, "outline": "none"}], "eyeScale": 1.08, "eyeOpen": 1.2, "irisScale": 0.88, "eyeY": 1, "pupilX": 1, "pupilY": -0.5, "lazyEye": 0, "eyeDart": 0.18, "noseY": 4, "background": "#71d6d1", "cheekOpacity": 0.05, "earScale": 0.84, "earY": 1, "mouthStyle": "buckTeeth", "lipUpperSize": 0.45, "lipLowerSize": 1.25, "mouthY": 11, "mouthScale": 1.08, "teethStyle": "gappy", "teethX": 6, "teethGap": 5, "chinShape": "round", "chinWidth": 1.32, "accessory": "beard", "accessoryScale": 0.88, "beardLength": 0.14, "beardX": -3, "beardY": -7, "beardScale": 1.24, "beardBlobs": [{"dx": 27, "y": 131, "r": 10}], "animMode": "shifty", "blinkRate": 12, "clothing": "bare", "bust": 0.05, "shoulderSlope": 0.92, "bodyWidth": 0.98, "hairColor": "black"}, "elena": {"backHairY": -14, "frontHairY": -18, "hairLocks": [{"lock": "rightCascade", "x": 62, "y": 56, "scale": 0.92, "rot": 0, "lines": true, "behind": true}, {"lock": "leftCascade", "x": 47, "y": 53, "scale": 1.02, "rot": 0, "lines": true, "behind": true}, {"lock": "sideSwoop", "x": 47, "y": 21, "scale": 0.72, "rot": 151, "lines": true, "outline": "none"}, {"lock": "rightCascade", "x": 64, "y": 33, "scale": 0.58, "rot": 0, "lines": true, "outline": "none"}, {"lock": "ribbonWaveLeft", "x": 40, "y": 33, "scale": 0.68, "rot": 0, "lines": true, "outline": "none"}, {"lock": "longSideLock", "x": 57, "y": 40, "scale": 1.08, "rot": -29, "lines": false, "outline": "none"}], "hair": "messy", "lipUpperSize": 0.7, "lipLowerSize": 1.05, "mouthScale": 1.14, "eyeColor": "#8689df", "eyeOpen": 0.86, "pupilY": -3.5, "lazyEye": -1.5, "eyeDart": 0.22, "animMode": "calm", "blinkRate": 9, "beardLength": 0.32, "clothing": "blazer", "build": 87, "shoulderSlope": 0.92, "bodyWidth": 1.04, "bust": 0.65, "belly": 0.2, "shirt": "#dfd8d8", "hairColor": "blonde", "headScaleX": 0.95, "headScaleY": 0.98, "headY": -10, "eyeGap": 50}, "maya": {"frontHairY": -18, "backHairY": -3, "hair": "messy", "teethStyle": "perfect", "mouthStyle": "wideSmile", "lipUpperSize": 0.9, "lipLowerSize": 0.8, "mouthY": 6, "mouthScale": 1.2, "lipColor": "#584237", "teethX": -1, "teethScale": 0.78, "jawLength": 0.11, "jawShadowY": -1.5, "headScaleX": 0.94, "headScaleY": 0.99, "headY": -10, "eyeGap": 61, "faceShape": "long", "skin": "brown", "hairOutline": "#251818", "hairColor": "darkBrown", "browShape": "bushy", "browY": -3.5, "browScaleX": 1.24, "browThick": 1.65, "eyeScale": 0.86, "eyeOpen": 0.7, "irisScale": 0.74, "eyeColor": "#186830", "eyeY": -3, "pupilY": -1, "eyeDart": 0.32, "noseY": 5, "noseTip": "round", "noseScale": 0.8, "noseWidth": 0.77, "nasoOpacity": 0.25, "foreheadLineOpacity": 0.25, "crowsFeetOpacity": 0.4, "marionetteOpacity": 0.15, "cheekLineOpacity": 0.05, "faceLineOpacity": 0.6, "cheekY": 3.5, "cheekOpacity": 0.08, "earVariant": "lobe", "earScale": 0.94, "build": 95, "clothing": "vneck", "shoulderSlope": 0.84, "bodyWidth": 1.12, "bust": 0.25, "accessoryColor": "#784559", "accessoryX": 1, "accessoryY": 9, "accessoryScale": 0.94, "animMode": "calm", "winkRate": 0, "hairLocks": [{"lock": "curtainBangs", "x": 66, "y": 35, "scale": 0.46, "rot": 0, "lines": false, "outline": "none"}, {"lock": "curtainBangs", "x": 33, "y": 39, "scale": 0.38, "rot": 0, "lines": false, "outline": "none", "mirror": true}, {"lock": "softWaveCap", "x": 50, "y": 35, "scale": 0.46, "rot": -16, "lines": false, "outline": "none", "shine": "#3a2318", "dark": "#342016"}, {"lock": "curtainBangs", "x": 56, "y": 48, "scale": 0.72, "rot": 0, "lines": true, "behind": true}, {"lock": "curtainBangs", "x": 42, "y": 45, "scale": 0.68, "rot": 0, "lines": true, "behind": true, "mirror": true}]}};
+  const studioBakes = {
+    "javier": {
+      "backHairY": -4,
+      "hair": "locs",
+      "hairOutline": "#3d1f10",
+      "beardBlobs": [
+        {
+          "dx": 11,
+          "y": 209,
+          "r": 19
+        },
+        {
+          "dx": 12,
+          "y": 199,
+          "r": 8
+        },
+        {
+          "dx": 21,
+          "y": 210,
+          "r": 6
+        },
+        {
+          "dx": 24,
+          "y": 201,
+          "r": 9
+        }
+      ],
+      "beardLength": 0.16,
+      "moustacheScale": 1.38,
+      "build": 69,
+      "shoulderSlope": 0.3,
+      "bodyWidth": 0.94,
+      "mouthStyle": "goofyTeeth",
+      "mouthY": 2,
+      "mouthScale": 1.14,
+      "lips": "soft",
+      "lipLowerSize": 0.5,
+      "lipLower": "wide",
+      "lipUpper": "cupid",
+      "lipUpperSize": 0.7,
+      "chinY": 4,
+      "headY": -8,
+      "hairLocks": [
+        {
+          "lock": "longSideLock",
+          "x": 47,
+          "y": 22,
+          "scale": 0.3,
+          "rot": 108,
+          "lines": true,
+          "outline": "none",
+          "mirror": true
+        },
+        {
+          "lock": "sideSwoop",
+          "x": 52,
+          "y": 21,
+          "scale": 0.3,
+          "rot": 107,
+          "lines": true,
+          "outline": "none"
+        }
+      ],
+      "earScale": 0.86,
+      "earY": -3,
+      "earVariant": "attached",
+      "chinShape": "round",
+      "jawShadowY": -3.5,
+      "animMode": "calm",
+      "eyeColor": "#11263c",
+      "irisScale": 0.76,
+      "eyeOpen": 0.66
+    },
+    "yara": {
+      "accessory": "beard",
+      "beardLength": 0.16,
+      "beardY": -13,
+      "beardScale": 1.04,
+      "beardSkewX": 5,
+      "mouthStyle": "buckTeeth",
+      "mouthScale": 1.14,
+      "teethGap": 2,
+      "teethOverhang": 6.5,
+      "chinShape": "round",
+      "chinY": -7,
+      "chinWidth": 0.84,
+      "foreheadLineOpacity": 0.4,
+      "nasoOpacity": 0.65,
+      "crowsFeetOpacity": 0.45,
+      "marionetteOpacity": 0.3,
+      "frontHairY": -5,
+      "hairLocks": [
+        {
+          "lock": "messyTufts",
+          "x": 51,
+          "y": 77,
+          "scale": 0.3,
+          "rot": 180,
+          "lines": true,
+          "behind": true,
+          "outline": "none"
+        },
+        {
+          "lock": "curlyForelock",
+          "x": 41,
+          "y": 31,
+          "scale": 0.3,
+          "rot": 99,
+          "lines": true,
+          "outline": "none",
+          "fill": "#998880",
+          "dark": "#231d1a"
+        }
+      ],
+      "hairColor": "silver",
+      "noseY": 3,
+      "noseScale": 0.88,
+      "noseTip": "straight",
+      "lipUpperSize": 1.5,
+      "lipLowerSize": 1.4,
+      "lipLower": "pillow",
+      "mouthY": 5
+    },
+    "naomi": {
+      "accessoryScale": 1.34,
+      "accessoryX": 23,
+      "accessoryY": -1,
+      "hair": "cropped",
+      "backHairY": 14,
+      "hairColor": "silver",
+      "hairLocks": [
+        {
+          "lock": "rightCascade",
+          "x": 56,
+          "y": 58,
+          "scale": 1,
+          "rot": 0,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "longSStrand",
+          "x": 64,
+          "y": 30,
+          "scale": 0.5,
+          "rot": 97,
+          "lines": true,
+          "mirror": true
+        },
+        {
+          "lock": "leftCascade",
+          "x": 52,
+          "y": 48,
+          "scale": 0.6,
+          "rot": 71,
+          "lines": true
+        }
+      ],
+      "eyeDart": 0.08,
+      "eyeY": -3.5,
+      "irisScale": 0.74,
+      "eyeScale": 1.22,
+      "eyeOpen": 1.2,
+      "mouthStyle": "bigSmile",
+      "skin": "porcelain",
+      "browThick": 0.5,
+      "browScaleX": 0.92,
+      "browY": 2,
+      "jawLength": 0.4,
+      "headScaleX": 0.9,
+      "headY": -10,
+      "eyeGap": 53,
+      "lips": "full",
+      "lipUpper": "cupid",
+      "lipLower": "flat",
+      "lipUpperSize": 0.7,
+      "lipLowerSize": 0.7,
+      "lipColor": "#5c2f6a",
+      "mouthY": 4,
+      "mouthScale": 1.22,
+      "chinY": 6,
+      "chinWidth": 1.2,
+      "clothing": "singlet",
+      "shirt": "#73497e",
+      "build": 62,
+      "shoulderSlope": 1,
+      "bust": 0.15,
+      "bodyWidth": 1.06,
+      "blinkRate": 11,
+      "earY": 4,
+      "earVariant": "narrow",
+      "earScale": 0.96,
+      "accessoryColor": "#2d2a51",
+      "cheekY": 1,
+      "cheekOpacity": 0.01,
+      "foreheadLineOpacity": 0.25,
+      "underEyeOpacity": 0.25,
+      "crowsFeetOpacity": 0.35,
+      "marionetteOpacity": 0.05,
+      "cheekLineOpacity": 0.3,
+      "tattooText": "🗡 ",
+      "tattooX": -14,
+      "tattooWarp": 0.12,
+      "tattooSkewX": -19,
+      "tattooY": -33,
+      "tattooRot": -50,
+      "tattooScale": 0.8
+    },
+    "felix": {
+      "accessory": "necklace",
+      "chainLink": 1.05,
+      "hair": "bald",
+      "accessoryY": -16,
+      "accessoryScale": 0.68,
+      "accessoryColor": "#151c23",
+      "hairLocks": [
+        {
+          "lock": "highPonytail",
+          "x": 47,
+          "y": 33,
+          "scale": 0.42,
+          "rot": -3,
+          "lines": false,
+          "outline": "none"
+        }
+      ],
+      "hairColor": "blonde",
+      "browShape": "soft",
+      "browY": -2.5,
+      "browScaleX": 0.82,
+      "browThick": 0.7,
+      "eyeOpen": 0.72,
+      "irisScale": 0.7,
+      "pupilY": -4,
+      "lazyEye": 3,
+      "eyeDart": 0.1,
+      "noseY": -5.5,
+      "noseScale": 0.84,
+      "noseWidth": 0.91,
+      "teethGap": 1.5,
+      "teethStyle": "spaced",
+      "teethOverhang": 0.5,
+      "teethX": -1,
+      "teethScale": 1.08,
+      "jawLength": -0.13,
+      "jawShadowY": -2,
+      "chinY": -12,
+      "chinWidth": 1.34,
+      "chinShape": "pointed",
+      "chinScale": 0.82,
+      "build": 67,
+      "shoulderSlope": 0.06,
+      "bodyWidth": 1.04,
+      "skin": "tan",
+      "headScaleX": 0.94,
+      "headScaleY": 0.98,
+      "headY": 8,
+      "eyeGap": 49,
+      "cheekY": 1.5
+    },
+    "aaron": {
+      "beardLength": 0.22,
+      "build": 78,
+      "shoulderSlope": 0.62,
+      "bust": 0.1,
+      "lips": "soft",
+      "lipUpperSize": 0.6,
+      "lipLowerSize": 0.8,
+      "mouthScale": 1.08,
+      "mouthY": 9,
+      "lipColor": "#d25184",
+      "irisScale": 0.86,
+      "eyeOpen": 0.86,
+      "eyeScale": 0.98,
+      "eyeY": 2,
+      "pupilY": -1,
+      "noseY": 6.5,
+      "noseScale": 1.02,
+      "noseTip": "button",
+      "noseWidth": 1.03,
+      "foreheadLineOpacity": 0.35,
+      "frownLineOpacity": 0.4,
+      "underEyeOpacity": 0.1,
+      "crowsFeetOpacity": 0.2,
+      "marionetteOpacity": 0.1,
+      "cheekLineOpacity": 0.2,
+      "cheekY": 4.5,
+      "cheekOpacity": 0.14
+    },
+    "amira": {
+      "backHairY": 7,
+      "frontHairY": 2,
+      "hair": "bald",
+      "hairLocks": [
+        {
+          "lock": "roundedPuffSide",
+          "x": 60,
+          "y": 22,
+          "scale": 0.3,
+          "rot": -62,
+          "lines": true
+        },
+        {
+          "lock": "roundedPuffSide",
+          "x": 50,
+          "y": 23,
+          "scale": 0.3,
+          "rot": -68,
+          "lines": true
+        },
+        {
+          "lock": "roundedPuffSide",
+          "x": 41,
+          "y": 19,
+          "scale": 0.34,
+          "rot": -124,
+          "lines": true
+        },
+        {
+          "lock": "roundedPuffSide",
+          "x": 52,
+          "y": 13,
+          "scale": 0.42,
+          "rot": -95,
+          "lines": true
+        },
+        {
+          "lock": "sideSwoop",
+          "x": 46,
+          "y": 20,
+          "scale": 0.46,
+          "rot": 130,
+          "lines": true
+        }
+      ],
+      "browY": 5.5,
+      "browScaleX": 1.2,
+      "browThick": 2,
+      "noseY": 3.5,
+      "noseWidth": 0.75,
+      "noseTip": "straight",
+      "faceLineOpacity": 0.4,
+      "crowsFeetOpacity": 0.55,
+      "frownLineOpacity": 0.65,
+      "foreheadLineOpacity": 0.2,
+      "marionetteOpacity": 0.55,
+      "cheekLineOpacity": 0.45,
+      "cheekY": 4.5,
+      "contourOpacity": 0.35,
+      "lips": "soft",
+      "lipUpper": "heavy",
+      "lipLower": "flat",
+      "mouthY": 6,
+      "mouthScale": 1.16,
+      "hairColor": "pink",
+      "accessoryY": 11,
+      "accessory": "dropEarrings",
+      "accessoryColor": "#7b219f",
+      "clothing": "turtleneck",
+      "bodyWidth": 1.04,
+      "shoulderSlope": 0.72,
+      "build": 73,
+      "eyeColor": "#4f7a28"
+    },
+    "adeline": {
+      "accessoryScale": 1.16,
+      "hairLocks": [
+        {
+          "lock": "centerPartWaves",
+          "x": 50,
+          "y": 36,
+          "scale": 0.3,
+          "rot": -180,
+          "lines": false,
+          "mirror": true,
+          "outline": "none"
+        },
+        {
+          "lock": "shortCrop",
+          "x": 34,
+          "y": 39,
+          "scale": 0.3,
+          "rot": 143,
+          "lines": false,
+          "outline": "none"
+        },
+        {
+          "lock": "longSStrand",
+          "x": 67,
+          "y": 39,
+          "scale": 0.3,
+          "rot": 109,
+          "lines": false,
+          "outline": "none",
+          "mirror": true
+        },
+        {
+          "lock": "splitSideLocks",
+          "x": 48,
+          "y": 52,
+          "scale": 0.72,
+          "rot": -1,
+          "lines": true,
+          "behind": true,
+          "mirror": true,
+          "fill": "#523223",
+          "outline": "none"
+        },
+        {
+          "lock": "leftCascade",
+          "x": 54,
+          "y": 92,
+          "scale": 0.88,
+          "rot": -26,
+          "lines": true,
+          "behind": true
+        }
+      ],
+      "hair": "bob",
+      "lipUpperSize": 0.55,
+      "lipLowerSize": 0.75,
+      "mouthY": 4,
+      "mouthScale": 0.92,
+      "lipColor": "#bd847a",
+      "chinY": 3,
+      "jawLength": -0.03,
+      "hairColor": "darkBrown",
+      "hairOutline": "#2d1207",
+      "lipUpper": "cupid"
+    },
+    "sophia": {
+      "shirt": "#000000",
+      "build": 68,
+      "shoulderSlope": 0.88,
+      "bodyWidth": 1.18,
+      "animMode": "smug"
+    },
+    "jamal": {
+      "accessoryScale": 0.96,
+      "accessoryColor": "#303840",
+      "background": "#7dbf88",
+      "eyeScale": 0.86,
+      "eyeOpen": 0.64,
+      "irisScale": 0.78,
+      "eyeY": 2,
+      "pupilX": -0.5,
+      "pupilY": -1,
+      "lazyEye": -6.5,
+      "eyeDart": 0.36,
+      "noseScale": 0.92,
+      "noseY": 6.5,
+      "noseWidth": 0.99,
+      "lips": "soft",
+      "lipUpper": "flat",
+      "lipLower": "flat",
+      "lipUpperSize": 0.65,
+      "lipLowerSize": 0.8,
+      "mouthY": 3,
+      "chinShape": "dimple",
+      "chinWidth": 0.86,
+      "chinScale": 0.8,
+      "shirt": "#ddc978",
+      "build": 69,
+      "shoulderSlope": 0.84,
+      "bodyWidth": 1.21,
+      "bust": 0.35,
+      "earY": 9,
+      "earScale": 1.06,
+      "earVariant": "lobe",
+      "tattooText": "❤︎",
+      "tattooPlace": "face",
+      "tattooY": -25,
+      "tattooX": 41,
+      "tattooScale": 0.75,
+      "tattooRot": -14,
+      "tattooSkewX": -17,
+      "tattooWarp": 0.2,
+      "eyeColor": "#0b0a0a"
+    },
+    "bruno": {
+      "shirt": "#ffffff",
+      "shoulderSlope": 0.72,
+      "build": 97,
+      "bodyWidth": 1.28,
+      "hairLocks": [
+        {
+          "lock": "sideSwoop",
+          "x": 51,
+          "y": 31,
+          "scale": 0.3,
+          "rot": -70,
+          "lines": false,
+          "outline": "none"
+        }
+      ],
+      "frontHairY": -5,
+      "backHairY": 4,
+      "skin": "brown",
+      "beardBlobs": [
+        {
+          "dx": 47,
+          "y": 174,
+          "r": 12
+        },
+        {
+          "dx": 30,
+          "y": 184,
+          "r": 17
+        },
+        {
+          "dx": 14,
+          "y": 197,
+          "r": 15
+        },
+        {
+          "dx": 34,
+          "y": 196,
+          "r": 23
+        },
+        {
+          "dx": 8,
+          "y": 210,
+          "r": 27
+        },
+        {
+          "dx": 44,
+          "y": 188,
+          "r": 15
+        }
+      ],
+      "accessory": "necklace",
+      "accessoryY": 22,
+      "accessoryMetal": "gold",
+      "accessoryColor": "#161d1a",
+      "accessoryScale": 1.36,
+      "chainLink": 0.65,
+      "browShape": "bushy",
+      "browY": 4.5,
+      "browScaleX": 1.24,
+      "browThick": 2,
+      "eyeOpen": 0.54,
+      "eyeScale": 0.98,
+      "irisScale": 0.8,
+      "eyeY": -2.5
+    },
+    "noor": {
+      "skin": "ebony",
+      "hair": "bald",
+      "frontHairY": -6,
+      "backHairY": -5,
+      "hairLocks": [
+        {
+          "lock": "curtainBangs",
+          "x": 50,
+          "y": 24,
+          "scale": 0.46,
+          "rot": 180,
+          "lines": true
+        },
+        {
+          "lock": "angularArc",
+          "x": 53,
+          "y": 24,
+          "scale": 0.4,
+          "rot": -55,
+          "lines": true,
+          "outline": "none"
+        }
+      ],
+      "eyeScale": 1.08,
+      "eyeOpen": 1.2,
+      "irisScale": 0.88,
+      "eyeY": 1,
+      "pupilX": 1,
+      "pupilY": -0.5,
+      "lazyEye": 0,
+      "eyeDart": 0.18,
+      "noseY": 4,
+      "background": "#71d6d1",
+      "cheekOpacity": 0.05,
+      "earScale": 0.84,
+      "earY": 1,
+      "mouthStyle": "buckTeeth",
+      "lipUpperSize": 0.45,
+      "lipLowerSize": 1.25,
+      "mouthY": 11,
+      "mouthScale": 1.08,
+      "teethStyle": "gappy",
+      "teethX": 6,
+      "teethGap": 5,
+      "chinShape": "round",
+      "chinWidth": 1.32,
+      "accessory": "beard",
+      "accessoryScale": 0.88,
+      "beardLength": 0.14,
+      "beardX": -3,
+      "beardY": -7,
+      "beardScale": 1.24,
+      "beardBlobs": [
+        {
+          "dx": 27,
+          "y": 131,
+          "r": 10
+        }
+      ],
+      "animMode": "shifty",
+      "blinkRate": 12,
+      "clothing": "bare",
+      "bust": 0.05,
+      "shoulderSlope": 0.92,
+      "bodyWidth": 0.98,
+      "hairColor": "black"
+    },
+    "elena": {
+      "backHairY": -14,
+      "frontHairY": -18,
+      "hairLocks": [
+        {
+          "lock": "rightCascade",
+          "x": 62,
+          "y": 56,
+          "scale": 0.92,
+          "rot": 0,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "leftCascade",
+          "x": 47,
+          "y": 53,
+          "scale": 1.02,
+          "rot": 0,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "sideSwoop",
+          "x": 47,
+          "y": 21,
+          "scale": 0.72,
+          "rot": 151,
+          "lines": true,
+          "outline": "none"
+        },
+        {
+          "lock": "rightCascade",
+          "x": 64,
+          "y": 33,
+          "scale": 0.58,
+          "rot": 0,
+          "lines": true,
+          "outline": "none"
+        },
+        {
+          "lock": "ribbonWaveLeft",
+          "x": 40,
+          "y": 33,
+          "scale": 0.68,
+          "rot": 0,
+          "lines": true,
+          "outline": "none"
+        },
+        {
+          "lock": "longSideLock",
+          "x": 57,
+          "y": 40,
+          "scale": 1.08,
+          "rot": -29,
+          "lines": false,
+          "outline": "none"
+        }
+      ],
+      "hair": "messy",
+      "lipUpperSize": 0.7,
+      "lipLowerSize": 1.05,
+      "mouthScale": 1.14,
+      "eyeColor": "#8689df",
+      "eyeOpen": 0.86,
+      "pupilY": -3.5,
+      "lazyEye": -1.5,
+      "eyeDart": 0.22,
+      "animMode": "calm",
+      "blinkRate": 9,
+      "beardLength": 0.32,
+      "clothing": "blazer",
+      "build": 87,
+      "shoulderSlope": 0.92,
+      "bodyWidth": 1.04,
+      "bust": 0.65,
+      "belly": 0.2,
+      "shirt": "#dfd8d8",
+      "hairColor": "blonde",
+      "headScaleX": 0.95,
+      "headScaleY": 0.98,
+      "headY": -10,
+      "eyeGap": 50
+    },
+    "maya": {
+      "frontHairY": -18,
+      "backHairY": -3,
+      "hair": "messy",
+      "teethStyle": "perfect",
+      "mouthStyle": "wideSmile",
+      "lipUpperSize": 0.9,
+      "lipLowerSize": 0.8,
+      "mouthY": 6,
+      "mouthScale": 1.2,
+      "lipColor": "#584237",
+      "teethX": -1,
+      "teethScale": 0.78,
+      "jawLength": 0.11,
+      "jawShadowY": -1.5,
+      "headScaleX": 0.94,
+      "headScaleY": 0.99,
+      "headY": -10,
+      "eyeGap": 61,
+      "faceShape": "long",
+      "skin": "brown",
+      "hairOutline": "#251818",
+      "hairColor": "darkBrown",
+      "browShape": "bushy",
+      "browY": -3.5,
+      "browScaleX": 1.24,
+      "browThick": 1.65,
+      "eyeScale": 0.86,
+      "eyeOpen": 0.7,
+      "irisScale": 0.74,
+      "eyeColor": "#186830",
+      "eyeY": -3,
+      "pupilY": -1,
+      "eyeDart": 0.32,
+      "noseY": 5,
+      "noseTip": "round",
+      "noseScale": 0.8,
+      "noseWidth": 0.77,
+      "nasoOpacity": 0.25,
+      "foreheadLineOpacity": 0.25,
+      "crowsFeetOpacity": 0.4,
+      "marionetteOpacity": 0.15,
+      "cheekLineOpacity": 0.05,
+      "faceLineOpacity": 0.6,
+      "cheekY": 3.5,
+      "cheekOpacity": 0.08,
+      "earVariant": "lobe",
+      "earScale": 0.94,
+      "build": 95,
+      "clothing": "vneck",
+      "shoulderSlope": 0.84,
+      "bodyWidth": 1.12,
+      "bust": 0.25,
+      "accessoryColor": "#784559",
+      "accessoryX": 1,
+      "accessoryY": 9,
+      "accessoryScale": 0.94,
+      "animMode": "calm",
+      "winkRate": 0,
+      "hairLocks": [
+        {
+          "lock": "curtainBangs",
+          "x": 66,
+          "y": 35,
+          "scale": 0.46,
+          "rot": 0,
+          "lines": false,
+          "outline": "none"
+        },
+        {
+          "lock": "curtainBangs",
+          "x": 33,
+          "y": 39,
+          "scale": 0.38,
+          "rot": 0,
+          "lines": false,
+          "outline": "none",
+          "mirror": true
+        },
+        {
+          "lock": "softWaveCap",
+          "x": 50,
+          "y": 35,
+          "scale": 0.46,
+          "rot": -16,
+          "lines": false,
+          "outline": "none",
+          "shine": "#3a2318",
+          "dark": "#342016"
+        },
+        {
+          "lock": "curtainBangs",
+          "x": 56,
+          "y": 48,
+          "scale": 0.72,
+          "rot": 0,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "curtainBangs",
+          "x": 42,
+          "y": 45,
+          "scale": 0.68,
+          "rot": 0,
+          "lines": true,
+          "behind": true,
+          "mirror": true
+        }
+      ]
+    },
+    "milo": {
+      "accessory": "scarf",
+      "chainLink": 1.1,
+      "accessoryScale": 0.86,
+      "accessoryY": 17,
+      "hair": "bald",
+      "backHairY": -5,
+      "frontHairY": 17,
+      "accessoryX": 2,
+      "eyeY": 8,
+      "irisScale": 0.86,
+      "eyeGap": 52,
+      "headY": -9,
+      "headScaleY": 0.9,
+      "headScaleX": 0.88,
+      "pupilY": -3,
+      "lazyEye": 0.5,
+      "eyeDart": 0.28,
+      "lashes": 0.8,
+      "eyeshadowOpacity": 0.4,
+      "undershadowOpacity": 0.55,
+      "noseY": 4,
+      "noseScale": 1.3,
+      "skin": "fakeTan",
+      "background": "#ebebeb",
+      "hairColor": "silver",
+      "hairOutline": "#606060",
+      "hairLocks": [
+        {
+          "lock": "hookSideLock",
+          "x": 67,
+          "y": 43,
+          "scale": 0.68,
+          "rot": 0,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "roundedPuffSide",
+          "x": 55,
+          "y": 19,
+          "scale": 0.8,
+          "rot": -93,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "roundedPuffSide",
+          "x": 55,
+          "y": 12,
+          "scale": 0.62,
+          "rot": -94,
+          "lines": true
+        },
+        {
+          "lock": "cowlickSprout",
+          "x": 62,
+          "y": 10,
+          "scale": 0.32,
+          "rot": 41,
+          "lines": true,
+          "outline": "#a77b00"
+        },
+        {
+          "lock": "curtainBangs",
+          "x": 51,
+          "y": 32,
+          "scale": 0.3,
+          "rot": 0,
+          "lines": true
+        },
+        {
+          "lock": "angularArc",
+          "x": 37,
+          "y": 3,
+          "scale": 0.3,
+          "rot": 142,
+          "lines": true,
+          "behind": true
+        }
+      ],
+      "mouthStyle": "bigOpenSmile",
+      "lips": "soft",
+      "lipUpperSize": 1.45,
+      "lipLowerSize": 1.65,
+      "mouthY": 1,
+      "teethX": -1,
+      "teethGap": 0.5,
+      "jawLength": 0.26,
+      "jawShadowY": -2.5,
+      "accessoryColor": "#be38f3",
+      "earScale": 0.84,
+      "earVariant": "narrow",
+      "browY": 4,
+      "browScaleX": 1.06,
+      "teethStyle": "perfect",
+      "teethScale": 1.16,
+      "chinScale": 1.14,
+      "chinWidth": 1.26,
+      "bodyWidth": 0.83,
+      "shoulderSlope": 0.26,
+      "chinY": 2,
+      "beardLength": 0.4,
+      "shirt": "#606060",
+      "build": 69,
+      "belly": 0.85,
+      "bust": 0.6,
+      "nasoOpacity": 0.85,
+      "faceLineOpacity": 0.15,
+      "foreheadLineOpacity": 0.65,
+      "frownLineOpacity": 0.6,
+      "underEyeOpacity": 0.8,
+      "marionetteOpacity": 0.8,
+      "cheekLineOpacity": 0.65,
+      "cheekOpacity": 0.26,
+      "cheekY": 4,
+      "contourOpacity": 0.1,
+      "animMode": "curious",
+      "blinkRate": 2.5,
+      "blushColor": "#4d22b3",
+      "blushScale": 1.25,
+      "clothing": "blazer"
+    },
+    "lucy": {
+      "hair": "bald",
+      "accessoryScale": 1.14,
+      "accessoryY": -14,
+      "browY": -1,
+      "browScaleX": 0.8,
+      "headScaleY": 0.94,
+      "headY": -8,
+      "faceShape": "heart",
+      "eyeGap": 48,
+      "eyeScale": 1.1,
+      "eyeOpen": 1.12,
+      "irisScale": 0.7,
+      "eyeColor": "#000000",
+      "eyeY": -2,
+      "pupilY": -1.5,
+      "eyeDart": 0.08,
+      "eyeshadowOpacity": 0.75,
+      "lashes": 0.25,
+      "undershadowOpacity": 0.2,
+      "noseWidth": 0.61,
+      "noseScale": 0.88,
+      "noseY": 1,
+      "noseTip": "round",
+      "nasoOpacity": 0,
+      "faceLineOpacity": 0.35,
+      "crowsFeetOpacity": 0.95,
+      "cheekOpacity": 0.28,
+      "blushColor": "#ff8c82",
+      "blushScale": 1.45,
+      "earScale": 0.86,
+      "earY": -3,
+      "tattooText": "ᖛ",
+      "tattooX": -50,
+      "tattooScale": 0.8,
+      "tattooSkewX": 15,
+      "tattooOpacity": 0.65,
+      "clothing": "singlet",
+      "shirt": "#232323",
+      "tattooY": -5,
+      "tattooWarp": 0.22,
+      "animMode": "shifty",
+      "blinkRate": 11.5,
+      "pupilX": 0.5,
+      "headScaleX": 0.96,
+      "accessoryX": 3,
+      "accessoryColor": "#33ac2e"
+    },
+    "kai": {
+      "chinY": -5,
+      "chinShape": "dimple",
+      "chinWidth": 0.6,
+      "chinScale": 0.64,
+      "frontHairY": -6,
+      "browY": 5.5,
+      "browScaleX": 0.94,
+      "browThick": 1.05,
+      "mouthStyle": "bigSmile",
+      "lips": "soft",
+      "lipUpperSize": 0.65,
+      "lipColor": "#c06372",
+      "lipLowerSize": 0.55,
+      "mouthY": 8,
+      "headScaleY": 1.04,
+      "eyeGap": 46,
+      "eyeOpen": 0.66,
+      "eyeScale": 1.16,
+      "irisScale": 0.88,
+      "pupilY": -1,
+      "eyeDart": 0.24,
+      "lazyEye": -2.5,
+      "noseY": 4.5,
+      "noseScale": 0.88,
+      "noseWidth": 0.85,
+      "faceLineOpacity": 0,
+      "headY": 10,
+      "earScale": 1.02,
+      "earY": -5,
+      "shirt": "#ffffff",
+      "build": 87,
+      "shoulderSlope": 1,
+      "bodyWidth": 0.99,
+      "accessory": "roundGlasses",
+      "accessoryScale": 1.3
+    },
+    "diego": {
+      "hairLocks": [
+        {
+          "lock": "cowlickSprout",
+          "x": 68,
+          "y": 22,
+          "scale": 0.42,
+          "rot": -71,
+          "lines": true
+        },
+        {
+          "lock": "spikyFringe",
+          "x": 49,
+          "y": 38,
+          "scale": 0.72,
+          "rot": 5,
+          "lines": true
+        }
+      ],
+      "hair": "bald",
+      "eyeColor": "#6f7608",
+      "irisScale": 1,
+      "lipUpperSize": 0.6,
+      "earScale": 0.98,
+      "accessory": "studs",
+      "accessoryY": 7,
+      "accessoryMetal": "gold"
+    },
+    "arjun": {
+      "frontHairY": -5,
+      "hairColor": "darkBrown",
+      "accessoryScale": 1.02,
+      "accessoryY": 5,
+      "chinWidth": 0.86,
+      "chinY": -7,
+      "earVariant": "attached",
+      "clothing": "hoodie",
+      "shirt": "#9aa60e",
+      "build": 75,
+      "shoulderSlope": 0.82,
+      "belly": 0.85,
+      "bust": 0.55,
+      "bodyWidth": 0.89,
+      "headY": -10,
+      "eyeGap": 62,
+      "headScaleX": 1.11,
+      "lipUpperSize": 0.85,
+      "lipLowerSize": 0.6,
+      "mouthY": -6,
+      "lipLower": "pillow",
+      "lipUpper": "heavy",
+      "lips": "full",
+      "mouthScale": 1.2,
+      "hairLocks": [
+        {
+          "lock": "napeFlip",
+          "x": 57,
+          "y": 43,
+          "scale": 0.86,
+          "rot": 89,
+          "lines": true
+        }
+      ]
+    },
+    "celeste": {
+      "hair": "bald",
+      "hairLocks": [
+        {
+          "lock": "longSideLock",
+          "x": 75,
+          "y": 46,
+          "scale": 0.6,
+          "rot": 11,
+          "lines": true
+        },
+        {
+          "lock": "leftCascade",
+          "x": 35,
+          "y": 57,
+          "scale": 0.64,
+          "rot": 0,
+          "lines": true
+        },
+        {
+          "lock": "sideSwoop",
+          "x": 63,
+          "y": 46,
+          "scale": 0.86,
+          "rot": 4,
+          "lines": true
+        },
+        {
+          "lock": "longSideLock",
+          "x": 30,
+          "y": 36,
+          "scale": 0.34,
+          "rot": 0,
+          "lines": true,
+          "mirror": true
+        },
+        {
+          "lock": "splitFangBang",
+          "x": 51,
+          "y": 74,
+          "scale": 1,
+          "rot": 39,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "ribbonWaveLeft",
+          "x": 38,
+          "y": 41,
+          "scale": 0.56,
+          "rot": 29,
+          "lines": true
+        },
+        {
+          "lock": "curlyForelock",
+          "x": 56,
+          "y": 18,
+          "scale": 0.34,
+          "rot": -125,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "cheekCurl",
+          "x": 29,
+          "y": 48,
+          "scale": 0.52,
+          "rot": -62,
+          "lines": true,
+          "mirror": true
+        },
+        {
+          "lock": "roundedPuffSide",
+          "x": 48,
+          "y": 24,
+          "scale": 0.34,
+          "rot": -112,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "cowlickSprout",
+          "x": 44,
+          "y": 30,
+          "scale": 0.54,
+          "rot": -138,
+          "lines": true,
+          "fill": "#ce9d49"
+        }
+      ],
+      "headY": -8,
+      "headScaleX": 0.91,
+      "headScaleY": 0.96,
+      "accessoryY": 7,
+      "accessory": "squareGlasses",
+      "browY": 4.5,
+      "browScaleX": 1.06,
+      "browThick": 1.5,
+      "skin": "porcelain",
+      "eyeScale": 0.82,
+      "eyeOpen": 0.84,
+      "irisScale": 0.84,
+      "eyeY": 4,
+      "pupilY": -2,
+      "eyeColor": "#a8c6fe",
+      "lazyEye": -0.5,
+      "eyeDart": 0.22,
+      "lashes": 0.1,
+      "eyeshadowOpacity": 1,
+      "eyeshadowColor": "#9929bd",
+      "earY": 10,
+      "earScale": 0.84,
+      "lipUpperSize": 1.55,
+      "lipLowerSize": 1.8,
+      "mouthStyle": "goofyTeeth",
+      "mouthY": 3,
+      "eyeGap": 52,
+      "noseY": 2,
+      "noseTip": "round",
+      "noseScale": 0.84,
+      "noseWidth": 1.17,
+      "mouthScale": 1.28,
+      "lipLower": "pillow",
+      "teethStyle": "perfect",
+      "teethScale": 0.66,
+      "teethX": 1,
+      "cheekY": 1,
+      "blushColor": "#b92d5d",
+      "cheekOpacity": 0.28,
+      "blushScale": 1.85,
+      "contourOpacity": 0.4,
+      "accessoryColor": "#ffaa00",
+      "accessoryScale": 1.32,
+      "clothing": "turtleneck",
+      "shirt": "#d58400"
+    },
+    "olivia": {
+      "hairLocks": [
+        {
+          "lock": "sideSwoop",
+          "x": 60,
+          "y": 45,
+          "scale": 1,
+          "rot": 0,
+          "lines": true,
+          "outline": "none"
+        },
+        {
+          "lock": "rightCascade",
+          "x": 57,
+          "y": 83,
+          "scale": 0.66,
+          "rot": 19,
+          "lines": false
+        },
+        {
+          "lock": "extraLongPair",
+          "x": 50,
+          "y": 53,
+          "scale": 0.84,
+          "rot": 0,
+          "lines": true,
+          "mirror": true,
+          "behind": true
+        },
+        {
+          "lock": "centerPartWaves",
+          "x": 78,
+          "y": 44,
+          "scale": 0.64,
+          "rot": -54,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "longSStrand",
+          "x": 72,
+          "y": 62,
+          "scale": 0.6,
+          "rot": -50,
+          "lines": false,
+          "mirror": true
+        },
+        {
+          "lock": "longSideLock",
+          "x": 75,
+          "y": 54,
+          "scale": 0.6,
+          "rot": 0,
+          "lines": true,
+          "outline": "none"
+        },
+        {
+          "lock": "longSideLock",
+          "x": 68,
+          "y": 48,
+          "scale": 0.56,
+          "rot": -144,
+          "lines": true,
+          "mirror": true,
+          "outline": "none"
+        },
+        {
+          "lock": "splitSideLocks",
+          "x": 48,
+          "y": 54,
+          "scale": 1.16,
+          "rot": 0,
+          "lines": true,
+          "mirror": true,
+          "behind": true
+        },
+        {
+          "lock": "longSStrand",
+          "x": 25,
+          "y": 55,
+          "scale": 1,
+          "rot": 0,
+          "lines": true
+        },
+        {
+          "lock": "highPonytail",
+          "x": 29,
+          "y": 47,
+          "scale": 0.82,
+          "rot": -23,
+          "lines": true,
+          "outline": "none"
+        }
+      ],
+      "jawShadowY": 2,
+      "lipLowerSize": 1.3
+    },
+    "ines": {
+      "accessory": "none",
+      "accessoryY": -1,
+      "frontHairY": 9,
+      "backHairY": -2,
+      "shirt": "#ff6251"
+    },
+    "sanaa": {
+      "hairLocks": [
+        {
+          "lock": "curlyForelock",
+          "x": 18,
+          "y": 25,
+          "scale": 0.66,
+          "rot": 0,
+          "lines": true,
+          "mirror": true
+        },
+        {
+          "lock": "curlyForelock",
+          "x": 77,
+          "y": 24,
+          "scale": 0.66,
+          "rot": 0,
+          "lines": true
+        },
+        {
+          "lock": "softWaveCap",
+          "x": 50,
+          "y": 32,
+          "scale": 0.8,
+          "rot": 0,
+          "lines": true
+        }
+      ]
+    }
+  };
   const characterOverrides = {
     aaron: {
       hair: "coily", faceShape: "long", clothing: "bare", accessory: "choker",
@@ -907,7 +2297,7 @@
       chinShape: "dimple", chinY: -5, chinWidth: 0.62, chinScale: 0.58, jawLength: -0.18, jawShadowY: -4,
       cheekY: 3, cheekOpacity: 0.01,
       clothing: "collared", shirt: "#545454", bodyWidth: 1.02, shoulderSlope: 1, build: 71,
-      accessoryY: 4, accessoryScale: 1.28, animMode: "alert"
+      accessoryY: 4, accessoryScale: 0.94, animMode: "alert"
     },
     gianni: {
       browShape: "thick", browY: 4.5, browScaleX: 1.04, browThick: 1.45,
@@ -1215,7 +2605,8 @@
       // the seed/profile defaults; getProfile() picks up any profileOverrideKeys (eyeScale, jawLength…)
       // and hairLocks/categorical traits are read straight off traits.
       Object.assign(traits, characterOverrides[id] || {}, studioBakes[id] || {});
-      const feature = describeVisibleTraits(traits);
+      const normalized = normalizeLegacyTraits(traits);
+      const feature = describeVisibleTraits(normalized);
       return {
         id: `gen-${id}`,
         name,
@@ -1223,10 +2614,10 @@
         feature,
         secret: secretForExpression(expression),
         role: role || fallbackRoles[index % fallbackRoles.length] || "local witness",
-        image: composePortrait(index, traits),
+        image: composePortrait(index, normalized),
         tags: makeTags(name, secretForExpression(expression), role || "local witness"),
         variant: "",
-        traits,
+        traits: normalized,
         // Seed is kept so the portrait can be re-rendered later with a changed expression
         // (eg. the Hidden Agendas mystery) without the face's gradients/jitter shifting.
         seed: index
@@ -1268,7 +2659,21 @@
     return { low: shadeColor(hair, 0.66), hi: shadeColor(hair, 1.2) };
   }
 
+  function normalizeLegacyTraits(source) {
+    const traits = { ...source };
+    if (traits.accessory === "beard") {
+      if (traits.beardLength == null) {
+        const profileLen = { trimShort: 0.3, chinCurtain: 0.45, boxedFull: 0.72, roundedHeavy: 0.9, roundedFull: 0.62 };
+        const profile = traits.beardProfile || "trimShort";
+        traits.beardLength = profileLen[profile] != null ? profileLen[profile] : 0.35;
+      }
+      traits.accessory = "none";
+    }
+    return traits;
+  }
+
   function composePortrait(seed, traits) {
+    traits = normalizeLegacyTraits(traits);
     // traits.skinHex lets callers force an explicit skin colour (eg. the Monocultural
     // mystery paints every face the same tone); otherwise resolve the named skin tone.
     const skin = traits.skinHex || skinTones[traits.skin] || skinTones.fair;
@@ -1277,12 +2682,16 @@
     const faceShape = warpJaw(faceShapes[traits.faceShape], getProfile(traits).jawLength);
     const hairStyle = hairStyles[traits.hair] || hairStyles.messy;
     const outfit = clothing[traits.clothing];
+    const bodyTattooOnSkin = traits.headOnly ? "" : renderTattoo(traits, "body", "onSkin");
+    const bodyTattooBeforeClothes = outfit && outfit.bare ? "" : bodyTattooOnSkin;
+    const bodyTattooAfterClothes = outfit && outfit.bare ? bodyTattooOnSkin : "";
     const accessorySvg = renderAccessory(traits, faceShape);
+    const jewellerySvg = renderJewellery(traits, faceShape);
     // Styles mapped to faces.js silhouettes render as one piece on top of the face; the rest keep
     // this project's original back/front hair.
     const useFacesHair = typeof window !== "undefined" && window.facesHair && window.facesHair.has(traits.hair);
     const facesHairSvg = useFacesHair
-      ? `<g transform='translate(0 ${Number(traits.frontHairY) || 0})'>${window.facesHair.render(traits.hair, `url(#hair-${seed})`, hairOutlineFor(traits), { ...hairStrandTones(hair), hairHex: hair, seed })}</g>`
+      ? `<g transform='translate(0 ${Number(traits.frontHairY) || 0})'>${window.facesHair.render(traits.hair, `url(#hair-${seed})`, hairOutlineFor(traits), { ...hairStrandTones(hair), hairHex: hair, seed, outlineScale: hairOutlineScale(traits) })}</g>`
       : "";
     const svg = `
       <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>
@@ -1301,27 +2710,35 @@
         ${traits.headOnly ? "" : `<rect width='256' height='256' fill='${traits.background}'/>`}
         ${animCSS(traits, seed)}
         ${traits.headOnly ? "" : renderNeckBase(traits, skin)}
-        ${traits.headOnly ? "" : renderTattoo(traits, "body")}
+        ${bodyTattooBeforeClothes}
         ${traits.headOnly ? "" : renderClothing(outfit, traits, seed)}
+        ${bodyTattooAfterClothes}
         ${traits.headOnly ? "" : renderCollar(traits)}
+        ${traits.headOnly ? "" : renderTattoo(traits, "body", "overClothes")}
+        ${traits.headOnly ? "" : (accessorySvg.beforeHead || "")}
+        ${traits.headOnly ? "" : (jewellerySvg.beforeHead || "")}
         ${traits.noHead ? renderNeckStump(traits, skin) : ""}
         ${traits.noHead ? "" : headGroup(traits, `
           ${renderHairLocks(traits, seed, hair, true)}
           ${useFacesHair ? "" : renderBackHair(hairStyle, `url(#hair-${seed})`, traits)}
           ${renderEars(traits, skin)}
-          <path d='${faceShape}' fill='${skin}' stroke='${skinInk(skin)}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
-          ${renderFaceShading(seed, skin, faceShape)}
-          ${renderFaceModeling(seed, skin, traits)}
-          ${renderFaceLines(seed, skin, traits)}
-          ${renderMakeup(traits, skin)}
-          ${renderChin(traits, skin)}
+          ${headShapeGroup(traits, `
+            <path d='${faceShape}' fill='${skin}' stroke='${skinInk(skin)}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
+            ${renderFaceShading(seed, skin, faceShape)}
+            ${renderFaceModeling(seed, skin, traits)}
+            ${renderFaceLines(seed, skin, traits)}
+            ${renderMakeup(traits, skin)}
+            ${renderChin(traits, skin)}
+          `)}
           ${renderBeardBlobs(traits, seed)}
           ${accessorySvg.behindHair || ""}
+          ${jewellerySvg.behindHair || ""}
           ${useFacesHair ? "" : renderFrontHair(hairStyle, `url(#hair-${seed})`, traits) + renderHairHighlights(hairStyle, hair, traits, seed)}
           ${traits.noBrows ? "" : `<g class='fa-brow'>${renderBrows(expression, traits)}</g>`}
           ${renderEyes(expression, traits)}
           ${renderNose(seed, traits)}
           ${accessorySvg.beforeMouth}
+          ${jewellerySvg.beforeMouth || ""}
           ${renderExpressionMouth(expression, traits, seed)}
           ${renderTattoo(traits, "face")}
           ${/* Blush comes solely from renderFaceModeling's cheekOpacity (the studio Blush control).
@@ -1332,6 +2749,7 @@
           ${useFacesHair ? facesHairSvg : ""}
           ${renderHairLocks(traits, seed, hair, false)}
           ${accessorySvg.afterMouth}
+          ${jewellerySvg.afterMouth || ""}
           ${traits.disguise ? renderDisguise(traits) : ""}
         `)}
         ${traits.headOnly ? "" : renderDrawnLocks(traits, seed, hair)}
@@ -1357,8 +2775,9 @@
     if (!items.length) return "";
 
     if (!window.facesHair.renderLockPart) {
+      const outline = hairOutlineFor(traits);
       return items
-        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink, seed: `${seed}-l${i}` }))
+        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: outline, seed: `${seed}-l${i}` }))
         .join("");
     }
 
@@ -1419,10 +2838,11 @@
     const locks = traits.hairLocks;
     if (!Array.isArray(locks) || !locks.length) return "";
     if (!(typeof window !== "undefined" && window.facesHair && window.facesHair.renderLock)) return "";
+    const outline = hairOutlineFor(traits);
     return locks
       .map((inst, i) => ({ inst, i }))
       .filter(({ inst }) => Boolean(inst.d))
-      .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink, seed: `${seed}-d${i}` }))
+      .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: outline, seed: `${seed}-d${i}` }))
       .join("");
   }
 
@@ -1450,10 +2870,11 @@
     // collar. FRAME_SCALE/FRAME_LIFT pull every head back to reveal neck + body.
     const FRAME_SCALE = 0.86;
     const FRAME_LIFT = -16;
-    const scaleX = (Number(traits.headScaleX) || 1) * FRAME_SCALE;
-    const scaleY = (Number(traits.headScaleY) || 1) * FRAME_SCALE;
+    const scaleX = FRAME_SCALE;
+    const scaleY = FRAME_SCALE;
     const x = Number(traits.headX) || 0;
     const y = (Number(traits.headY) || 0) + FRAME_LIFT;
+    const tilt = Number(traits.headTilt) || 0;
     const pivotX = 128;
     const pivotY = 150;
     // Deliberately NOT using the fixed-stroke/non-scaling-stroke trick here: under a non-uniform
@@ -1463,7 +2884,16 @@
     // true resize of the artwork rather than a geometry-only stretch.
     // Inner `.fa-head` group carries the optional head-sway animation so it composes with this
     // transform rather than overriding it.
-    return `<g transform='translate(${x} ${y}) translate(${pivotX} ${pivotY}) scale(${scaleX} ${scaleY}) translate(-${pivotX} -${pivotY})'><g class='fa-head'>${content}</g></g>`;
+    return `<g transform='translate(${x} ${y}) translate(${pivotX} ${pivotY}) rotate(${tilt}) scale(${scaleX} ${scaleY}) translate(-${pivotX} -${pivotY})'><g class='fa-head'>${content}</g></g>`;
+  }
+
+  function headShapeGroup(traits, content) {
+    const scaleX = Number(traits.headScaleX) || 1;
+    const scaleY = Number(traits.headScaleY) || 1;
+    if (Math.abs(scaleX - 1) < 0.001 && Math.abs(scaleY - 1) < 0.001) return content;
+    const pivotX = 128;
+    const pivotY = 145;
+    return `<g transform='translate(${pivotX} ${pivotY}) scale(${scaleX} ${scaleY}) translate(-${pivotX} -${pivotY})'>${content}</g>`;
   }
 
   // Opt-in idle animation, emitted as a <style> embedded in the portrait SVG (works in an <img>:
@@ -1513,6 +2943,11 @@
     // per-character ±20% jitter so the roster doesn't blink in lockstep.
     const BLINK_DUR = 0.18 * (1 + 0.2 * (Math.abs(ph2) * 2 - 1)), WINK_DUR = 0.34;
     const widthPct = (dur, period) => Math.max(1, Math.min(26, (dur / period) * 100));
+    const eyeOpen = Number(traits.eyeOpen) || 1;
+    const eyeScale = Number(traits.eyeScale) || 1;
+    const blinkTightness = Math.max(0.72, Math.min(1.08, 0.84 + eyeOpen * 0.2 + (eyeScale - 1) * 0.08));
+    const lidTravel = Math.max(15, Math.min(25, 14 + eyeOpen * 8 + (eyeScale - 1) * 4)).toFixed(1);
+    const blinkSquash = Math.max(0.58, Math.min(0.84, 0.72 + (blinkTightness - 0.9) * 0.45)).toFixed(2);
     const kf = [];
     const rules = ["g.fa-eye,g.fa-iris{transform-box:fill-box;transform-origin:center}"];
     if (blink > 0 && !squint) {
@@ -1520,8 +2955,8 @@
       const bs = (100 - bw).toFixed(2);          // blink begins
       const bm = (100 - bw * 0.5).toFixed(2);     // eye fully shut
       // The eye squishes a touch while the skin lid sweeps down over it (a real-feeling blink).
-      kf.push(`@keyframes faBlink{0%,${bs}%,100%{transform:scaleY(1)}${bm}%{transform:scaleY(.82)}}`);
-      kf.push(`@keyframes faLid{0%,${bs}%,100%{transform:translateY(-30px)}${bm}%{transform:translateY(0)}}`);
+      kf.push(`@keyframes faBlink{0%,${bs}%,100%{transform:scaleY(1)}${bm}%{transform:scaleY(${blinkSquash})}}`);
+      kf.push(`@keyframes faLid{0%,${bs}%,100%{transform:translateY(-${lidTravel}px)}${bm}%{transform:translateY(0)}}`);
       rules.push(`g.fa-eye{animation:faBlink ${blink}s infinite;animation-delay:${d(blink)}s}`);
       rules.push(`g.fa-lid{animation:faLid ${blink}s infinite;animation-delay:${d(blink)}s}`);
     }
@@ -1558,7 +2993,7 @@
       // reads as a clean lid closing - not the old scaleY squish that folded the eye in on itself.
       const ww = widthPct(WINK_DUR, wink);
       const a = (50 - ww / 2).toFixed(2), b = (50 + ww / 2).toFixed(2);
-      kf.push(`@keyframes faWinkLid{0%,${a}%,${b}%,100%{transform:translateY(-30px)}50%{transform:translateY(0)}}`);
+      kf.push(`@keyframes faWinkLid{0%,${a}%,${b}%,100%{transform:translateY(-${lidTravel}px)}50%{transform:translateY(0)}}`);
       rules.push(`g.fa-winklid{animation:faWinkLid ${wink}s infinite;animation-delay:${d(wink)}s}`);
     }
     // Head-move channel: exactly one of sway/breathe/nod/bobble/shiver/lean rides the .fa-head group.
@@ -1616,26 +3051,47 @@
   };
   // place: "body" anchors on the chest (drawn in the torso layer); "face" anchors on the cheek
   // (drawn inside the head group so it moves/scales with the head).
-  function renderTattoo(traits, place) {
-    const text = traits.tattooText;
-    if (!text) return "";
-    const where = traits.tattooPlace || "body";
+  function renderTattoo(traits, place, layerFilter = "") {
+    const tattoos = Array.isArray(traits.tattoos) ? traits.tattoos : [];
+    const legacy = !tattoos.length && traits.tattooText ? [{
+      text: traits.tattooText,
+      place: traits.tattooPlace,
+      font: traits.tattooFont,
+      color: traits.tattooColor,
+      x: traits.tattooX,
+      y: traits.tattooY,
+      scale: traits.tattooScale,
+      rot: traits.tattooRot,
+      skewX: traits.tattooSkewX,
+      warp: traits.tattooWarp,
+      opacity: traits.tattooOpacity
+    }] : [];
+    return legacy.concat(tattoos).map((tattoo, index) => renderTattooItem(traits, tattoo, place, index, layerFilter)).join("");
+  }
+
+  function renderTattooItem(traits, tattoo, place, index, layerFilter = "") {
+    const rawText = tattoo.text;
+    if (!rawText) return "";
+    const text = traits.pg ? pgTattooText(rawText, `${place}:${index}`) : rawText;
+    const where = tattoo.place || "body";
     if (where !== place) return "";
-    const fade = traits.tattooOpacity != null && traits.tattooOpacity !== "" ? Math.max(0, Math.min(1, Number(traits.tattooOpacity))) : 1;
+    const layer = tattoo.layer || "overClothes";
+    if (layerFilter && place === "body" && layer !== layerFilter) return "";
+    const fade = tattoo.opacity != null && tattoo.opacity !== "" ? Math.max(0, Math.min(1, Number(tattoo.opacity))) : 1;
     if (fade <= 0) return "";
     const baseX = 128;
-    const baseY = place === "face" ? 178 : 236;
-    const x = baseX + (Number(traits.tattooX) || 0);
-    const y = baseY + (Number(traits.tattooY) || 0);
-    const scale = Number(traits.tattooScale) || 1;
-    const rot = Number(traits.tattooRot) || 0;
-    const skew = Number(traits.tattooSkewX) || 0;
-    const font = tattooFonts[traits.tattooFont] || tattooFonts.bold;
-    const color = traits.tattooColor || "#23232b";
+    const baseY = place === "face" ? 178 : 244;
+    const x = baseX + (Number(tattoo.x) || 0);
+    const y = baseY + (Number(tattoo.y) || 0);
+    const scale = Number(tattoo.scale) || 1;
+    const rot = Number(tattoo.rot) || 0;
+    const skew = Number(tattoo.skewX) || 0;
+    const font = tattooFonts[tattoo.font] || tattooFonts.bold;
+    const color = tattoo.color || "#23232b";
     const esc = String(text).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
     // Warp: a turbulence displacement filter that smears/distorts the lettering beyond a flat skew.
-    const warp = Math.max(0, Number(traits.tattooWarp) || 0);
-    const fid = `twarp-${place}`;
+    const warp = Math.max(0, Number(tattoo.warp) || 0);
+    const fid = `twarp-${place}-${index}`;
     const filt = warp > 0
       ? `<defs><filter id='${fid}' x='-40%' y='-60%' width='180%' height='220%'>`
         + `<feTurbulence type='turbulence' baseFrequency='0.035 0.08' numOctaves='2' seed='6' result='n'/>`
@@ -1643,12 +3099,23 @@
         + `</filter></defs>`
       : "";
     const filterAttr = warp > 0 ? ` filter='url(#${fid})'` : "";
-    return `<g transform='translate(${x} ${y}) rotate(${rot}) skewX(${skew}) scale(${scale})'>${filt}`
+    const tattooSvg = `<g transform='translate(${x} ${y}) rotate(${rot}) skewX(${skew}) scale(${scale})'>${filt}`
       + `<text x='0' y='0'${filterAttr} text-anchor='middle' font-family="${font}" font-size='17' font-weight='700' fill='${color}' opacity='${(0.9 * fade).toFixed(2)}'>${esc}</text></g>`;
+    if (place === "body") {
+      const clipId = `tattoo-body-${index}-${layer}`.replace(/[^a-z0-9_-]/gi, "-");
+      return `<defs><clipPath id='${clipId}'><path d='${shoulderPath(traits)}'/></clipPath></defs><g clip-path='url(#${clipId})'>${tattooSvg}</g>`;
+    }
+    return place === "face" ? featureLock(x, y, traits, tattooSvg) : tattooSvg;
+  }
+
+  function pgTattooText(text, place) {
+    const safe = ["zib", "wub", "narp", "bim", "zoop", "nib", "vex", "luma"];
+    return safe[stableHash(`${text}:${place}`) % safe.length];
   }
 
   function renderClothing(outfit, traits, seed) {
     const garment = clothing[traits.clothing] || clothing.tee;
+    if (garment.custom) return renderCustomClothing(traits, seed, garment);
     const skin = traits.skinHex || skinTones[traits.skin] || "#c89070";
     const c = traits.shirt;
     const fill = garment.bare ? skin : c;       // bare/singlet show skin shoulders, not the shirt
@@ -1664,36 +3131,323 @@
       return `<path d='M${(x0).toFixed(1)} 214 C ${(x0 + s * 8).toFixed(1)} 226 ${(x1 - s * 4).toFixed(1)} 234 ${(x1).toFixed(1)} 252' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>`;
     };
     const sleeves = garment.bare ? "" : seam(-1) + seam(1);
+    const bodyShell = `
+      <path d='${shoulderPath(traits)}' fill='${fill}'/>
+      <path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>
+    `;
+    const neckArcOpacity = garment.bare ? ".14" : ".38";
     const body = `
-      <path d='${shoulderPath(traits)}' fill='${fill}' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
-      ${renderBust(traits, sh, shadeColor(fill, 0.78))}
-      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.38'/>
+      ${bodyShell}
+      ${renderBust(traits, sh, shadeColor(fill, 0.78), garment.bare)}
+      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.whisper}' stroke-linecap='round' opacity='${neckArcOpacity}'/>
       ${sleeves}
       ${traits.clothing === "singlet" ? renderSinglet(traits, c, sh) : ""}
     `;
     return `<g transform='translate(0 256) scale(1 1.13) translate(0 -256)'>${body}</g>`;
   }
 
+  function renderCustomClothing(traits, seed, garment) {
+    const style = traits.clothing;
+    const primary = garment.layer
+      ? (traits.outerwearColor || garment.defaultColor || traits.shirt || "#2f7a78")
+      : (traits.shirt || garment.defaultColor || "#2f7a78");
+    const under = traits.underShirt || traits.baseShirt || (garment.layer ? (traits.shirt || garment.under || "#2f7a78") : primary);
+    const accent = traits.clothingAccent || garment.accent || shadeColor(primary, 1.2);
+    const body = garment.layer
+      ? renderLayeredClothing(style, traits, seed, primary, under, accent)
+      : renderBaseCustomClothing(style, traits, seed, primary, accent);
+    return `<g transform='translate(0 256) scale(1 1.13) translate(0 -256)'>${body}</g>`;
+  }
+
+  function clothingClip(seed, traits, suffix, content) {
+    const id = `clothes-${seed}-${traits.clothing}-${suffix}`.replace(/[^a-z0-9_-]/gi, "-");
+    return `<defs><clipPath id='${id}'><path d='${shoulderPath(traits)}'/></clipPath></defs><g clip-path='url(#${id})'>${content}</g>`;
+  }
+
+  function miniButtons(x, y, count, step, color) {
+    let out = "";
+    for (let i = 0; i < count; i += 1) {
+      out += `<circle cx='${x}' cy='${y + i * step}' r='2.2' fill='${color}' stroke='${ink}' stroke-width='1.1'/>`;
+    }
+    return out;
+  }
+
+  function customBodyFill(traits, fill, extra = "") {
+    const lo = shadeColor(fill, 0.82);
+    const sh = Number(traits.build) || 82;
+    const arc = `M${(128 - sh * 0.5).toFixed(1)} 248C${(128 - sh * 0.3).toFixed(1)} 228 ${(128 - sh * 0.14).toFixed(1)} 220 128 220C${(128 + sh * 0.14).toFixed(1)} 220 ${(128 + sh * 0.3).toFixed(1)} 228 ${(128 + sh * 0.5).toFixed(1)} 248`;
+    return `
+      <path d='${shoulderPath(traits)}' fill='${fill}'/>
+      <path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>
+      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.34'/>
+      ${extra}
+    `;
+  }
+
+  function customNeckOpening(traits, dip = 18, half = 23) {
+    const skin = traits.skinHex || skinTones[traits.skin] || "#c89070";
+    const shadow = shadeColor(skin, 0.82);
+    const y = necklineY(traits);
+    const width = Math.max(0.72, Math.min(1.38, Number(traits.neckWidth) || 1));
+    const neckHalf = half * width;
+    const lip = y - 5;
+    const inner = y + 10;
+    return `
+      <path d='M${128 - neckHalf - 3} ${lip} Q128 ${y + dip} ${128 + neckHalf + 3} ${lip} L${128 + neckHalf - 4} ${inner} Q128 ${y + dip + 8} ${128 - neckHalf + 4} ${inner} Z' fill='${skin}'/>
+      <path d='M${128 - neckHalf + 5} ${y + 4} Q128 ${y + dip + 5} ${128 + neckHalf - 5} ${y + 4}' fill='none' stroke='${shadow}' stroke-width='1.6' stroke-linecap='round' opacity='.22'/>
+    `;
+  }
+
+  function renderBaseCustomClothing(style, traits, seed, c, accent) {
+    const y = necklineY(traits);
+    const lo = shadeColor(c, 0.76);
+    const hi = shadeColor(c, 1.14);
+    if (style === "rugby") {
+      const stripes = Array.from({ length: 7 }, (_, i) => `<rect x='24' y='${(y + 9 + i * 18).toFixed(1)}' width='208' height='10' fill='${i % 2 ? shadeColor(c, 0.82) : accent}' opacity='${i % 2 ? ".78" : ".95"}'/>`).join("");
+      return customBodyFill(traits, c, `
+        ${clothingClip(seed, traits, "rugby", stripes)}
+        <path d='M101 ${y - 1} Q128 ${y + 12} 155 ${y - 1} L160 ${y + 11} Q128 ${y + 28} 96 ${y + 11} Z' fill='#f2efe7' stroke='${ink}' stroke-width='2.3' stroke-linejoin='round'/>
+        <path d='M112 ${y + 1} L128 ${y + 20} L144 ${y + 1}' fill='none' stroke='${shadeColor(c, 0.52)}' stroke-width='2.1' stroke-linejoin='round'/>
+      `);
+    }
+    if (style === "scrubs") {
+      return customBodyFill(traits, c, `
+        ${customNeckOpening(traits, 12, 24)}
+        <path d='M100 ${y - 2} L128 ${y + 31} L156 ${y - 2}' fill='none' stroke='${ink}' stroke-width='5.2' stroke-linejoin='round'/>
+        <path d='M102 ${y - 2} L128 ${y + 25} L154 ${y - 2}' fill='none' stroke='${shadeColor(c, 0.66)}' stroke-width='2.8' stroke-linejoin='round'/>
+        <rect x='145' y='${y + 22}' width='21' height='24' fill='${lo}' stroke='${ink}' stroke-width='1.8'/>
+        <path d='M151 ${y + 27} V${y + 43}' stroke='${accent}' stroke-width='1.7' stroke-linecap='round'/>
+      `);
+    }
+    if (style === "chefCoat") {
+      return customBodyFill(traits, c, `
+        ${customNeckOpening(traits, 9, 22)}
+        <path d='M103 ${y - 2} Q128 ${y + 10} 153 ${y - 2} L153 ${y + 13} Q128 ${y + 26} 103 ${y + 13} Z' fill='${c}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
+        <path d='M95 ${y + 2} C115 ${y + 24} 128 ${y + 52} 128 256M161 ${y + 2} C141 ${y + 24} 128 ${y + 52} 128 256' fill='none' stroke='${shadeColor(c, 0.72)}' stroke-width='2'/>
+        ${miniButtons(115, y + 27, 4, 14, accent)}
+        ${miniButtons(141, y + 27, 4, 14, accent)}
+      `);
+    }
+    if (style === "tracksuit") {
+      return customBodyFill(traits, c, `
+        <path d='M98 ${y - 3} Q128 ${y + 11} 158 ${y - 3} L158 ${y + 14} Q128 ${y + 31} 98 ${y + 14} Z' fill='${lo}' stroke='${ink}' stroke-width='2.5' stroke-linejoin='round'/>
+        <path d='M128 ${y + 8}V256' stroke='${ink}' stroke-width='2.7'/>
+        <path d='M78 ${y + 4}C92 ${y + 15} 105 ${y + 28} 115 ${y + 51}M178 ${y + 4}C164 ${y + 15} 151 ${y + 28} 141 ${y + 51}' fill='none' stroke='${accent}' stroke-width='5' stroke-linecap='round'/>
+      `);
+    }
+    if (style === "kurta") {
+      return customBodyFill(traits, c, `
+        <path d='M104 ${y - 2}Q128 ${y + 8} 152 ${y - 2}L152 ${y + 11}Q128 ${y + 21} 104 ${y + 11}Z' fill='${hi}' stroke='${ink}' stroke-width='2.3'/>
+        <path d='M128 ${y + 11}V${y + 91}' stroke='${accent}' stroke-width='3' stroke-linecap='round'/>
+        ${miniButtons(128, y + 25, 4, 14, "#f1df9c")}
+      `);
+    }
+    if (style === "sariDrape") {
+      return customBodyFill(traits, c, `
+        <path d='M74 ${y + 2} C106 ${y + 20} 135 ${y + 53} 164 256 L190 256 C157 ${y + 76} 122 ${y + 35} 83 ${y + 1} Z' fill='${accent}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round' opacity='.96'/>
+        <path d='M84 ${y + 13} C115 ${y + 32} 145 ${y + 68} 172 256' fill='none' stroke='${shadeColor(accent, 0.72)}' stroke-width='2.2' opacity='.55'/>
+      `);
+    }
+    if (style === "sequin") {
+      const stars = Array.from({ length: 22 }, (_, i) => {
+        const x = 83 + (i * 29) % 91;
+        const sy = y + 20 + (i * 37) % 50;
+        return `<path d='M${x} ${sy - 3}L${x + 2} ${sy}L${x + 5} ${sy}L${x + 2.4} ${sy + 2}L${x + 3.5} ${sy + 5}L${x} ${sy + 3}L${x - 3.5} ${sy + 5}L${x - 2.4} ${sy + 2}L${x - 5} ${sy}L${x - 2} ${sy}Z' fill='${accent}' opacity='.8'/>`;
+      }).join("");
+      return customBodyFill(traits, c, `
+        <path d='M98 ${y - 1}C115 ${y + 12} 136 ${y + 12} 158 ${y - 1}' fill='none' stroke='${accent}' stroke-width='3.2' stroke-linecap='round'/>
+        ${clothingClip(seed, traits, "sequin", stars)}
+      `);
+    }
+    return customBodyFill(traits, c, "");
+  }
+
+  function renderLayeredClothing(style, traits, seed, outer, under, accent) {
+    const y = necklineY(traits);
+    const lo = shadeColor(outer, 0.76);
+    const hi = shadeColor(outer, 1.12);
+    const body = `
+      <path d='${shoulderPath(traits)}' fill='${under}'/>
+      <path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>
+    `;
+    const openCentre = `<path d='M106 203C115 210 121 222 128 241C135 222 141 210 150 203L139 256H117Z' fill='${under}'/>`;
+    const fullCoverage = new Set(["flannel", "denim", "varsity", "bomber", "cardigan", "labCoat", "raincoat", "leather"]);
+    const layerShell = fullCoverage.has(style)
+      ? `<path d='${shoulderPath(traits)}' fill='${outer}'/><path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>${openCentre}`
+      : "";
+    const details = renderLayerDetails(style, traits, outer, under, accent, lo, hi);
+    const neck = renderLayerNeck(style, traits, outer, under, accent, lo, hi);
+    return `
+      ${body}
+      ${clothingClip(seed, traits, "layer", `${layerShell}${details}`)}
+      ${neck}
+    `;
+  }
+
+  function renderLayerDetails(style, traits, c, under, accent, lo, hi) {
+    const y = necklineY(traits);
+    const centreZip = `<path d='M128 ${y + 8}V256' stroke='${ink}' stroke-width='2.5' stroke-linecap='round'/>`;
+    if (style === "flannel") {
+      const lines = `
+        <g stroke='${shadeColor(c, 0.58)}' stroke-width='1.5' opacity='.8'>
+          <path d='M82 ${y - 1}V256M101 ${y - 1}V256M155 ${y - 1}V256M174 ${y - 1}V256M63 ${y + 24}H193M63 ${y + 52}H193M63 ${y + 80}H193'/>
+        </g>
+        <g stroke='${accent}' stroke-width='1.1' opacity='.65'>
+          <path d='M91 ${y - 1}V256M165 ${y - 1}V256M63 ${y + 37}H193M63 ${y + 68}H193'/>
+        </g>`;
+      return `${lines}<path d='M99 ${y - 3}L128 ${y + 22}L157 ${y - 3}' fill='none' stroke='${ink}' stroke-width='2.5' stroke-linejoin='round'/>`;
+    }
+    if (style === "denim") {
+      return `
+        <path d='M92 ${y + 40}H118V${y + 65}H92ZM138 ${y + 40}H164V${y + 65}H138Z' fill='${lo}' stroke='${ink}' stroke-width='2'/>
+        <path d='M99 ${y + 48}H111M145 ${y + 48}H157M128 ${y + 4}V256' stroke='${accent}' stroke-width='1.8' stroke-linecap='round' opacity='.85'/>
+        ${miniButtons(128, y + 22, 5, 15, accent)}
+      `;
+    }
+    if (style === "varsity") {
+      return `
+        <path d='M72 ${y + 2}C89 ${y + 10} 101 ${y + 36} 111 256M184 ${y + 2}C167 ${y + 10} 155 ${y + 36} 145 256' fill='none' stroke='${accent}' stroke-width='12' stroke-linecap='round' opacity='.95'/>
+        <path d='M99 ${y + 5}Q128 ${y + 18}157 ${y + 5}M89 239H167' fill='none' stroke='${accent}' stroke-width='2.2' stroke-linecap='round'/>
+        ${centreZip}
+        <text x='101' y='${y + 50}' font-size='20' font-weight='900' fill='${accent}' stroke='${ink}' stroke-width='0.7'>W</text>
+      `;
+    }
+    if (style === "bomber") {
+      return `
+        <path d='M93 ${y - 1}Q128 ${y + 15}163 ${y - 1}L163 ${y + 13}Q128 ${y + 30}93 ${y + 13}Z' fill='${lo}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M83 240H173V256H83Z' fill='${lo}' stroke='${ink}' stroke-width='2.3'/>
+        ${centreZip}
+        <g stroke='${accent}' stroke-width='1.4' opacity='.8'><path d='M95 ${y + 5}H161M88 247H168'/></g>
+      `;
+    }
+    if (style === "cardigan") {
+      return `
+        <path d='M104 ${y - 1}L128 ${y + 44}L152 ${y - 1}' fill='none' stroke='${ink}' stroke-width='4' stroke-linejoin='round'/>
+        <path d='M104 ${y - 1}L128 ${y + 44}L152 ${y - 1}' fill='none' stroke='${shadeColor(c, 0.65)}' stroke-width='2' stroke-linejoin='round'/>
+        ${miniButtons(132, y + 39, 5, 14, "#f6d7a5")}
+        <path d='M93 ${y + 56}H113M143 ${y + 56}H163' stroke='${shadeColor(c, 0.68)}' stroke-width='1.7' stroke-linecap='round'/>
+      `;
+    }
+    if (style === "sweaterVest") {
+      const diamonds = Array.from({ length: 4 }, (_, i) => {
+        const x = 98 + i * 20;
+        return `<path d='M${x} ${y + 44}l10 -12l10 12l-10 12Z' fill='${i % 2 ? accent : shadeColor(c, 1.25)}' stroke='${shadeColor(c, 0.58)}' stroke-width='1'/>`;
+      }).join("");
+      return `
+        <path d='M96 ${y}L128 ${y + 48}L160 ${y}C153 ${y + 41}162 ${y + 73}169 256H87C94 ${y + 73}103 ${y + 41}96 ${y}Z' fill='${c}' stroke='${ink}' stroke-width='2.7' stroke-linejoin='round'/>
+        <path d='M101 ${y - 1}L128 ${y + 40}L155 ${y - 1}' fill='none' stroke='${accent}' stroke-width='3.2' stroke-linejoin='round'/>
+        ${diamonds}
+      `;
+    }
+    if (style === "labCoat") {
+      return `
+        <path d='M101 ${y - 3}L128 ${y + 12}L119 ${y + 57}L94 ${y + 22}Z' fill='${c}' stroke='${ink}' stroke-width='2.3'/>
+        <path d='M155 ${y - 3}L128 ${y + 12}L137 ${y + 57}L162 ${y + 22}Z' fill='${c}' stroke='${ink}' stroke-width='2.3'/>
+        <rect x='145' y='${y + 43}' width='24' height='13' rx='2' fill='${accent}' stroke='${ink}' stroke-width='1.5'/>
+        <path d='M128 ${y + 12}V256' stroke='${shadeColor(c, 0.8)}' stroke-width='2'/>
+      `;
+    }
+    if (style === "apron") {
+      return `
+        <path d='M104 ${y + 4}C112 ${y + 13}121 ${y + 17}128 ${y + 17}C135 ${y + 17}144 ${y + 13}152 ${y + 4}' fill='none' stroke='${c}' stroke-width='6' stroke-linecap='round'/>
+        <path d='M101 ${y + 15}L155 ${y + 15}L166 256H90Z' fill='${c}' stroke='${ink}' stroke-width='2.7' stroke-linejoin='round'/>
+        <path d='M91 ${y + 51}C112 ${y + 61}144 ${y + 61}165 ${y + 51}' fill='none' stroke='${shadeColor(c, 0.7)}' stroke-width='2'/>
+        <rect x='111' y='${y + 34}' width='34' height='12' rx='2' fill='${accent}' stroke='${ink}' stroke-width='1.4'/>
+      `;
+    }
+    if (style === "securityVest") {
+      return `
+        <path d='M86 ${y + 5}C105 ${y + 18}117 ${y + 42}121 256H84Z' fill='${accent}' stroke='${ink}' stroke-width='2.4'/>
+        <path d='M170 ${y + 5}C151 ${y + 18}139 ${y + 42}135 256H172Z' fill='${accent}' stroke='${ink}' stroke-width='2.4'/>
+        <path d='M96 ${y + 32}L116 256M160 ${y + 32}L140 256' stroke='#f8fbf3' stroke-width='5' opacity='.85'/>
+        <path d='M86 ${y + 73}H170' stroke='#f8fbf3' stroke-width='6' opacity='.82'/>
+      `;
+    }
+    if (style === "raincoat") {
+      return `
+        <path d='M94 ${y + 15}C92 ${y - 16}106 ${y - 36}128 ${y - 36}C150 ${y - 36}164 ${y - 16}162 ${y + 15}C151 ${y + 5}139 200 128 200C117 200 105 ${y + 5}94 ${y + 15}Z' fill='${c}' stroke='${ink}' stroke-width='2.8'/>
+        <path d='M101 ${y - 1}Q128 ${y + 20}155 ${y - 1}' fill='none' stroke='${shadeColor(c, 0.68)}' stroke-width='4' stroke-linecap='round'/>
+        ${centreZip}
+        ${miniButtons(128, y + 35, 5, 14, accent)}
+      `;
+    }
+    if (style === "pinafore") {
+      return `
+        <path d='M100 ${y - 1}C111 ${y + 14}117 ${y + 39}117 256H139C139 ${y + 39}145 ${y + 14}156 ${y - 1}' fill='none' stroke='${c}' stroke-width='10' stroke-linecap='round'/>
+        <path d='M90 ${y + 33}Q128 ${y + 44}166 ${y + 33}L176 256H80Z' fill='${c}' stroke='${ink}' stroke-width='2.8' stroke-linejoin='round'/>
+        <circle cx='113' cy='${y + 35}' r='2.5' fill='${accent}' stroke='${ink}' stroke-width='1'/>
+        <circle cx='143' cy='${y + 35}' r='2.5' fill='${accent}' stroke='${ink}' stroke-width='1'/>
+      `;
+    }
+    if (style === "leather") {
+      return `
+        <path d='M101 ${y - 2}L128 ${y + 10}L111 ${y + 58}L91 ${y + 22}Z' fill='${hi}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M155 ${y - 2}L128 ${y + 10}L145 ${y + 58}L165 ${y + 22}Z' fill='${lo}' stroke='${ink}' stroke-width='2.5'/>
+        <path d='M106 ${y + 9}L150 ${y + 90}' stroke='${accent}' stroke-width='2.6' stroke-linecap='round'/>
+        <path d='M96 ${y + 49}H116M141 ${y + 49}H162' stroke='${accent}' stroke-width='1.8' stroke-linecap='round'/>
+      `;
+    }
+    return "";
+  }
+
+  function renderLayerNeck(style, traits, c, under, accent, lo, hi) {
+    const y = necklineY(traits);
+    const left = `M68 ${y + 8} C87 ${y - 4} 110 ${y - 2} 123 ${y + 8} L116 ${y + 22} C101 ${y + 12} 83 ${y + 13} 68 ${y + 24} Z`;
+    const right = `M188 ${y + 8} C169 ${y - 4} 146 ${y - 2} 133 ${y + 8} L140 ${y + 22} C155 ${y + 12} 173 ${y + 13} 188 ${y + 24} Z`;
+    if (style === "raincoat" || style === "bomber") {
+      return `
+        <path d='M93 ${y + 2} Q128 ${y + 19} 163 ${y + 2} L159 ${y + 17} Q128 ${y + 34} 97 ${y + 17} Z' fill='${c}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
+        <path d='M101 ${y + 7} Q128 ${y + 20} 155 ${y + 7}' fill='none' stroke='${lo}' stroke-width='2.2' stroke-linecap='round'/>
+      `;
+    }
+    if (style === "labCoat") {
+      const lapelL = `M96 ${y - 4} L127 ${y + 8} L118 ${y + 32} L92 ${y + 16} Z`;
+      const lapelR = `M160 ${y - 4} L129 ${y + 8} L138 ${y + 32} L164 ${y + 16} Z`;
+      return `
+        <path d='${left}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='${right}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='${lapelL}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='${lapelR}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='M121 ${y + 15} L128 ${y + 34} L135 ${y + 15}' fill='none' stroke='${under}' stroke-width='3' stroke-linejoin='round'/>
+      `;
+    }
+    if (style === "securityVest") {
+      return `
+        <path d='${left}' fill='${accent}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='${right}' fill='${accent}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+      `;
+    }
+    if (style === "sweaterVest" || style === "apron" || style === "pinafore") return "";
+    return `
+      <path d='${left}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+      <path d='${right}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+      <path d='M108 ${y + 3} L128 ${y + 23} L148 ${y + 3}' fill='none' stroke='${ink}' stroke-width='2.2' stroke-linejoin='round' opacity='.88'/>
+      <path d='M76 ${y + 15} C94 ${y + 8} 106 ${y + 9} 118 ${y + 17} M180 ${y + 15} C162 ${y + 8} 150 ${y + 9} 138 ${y + 17}' fill='none' stroke='${hi}' stroke-width='1.3' stroke-linecap='round' opacity='.35'/>
+    `;
+  }
+
   // Bust hint as a central Y: two curved branches sweeping in from each breast to a fork, then a
   // cleavage stem dropping out of frame. Scaled by traits.bust (0 = none). Drawn in the body's own
   // lowlight so it works clothed or bare.
-  function renderBust(traits, sh, lo) {
+  function renderBust(traits, sh, lo, bareBody = false) {
     const bust = Number(traits.bust) || 0;
     // Below this, it's slider dust (stray Face Studio exports like Aaron's 0.1) — draw nothing so a
     // faint Y never appears on a bare chest.
     if (bust < 0.15) return "";
     const f = (n) => n.toFixed(1);
-    const forkY = 246 - bust * 12;            // the fork (top of the cleavage)
+    const neckline = necklineY(traits);
+    const minTop = neckline + (bareBody ? 18 : 22);
+    const forkY = Math.max(minTop + 12, 246 - bust * 12);            // the fork (top of the cleavage)
     const spread = 18 + bust * 16;            // how far the branches reach out
-    const branchTopY = forkY - 16 - bust * 12;
+    const branchTopY = Math.max(minTop, forkY - 16 - bust * 12);
     const stemBotY = 257;                     // run the stem off the bottom edge
-    const op = Math.min(0.62, bust * 0.85).toFixed(2);   // proportional, no floor: tiny busts fade out
-    const w = 2.6;
+    const op = Math.min(bareBody ? 0.32 : 0.62, bust * (bareBody ? 0.42 : 0.85)).toFixed(2);
+    const w = bareBody ? 2 : 2.6;
     const branchL = `M${f(128 - spread)} ${f(branchTopY)}Q${f(128 - spread * 0.38)} ${f(forkY - 2)} 128 ${f(forkY)}`;
     const branchR = `M${f(128 + spread)} ${f(branchTopY)}Q${f(128 + spread * 0.38)} ${f(forkY - 2)} 128 ${f(forkY)}`;
     const stem = `M128 ${f(forkY)}L128 ${f(stemBotY)}`;
     const stroke = (d) => `<path d='${d}' fill='none' stroke='${lo}' stroke-width='${w}' stroke-linecap='round' opacity='${op}'/>`;
-    return stroke(branchL) + stroke(branchR) + stroke(stem);
+    return stroke(branchL) + stroke(branchR) + (bareBody && bust < 0.35 ? "" : stroke(stem));
   }
 
   // A spaghetti-strap singlet: a shirt-coloured scoop-neck panel over the torso with two thin straps
@@ -1726,9 +3480,11 @@
     const slope = traits.shoulderSlope != null
       ? Math.max(0, Math.min(1, Number(traits.shoulderSlope)))
       : Math.max(0.18, Math.min(0.9, 0.92 - (sh - 68) / 42));           // slim->sloped, bulky->squarer
-    const neckHalf = sh < 76 ? 22 : 24;
-    const neckY = 200;
-    const tipY = 211 + slope * 20;          // how far the shoulder drops
+    const neckShift = neckAnchorOffset(traits);
+    const neckWidth = Math.max(0.72, Math.min(1.38, Number(traits.neckWidth) || 1));
+    const neckHalf = (sh < 76 ? 24 : 26) * neckWidth;
+    const neckY = 206 + neckShift;
+    const tipY = 211 + slope * 20 + neckShift;          // how far the shoulder drops
     // Bottom (torso) half-width as a fraction of the shoulder width. 1 = straight sides (no tuck);
     // >1 flares the body out (reads as a torso, not a tapering limbless wedge); <1 tucks it in.
     const botHalf = sh * (Number(traits.bodyWidth) || 1);
@@ -1747,26 +3503,79 @@
       + ` C ${(tr - r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${nr + 7} ${dropY} ${nr} ${neckY} Z`;
   }
 
+  function shoulderOuterStrokePath(traits) {
+    const sh = Math.max(60, Math.min(104, Number(traits.build) || 82));
+    const slope = traits.shoulderSlope != null
+      ? Math.max(0, Math.min(1, Number(traits.shoulderSlope)))
+      : Math.max(0.18, Math.min(0.9, 0.92 - (sh - 68) / 42));
+    const neckShift = neckAnchorOffset(traits);
+    const neckWidth = Math.max(0.72, Math.min(1.38, Number(traits.neckWidth) || 1));
+    const neckHalf = (sh < 76 ? 24 : 26) * neckWidth;
+    const neckY = 206 + neckShift;
+    const tipY = 211 + slope * 20 + neckShift;
+    const botHalf = sh * (Number(traits.bodyWidth) || 1);
+    const r = 7 + slope * 4;
+    const nl = 128 - neckHalf, nr = 128 + neckHalf;
+    const tl = 128 - sh, tr = 128 + sh;
+    const bl = 128 - botHalf, br = 128 + botHalf;
+    const belly = Math.max(0, Math.min(1, Number(traits.belly) || 0)) * 18;
+    const dropY = neckY + 4 + slope * 7;
+    return `M${nl} ${neckY}`
+      + ` C ${nl - 7} ${dropY} ${(tl + r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${tl} ${tipY.toFixed(1)}`
+      + ` C ${(tl - r + 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${(bl - 1 - belly).toFixed(1)} ${(tipY + 13).toFixed(1)} ${(bl - belly * 0.8).toFixed(1)} 256`
+      + ` M ${(br + belly * 0.8).toFixed(1)} 256`
+      + ` C ${(br + 1 + belly).toFixed(1)} ${(tipY + 13).toFixed(1)} ${(tr + r - 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${tr} ${tipY.toFixed(1)}`
+      + ` C ${(tr - r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${nr + 7} ${dropY} ${nr} ${neckY}`;
+  }
+
   // Neckline geometry shared by the skin column and the collar so they always meet on the same
   // curve. `y` is where the neckline crosses; it dips ~7px lower at centre for a soft crew curve.
+  function neckAnchorOffset(traits) {
+    const headLift = Number(traits.headY) || 0;
+    const headScaleY = Number(traits.headScaleY) || 1;
+    // The chin moves when the whole head is lifted and also when the head is stretched taller.
+    // Tie the collar/neckline to that same motion so clothes do not stay behind as a detached body.
+    return headLift + ((headScaleY - 1) * 55 * 0.86);
+  }
+
   function necklineY(traits) {
-    return 200 + (Number(traits.neckLength) || 0);
+    return 189 + (Number(traits.neckLength) || 0) + neckAnchorOffset(traits);
   }
 
   function renderNeckBase(traits, skin) {
-    // Starts up behind the (lifted) chin and runs down into a softly rounded crew neckline so the
-    // shirt opening reads as a curve, not a hard rectangle.
-    const top = 150;
+    // The neck lives behind the head and merges into the torso/collar. Keep its outline soft: hard
+    // black side/bottom strokes read like a separate pasted-on rectangle, especially with chokers.
+    const top = 150 + neckAnchorOffset(traits);
     const y = necklineY(traits);
+    const width = Math.max(0.72, Math.min(1.38, Number(traits.neckWidth) || 1));
+    const left = 128 - 20 * width;
+    const right = 128 + 20 * width;
+    const innerLeft = 128 - 13 * width;
+    const innerRight = 128 + 13 * width;
+    const side = shadeColor(skin, 0.82);
+    const jaw = shadeColor(skin, 0.74);
+    const neckwear = new Set(["choker", "necklace", "chain", "scarf", "bow"]);
+    const hasNeckwear = neckwear.has(traits.accessory) || neckwear.has(traits.jewellery);
     // Bare/singlet: the neck merges straight into the chest - no crew-neckline curve (that bottom
-    // stroke read as a choker/necklace under the neck). Fill the column + stroke only the sides.
+    // stroke read as a choker/necklace under the neck). Fill a soft bridge down into the body and
+    // use low-contrast modelling lines instead of ink outlines.
     if ((clothing[traits.clothing] || {}).bare) {
-      const fill = `M106 ${top} L106 ${y + 12} L150 ${y + 12} L150 ${top} Z`;
-      const sides = `M106 ${top} L106 ${y + 12} M150 ${top} L150 ${y + 12}`;
-      return `<path d='${fill}' fill='${skin}'/><path d='${sides}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linecap='round'/>`;
+      const fill = `M${left.toFixed(1)} ${top} C${(left + 1).toFixed(1)} ${top + 22} ${(left + 3).toFixed(1)} ${y - 8} ${(left - 8).toFixed(1)} ${y + 18} C${(left - 1).toFixed(1)} ${y + 24} ${(128 - 12 * width).toFixed(1)} ${y + 27} 128 ${y + 26} C${(128 + 12 * width).toFixed(1)} ${y + 27} ${(right + 1).toFixed(1)} ${y + 24} ${(right + 8).toFixed(1)} ${y + 18} C${(right - 3).toFixed(1)} ${y - 8} ${(right - 1).toFixed(1)} ${top + 22} ${right.toFixed(1)} ${top} Z`;
+      const sideOpacity = hasNeckwear ? ".08" : ".16";
+      const arcOpacity = hasNeckwear ? ".04" : ".1";
+      return `
+        <path d='${fill}' fill='${skin}'/>
+        <path d='M${(left + 3).toFixed(1)} ${top + 10} C${(left + 4).toFixed(1)} ${top + 28} ${(left + 1).toFixed(1)} ${y - 3} ${(left - 6).toFixed(1)} ${y + 13}' fill='none' stroke='${side}' stroke-width='1.3' stroke-linecap='round' opacity='${sideOpacity}'/>
+        <path d='M${(right - 3).toFixed(1)} ${top + 10} C${(right - 4).toFixed(1)} ${top + 28} ${(right - 1).toFixed(1)} ${y - 3} ${(right + 6).toFixed(1)} ${y + 13}' fill='none' stroke='${side}' stroke-width='1.3' stroke-linecap='round' opacity='${sideOpacity}'/>
+        <path d='M${(innerLeft - 8).toFixed(1)} ${y - 8} Q128 ${y - 1} ${(innerRight + 8).toFixed(1)} ${y - 8}' fill='none' stroke='${jaw}' stroke-width='1.7' stroke-linecap='round' opacity='${arcOpacity}'/>
+      `;
     }
-    const d = `M106 ${top} L106 ${y} Q128 ${y + 14} 150 ${y} L150 ${top} Z`;
-    return `<path d='${d}' fill='${skin}' stroke='${ink}' stroke-width='${stroke.contour}'/>`;
+    const d = `M${left.toFixed(1)} ${top} C${left.toFixed(1)} ${top + 20} ${(innerLeft - 2).toFixed(1)} ${y - 5} ${innerLeft.toFixed(1)} ${y + 3} C${(innerLeft + 2).toFixed(1)} ${y + 9} ${(128 - 6 * width).toFixed(1)} ${y + 12} 128 ${y + 12} C${(128 + 6 * width).toFixed(1)} ${y + 12} ${(innerRight - 2).toFixed(1)} ${y + 9} ${innerRight.toFixed(1)} ${y + 3} C${(innerRight + 2).toFixed(1)} ${y - 5} ${right.toFixed(1)} ${top + 20} ${right.toFixed(1)} ${top} Z`;
+    return `
+      <path d='${d}' fill='${skin}'/>
+      <path d='M${(innerLeft - 2).toFixed(1)} ${top + 8} C${(innerLeft - 1).toFixed(1)} ${top + 28} ${innerLeft.toFixed(1)} ${y - 4} ${(128 - 7 * width).toFixed(1)} ${y + 2}' fill='none' stroke='${side}' stroke-width='1.5' stroke-linecap='round' opacity='.22'/>
+      <path d='M${(innerRight + 2).toFixed(1)} ${top + 8} C${(innerRight + 1).toFixed(1)} ${top + 28} ${innerRight.toFixed(1)} ${y - 4} ${(128 + 7 * width).toFixed(1)} ${y + 2}' fill='none' stroke='${side}' stroke-width='1.5' stroke-linecap='round' opacity='.22'/>
+    `;
   }
 
   // The cut neck left behind in Fireworks Mode (when the head has popped off). A skin-rimmed wound
@@ -1809,6 +3618,7 @@
   // Per-garment collar, drawn ON TOP of the skin neck so its curved opening shapes the neckline.
   function renderCollar(traits) {
     if ((clothing[traits.clothing] || {}).collar === "none") return ""; // bare / singlet
+    if ((clothing[traits.clothing] || {}).collar === "custom") return "";
     const c = traits.shirt;
     const lo = shadeColor(c, 0.8);
     const hi = shadeColor(c, 1.14);
@@ -1934,34 +3744,46 @@
       round: {
         left: "<circle cx='64' cy='140' r='14' fill='{skin}' stroke='{ink}' stroke-width='3.6'/>",
         right: "<circle cx='192' cy='140' r='14' fill='{skin}' stroke='{ink}' stroke-width='3.6'/>",
-        detail: "<path d='M60 139c5 4 9 4 13 0M183 139c5 4 9 4 13 0' fill='none' stroke='{softInk}' stroke-width='2.2' stroke-linecap='round'/>"
+        leftDetail: "<path d='M60 139c5 4 9 4 13 0' fill='none' stroke='{softInk}' stroke-width='2.2' stroke-linecap='round'/>",
+        rightDetail: "<path d='M183 139c5 4 9 4 13 0' fill='none' stroke='{softInk}' stroke-width='2.2' stroke-linecap='round'/>"
       },
       attached: {
         left: "<ellipse cx='64' cy='141' rx='13' ry='15' fill='{skin}' stroke='{ink}' stroke-width='3.6'/>",
         right: "<ellipse cx='192' cy='141' rx='13' ry='15' fill='{skin}' stroke='{ink}' stroke-width='3.6'/>",
-        detail: "<path d='M59 136c4 3 8 7 9 12M188 136c-4 3-8 7-9 12' fill='none' stroke='{softInk}' stroke-width='2.1' stroke-linecap='round'/>"
+        leftDetail: "<path d='M59 136c4 3 8 7 9 12' fill='none' stroke='{softInk}' stroke-width='2.1' stroke-linecap='round'/>",
+        rightDetail: "<path d='M188 136c-4 3-8 7-9 12' fill='none' stroke='{softInk}' stroke-width='2.1' stroke-linecap='round'/>"
       },
       narrow: {
         left: "<ellipse cx='64' cy='140' rx='11' ry='16' fill='{skin}' stroke='{ink}' stroke-width='3.6'/>",
         right: "<ellipse cx='192' cy='140' rx='11' ry='16' fill='{skin}' stroke='{ink}' stroke-width='3.6'/>",
-        detail: "<path d='M61 133c3 5 4 10 3 15M195 133c-3 5-4 10-3 15' fill='none' stroke='{softInk}' stroke-width='2.1' stroke-linecap='round'/>"
+        leftDetail: "<path d='M61 133c3 5 4 10 3 15' fill='none' stroke='{softInk}' stroke-width='2.1' stroke-linecap='round'/>",
+        rightDetail: "<path d='M195 133c-3 5-4 10-3 15' fill='none' stroke='{softInk}' stroke-width='2.1' stroke-linecap='round'/>"
       },
       lobe: {
         left: "<path d='M52 132c1-9 8-14 15-14 8 0 14 7 14 17 0 8-3 15-7 18-2 2-5 3-7 3s-5-1-8-4c-4-4-7-11-7-20Z' fill='{skin}' stroke='{ink}' stroke-width='3.6' stroke-linejoin='round'/>",
         right: "<path d='M204 132c-1-9-8-14-15-14-8 0-14 7-14 17 0 8 3 15 7 18 2 2 5 3 7 3s5-1 8-4c4-4 7-11 7-20Z' fill='{skin}' stroke='{ink}' stroke-width='3.6' stroke-linejoin='round'/>",
-        detail: "<path d='M61 136c4 4 6 8 6 14M195 136c-4 4-6 8-6 14' fill='none' stroke='{softInk}' stroke-width='2.1' stroke-linecap='round'/>"
+        leftDetail: "<path d='M61 136c4 4 6 8 6 14' fill='none' stroke='{softInk}' stroke-width='2.1' stroke-linecap='round'/>",
+        rightDetail: "<path d='M195 136c-4 4-6 8-6 14' fill='none' stroke='{softInk}' stroke-width='2.1' stroke-linecap='round'/>"
       }
     };
     const template = variants[traits.earVariant] || variants.round;
-    const rendered = [template.left, template.right, template.detail]
-      .join("")
+    const fillTemplate = (markup) => markup
       .replaceAll("{skin}", skin)
       .replaceAll("{ink}", ink)
       .replaceAll("{softInk}", softInk);
     const scale = Number(traits.earScale) || 1;
-    const y = Number(traits.earY) || 0;
-    if (scale === 1 && !y) return rendered;
-    return `<g transform='translate(0 ${y}) translate(128 140) scale(${scale}) translate(-128 -140)'>${rendered}</g>`;
+    const commonY = Number(traits.earY) || 0;
+    const commonX = Number(traits.earX) || 0;
+    const one = (side, cx) => {
+      const sx = side === "left" ? -1 : 1;
+      const x = commonX + (Number(traits[`${side}EarX`]) || 0) + (Number(traits[side === "left" ? "earLeftX" : "earRightX"]) || 0);
+      const y = commonY + (Number(traits[`${side}EarY`]) || 0) + (Number(traits[side === "left" ? "earLeftY" : "earRightY"]) || 0);
+      const rot = Number(traits[`${side}EarRot`]) || Number(traits.earRot) || 0;
+      const markup = fillTemplate(template[side] + (template[`${side}Detail`] || ""));
+      if (scale === 1 && !x && !y && !rot) return markup;
+      return `<g transform='translate(${x} ${y}) translate(${cx} 140) rotate(${rot * sx}) scale(${scale}) translate(${-cx} -140)'>${markup}</g>`;
+    };
+    return one("left", 64) + one("right", 192);
   }
 
   // Soft shadows CLIPPED to the face shape so they sit inside the face (never spill onto hair/bg) -
@@ -2075,6 +3897,7 @@
   function renderFaceModeling(seed, skin, traits) {
     const profile = getProfile(traits);
     const cheekY = 150 + (profile.cheekY || 0);
+    const cheekX = Number(traits.blushX) || Number(traits.blushSpacing) || 0;
     const cheekOp = Math.max(0, Number(profile.cheekOpacity != null ? profile.cheekOpacity : 0.09));
     // Real blush: a SOFT radial gradient (solid core fading to nothing), not a hard-edged ellipse.
     // Colour, size and vertical position are all controllable (blushColor / blushScale / cheekY).
@@ -2088,8 +3911,8 @@
         <stop offset='55%' stop-color='${blushCol}' stop-opacity='${(cheekOp * 0.7).toFixed(2)}'/>
         <stop offset='100%' stop-color='${blushCol}' stop-opacity='0'/>
       </radialGradient></defs>
-      <ellipse cx='90' cy='${cheekY}' rx='${rx}' ry='${ry}' fill='url(#${gid})'/>
-      <ellipse cx='166' cy='${cheekY}' rx='${rx}' ry='${ry}' fill='url(#${gid})'/>`;
+      <ellipse cx='${90 - cheekX}' cy='${cheekY}' rx='${rx}' ry='${ry}' fill='url(#${gid})'/>
+      <ellipse cx='${166 + cheekX}' cy='${cheekY}' rx='${rx}' ry='${ry}' fill='url(#${gid})'/>`;
     // Nasolabial fold: a soft crease from each nostril wing down to just outside the mouth corner.
     // The reference art (penny/jade/kevin) always carries this faint pair on a smile - its absence is
     // the #1 "flat/AI" tell. Gated to smiling expressions and kept very soft (skin-shadow tone, low
@@ -2118,14 +3941,24 @@
     }
     const uo = Math.max(0, Math.min(1, Number(traits.undershadowOpacity) || 0));
     if (uo > 0) {
-      const under = (cx) => `<ellipse cx='${cx}' cy='${eyes.y + 12 + ey}' rx='13' ry='5' fill='${shadeColor(skin, 0.7)}' opacity='${(uo * 0.5).toFixed(2)}'/>`;
+      const uy = Number(traits.undershadowY) || -3;
+      const uw = Math.max(0.5, Number(traits.undershadowWidth) || 1);
+      const shadowY = eyes.y + 8.5 + ey + uy;
+      const shadowFill = shadeColor(skin, 0.7);
+      const under = (cx) => `<path d='M${(cx - 12.5 * uw).toFixed(1)} ${(shadowY).toFixed(1)}`
+        + `Q${cx.toFixed(1)} ${(shadowY + 3.9).toFixed(1)} ${(cx + 12.5 * uw).toFixed(1)} ${(shadowY).toFixed(1)}`
+        + `Q${cx.toFixed(1)} ${(shadowY - 1.8).toFixed(1)} ${(cx - 12.5 * uw).toFixed(1)} ${(shadowY).toFixed(1)}Z'`
+        + ` fill='${shadowFill}' opacity='${(uo * 0.42).toFixed(2)}'/>`;
       out += under(eyes.left) + under(eyes.right);
     }
     const co = Math.max(0, Math.min(1, Number(traits.contourOpacity) || 0));
     if (co > 0) {
       const dk = shadeColor(skin, 0.68);
-      out += `<path d='M84 148c3 12 10 20 20 24' fill='none' stroke='${dk}' stroke-width='6' stroke-linecap='round' opacity='${(co * 0.4).toFixed(2)}'/>`
-        + `<path d='M172 148c-3 12 -10 20 -20 24' fill='none' stroke='${dk}' stroke-width='6' stroke-linecap='round' opacity='${(co * 0.4).toFixed(2)}'/>`;
+      const cy = Number(traits.contourY) || 0;
+      const cx = Number(traits.contourX) || 0;
+      const cw = Math.max(0.55, Number(traits.contourWidth) || 1);
+      out += `<g transform='translate(${-cx} ${cy}) scale(${cw} 1) translate(${(1 - cw) * 84 / cw} 0)'><path d='M84 148c3 12 10 20 20 24' fill='none' stroke='${dk}' stroke-width='6' stroke-linecap='round' opacity='${(co * 0.4).toFixed(2)}'/></g>`
+        + `<g transform='translate(${cx} ${cy}) scale(${cw} 1) translate(${(1 - cw) * 172 / cw} 0)'><path d='M172 148c-3 12 -10 20 -20 24' fill='none' stroke='${dk}' stroke-width='6' stroke-linecap='round' opacity='${(co * 0.4).toFixed(2)}'/></g>`;
     }
     return out;
   }
@@ -2165,7 +3998,10 @@
     out += line("M124 117q-1 6 0 11", fr, 1.4) + line("M132 117q1 6 0 11", fr, 1.4);
     // Under-eye lines / eye bags
     const ue = op("underEyeOpacity", 0);
-    out += shift(-gapDx, ey, line("M99 145q10 4 22 1", ue, 1.3)) + shift(gapDx, ey, line("M135 146q12 3 22 -1", ue, 1.3));
+    const ueY = Number(traits.underEyeY) || -3;
+    const ueW = Math.max(0.5, Number(traits.underEyeWidth) || 1);
+    out += shift(-gapDx, ey + ueY, line(`M${(99 - (ueW - 1) * 5).toFixed(1)} 145q${(10 * ueW).toFixed(1)} 4 ${(22 * ueW).toFixed(1)} 1`, ue, Math.max(0.6, Number(traits.underEyeLineWidth) || 1.3)))
+      + shift(gapDx, ey + ueY, line(`M${(135 - (ueW - 1) * 5).toFixed(1)} 146q${(12 * ueW).toFixed(1)} 3 ${(22 * ueW).toFixed(1)} -1`, ue, Math.max(0.6, Number(traits.underEyeLineWidth) || 1.3)));
     // Crow's feet (outer eye corners) - track eye height AND spacing
     const cf = op("crowsFeetOpacity", 0);
     out += shift(-gapDx, ey, line("M92 133l-7 -4M92 137l-8 1M93 141l-6 4", cf, 1.2)) + shift(gapDx, ey, line("M164 133l7 -4M164 137l8 1M163 141l6 4", cf, 1.2));
@@ -2304,15 +4140,23 @@
   }
 
   function hairOutlineFor(traits) {
+    if (traits.hairOutlineMode === "off" || traits.hairOutline === "none") return "transparent";
     if (traits.hairOutline) return traits.hairOutline;
     const hex = (traits.hairHex || hairColors[traits.hairColor]);
     return hex ? shadeColor(hex, 0.52) : ink;
   }
 
+  function hairOutlineScale(traits) {
+    const sx = Number(traits.headScaleX) || 1;
+    const sy = Number(traits.headScaleY) || 1;
+    const avg = (sx + sy) / 2;
+    return Math.max(0.74, Math.min(1.08, 0.9 + (avg - 1) * 0.55));
+  }
+
   function renderBackHair(style, hair, traits) {
     if (!style.back) return "";
     const fill = style.covered ? traits.shirt : hair;
-    const strokeWidth = style.sidePart ? 4 : 4.3;
+    const strokeWidth = (style.sidePart ? 4 : 4.3) * hairOutlineScale(traits);
     const y = Number(traits.backHairY) || 0;
     const hi = hairOutlineFor(traits);
     return `<g transform='translate(0 ${y})'><path d='${style.back}' fill='${fill}' stroke='${hi}' stroke-width='${strokeWidth}' stroke-linejoin='round'/>${renderHairTexture(style, hair, traits)}</g>`;
@@ -2321,11 +4165,12 @@
   function renderFrontHair(style, hair, traits) {
     if (!style.front) return "";
     const hi = hairOutlineFor(traits);
+    const hs = hairOutlineScale(traits);
     const y = Number(traits.frontHairY) || 0;
     const wrap = (svg) => y ? `<g transform='translate(0 ${y})'>${svg}</g>` : svg;
     if (style.covered) {
       return wrap(`
-        <path d='M73 104c11-31 32-47 55-47s44 16 55 47v98' fill='none' stroke='${hi}' stroke-width='3.8' stroke-linecap='round' stroke-linejoin='round'/>
+        <path d='M73 104c11-31 32-47 55-47s44 16 55 47v98' fill='none' stroke='${hi}' stroke-width='${(3.8 * hs).toFixed(2)}' stroke-linecap='round' stroke-linejoin='round'/>
         <path d='M76 132c-3 23-2 48 2 70M180 132c3 23 2 48-2 70' fill='none' stroke='rgba(24,21,18,.18)' stroke-width='2.2' stroke-linecap='round'/>
         <path d='M90 204c17 16 59 16 76 0' fill='none' stroke='rgba(255,255,255,.18)' stroke-width='4' stroke-linecap='round'/>
       `);
@@ -2333,16 +4178,16 @@
     if (style.sidePart) {
       if (traits.hairProfile === "sweptSilver") {
         return wrap(`
-          <path d='M57 121c14-53 53-79 93-70 30 6 47 26 52 56-37-6-67-2-92 13-15-5-33-5-53 1Z' fill='${hair}' stroke='${ink}' stroke-width='4' stroke-linejoin='round'/>
+          <path d='M57 121c14-53 53-79 93-70 30 6 47 26 52 56-37-6-67-2-92 13-15-5-33-5-53 1Z' fill='${hair}' stroke='${hi}' stroke-width='${(4 * hs).toFixed(2)}' stroke-linejoin='round'/>
         `);
       }
       if (traits.hairProfile === "softSidePart") {
         return wrap(`
-          <path d='M60 118c17-48 58-70 100-56 23 8 37 25 42 50-20-6-38-6-53-1-10 3-18 8-28 17-9-7-20-10-33-10-9 0-18 1-28 4Z' fill='${hair}' stroke='${ink}' stroke-width='4' stroke-linejoin='round'/>
+          <path d='M60 118c17-48 58-70 100-56 23 8 37 25 42 50-20-6-38-6-53-1-10 3-18 8-28 17-9-7-20-10-33-10-9 0-18 1-28 4Z' fill='${hair}' stroke='${hi}' stroke-width='${(4 * hs).toFixed(2)}' stroke-linejoin='round'/>
         `);
       }
       return wrap(`
-        <path d='M62 120c18-49 56-72 97-58 22 7 36 23 43 48-43-12-84-9-140 10Z' fill='${hair}' stroke='${ink}' stroke-width='4' stroke-linejoin='round'/>
+        <path d='M62 120c18-49 56-72 97-58 22 7 36 23 43 48-43-12-84-9-140 10Z' fill='${hair}' stroke='${hi}' stroke-width='${(4 * hs).toFixed(2)}' stroke-linejoin='round'/>
       `);
     }
     if (style.bun) {
@@ -2489,9 +4334,16 @@
       );
     };
     const fill = browColor(traits);
-    const one = (cx) => `<path d='${brow(cx)}' fill='${fill}' stroke='${ink}' stroke-width='1.5' stroke-linejoin='round'/>`;
+    const one = (cx, side) => {
+      const sideAngle = side === "left"
+        ? (Number(traits.browLeftAngle) || Number(traits.leftBrowAngle) || 0)
+        : (Number(traits.browRightAngle) || Number(traits.rightBrowAngle) || 0);
+      const angle = (Number(traits.browAngle) || 0) + sideAngle;
+      const path = `<path d='${brow(cx)}' fill='${fill}' stroke='${ink}' stroke-width='1.5' stroke-linejoin='round'/>`;
+      return angle ? `<g transform='translate(${cx} ${by}) rotate(${angle}) translate(${-cx} ${-by})'>${path}</g>` : path;
+    };
     // Per-brow lock (same rule as the eyes): position spreads with the head, shape stays true.
-    return featureLock(eyes.left, by, traits, one(eyes.left)) + featureLock(eyes.right, by, traits, one(eyes.right));
+    return featureLock(eyes.left, by, traits, one(eyes.left, "left")) + featureLock(eyes.right, by, traits, one(eyes.right, "right"));
   }
 
   // Brows track the hair colour but deeper, so blondes read with visible (not black) brows while
@@ -2520,25 +4372,32 @@
     const px = profile.pupilX || 0;
     const py = profile.pupilY || 0;
     const lazy = Number(traits.lazyEye) || 0;
-    const left = renderEye(eyes.left, shape, traits.eyeColor, skin, profile, "l", px, py, traits);
-    const right = renderEye(eyes.right, shape, traits.eyeColor, skin, profile, "r", px + lazy, py, traits);
+    const left = renderEye(eyes.left, { ...shape, finalY: eyes.leftY }, traits.eyeColor, skin, profile, "l", px, py, traits);
+    const right = renderEye(eyes.right, { ...shape, finalY: eyes.rightY }, traits.eyeColor, skin, profile, "r", px + lazy, py, traits);
     // Each eye locks at its own centre: spacing follows the head stretch, the lens shape doesn't.
-    return featureLock(eyes.left, eyes.y, traits, left) + featureLock(eyes.right, eyes.y, traits, right);
+    return featureLock(eyes.left, eyes.leftY, traits, left) + featureLock(eyes.right, eyes.rightY, traits, right);
   }
 
   function eyeLayout(traits, y = 129) {
     const gap = traits?.eyeGap || 47;
+    const eyeX = Number(traits.eyeX) || Number(traits.eyeOffsetX) || 0;
+    const leftX = Number(traits.eyeLeftX) || Number(traits.leftEyeX) || 0;
+    const rightX = Number(traits.eyeRightX) || Number(traits.rightEyeX) || 0;
+    const leftY = Number(traits.eyeLeftY) || Number(traits.leftEyeY) || 0;
+    const rightY = Number(traits.eyeRightY) || Number(traits.rightEyeY) || 0;
     return {
-      left: 128 - gap / 2,
-      right: 128 + gap / 2,
-      y
+      left: 128 - gap / 2 + eyeX + leftX,
+      right: 128 + gap / 2 + eyeX + rightX,
+      y,
+      leftY: y + leftY,
+      rightY: y + rightY
     };
   }
 
   function renderEye(cx, shape, eyeColor, skin, profile, side, pupilDX, pupilDY, traits) {
     // eyeY shifts the whole eye up/down. (Previously this offset was only baked into eyeLayout's y,
     // which renderEye ignored - so the Eye Height control did nothing.)
-    const y = shape.y + (profile.eyeY || 0);
+    const y = shape.finalY != null ? shape.finalY : shape.y + (profile.eyeY || 0);
     const pdx = Number(pupilDX) || 0;
     const pdy = Number(pupilDY) || 0;
     const w = 14.2 * (profile.eyeScale || 1);
@@ -2577,6 +4436,8 @@
     const crease = `M${f(cx - w * 0.66)} ${f(creaseY)}Q${f(cx)} ${f(creaseY - up * 0.32)} ${f(cx + w * 0.66)} ${f(creaseY)}`;
     // lower lid: a warm, lighter line (a soft skin shadow) instead of full-weight ink
     const lowerLid = shadeColor(skin, 0.52);
+    const upperLidWidth = Math.max(0.6, Number(traits.upperEyelidWidth) || stroke.feature);
+    const lowerLidWidth = Math.max(0.5, Number(traits.lowerEyelidWidth) || 1.9);
     // Dramatic lashes (opt-in): flicks fanning UP-and-OUT along the upper lash line. They're INSIDE
     // the .fa-eye group so they scale/close naturally with the blink & wink. The outer flick is
     // longest (the winged 'whore lash' look). tc points toward the temple (outer side).
@@ -2585,6 +4446,12 @@
     if (lashLen > 0) {
       const tc = cx < 128 ? -1 : 1;               // outer direction
       const L = 7 * lashLen;
+      const coverage = traits.eyelashCoverage || "quarter";
+      const start = coverage === "full" ? 0 : coverage === "half" ? 0.28 : 0.58;
+      const density = Math.max(0.35, Math.min(2.2, Number(traits.eyelashDensity) || 1));
+      const count = Math.max(2, Math.min(8, Math.round((coverage === "full" ? 5 : coverage === "half" ? 4 : 3) * density)));
+      const lashColor = traits.eyelashColor || ink;
+      const lashWidth = Math.max(0.7, Number(traits.eyelashThickness) || 2);
       const tip = (t, len, curl) => {
         const bx = cx + tc * (w * (0.35 + t * 0.55));
         const by = y - up * (0.9 - t * 0.15);
@@ -2592,7 +4459,13 @@
         const ey2 = by - len;
         return `M${f(bx)} ${f(by)}Q${f(bx + tc * len * 0.3)} ${f(by - len * 0.7)} ${f(ex)} ${f(ey2 - curl)}`;
       };
-      lashes = `<path d='${tip(0, L * 0.8, 0)}${tip(0.5, L * 1.05, 1)}${tip(1, L * 1.35, 2)}' fill='none' stroke='${ink}' stroke-width='2' stroke-linecap='round'/>`;
+      let lashPath = "";
+      for (let i = 0; i < count; i += 1) {
+        const t = count === 1 ? 1 : start + ((1 - start) * i) / (count - 1);
+        const len = L * (0.72 + t * 0.58);
+        lashPath += tip(t, len, i * 0.6);
+      }
+      lashes = `<path d='${lashPath}' fill='none' stroke='${lashColor}' stroke-width='${lashWidth}' stroke-linecap='round'/>`;
     }
     // The iris/pupil/highlight sit in a `.fa-iris` group (eye-darts translate it within the clipped
     // lens). The whole eye is wrapped in `.fa-eye`/`.fa-eye-{side}` (blink scales it); the right eye
@@ -2607,22 +4480,22 @@
           <circle cx='${f(cx + pdx)}' cy='${f(irisY + pdy)}' r='${pupilR.toFixed(2)}' fill='#15100c'/>
           <circle cx='${f(cx + pdx - irisR * 0.32)}' cy='${f(irisY + pdy - irisR * 0.42)}' r='${(irisR * 0.16).toFixed(1)}' fill='#fff' opacity='.78'/>
         </g>
-        <path d='${topLid}' fill='none' stroke='rgba(31,35,48,.5)' stroke-width='2.6' stroke-linecap='round'/>
+        <path d='${topLid}' fill='none' stroke='rgba(31,35,48,.5)' stroke-width='${(upperLidWidth * 1.08).toFixed(2)}' stroke-linecap='round'/>
         ${/* Eyelid: a skin cover sitting 30px above (hidden by the clip) that the blink sweeps down
              over the eye. Inline transform keeps it hidden when there's no animation. */ ""}
         <g class='fa-lid' transform='translate(0 -30)'>
           <path d='${lens}' fill='${skin}'/>
-          <path d='M${f(cx - w * 0.9)} ${f(y)}Q${f(cx)} ${f(y + 1.3)} ${f(cx + w * 0.9)} ${f(y)}' fill='none' stroke='${ink}' stroke-width='1.9' stroke-linecap='round' opacity='.65'/>
+          <path d='M${f(cx - w * 0.9)} ${f(y)}Q${f(cx)} ${f(y + 1.3)} ${f(cx + w * 0.9)} ${f(y)}' fill='none' stroke='${ink}' stroke-width='${Math.max(1.2, upperLidWidth * 0.92).toFixed(2)}' stroke-linecap='round' opacity='.65'/>
         </g>
         ${/* Wink lid: right eye only. A second skin cover the wink sweeps down (faWinkLid), giving a
              clean lid-close wink independent of the blink lid. */ ""}
         ${side === "r" ? `<g class='fa-winklid' transform='translate(0 -30)'>
           <path d='${lens}' fill='${skin}'/>
-          <path d='M${f(cx - w * 0.9)} ${f(y)}Q${f(cx)} ${f(y + 1.3)} ${f(cx + w * 0.9)} ${f(y)}' fill='none' stroke='${ink}' stroke-width='1.9' stroke-linecap='round' opacity='.65'/>
+          <path d='M${f(cx - w * 0.9)} ${f(y)}Q${f(cx)} ${f(y + 1.3)} ${f(cx + w * 0.9)} ${f(y)}' fill='none' stroke='${ink}' stroke-width='${Math.max(1.2, upperLidWidth * 0.92).toFixed(2)}' stroke-linecap='round' opacity='.65'/>
         </g>` : ""}
       </g>
-      <path d='${bottomArc}' fill='none' stroke='${lowerLid}' stroke-width='1.9' stroke-linecap='round'/>
-      <path d='${topArc}' fill='none' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linecap='round' stroke-linejoin='round'/>
+      <path d='${bottomArc}' fill='none' stroke='${lowerLid}' stroke-width='${lowerLidWidth.toFixed(2)}' stroke-linecap='round'/>
+      <path d='${topArc}' fill='none' stroke='${ink}' stroke-width='${upperLidWidth.toFixed(2)}' stroke-linecap='round' stroke-linejoin='round'/>
       <path d='${crease}' fill='none' stroke='${softInk}' stroke-width='1.4' stroke-linecap='round'/>
       ${lashes}
     `;
@@ -2740,8 +4613,11 @@
     // consistent whether they're smiling or not.
     const upSize = Math.max(0.3, Number(traits.lipUpperSize) || 1);
     const loSize = Math.max(0.3, Number(traits.lipLowerSize) || 1);
+    const smileLowerCurve = Number(traits.smileLowerLipCurve) || 0;
     const lw = Math.max(0, Number(traits.lipLineWidth) || 1);   // multiplier on the lip outline weight
-    const lowerLip = showLips ? `<path d='${arc(p.botDip - 4, p.botDip + 12 * loSize)}' fill='${lipC}' stroke='${ink}' stroke-width='${(2.8 * lw).toFixed(2)}' stroke-linejoin='round'/>` : "";
+    const lowerLip = showLips
+      ? `<path d='${arc(p.botDip - 4 - smileLowerCurve * 3.5, p.botDip + 12 * loSize + smileLowerCurve * 8)}' fill='${lipC}' stroke='${ink}' stroke-width='${(2.8 * lw).toFixed(2)}' stroke-linejoin='round'/>`
+      : "";
     const upperLip = showLips ? `<path d='${arc(p.topDip - 8 * upSize, p.topDip)}' fill='${shadeColor(lipC, 0.9)}' stroke='${ink}' stroke-width='${(2.8 * lw).toFixed(2)}' stroke-linejoin='round'/>` : "";
     // A small highlight on the LOWER LIP only (the old sheen arced across the whole mouth, reading as
     // a stray pink curve over the teeth).
@@ -2811,12 +4687,32 @@
     const f = (n) => n.toFixed(1);
     const top = p.y - 3;
     const h = p.topDip + 9;
-    const gap = Math.max(0, Number(traits.teethGap) || 0);
+    const gap = Math.max(0, Math.min(14, Number(traits.teethGap) || 0));
     const overhang = effectiveOverhang(teethStyle, traits);
-    const iw = 6.6;
+    const bucky = teethStyle === "bucky";
+    const iw = bucky ? 7.2 : 6.6;
     const inTop = top + 1;
-    const inH = h - 2 + overhang;
-    const incisor = (x) => `<path d='M${f(x)} ${f(inTop)}h${f(iw)}v${f(inH - 3.2)}c0 1.8-1.4 3.2-${f(iw / 2)} 3.2s-${f(iw / 2)}-1.4-${f(iw / 2)}-3.2Z' fill='#fff' stroke='${ink}' stroke-width='1.4' stroke-linejoin='round'/>`;
+    const inH = Math.max(5, h - 2 + overhang);
+    const incisor = (x) => {
+      const x0 = x, x1 = x + iw, cx = x + iw / 2, bot = inTop + inH;
+      if (bucky) {
+        const shoulder = 1.1;
+        const waist = 0.7;
+        const tip = 1.5;
+        return `<path d='M${f(x0 + 0.95)} ${f(inTop)}`
+          + `C${f(x0 + 0.15)} ${f(inTop + 2.5)} ${f(x0 + shoulder)} ${f(bot - 5.4)} ${f(cx - waist)} ${f(bot - 1.8)}`
+          + `Q${f(cx)} ${f(bot + tip)} ${f(cx + waist)} ${f(bot - 1.8)}`
+          + `C${f(x1 - shoulder)} ${f(bot - 5.2)} ${f(x1 - 0.15)} ${f(inTop + 2.5)} ${f(x1 - 0.95)} ${f(inTop)}`
+          + `Q${f(cx)} ${f(inTop + 0.7)} ${f(x0 + 0.95)} ${f(inTop)}Z'`
+          + ` fill='#fffdf7' stroke='${ink}' stroke-width='1.3' stroke-linejoin='round'/>`
+          + `<path d='M${f(cx - 1.3)} ${f(inTop + 1.2)}Q${f(cx)} ${f(bot - 1.2)} ${f(cx + 1.3)} ${f(inTop + 1.2)}' fill='none' stroke='rgba(58,29,24,.12)' stroke-width='0.9' stroke-linecap='round'/>`;
+      }
+      return `<path d='M${f(x0 + 0.7)} ${f(inTop)}`
+        + `C${f(x0 + 0.2)} ${f(inTop + 3)} ${f(x0 + 0.6)} ${f(bot - 4.2)} ${f(cx - 1.9)} ${f(bot - 1)}`
+        + `Q${f(cx)} ${f(bot + 0.9)} ${f(cx + 1.9)} ${f(bot - 1)}`
+        + `C${f(x1 - 0.6)} ${f(bot - 4.2)} ${f(x1 - 0.2)} ${f(inTop + 3)} ${f(x1 - 0.7)} ${f(inTop)}Z'`
+        + ` fill='#fffdf7' stroke='${ink}' stroke-width='1.35' stroke-linejoin='round'/>`;
+    };
     // The gap shows the mouth interior, but only within the tooth ROW height - below the row (over the
     // lip) the space between the teeth shows the lip itself.
     const gapRect = gap > 0.4 ? `<rect x='${f(128 - gap / 2)}' y='${f(inTop)}' width='${f(gap)}' height='${f(h)}' fill='#3a1d18'/>` : "";
@@ -2903,7 +4799,7 @@
   function renderAccessory(traits, faceShape) {
     const render = accessories[traits.accessory] || accessories.none;
     const output = tintAccessory(render(traits, faceShape), traits);
-    const transformed = transformAccessory(output, traits);
+    const transformed = transformAccessory(output, traits, "accessory");
     const headwear = ["cap", "beanie", "beret", "headband", "flowerClip", "bucketHat", "sunHat"].includes(traits.accessory);
     const facial = ["beard", "moustache"].includes(traits.accessory);
     // The backwards cap must sit on top of the (faces.js) hair so the crown covers it and only the
@@ -2914,6 +4810,8 @@
     // Earrings hang on the ears, which the hair sweeps over - so they render BEHIND the (front) hair,
     // peeking out below it, rather than on top. (Behind-flagged hair locks still sit further back.)
     const earrings = ["hoops", "dropEarrings"].includes(traits.accessory);
+    const layer = traits.accessoryLayer || "auto";
+    if (layer !== "auto") return layerBucket(layer, transformed);
     if (traits.accessory === "capBack" || traits.accessory === "sunHat") return { beforeMouth: "", afterMouth: transformed };
     if (headwear) return { beforeMouth: transformed, afterMouth: "" };
     if (facial) return { beforeMouth: transformed, afterMouth: "" };
@@ -2921,13 +4819,51 @@
     return { beforeMouth: "", afterMouth: transformed };
   }
 
+  function layerBucket(layer, svg) {
+    if (!svg) return { beforeMouth: "", afterMouth: "" };
+    if (layer === "beforeHead") return { beforeHead: svg, beforeMouth: "", afterMouth: "", behindHair: "" };
+    if (layer === "behindHair") return { beforeHead: "", beforeMouth: "", afterMouth: "", behindHair: svg };
+    if (layer === "beforeMouth") return { beforeMouth: svg, afterMouth: "" };
+    return { beforeHead: "", beforeMouth: "", afterMouth: svg, behindHair: "" };
+  }
+
+  function renderJewellery(traits, faceShape) {
+    const jewel = traits.jewellery || "none";
+    if (!jewel || jewel === "none") return { beforeMouth: "", afterMouth: "" };
+    const render = accessories[jewel] || accessories.none;
+    const jewelTraits = {
+      ...traits,
+      accessory: jewel,
+      accessoryColor: traits.jewelleryColor || traits.accessoryColor,
+      accessoryMetal: traits.jewelleryMetal || traits.accessoryMetal,
+      accessoryX: traits.jewelleryX,
+      accessoryY: traits.jewelleryY,
+      accessoryScale: traits.jewelleryScale,
+      accessoryRot: traits.jewelleryRot
+    };
+    let output = tintAccessory(render(jewelTraits, faceShape), jewelTraits);
+    output = filterJewellerySide(output, traits.jewellerySide || "both", jewel);
+    const transformed = transformAccessory(output, jewelTraits, "accessory");
+    const earrings = ["hoops", "studs", "dropEarrings"].includes(jewel);
+    const layer = traits.jewelleryLayer || (earrings ? "behindHair" : "afterMouth");
+    return layerBucket(layer, transformed);
+  }
+
+  function filterJewellerySide(svg, side, jewel) {
+    if (!svg || side === "both" || !["hoops", "studs", "dropEarrings"].includes(jewel)) return svg;
+    const id = `jewel-side-${jewel}-${side}-${Math.abs(stableHash(svg)).toString(16)}`;
+    const rect = side === "left" ? "<rect x='0' y='0' width='128' height='256'/>" : "<rect x='128' y='0' width='128' height='256'/>";
+    return `<defs><clipPath id='${id}'>${rect}</clipPath></defs><g clip-path='url(#${id})'>${svg}</g>`;
+  }
+
   function transformAccessory(svg, traits) {
     const x = Number(traits.accessoryX) || 0;
     const y = Number(traits.accessoryY) || 0;
     const scale = Number(traits.accessoryScale) || 1;
-    if (!svg || (!x && !y && scale === 1)) return svg;
+    const rot = Number(traits.accessoryRot) || Number(traits.accessoryRotation) || 0;
+    if (!svg || (!x && !y && scale === 1 && !rot)) return svg;
     const anchor = accessoryAnchor(traits.accessory);
-    return `<g transform='translate(${x} ${y}) translate(${anchor.x} ${anchor.y}) scale(${scale}) translate(-${anchor.x} -${anchor.y})'>${svg}</g>`;
+    return `<g transform='translate(${x} ${y}) translate(${anchor.x} ${anchor.y}) rotate(${rot}) scale(${scale}) translate(-${anchor.x} -${anchor.y})'>${svg}</g>`;
   }
 
   function accessoryAnchor(accessory) {
@@ -2939,11 +4875,14 @@
       hoops: { x: 128, y: 144 },
       studs: { x: 128, y: 145 },
       dropEarrings: { x: 128, y: 146 },
+      noseRing: { x: 140, y: 162 },
+      eyebrowRing: { x: 96, y: 124 },
+      ring: { x: 128, y: 232 },
       beard: { x: 128, y: 184 },
       moustache: { x: 128, y: 160 },
-      necklace: { x: 128, y: 219 },
-      chain: { x: 128, y: 220 },
-      choker: { x: 128, y: 217 },
+      necklace: { x: 128, y: 214 },
+      chain: { x: 128, y: 215 },
+      choker: { x: 128, y: 211 },
       scarf: { x: 128, y: 224 },
       bow: { x: 128, y: 214 },
       cap: { x: 128, y: 95 },
@@ -3226,7 +5165,7 @@
       mouthStyles: Object.keys(mouthLabels),
       hairStyles: Object.keys(hairStyles),
       clothing: Object.keys(clothing),
-      accessories: Object.keys(accessories),
+      accessories: Object.keys(accessories).filter((value) => value !== "beard"),
       earVariants: ["round", "attached", "narrow", "lobe"],
       browShapes: Object.keys(browShapes),
       teethStyles: ["even", "perfect", "gappy", "bucky", "spaced"],
@@ -3234,9 +5173,10 @@
       lipUppers: ["soft", "cupid", "flat", "peaked", "heavy"],
       lipLowers: ["round", "pillow", "wide", "flat"],
       chinShapes: ["none", "round", "square", "dimple", "pointed"],
-      animModes: ["still", "calm", "curious", "serious", "shifty", "alert", "smug", "sleepy"],
+      animModes: ["still", "calm", "curious", "serious", "shifty", "alert", "smug", "sleepy", "googly", "sideeye", "crosseyed", "nervous", "nod", "bobble", "dreamy", "lean", "squint"],
       tattooFonts: Object.keys(tattooFonts),
       tattooPlaces: ["body", "face"],
+      jewellery: ["none", "studs", "hoops", "dropEarrings", "necklace", "chain", "choker", "noseRing", "eyebrowRing", "ring"],
       accessoryMetals: ["", "silver", "gold", "black", "roseGold"],
       noseTips: ["round", "narrow", "pointed", "straight", "button", "upturned"],
       skinTones: Object.keys(skinTones),

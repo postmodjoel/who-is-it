@@ -4,14 +4,27 @@ const traitBook = window.faceGenerator.traitBook;
 const expressions = traitBook.expressions;
 const accessoryChoices = traitBook.accessories;
 const correctionStorageKey = "who-is-that-face-corrections";
+const sharedEditor = window.WhoEditorShared || {};
+const titleCase = sharedEditor.titleCase || ((value) => String(value)
+  .replace(/([a-z])([A-Z])/g, "$1 $2")
+  .replace(/[-_]+/g, " ")
+  .replace(/\b\w/g, (letter) => letter.toUpperCase()));
+const selectOptions = sharedEditor.selectOptions || ((list) => (list || []).map((value) => [value, titleCase(value)]));
+const sharedGroupOrder = Array.isArray(sharedEditor.groupOrder) && sharedEditor.groupOrder.length
+  ? sharedEditor.groupOrder.slice()
+  : null;
+const sharedGroupTitle = (group) => (sharedEditor.groupTitleMap && sharedEditor.groupTitleMap[group]) || group;
 
-const selectOptions = (list) => list.map((value) => [value, titleCase(value)]);
-
-const editorFields = [
+const editorFields = sharedEditor.fieldsForFaceStudio
+  ? sharedEditor.fieldsForFaceStudio(traitBook, accessoryChoices)
+  : [
   // Face
   { group: "Face", key: "faceShape", label: "Face Shape", type: "select", options: () => selectOptions(traitBook.faceShapes), fallback: "oval" },
   { group: "Face", key: "headScaleX", label: "Head Width", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
   { group: "Face", key: "headScaleY", label: "Head Height", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
+  { group: "Face", key: "neckWidth", label: "Neck Width", min: 0.72, max: 1.38, step: 0.01, fallback: 1 },
+  { group: "Face", key: "neckLength", label: "Neck Length", min: -8, max: 16, step: 0.5, fallback: 0 },
+  { group: "Face", key: "headTilt", label: "Head Tilt", min: -12, max: 12, step: 0.5, fallback: 0 },
   { group: "Face", key: "headY", label: "Head Position", min: -10, max: 10, step: 1, fallback: 0 },
   { group: "Face", key: "eyeGap", label: "Eye Gap", min: 40, max: 62, step: 1, fallback: 47 },
   // Skin
@@ -20,29 +33,48 @@ const editorFields = [
   // Hair
   { group: "Hair", key: "hair", label: "Hair Style", type: "select", options: () => selectOptions(traitBook.hairStyles), fallback: "messy" },
   { group: "Hair", key: "hairColor", label: "Hair Color", type: "select", options: () => selectOptions(traitBook.hairColors), fallback: "brown" },
+  { group: "Hair", key: "hairOutlineMode", label: "Hair Outline", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
   { group: "Hair", key: "hairOutline", label: "Hair Outline Colour", type: "color", fallback: "" },
   { group: "Hair", key: "frontHairY", label: "Front Hair Y", min: -18, max: 18, step: 1, fallback: 0 },
   { group: "Hair", key: "backHairY", label: "Back Hair Y", min: -14, max: 14, step: 1, fallback: 0,
     when: (t) => ["longWaves", "bun", "hijab"].includes(t.hair) || !(window.facesHair && window.facesHair.has(t.hair)) },
+  { group: "Hair", key: "lockBlend", label: "Lock Blending", type: "select", options: () => [["merged", "Merged"], ["separate", "Separate"]], fallback: "merged" },
   // Brows
   { group: "Brows", key: "browShape", label: "Brow Shape", type: "select", options: () => selectOptions(traitBook.browShapes), fallback: "soft" },
   { group: "Brows", key: "browY", label: "Brow Height", min: -6, max: 6, step: 0.5, fallback: 0 },
   { group: "Brows", key: "browScaleX", label: "Brow Width", min: 0.8, max: 1.25, step: 0.02, fallback: 1 },
   { group: "Brows", key: "browThick", label: "Brow Thickness", min: 0.5, max: 2, step: 0.05, fallback: 1 },
+  { group: "Brows", key: "browAngle", label: "Brow Angle", min: -25, max: 25, step: 1, fallback: 0 },
+  { group: "Brows", key: "browLeftAngle", label: "Left Brow Angle", min: -30, max: 30, step: 1, fallback: 0 },
+  { group: "Brows", key: "browRightAngle", label: "Right Brow Angle", min: -30, max: 30, step: 1, fallback: 0 },
   // Eyes
   { group: "Eyes", key: "eyeScale", label: "Eye Size", min: 0.7, max: 1.25, step: 0.02, fallback: 0.94 },
   { group: "Eyes", key: "eyeOpen", label: "Eye Openness", min: 0.5, max: 1.2, step: 0.02, fallback: 0.95 },
   { group: "Eyes", key: "irisScale", label: "Iris Size", min: 0.7, max: 1.2, step: 0.02, fallback: 0.92 },
   { group: "Eyes", key: "eyeColor", label: "Iris Colour", type: "color", fallback: "" },
   { group: "Eyes", key: "eyeY", label: "Eye Height", min: -8, max: 8, step: 0.5, fallback: 0 },
+  { group: "Eyes", key: "eyeX", label: "Eye Group X", min: -12, max: 12, step: 0.5, fallback: 0 },
+  { group: "Eyes", key: "eyeLeftX", label: "Left Eye X", min: -12, max: 12, step: 0.5, fallback: 0 },
+  { group: "Eyes", key: "eyeRightX", label: "Right Eye X", min: -12, max: 12, step: 0.5, fallback: 0 },
+  { group: "Eyes", key: "eyeLeftY", label: "Left Eye Y", min: -8, max: 8, step: 0.5, fallback: 0 },
+  { group: "Eyes", key: "eyeRightY", label: "Right Eye Y", min: -8, max: 8, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "pupilX", label: "Pupil X", min: -5, max: 5, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "pupilY", label: "Pupil Y", min: -5, max: 5, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "lazyEye", label: "Lazy Eye", min: -8, max: 8, step: 0.5, fallback: 0 },
   { group: "Eyes", key: "eyeDart", label: "Eye Movement (dart range)", min: 0, max: 1, step: 0.02, fallback: 0.6 },
   { group: "Eyes", key: "lashes", label: "Eyelashes", min: 0, max: 1.6, step: 0.05, fallback: 0 },
+  { group: "Eyes", key: "eyelashThickness", label: "Eyelash Thickness", min: 0.7, max: 4, step: 0.1, fallback: 2 },
+  { group: "Eyes", key: "eyelashDensity", label: "Eyelash Density", min: 0.35, max: 2.2, step: 0.05, fallback: 1 },
+  { group: "Eyes", key: "eyelashCoverage", label: "Eyelash Coverage", type: "select", options: () => [["quarter", "Quarter Lid"], ["half", "Half Lid"], ["full", "Full Lid"]], fallback: "quarter" },
+  { group: "Eyes", key: "eyelashColor", label: "Eyelash Colour", type: "color", fallback: "" },
   { group: "Eyes", key: "eyeshadowOpacity", label: "Eyeshadow", min: 0, max: 1, step: 0.05, fallback: 0 },
   { group: "Eyes", key: "eyeshadowColor", label: "Eyeshadow Colour", type: "color", fallback: "" },
+  { group: "Eyes", key: "upperEyelidWidth", label: "Upper Eyelid Width", min: 0.6, max: 3.8, step: 0.1, fallback: 1 },
+  { group: "Eyes", key: "lowerEyelidWidth", label: "Lower Eyelid Width", min: 0.5, max: 3, step: 0.1, fallback: 1 },
   { group: "Eyes", key: "undershadowOpacity", label: "Under-eye Shadow", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Eyes", key: "undershadowY", label: "Under-eye Shadow Y", min: -10, max: 8, step: 0.5, fallback: -3 },
+  { group: "Eyes", key: "undershadowWidth", label: "Under-eye Shadow Width", min: 0.5, max: 1.8, step: 0.05, fallback: 1 },
+  { group: "Eyes", key: "underEyeWidth", label: "Under-eye Line Width", min: 0.5, max: 1.8, step: 0.05, fallback: 1 },
   // Nose
   { group: "Nose", key: "noseY", label: "Nose Height", min: -8, max: 10, step: 0.5, fallback: 0 },
   { group: "Nose", key: "noseScale", label: "Nose Size", min: 0.6, max: 1.5, step: 0.02, fallback: 1 },
@@ -54,27 +86,41 @@ const editorFields = [
   { group: "Face Lines", key: "foreheadLineOpacity", label: "Forehead Wrinkles", min: 0, max: 1, step: 0.05, fallback: 0 },
   { group: "Face Lines", key: "frownLineOpacity", label: "Frown Lines (glabella)", min: 0, max: 1, step: 0.05, fallback: 0 },
   { group: "Face Lines", key: "underEyeOpacity", label: "Under-Eye Bags", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Face Lines", key: "underEyeY", label: "Under-Eye Line Y", min: -10, max: 8, step: 0.5, fallback: -3 },
+  { group: "Face Lines", key: "underEyeLineWidth", label: "Under-Eye Line Width", min: 0.6, max: 3, step: 0.1, fallback: 1.3 },
   { group: "Face Lines", key: "crowsFeetOpacity", label: "Crow's Feet", min: 0, max: 1, step: 0.05, fallback: 0 },
   { group: "Face Lines", key: "marionetteOpacity", label: "Marionette Lines", min: 0, max: 1, step: 0.05, fallback: 0 },
   { group: "Face Lines", key: "cheekLineOpacity", label: "Cheek Hollows", min: 0, max: 1, step: 0.05, fallback: 0 },
   // Cheeks
-  { group: "Cheeks", key: "cheekY", label: "Cheek Height", min: -8, max: 8, step: 0.5, fallback: 0 },
+  { group: "Cheeks", key: "cheekY", label: "Blush Height", min: -8, max: 8, step: 0.5, fallback: 0 },
   { group: "Cheeks", key: "cheekOpacity", label: "Blush", min: 0, max: 0.5, step: 0.01, fallback: 0.09 },
   { group: "Cheeks", key: "blushColor", label: "Blush Colour", type: "color", fallback: "" },
   { group: "Cheeks", key: "blushScale", label: "Blush Size", min: 0.4, max: 2, step: 0.05, fallback: 1 },
+  { group: "Cheeks", key: "blushX", label: "Blush Spacing", min: -18, max: 18, step: 0.5, fallback: 0 },
   { group: "Cheeks", key: "contourOpacity", label: "Cheek Contour", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Cheeks", key: "contourY", label: "Contour Y", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Cheeks", key: "contourX", label: "Contour Spacing", min: -18, max: 18, step: 0.5, fallback: 0 },
+  { group: "Cheeks", key: "contourWidth", label: "Contour Width", min: 0.55, max: 1.8, step: 0.05, fallback: 1 },
   // Ears
   { group: "Ears", key: "earVariant", label: "Ear Shape", type: "select", options: () => selectOptions(traitBook.earVariants), fallback: "round" },
   { group: "Ears", key: "earScale", label: "Ear Size", min: 0.7, max: 1.3, step: 0.02, fallback: 1 },
   { group: "Ears", key: "earY", label: "Ear Height", min: -10, max: 10, step: 1, fallback: 0 },
+  { group: "Ears", key: "earX", label: "Ear Group X", min: -12, max: 12, step: 0.5, fallback: 0 },
+  { group: "Ears", key: "earLeftX", label: "Left Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Ears", key: "earRightX", label: "Right Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Ears", key: "earLeftY", label: "Left Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Ears", key: "earRightY", label: "Right Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Ears", key: "earRot", label: "Ear Rotate", min: -20, max: 20, step: 1, fallback: 0 },
   // Mouth
   { group: "Mouth", key: "mouthStyle", label: "Smile Style", type: "select", options: () => selectOptions(traitBook.mouthStyles), fallback: "warmSmile" },
   { group: "Mouth", key: "smileLips", label: "Smile Lips", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
   { group: "Mouth", key: "lips", label: "Lip Shape", type: "select", options: () => selectOptions(traitBook.lipStyles), fallback: "line" },
   { group: "Mouth", key: "lipUpper", label: "Upper Lip Design", type: "select", options: () => selectOptions(traitBook.lipUppers), fallback: "soft" },
   { group: "Mouth", key: "lipLower", label: "Lower Lip Design", type: "select", options: () => selectOptions(traitBook.lipLowers), fallback: "round" },
+  { group: "Mouth", key: "lipLineWidth", label: "Lip Line Width", min: 0.3, max: 3, step: 0.05, fallback: 1 },
   { group: "Mouth", key: "lipUpperSize", label: "Upper Lip Size", min: 0.4, max: 1.8, step: 0.05, fallback: 1 },
   { group: "Mouth", key: "lipLowerSize", label: "Lower Lip Size", min: 0.4, max: 1.8, step: 0.05, fallback: 1 },
+  { group: "Mouth", key: "smileLowerLipCurve", label: "Smile Lower Lip Curve", min: -0.8, max: 1.4, step: 0.05, fallback: 0 },
   { group: "Mouth", key: "lipColor", label: "Lip Colour", type: "color", fallback: "" },
   { group: "Mouth", key: "mouthOpenW", label: "Open Mouth Width", min: 0.5, max: 1.7, step: 0.05, fallback: 1,
     when: (t) => { const e = (window.faceGenerator && window.faceGenerator.traitBook.expressions) || {}; return !!(e[t.expression] && e[t.expression].openMouth) || ["surprised", "shocked"].includes(t.expression); } },
@@ -113,6 +159,19 @@ const editorFields = [
   { group: "Accessory", key: "accessoryX", label: "Accessory X", min: -24, max: 24, step: 1, fallback: 0 },
   { group: "Accessory", key: "accessoryY", label: "Accessory Y", min: -24, max: 24, step: 1, fallback: 0 },
   { group: "Accessory", key: "accessoryScale", label: "Accessory Size", min: 0.68, max: 1.36, step: 0.02, fallback: 1 },
+  { group: "Accessory", key: "accessoryRot", label: "Accessory Rotate", min: -45, max: 45, step: 1, fallback: 0 },
+  { group: "Accessory", key: "accessoryLayer", label: "Accessory Layer", type: "select", options: () => [["auto", "Auto"], ["beforeHead", "Behind Head"], ["behindHair", "Behind Hair"], ["beforeMouth", "Before Mouth"], ["afterMouth", "Front"]], fallback: "auto" },
+  // Jewellery
+  { group: "Jewellery", key: "jewellery", label: "Jewellery", type: "select", options: () => selectOptions(traitBook.jewellery || ["none"]), fallback: "none" },
+  { group: "Jewellery", key: "jewellerySide", label: "Side", type: "select", options: () => [["both", "Both"], ["left", "Left"], ["right", "Right"]], fallback: "both" },
+  { group: "Jewellery", key: "jewelleryColor", label: "Colour", type: "color", fallback: "" },
+  { group: "Jewellery", key: "jewelleryColor2", label: "Second Colour", type: "color", fallback: "" },
+  { group: "Jewellery", key: "jewelleryMetal", label: "Metal", type: "select", options: () => [["", "Auto"], ["silver", "Silver"], ["gold", "Gold"], ["black", "Black"], ["roseGold", "Rose Gold"]], fallback: "" },
+  { group: "Jewellery", key: "jewelleryX", label: "Jewellery X", min: -24, max: 24, step: 1, fallback: 0 },
+  { group: "Jewellery", key: "jewelleryY", label: "Jewellery Y", min: -24, max: 24, step: 1, fallback: 0 },
+  { group: "Jewellery", key: "jewelleryScale", label: "Jewellery Size", min: 0.5, max: 1.8, step: 0.02, fallback: 1 },
+  { group: "Jewellery", key: "jewelleryRot", label: "Jewellery Rotate", min: -45, max: 45, step: 1, fallback: 0 },
+  { group: "Jewellery", key: "jewelleryLayer", label: "Jewellery Layer", type: "select", options: () => [["beforeHead", "Behind Head"], ["behindHair", "Behind Hair"], ["beforeMouth", "Before Mouth"], ["afterMouth", "Front"]], fallback: "behindHair" },
   // Beard
   { group: "Beard", key: "beardLength", label: "Beard Length", min: 0, max: 1, step: 0.02, fallback: 0.35 },
   { group: "Beard", key: "beardX", label: "Beard X", min: -18, max: 18, step: 1, fallback: 0 },
@@ -139,7 +198,8 @@ const editorFields = [
   { group: "Tattoo", key: "tattooRot", label: "Rotate", min: -60, max: 60, step: 1, fallback: 0 },
   { group: "Tattoo", key: "tattooSkewX", label: "Skew", min: -45, max: 45, step: 1, fallback: 0 },
   { group: "Tattoo", key: "tattooWarp", label: "Warp", min: 0, max: 1, step: 0.02, fallback: 0 },
-  { group: "Tattoo", key: "tattooOpacity", label: "Fade", min: 0, max: 1, step: 0.05, fallback: 1 }
+  { group: "Tattoo", key: "tattooOpacity", label: "Fade", min: 0, max: 1, step: 0.05, fallback: 1 },
+  { group: "Tattoo", key: "tattooLayer", label: "Layer", type: "select", options: () => [["overClothes", "Over Clothes"], ["onSkin", "On Skin"]], fallback: "overClothes" }
 ];
 
 const hotspots = [
@@ -177,7 +237,9 @@ function readPenLocks() {
 }
 function savePenLocks(list) { localStorage.setItem(PEN_LOCK_KEY, JSON.stringify(list)); }
 
-const editorGroups = [...new Set(editorFields.map((field) => field.group))];
+const editorGroups = (sharedGroupOrder || [...new Set(editorFields.map((field) => field.group))])
+  .filter((group, index, all) => all.indexOf(group) === index)
+  .filter((group) => editorFields.some((field) => field.group === group));
 
 const els = {
   expressionFilter: document.querySelector("#expressionFilter"),
@@ -200,6 +262,8 @@ const els = {
   correctionExport: document.querySelector("#correctionExport"),
   resetCorrectionButton: document.querySelector("#resetCorrectionButton")
 };
+let portraitRefreshFrame = 0;
+let pendingPortraitRefresh = null;
 
 init();
 
@@ -406,13 +470,6 @@ function traitPill(label, value) {
   return `<span class="trait-pill">${escapeHtml(label)}: ${escapeHtml(titleCase(value))}</span>`;
 }
 
-function titleCase(value) {
-  return String(value)
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/[-_]+/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
@@ -421,6 +478,97 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#039;"
   })[char]);
+}
+
+function toHex(value) {
+  if (!value) return "#5a3d28";
+  if (value[0] === "#") return value.length === 7 ? value : "#5a3d28";
+  const match = /rgba?\((\d+)[,\s]+(\d+)[,\s]+(\d+)/i.exec(value);
+  if (!match) return "#5a3d28";
+  return "#" + [match[1], match[2], match[3]].map((part) => Number(part).toString(16).padStart(2, "0")).join("");
+}
+
+function hexToRgb(hex) {
+  const clean = toHex(hex).slice(1);
+  return {
+    r: parseInt(clean.slice(0, 2), 16),
+    g: parseInt(clean.slice(2, 4), 16),
+    b: parseInt(clean.slice(4, 6), 16)
+  };
+}
+
+function rgbToHex(r, g, b) {
+  return "#" + [r, g, b].map((part) => Math.max(0, Math.min(255, Math.round(part))).toString(16).padStart(2, "0")).join("");
+}
+
+function rgbToHsl(r, g, b) {
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d) {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case rn: h = ((gn - bn) / d + (gn < bn ? 6 : 0)); break;
+      case gn: h = ((bn - rn) / d + 2); break;
+      default: h = ((rn - gn) / d + 4); break;
+    }
+    h /= 6;
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function hslToRgb(h, s, l) {
+  const hn = ((h % 360) + 360) % 360 / 360;
+  const sn = Math.max(0, Math.min(100, s)) / 100;
+  const ln = Math.max(0, Math.min(100, l)) / 100;
+  if (!sn) {
+    const v = Math.round(ln * 255);
+    return { r: v, g: v, b: v };
+  }
+  const hue2rgb = (p, q, t) => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+  const q = ln < 0.5 ? ln * (1 + sn) : ln + sn - ln * sn;
+  const p = 2 * ln - q;
+  return {
+    r: Math.round(hue2rgb(p, q, hn + 1 / 3) * 255),
+    g: Math.round(hue2rgb(p, q, hn) * 255),
+    b: Math.round(hue2rgb(p, q, hn - 1 / 3) * 255)
+  };
+}
+
+const COLOR_SWATCHES = [
+  "#171512", "#1f2330", "#fffdf7", "#8a8e99",
+  "#e01b1b", "#1533cc", "#ffbe0b", "#178a47",
+  "#3a2418", "#5a3d28", "#8a5a32", "#c98a4b", "#e8c48c", "#f2ddb8",
+  "#111111", "#4a4a4a", "#b0b0b0", "#e8e2d4",
+  "#ff5a72", "#ff8c42", "#5dff8f", "#4dd2ff", "#c46bff", "#ff2d6f",
+  "#73497e", "#2d5a4e", "#7a1f1f", "#0a66c2", "#d25184", "#998880"
+];
+
+function colorWidget(key, shown, set) {
+  const hex = toHex(shown);
+  return `
+    <span class="studio-colorwrap">
+      <button type="button" class="studio-colorchip" data-swatchfor="${escapeHtml(key)}" style="--chip:${escapeHtml(hex)}" title="Open colour palette" aria-label="${escapeHtml(key)} colour"></button>
+      <input id="edit-${escapeHtml(key)}" type="color" value="${escapeHtml(hex)}" data-key="${escapeHtml(key)}" data-kind="color" tabindex="-1" aria-hidden="true">
+      <input type="text" class="studio-hex" data-hexfor="${escapeHtml(key)}" value="${escapeHtml(hex)}" maxlength="7" spellcheck="false" aria-label="${escapeHtml(key)} hex colour">
+      <button type="button" class="studio-swatchbtn" data-swatchfor="${escapeHtml(key)}" title="Palette">◫</button>
+    </span>
+    <span class="editor-value">${set ? `<button type="button" class="mini-button" data-color-reset="${escapeHtml(key)}" title="Auto colour">auto</button>` : "auto"}</span>
+  `;
+}
+
+function miniSwatchButton(targetId) {
+  return `<button type="button" class="mini-swatchbtn" data-inline-swatchfor="${escapeHtml(targetId)}" title="Palette">◫</button>`;
 }
 
 function renderEditor(character) {
@@ -437,7 +585,7 @@ function renderEditor(character) {
       ${editorGroups
         .map((group) => `
           <button type="button" class="editor-tab ${group === state.activeGroup ? "is-active" : ""} ${editedGroups.has(group) ? "is-edited" : ""}" data-group="${escapeHtml(group)}">
-            ${escapeHtml(group)}
+            ${escapeHtml(sharedGroupTitle(group))}
           </button>
         `)
         .join("")}
@@ -461,10 +609,7 @@ function renderEditor(character) {
       ? (() => {
           const set = correction[field.key] != null && correction[field.key] !== "";
           const shown = set ? correction[field.key] : colorAutoFor(character, field);
-          return `
-        <input id="edit-${escapeHtml(field.key)}" type="color" value="${escapeHtml(shown)}" data-key="${escapeHtml(field.key)}" data-kind="color">
-        <span class="editor-value">${set ? `<button type="button" class="mini-button" data-color-reset="${escapeHtml(field.key)}" title="Auto colour">auto</button>` : "auto"}</span>
-      `;
+          return colorWidget(field.key, shown, set);
         })()
       : field.type === "text"
       ? `
@@ -481,6 +626,17 @@ function renderEditor(character) {
           value="${escapeHtml(value)}"
           data-key="${escapeHtml(field.key)}"
           data-kind="range"
+          data-pair="${escapeHtml(field.key)}"
+        >
+        <input
+          class="editor-number"
+          type="number"
+          step="${field.step}"
+          value="${escapeHtml(value)}"
+          data-key="${escapeHtml(field.key)}"
+          data-kind="range"
+          data-pair="${escapeHtml(field.key)}"
+          aria-label="${escapeHtml(field.label)} value"
         >
         <span class="editor-value">${escapeHtml(formatNumber(value))}</span>
       `;
@@ -492,10 +648,12 @@ function renderEditor(character) {
     `;
   });
   const designer = state.activeGroup === "Hair" ? lockDesignerMarkup(character)
-    : state.activeGroup === "Beard" ? beardDesignerMarkup(character) : "";
+    : state.activeGroup === "Beard" ? beardDesignerMarkup(character)
+    : state.activeGroup === "Tattoo" ? tattooDesignerMarkup(character) : "";
   els.editorControls.innerHTML = nav + `<div class="editor-active-group">${rows.join("")}${designer}</div>`;
   if (state.activeGroup === "Hair") wireLockDesigner(character);
   if (state.activeGroup === "Beard") wireBeardDesigner(character);
+  if (state.activeGroup === "Tattoo") wireTattooDesigner(character);
   els.editorControls.querySelectorAll(".editor-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       state.activeGroup = tab.dataset.group;
@@ -505,6 +663,22 @@ function renderEditor(character) {
   });
   els.editorControls.querySelectorAll("[data-kind='range']").forEach((input) => {
     input.addEventListener("input", () => {
+      if (input.dataset.pair) {
+        els.editorControls.querySelectorAll(`[data-pair="${cssEscape(input.dataset.pair)}"]`).forEach((peer) => {
+          if (peer === input) return;
+          if (peer.type === "range") {
+            const min = Number(peer.min);
+            const max = Number(peer.max);
+            const val = Number(input.value);
+            if (Number.isFinite(val) && val >= min && val <= max) peer.value = input.value;
+          } else {
+            peer.value = input.value;
+          }
+        });
+      }
+      const control = input.closest(".editor-control");
+      const valueLabel = control && control.querySelector(".editor-value");
+      if (valueLabel) valueLabel.textContent = formatNumber(Number(input.value));
       updateCorrection(character, input.dataset.key, Number(input.value));
     });
   });
@@ -514,7 +688,88 @@ function renderEditor(character) {
     });
   });
   els.editorControls.querySelectorAll("[data-kind='color']").forEach((input) => {
-    input.addEventListener("input", () => updateColorCorrection(character, input.dataset.key, input.value));
+    input.addEventListener("input", () => {
+      const key = input.dataset.key;
+      const hex = els.editorControls.querySelector(`[data-hexfor="${cssEscape(key)}"]`);
+      if (hex) hex.value = input.value;
+      updateColorCorrection(character, key, input.value);
+    });
+  });
+  els.editorControls.querySelectorAll("[data-hexfor]").forEach((input) => {
+    input.addEventListener("input", () => {
+      const raw = input.value.trim();
+      if (!/^#[0-9a-f]{6}$/i.test(raw)) return;
+      const key = input.dataset.hexfor;
+      const picker = els.editorControls.querySelector(`[data-key="${cssEscape(key)}"][data-kind="color"]`);
+      if (picker) picker.value = raw;
+      updateColorCorrection(character, key, raw);
+    });
+  });
+  els.editorControls.querySelectorAll("[data-swatchfor]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelector(".studio-swatchpop")?.remove();
+      const key = btn.dataset.swatchfor;
+      const picker = els.editorControls.querySelector(`[data-key="${cssEscape(key)}"][data-kind="color"]`);
+      const hex = els.editorControls.querySelector(`[data-hexfor="${cssEscape(key)}"]`);
+      const current = toHex((hex && hex.value) || (picker && picker.value) || "#5a3d28");
+      const hsl = rgbToHsl(...Object.values(hexToRgb(current)));
+      const pop = document.createElement("div");
+      pop.className = "studio-swatchpop";
+      pop.innerHTML = `
+        <div class="studio-pop-top">
+          <span class="studio-pop-chip" style="--chip:${current}"></span>
+          <input type="text" class="studio-pop-hex" value="${current}" maxlength="7" spellcheck="false" aria-label="Selected colour hex">
+        </div>
+        <label class="studio-pop-row"><span>H</span><input type="range" min="0" max="360" step="1" value="${hsl.h}" data-hsl="h"></label>
+        <label class="studio-pop-row"><span>S</span><input type="range" min="0" max="100" step="1" value="${hsl.s}" data-hsl="s"></label>
+        <label class="studio-pop-row"><span>L</span><input type="range" min="0" max="100" step="1" value="${hsl.l}" data-hsl="l"></label>
+        <div class="studio-pop-swatches">${COLOR_SWATCHES.map((color) => `<button type="button" data-color="${color}" style="background:${color}" title="${color}"></button>`).join("")}</div>
+      `;
+      btn.after(pop);
+      const chip = pop.querySelector(".studio-pop-chip");
+      const hexField = pop.querySelector(".studio-pop-hex");
+      const hInput = pop.querySelector('[data-hsl="h"]');
+      const sInput = pop.querySelector('[data-hsl="s"]');
+      const lInput = pop.querySelector('[data-hsl="l"]');
+      const syncColor = (color) => {
+        if (picker) picker.value = color;
+        if (hex) hex.value = color;
+        if (hexField) hexField.value = color;
+        if (chip) chip.style.setProperty("--chip", color);
+        const chipButton = els.editorControls.querySelector(`.studio-colorchip[data-swatchfor="${cssEscape(key)}"]`);
+        if (chipButton) chipButton.style.setProperty("--chip", color);
+        updateColorCorrection(character, key, color);
+      };
+      const syncFromHsl = () => {
+        const rgb = hslToRgb(Number(hInput.value), Number(sInput.value), Number(lInput.value));
+        syncColor(rgbToHex(rgb.r, rgb.g, rgb.b));
+      };
+      [hInput, sInput, lInput].forEach((input) => input.addEventListener("input", syncFromHsl));
+      hexField.addEventListener("input", () => {
+        const raw = hexField.value.trim();
+        if (!/^#[0-9a-f]{6}$/i.test(raw)) return;
+        const next = raw.toLowerCase();
+        const nextHsl = rgbToHsl(...Object.values(hexToRgb(next)));
+        hInput.value = nextHsl.h;
+        sInput.value = nextHsl.s;
+        lInput.value = nextHsl.l;
+        syncColor(next);
+      });
+      pop.querySelectorAll("[data-color]").forEach((swatch) => swatch.addEventListener("click", () => {
+        const color = swatch.dataset.color;
+        const nextHsl = rgbToHsl(...Object.values(hexToRgb(color)));
+        hInput.value = nextHsl.h;
+        sInput.value = nextHsl.s;
+        lInput.value = nextHsl.l;
+        syncColor(color);
+      }));
+      setTimeout(() => document.addEventListener("pointerdown", function away(e) {
+        if (!pop.contains(e.target) && e.target !== btn) {
+          pop.remove();
+          document.removeEventListener("pointerdown", away);
+        }
+      }), 0);
+    });
   });
   els.editorControls.querySelectorAll("[data-kind='text']").forEach((input) => {
     input.addEventListener("input", () => updateColorCorrection(character, input.dataset.key, input.value));
@@ -523,6 +778,30 @@ function renderEditor(character) {
     btn.addEventListener("click", () => updateColorCorrection(character, btn.dataset.colorReset, ""));
   });
   renderCorrectionExport();
+}
+
+function wireInlineSwatchButtons(root) {
+  root.querySelectorAll("[data-inline-swatchfor]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelector(".studio-inline-swatchpop")?.remove();
+      const target = root.querySelector(`#${cssEscape(btn.dataset.inlineSwatchfor)}`);
+      if (!target) return;
+      const pop = document.createElement("div");
+      pop.className = "studio-swatchpop studio-inline-swatchpop";
+      pop.innerHTML = `<div class="studio-pop-swatches">${COLOR_SWATCHES.map((color) => `<button type="button" data-color="${color}" style="background:${color}" title="${color}"></button>`).join("")}</div>`;
+      btn.after(pop);
+      pop.querySelectorAll("[data-color]").forEach((swatch) => swatch.addEventListener("click", () => {
+        target.value = swatch.dataset.color;
+        target.dispatchEvent(new Event("input", { bubbles: true }));
+      }));
+      setTimeout(() => document.addEventListener("pointerdown", function away(e) {
+        if (!pop.contains(e.target) && e.target !== btn) {
+          pop.remove();
+          document.removeEventListener("pointerdown", away);
+        }
+      }), 0);
+    });
+  });
 }
 
 // The auto (unset) colour shown in a colour picker. lipColor's auto derives from the skin tone.
@@ -536,6 +815,9 @@ function colorAutoFor(character, field) {
   if (field.key === "background") return character.traits.background || "#a9c4e0";
   if (field.key === "tattooColor") return character.traits.tattooColor || "#23232b";
   if (field.key === "accessoryColor") return character.traits.accessoryColor || character.traits.accent || "#171512";
+  if (field.key === "eyelashColor") return character.traits.eyelashColor || "#1f2330";
+  if (field.key === "jewelleryColor") return character.traits.jewelleryColor || character.traits.accessoryColor || "#e2b84f";
+  if (field.key === "jewelleryColor2") return character.traits.jewelleryColor2 || "#ff9bb0";
   if (field.key === "eyeColor") return character.traits.eyeColor || "#5a3d28";
   if (field.key === "hairOutline") return character.traits.hairOutline || "#1f2330";
   return "#000000";
@@ -546,7 +828,7 @@ function updateColorCorrection(character, key, value) {
   if (!value) delete next[key];
   else next[key] = value;
   setCorrection(character.id, next);
-  render();
+  refreshPortrait(character);
 }
 
 function updateCorrection(character, key, value) {
@@ -561,7 +843,7 @@ function updateCorrection(character, key, value) {
     next[key] = normalized;
   }
   setCorrection(character.id, next);
-  render();
+  refreshPortrait(character);
 }
 
 function updateEnumCorrection(character, key, value) {
@@ -657,6 +939,149 @@ function renderCorrectionExport() {
     all: state.corrections
   };
   els.correctionExport.value = JSON.stringify(payload, null, 2);
+}
+
+function tattooDefaults(character) {
+  const t = { ...character.traits, ...correctionFor(character.id) };
+  if (window.WhoEditorShared && window.WhoEditorShared.normalizeTattooList) {
+    return window.WhoEditorShared.normalizeTattooList(t);
+  }
+  if (Array.isArray(t.tattoos) && t.tattoos.length) return t.tattoos.map((item) => ({ ...item }));
+  return [];
+}
+
+function setTattooList(character, tattoos) {
+  const next = { ...correctionFor(character.id), tattoos: tattoos.filter((tattoo) => tattoo.text || tattoo.place || tattoo.color) };
+  setCorrection(character.id, next);
+  refreshPortrait(character);
+  renderCorrectionExport();
+}
+
+function tattooDesignerMarkup(character) {
+  const tattoos = tattooDefaults(character);
+  const placeOptions = (traitBook.tattooPlaces || ["body", "face"]).map((value) => `<option value="${escapeHtml(value)}">{label}</option>`);
+  const layerOptions = ["overClothes", "onSkin"].map((value) => `<option value="${escapeHtml(value)}">{label}</option>`);
+  const fontOptions = (traitBook.tattooFonts || ["bold"]).map((value) => `<option value="${escapeHtml(value)}">{label}</option>`);
+  const optionList = (options, selected) => options.map((tpl) => {
+    const value = /value="([^"]*)"/.exec(tpl)?.[1] || "";
+    return tpl
+      .replace("{label}", escapeHtml(titleCase(value)))
+      .replace(">", `${value === selected ? " selected" : ""}>`);
+  }).join("");
+  const number = (idx, key, label, min, max, step, fallback) => {
+    const value = tattoos[idx]?.[key] ?? fallback;
+    return `<label class="lock-num">${escapeHtml(label)}
+      <span class="lock-num-pair">
+        <input type="range" min="${min}" max="${max}" step="${step}" value="${escapeHtml(value)}" data-tattoo-num="${idx}:${key}" data-pair="${idx}:${key}">
+        <input type="number" step="${step}" value="${escapeHtml(value)}" data-tattoo-num="${idx}:${key}" data-pair="${idx}:${key}" aria-label="${escapeHtml(label)} value">
+      </span>
+      <span class="editor-value">${formatNumber(value)}</span>
+    </label>`;
+  };
+  const rows = tattoos.map((tattoo, idx) => `
+    <div class="lock-instance tattoo-instance" data-tattoo-index="${idx}">
+      <div class="lock-head">
+        <strong>Tattoo ${idx + 1}</strong>
+        <span>
+          <button type="button" class="mini-button" data-tattoo-up="${idx}" ${idx === 0 ? "disabled" : ""}>Up</button>
+          <button type="button" class="mini-button" data-tattoo-down="${idx}" ${idx === tattoos.length - 1 ? "disabled" : ""}>Down</button>
+          <button type="button" class="mini-button" data-tattoo-remove="${idx}">Remove</button>
+        </span>
+      </div>
+      <label class="editor-control-inline"><span>Text</span><input type="text" value="${escapeHtml(tattoo.text || "")}" data-tattoo-text="${idx}" maxlength="18" spellcheck="false"></label>
+      <label class="editor-control-inline"><span>Place</span><select data-tattoo-select="${idx}:place">${optionList(placeOptions, tattoo.place || "body")}</select></label>
+      <label class="editor-control-inline"><span>Layer</span><select data-tattoo-select="${idx}:layer">${optionList(layerOptions, tattoo.layer || "overClothes")}</select></label>
+      <label class="editor-control-inline"><span>Font</span><select data-tattoo-select="${idx}:font">${optionList(fontOptions, tattoo.font || "bold")}</select></label>
+      <label class="editor-control-inline"><span>Colour</span><span class="mini-colorrow"><input id="tattoo-color-${idx}" type="color" value="${escapeHtml(tattoo.color || "#23232b")}" data-tattoo-color="${idx}">${miniSwatchButton(`tattoo-color-${idx}`)}</span></label>
+      ${number(idx, "x", "X", -80, 80, 1, 0)}
+      ${number(idx, "y", "Y", -60, 50, 1, 0)}
+      ${number(idx, "scale", "Size", 0.25, 3.5, 0.05, 1)}
+      ${number(idx, "rot", "Rotate", -90, 90, 1, 0)}
+      ${number(idx, "skewX", "Skew", -45, 45, 1, 0)}
+      ${number(idx, "warp", "Warp", 0, 1, 0.02, 0)}
+      ${number(idx, "opacity", "Fade", 0, 1, 0.05, 1)}
+    </div>
+  `).join("");
+  return `
+    <div class="lock-designer tattoo-designer">
+      <div class="lock-toolbar">
+        <button type="button" class="mini-button" data-tattoo-add>Add tattoo</button>
+        ${tattoos.length ? `<button type="button" class="mini-button" data-tattoo-clear>Clear tattoos</button>` : ""}
+      </div>
+      ${rows || `<p class="editor-empty">No tattoos in the tattoo list yet.</p>`}
+    </div>`;
+}
+
+function wireTattooDesigner(character) {
+  const root = els.editorControls.querySelector(".tattoo-designer");
+  if (!root) return;
+  wireInlineSwatchButtons(root);
+  const withList = (fn) => {
+    const tattoos = tattooDefaults(character);
+    fn(tattoos);
+    setTattooList(character, tattoos);
+    renderEditor(character);
+  };
+  root.querySelector("[data-tattoo-add]")?.addEventListener("click", () => withList((tattoos) => {
+    tattoos.push({ text: "ink", place: "body", layer: "overClothes", font: "bold", color: "#23232b", x: 0, y: 0, scale: 1, rot: 0, skewX: 0, warp: 0, opacity: 1 });
+  }));
+  root.querySelector("[data-tattoo-clear]")?.addEventListener("click", () => withList((tattoos) => tattoos.splice(0)));
+  root.querySelectorAll("[data-tattoo-remove]").forEach((btn) => btn.addEventListener("click", () => withList((tattoos) => tattoos.splice(Number(btn.dataset.tattooRemove), 1))));
+  root.querySelectorAll("[data-tattoo-up]").forEach((btn) => btn.addEventListener("click", () => withList((tattoos) => {
+    const i = Number(btn.dataset.tattooUp);
+    if (i > 0) [tattoos[i - 1], tattoos[i]] = [tattoos[i], tattoos[i - 1]];
+  })));
+  root.querySelectorAll("[data-tattoo-down]").forEach((btn) => btn.addEventListener("click", () => withList((tattoos) => {
+    const i = Number(btn.dataset.tattooDown);
+    if (i < tattoos.length - 1) [tattoos[i + 1], tattoos[i]] = [tattoos[i], tattoos[i + 1]];
+  })));
+  root.querySelectorAll("[data-tattoo-text]").forEach((input) => input.addEventListener("input", () => {
+    const tattoos = tattooDefaults(character);
+    const tattoo = tattoos[Number(input.dataset.tattooText)];
+    if (!tattoo) return;
+    tattoo.text = input.value;
+    setTattooList(character, tattoos);
+  }));
+  root.querySelectorAll("[data-tattoo-select]").forEach((select) => select.addEventListener("change", () => {
+    const [idx, key] = select.dataset.tattooSelect.split(":");
+    const tattoos = tattooDefaults(character);
+    const tattoo = tattoos[Number(idx)];
+    if (!tattoo) return;
+    tattoo[key] = select.value;
+    setTattooList(character, tattoos);
+  }));
+  root.querySelectorAll("[data-tattoo-color]").forEach((input) => input.addEventListener("input", () => {
+    const tattoos = tattooDefaults(character);
+    const tattoo = tattoos[Number(input.dataset.tattooColor)];
+    if (!tattoo) return;
+    tattoo.color = input.value;
+    setTattooList(character, tattoos);
+  }));
+  root.querySelectorAll("[data-tattoo-num]").forEach((input) => input.addEventListener("input", () => {
+    const [idx, key] = input.dataset.tattooNum.split(":");
+    const tattoos = tattooDefaults(character);
+    const tattoo = tattoos[Number(idx)];
+    if (!tattoo) return;
+    tattoo[key] = Number(input.value);
+    if (input.dataset.pair) {
+      root.querySelectorAll(`[data-pair="${cssEscape(input.dataset.pair)}"]`).forEach((peer) => {
+        if (peer === input) return;
+        if (peer.type === "range") {
+          const min = Number(peer.min);
+          const max = Number(peer.max);
+          const val = Number(input.value);
+          if (Number.isFinite(val) && val >= min && val <= max) peer.value = input.value;
+        } else {
+          peer.value = input.value;
+        }
+      });
+    }
+    const span = input.parentElement.querySelector(".editor-value");
+    const wrap = input.closest(".lock-num");
+    const valueLabel = wrap && wrap.querySelector(".editor-value");
+    if (valueLabel) valueLabel.textContent = formatNumber(input.value);
+    setTattooList(character, tattoos);
+  }));
 }
 
 function normalizeNumber(value) {
@@ -772,7 +1197,7 @@ function penDesignerMarkup() {
       ${p.mode ? `
         <p class="pen-hint">Click to drop points · drag a point to curve it · click the first point (or Finish) to close.</p>
         <div class="pen-controls">
-          <label class="pen-opt"><span>Colour</span><input type="color" data-pen-color value="${p.color || "#3a2418"}"></label>
+          <label class="pen-opt"><span>Colour</span><span class="mini-colorrow"><input id="pen-color" type="color" data-pen-color value="${p.color || "#3a2418"}">${miniSwatchButton("pen-color")}</span></label>
           <label class="pen-opt"><input type="checkbox" data-pen-outline ${p.outline ? "checked" : ""}> Outline</label>
           <label class="pen-opt"><input type="checkbox" data-pen-lines ${p.lines ? "checked" : ""}> Strand lines</label>
         </div>
@@ -798,7 +1223,7 @@ function lockRowMarkup(inst, i, n, hairHex) {
     const value = set ? inst[part] : defHex;
     return `
       <label class="lock-color ${set ? "is-set" : ""} ${off ? "is-off" : ""}">
-        <input type="color" value="${escapeHtml(value)}" data-lock-color="${part}">
+        <span class="mini-colorrow"><input id="lock-color-${i}-${part}" type="color" value="${escapeHtml(value)}" data-lock-color="${part}">${miniSwatchButton(`lock-color-${i}-${part}`)}</span>
         <span>${label}</span>
         ${set ? `<button type="button" class="lock-color-reset" data-lock-reset="${part}" title="Auto colour">×</button>` : ""}
       </label>`;
@@ -849,10 +1274,10 @@ function drawnRowMarkup(inst, i, hairHex) {
       </div>
       <div class="lock-row-colors">
         <label class="lock-color is-set">
-          <input type="color" value="${escapeHtml(fill)}" data-lock-color="fill"><span>Colour</span>
+          <span class="mini-colorrow"><input id="drawn-lock-color-${i}-fill" type="color" value="${escapeHtml(fill)}" data-lock-color="fill">${miniSwatchButton(`drawn-lock-color-${i}-fill`)}</span><span>Colour</span>
         </label>
         <label class="lock-color ${inst.line ? "is-set" : ""}">
-          <input type="color" value="${escapeHtml(inst.line || shadeHex(hairHex, 0.62))}" data-lock-color="line"><span>Lines</span>
+          <span class="mini-colorrow"><input id="drawn-lock-color-${i}-line" type="color" value="${escapeHtml(inst.line || shadeHex(hairHex, 0.62))}" data-lock-color="line">${miniSwatchButton(`drawn-lock-color-${i}-line`)}</span><span>Lines</span>
         </label>
       </div>
     </div>`;
@@ -861,6 +1286,7 @@ function drawnRowMarkup(inst, i, hairHex) {
 function wireLockDesigner(character) {
   const root = els.editorControls.querySelector(".lock-designer");
   if (!root) return;
+  wireInlineSwatchButtons(root);
   root.querySelectorAll(".lock-chip").forEach((chip) => {
     chip.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/lock", chip.dataset.lock));
     chip.addEventListener("click", () => addLock(character, chip.dataset.lock));
@@ -919,6 +1345,7 @@ function wireLockDesigner(character) {
 function wirePenDesigner(character) {
   const root = els.editorControls.querySelector(".pen-designer");
   if (!root) return;
+  wireInlineSwatchButtons(root);
   const on = (sel, ev, fn) => { const el = root.querySelector(sel); if (el) el.addEventListener(ev, fn); };
   on("[data-pen-toggle]", "click", () => {
     state.pen.mode = !state.pen.mode;
@@ -1132,12 +1559,28 @@ function setLockColor(character, idx, part, value, isReset) {
 function refreshPortrait(character) {
   const index = characters.indexOf(character);
   const expression = selectedExpressionFor(character);
-  const src = portraitFor(character, index, expression);
-  const img = els.selectedPortrait.querySelector("img");
-  if (img) img.src = src;
-  else els.selectedPortrait.innerHTML = `<img src="${src}" alt="${escapeHtml(character.name)}">`;
-  positionLockMarkers(character);
-  renderCorrectionExport();
+  pendingPortraitRefresh = {
+    character,
+    index,
+    expression,
+    alt: escapeHtml(character.name)
+  };
+  if (portraitRefreshFrame) return;
+  portraitRefreshFrame = requestAnimationFrame(() => {
+    portraitRefreshFrame = 0;
+    if (!pendingPortraitRefresh) return;
+    const { character: activeCharacter, index: activeIndex, expression: activeExpression, alt } = pendingPortraitRefresh;
+    const src = portraitFor(activeCharacter, activeIndex, activeExpression);
+    const img = els.selectedPortrait.querySelector("img");
+    if (img) {
+      if (img.src !== src) img.src = src;
+    } else {
+      els.selectedPortrait.innerHTML = `<img src="${src}" alt="${alt}">`;
+    }
+    positionLockMarkers(activeCharacter);
+    renderCorrectionExport();
+    pendingPortraitRefresh = null;
+  });
 }
 
 function renderLockOverlay(character) {

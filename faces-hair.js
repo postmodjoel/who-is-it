@@ -261,6 +261,13 @@
   // x/y are 0-100 (% of the 256 head box) -> the lock's centre; null colours derive from hair.
   // mirror flips it horizontally; outline = 'none' (no outline), a hex (custom), or unset (= ink).
   const LOCK_BASE_K = 0.42; // scale=1 -> a roughly head-sized lock
+  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+  function lockStrokeScale(inst, ctx) {
+    const raw = Number(inst && inst.scale);
+    const local = Number.isFinite(raw) ? raw : 1;
+    const global = Number(ctx && ctx.outlineScale) || 1;
+    return clamp(Math.pow(local, 0.45) * global, 0.68, 1.08);
+  }
   function lockTransform(inst) {
     const kNum = LOCK_BASE_K * (Number(inst.scale) || 1);
     const sx = ((inst.mirror ? -1 : 1) * kNum).toFixed(3);
@@ -287,6 +294,7 @@
     const darkC = inst.dark || lockShade(hair, 0.5);
     const shineC = inst.shine || lockShade(hair, 1.3);
     const lineC = inst.line || (ctx && ctx.seam) || lockShade(hair, 0.62);
+    const strokeScale = lockStrokeScale(inst, ctx);
     let body = "";
 
     if (partMode === "mass") {
@@ -299,14 +307,14 @@
       (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${fill}' stroke='none'/>`; });
     } else if (partMode === "seam") {
       if (inst.outline === "none") return "";
-      const seamWidth = (ctx && ctx.seamWidth) || 3.2;
+      const seamWidth = ((ctx && ctx.seamWidth) || 3.2) * strokeScale;
       const seamOpacity = (ctx && ctx.seamOpacity) || 0.22;
       (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='${seamWidth}' stroke-linejoin='round' stroke-linecap='round' opacity='${seamOpacity}'/>`; });
     } else {
-      (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${fill}' stroke='${outline}' stroke-width='8' stroke-linejoin='round'/>`; });
+      (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${fill}' stroke='${outline}' stroke-width='${(8 * strokeScale).toFixed(2)}' stroke-linejoin='round'/>`; });
       (lock.dark || []).forEach((d) => { body += `<path d='${d}' fill='${darkC}' opacity='0.22'/>`; });
       (lock.shine || []).forEach((d) => { body += `<path d='${d}' fill='${shineC}' opacity='0.2'/>`; });
-      if (inst.lines !== false) (lock.lines || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`; });
+      if (inst.lines !== false) (lock.lines || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='${(6 * strokeScale).toFixed(2)}' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`; });
     }
 
     return body ? `<g transform='${lockTransform(inst)}'>${body}</g>` : "";
@@ -346,13 +354,14 @@
     const dy = Number(inst.dy) || 0;
     const lineC = inst.line || lockShade(hair, 0.62);
     const darkC = inst.dark || lockShade(hair, 0.5);
-    let body = `<path d='${inst.d}' fill='${fill}' stroke='${outline}' stroke-width='3.2' stroke-linejoin='round' stroke-linecap='round'/>`;
+    const strokeScale = lockStrokeScale(inst, ctx);
+    let body = `<path d='${inst.d}' fill='${fill}' stroke='${outline}' stroke-width='${(3.2 * strokeScale).toFixed(2)}' stroke-linejoin='round' stroke-linecap='round'/>`;
     if (inst.shade) body += `<path d='${inst.d}' fill='${darkC}' opacity='0.16'/>`;
     if (inst.lines !== false && Array.isArray(inst.strokes) && inst.strokes.length) {
       // Clip the interior strand lines to the drawn shape so they never spill past its outline.
       const clipId = `dlock-${(ctx && ctx.seed) || "0"}`;
       const strands = inst.strokes
-        .map((d) => `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`)
+        .map((d) => `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='${(2 * strokeScale).toFixed(2)}' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`)
         .join("");
       body += `<clipPath id='${clipId}'><path d='${inst.d}'/></clipPath><g clip-path='url(#${clipId})'>${strands}</g>`;
     }
@@ -440,10 +449,11 @@
   function render(key, fill, ink, opts) {
     const paths = HAIR[key];
     if (!paths) return "";
+    const outlineScale = clamp(Number(opts && opts.outlineScale) || 1, 0.74, 1.08);
     const body = paths.map((p) => {
-      if (p.m === "fs") return `<path d='${p.d}' fill='${fill}' stroke='${ink}' stroke-width='${STROKE}' stroke-linejoin='round'/>`;
+      if (p.m === "fs") return `<path d='${p.d}' fill='${fill}' stroke='${ink}' stroke-width='${(STROKE * outlineScale).toFixed(2)}' stroke-linejoin='round'/>`;
       if (p.m === "f") return `<path d='${p.d}' fill='${fill}'/>`;
-      return `<path d='${p.d}' fill='none' stroke='${ink}' stroke-width='${STROKE}' stroke-linecap='round' stroke-linejoin='round'/>`;
+      return `<path d='${p.d}' fill='none' stroke='${ink}' stroke-width='${(STROKE * outlineScale).toFixed(2)}' stroke-linecap='round' stroke-linejoin='round'/>`;
     }).join("");
     // Base silhouette only - the internal strand lines (strandPaths) read as stringy/messy on the
     // smooth base hair, so they're omitted here. Per-lock line texture still lives in renderLock.

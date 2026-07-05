@@ -1,0 +1,1031 @@
+[
+  {
+    "id": "gen-aaron",
+    "gender": "M",
+    "traits": {
+      "hair": "coily",
+      "clothing": "bare",
+      "accessory": "choker",
+      "beard": true,
+      "skinHex": "#f4c9a6",
+      "hairHex": "#5a3d28",
+      "shirt": "#256ba8"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.coily->hr-3090",
+      "clothing.bare->ch-255",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.beard"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-14.hr-3090-45.ch-255-68.lg-280-64.sh-290-85"
+  },
+  {
+    "id": "gen-maya",
+    "gender": "F",
+    "traits": {
+      "hair": "messy",
+      "clothing": "vneck",
+      "accessory": "dropEarrings",
+      "beard": false,
+      "skinHex": "#865335",
+      "hairHex": "#3a2418",
+      "shirt": "#b063c8"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.messy->hr-679",
+      "clothing.vneck->ch-680",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.dropEarrings"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-1371.hr-679-45.ch-680-75.lg-3023-64.sh-905-85"
+  },
+  {
+    "id": "gen-leon",
+    "gender": "M",
+    "traits": {
+      "hair": "coily",
+      "clothing": "hoodie",
+      "accessory": "none",
+      "beard": true,
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "shirt": "#22834b"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.coily->hr-3090",
+      "clothing.hoodie->ch-3030",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.beard"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-1371.hr-3090-45.ch-3030-85.lg-280-85.sh-290-85"
+  },
+  {
+    "id": "gen-naomi",
+    "gender": "F",
+    "traits": {
+      "hair": "cropped",
+      "clothing": "singlet",
+      "accessory": "flowerClip",
+      "beard": false,
+      "skinHex": "#f4c9a6",
+      "hairHex": "#a8a8b0",
+      "shirt": "#73497e"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.cropped->hr-515",
+      "clothing.singlet->ch-680",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.flowerClip"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-14.hr-515-40.ch-680-76.lg-3023-64.sh-905-85"
+  },
+  {
+    "id": "gen-javier",
+    "gender": "M",
+    "traits": {
+      "hair": "locs",
+      "clothing": "jacket",
+      "accessory": "moustache",
+      "beard": true,
+      "skinHex": "#c88968",
+      "hairHex": "#3a2418",
+      "shirt": "#ddba78"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.locs->hr-3090",
+      "clothing.jacket->ch-3321",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.beard"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-1370.hr-3090-45.ch-3321-68.lg-280-91.sh-290-85"
+  },
+  {
+    "id": "gen-tiana",
+    "gender": "F",
+    "traits": {
+      "hair": "bald",
+      "clothing": "collared",
+      "accessory": "necklace",
+      "beard": false,
+      "skinHex": "#f4c9a6",
+      "hairHex": "#3a2418",
+      "shirt": "#545454"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "clothing.collared->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.necklace"
+    ],
+    "fallbacks": {},
+    "score": 0.8,
+    "figure": "hd-600-14.ch-665-64.lg-3023-85.sh-905-85"
+  },
+  {
+    "id": "gen-diego",
+    "gender": "M",
+    "traits": {
+      "hair": "curls",
+      "clothing": "collared",
+      "accessory": "none",
+      "beard": true,
+      "skinHex": "#c88968",
+      "hairHex": "#3a2418",
+      "shirt": "#f6b334"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.curls->hr-889",
+      "clothing.collared->ch-210",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.beard"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-1370.hr-889-45.ch-210-66.lg-280-88.sh-290-85"
+  },
+  {
+    "id": "gen-sophia",
+    "gender": "F",
+    "traits": {
+      "hair": "bob",
+      "clothing": "collared",
+      "accessory": "studs",
+      "beard": false,
+      "skinHex": "#c88968",
+      "hairHex": "#c9973f",
+      "shirt": "#000000"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.bob->hr-545",
+      "clothing.collared->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.studs"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-1370.hr-545-43.ch-665-85.lg-3023-85.sh-905-85"
+  },
+  {
+    "id": "gen-zeke",
+    "gender": "M",
+    "traits": {
+      "hair": "locs",
+      "clothing": "tee",
+      "accessory": "chain",
+      "beard": false,
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "shirt": "#f1e4c5"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.locs->hr-3090",
+      "clothing.tee->ch-255",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.chain"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-1371.hr-3090-45.ch-255-1320.lg-280-76.sh-290-85"
+  },
+  {
+    "id": "gen-meilin",
+    "gender": "F",
+    "traits": {
+      "hair": "bald",
+      "clothing": "tee",
+      "accessory": "roundGlasses",
+      "beard": false,
+      "skinHex": "#c88968",
+      "hairHex": "#7a3b22",
+      "shirt": "#e17fba"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "clothing.tee->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.roundGlasses"
+    ],
+    "fallbacks": {},
+    "score": 0.8,
+    "figure": "hd-600-1370.ch-665-75.lg-3023-64.sh-905-85"
+  },
+  {
+    "id": "gen-gianni",
+    "gender": "M",
+    "traits": {
+      "hair": "cropped",
+      "clothing": "turtleneck",
+      "accessory": "none",
+      "beard": false,
+      "skinHex": "#c88968",
+      "hairHex": "#a8a8b0",
+      "shirt": "#6d5b43"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.cropped->hr-100",
+      "clothing.turtleneck->ch-235",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [],
+    "fallbacks": {},
+    "score": 1.0,
+    "figure": "hd-180-1370.hr-100-40.ch-235-91.lg-280-91.sh-290-85"
+  },
+  {
+    "id": "gen-aisha",
+    "gender": "F",
+    "traits": {
+      "hair": "bald",
+      "clothing": "jacket",
+      "accessory": "studs",
+      "beard": true,
+      "skinHex": "#865335",
+      "hairHex": "#3a2418",
+      "shirt": "#2a3c39"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "clothing.jacket->ch-3321",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.beard"
+    ],
+    "fallbacks": {},
+    "score": 0.8,
+    "figure": "hd-600-1371.ch-3321-85.lg-3023-85.sh-905-85"
+  },
+  {
+    "id": "gen-lucas",
+    "gender": "M",
+    "traits": {
+      "hair": "curls",
+      "clothing": "collared",
+      "accessory": "roundGlasses",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "shirt": "#2a8b65"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.curls->hr-889",
+      "clothing.collared->ch-210",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.roundGlasses"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-14.hr-889-45.ch-210-85.lg-280-85.sh-290-85"
+  },
+  {
+    "id": "gen-stella",
+    "gender": "F",
+    "traits": {
+      "hair": "bob",
+      "clothing": "singlet",
+      "accessory": "squareGlasses",
+      "beard": false,
+      "skinHex": "#cf8038",
+      "hairHex": "#d8639a",
+      "shirt": "#2d2d36"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.bob->hr-545",
+      "clothing.singlet->ch-680",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.squareGlasses"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-1370.hr-545-32.ch-680-85.lg-3023-85.sh-905-85"
+  },
+  {
+    "id": "gen-jamal",
+    "gender": "M",
+    "traits": {
+      "hair": "cropped",
+      "clothing": "hoodie",
+      "accessory": "beanie",
+      "beard": false,
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "shirt": "#ddc978"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.cropped->hr-100",
+      "clothing.hoodie->ch-3030",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290",
+      "accessory.beanie->ha-1004"
+    ],
+    "missed": [],
+    "fallbacks": {},
+    "score": 1.0,
+    "figure": "hd-180-1371.hr-100-45.ch-3030-68.lg-280-90.sh-290-85.ha-1004-68"
+  },
+  {
+    "id": "gen-olivia",
+    "gender": "F",
+    "traits": {
+      "hair": "bald",
+      "clothing": "bare",
+      "accessory": "hoops",
+      "beard": false,
+      "skinHex": "#f4c9a6",
+      "hairHex": "#a8a8b0",
+      "shirt": "#63b7df"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "clothing.bare",
+      "accessory.hoops"
+    ],
+    "fallbacks": {
+      "ch": "ch-680"
+    },
+    "score": 0.5,
+    "figure": "hd-600-14.ch-680-68.lg-3023-64.sh-905-85"
+  },
+  {
+    "id": "gen-arjun",
+    "gender": "M",
+    "traits": {
+      "hair": "cropped",
+      "clothing": "collared",
+      "accessory": "squareGlasses",
+      "beard": false,
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "shirt": "#1d69a4"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.cropped->hr-100",
+      "clothing.collared->ch-210",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.squareGlasses"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-1371.hr-100-45.ch-210-82.lg-280-64.sh-290-85"
+  },
+  {
+    "id": "gen-matilda",
+    "gender": "F",
+    "traits": {
+      "hair": "curls",
+      "clothing": "overalls",
+      "accessory": "headband",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "shirt": "#f7a51b"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.curls->hr-3090",
+      "clothing.overalls->ch-3112",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.headband"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-14.hr-3090-45.ch-3112-66.lg-3023-88.sh-905-85"
+  },
+  {
+    "id": "gen-niko",
+    "gender": "F",
+    "traits": {
+      "hair": "messy",
+      "clothing": "tee",
+      "accessory": "squareGlasses",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "shirt": "#1f1f22"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.messy->hr-679",
+      "clothing.tee->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.squareGlasses"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-14.hr-679-45.ch-665-85.lg-3023-85.sh-905-85"
+  },
+  {
+    "id": "gen-celeste",
+    "gender": "F",
+    "traits": {
+      "hair": "curls",
+      "clothing": "jacket",
+      "accessory": "headband",
+      "beard": false,
+      "skinHex": "#ad704e",
+      "hairHex": "#c9973f",
+      "shirt": "#0e78a8"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.curls->hr-3090",
+      "clothing.jacket->ch-3321",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.headband"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-19.hr-3090-43.ch-3321-82.lg-3023-85.sh-905-85"
+  },
+  {
+    "id": "gen-ryan",
+    "gender": "M",
+    "traits": {
+      "hair": "cropped",
+      "clothing": "tee",
+      "accessory": "scarf",
+      "beard": true,
+      "skinHex": "#efbd94",
+      "hairHex": "#1d1a17",
+      "shirt": "#3a8866"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.cropped->hr-100",
+      "clothing.tee->ch-255",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.beard"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-14.hr-100-45.ch-255-85.lg-280-85.sh-290-85"
+  },
+  {
+    "id": "gen-amira",
+    "gender": "F",
+    "traits": {
+      "hair": "longWaves",
+      "clothing": "tee",
+      "accessory": "hoops",
+      "beard": false,
+      "skinHex": "#ad704e",
+      "hairHex": "#5a3d28",
+      "shirt": "#813fc0"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.longWaves->hr-676",
+      "clothing.tee->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.hoops"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-19.hr-676-45.ch-665-76.lg-3023-64.sh-905-85"
+  },
+  {
+    "id": "gen-eli",
+    "gender": "M",
+    "traits": {
+      "hair": "sidePart",
+      "clothing": "collared",
+      "accessory": "roundGlasses",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#c9973f",
+      "shirt": "#9a6336"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.sidePart->hr-155",
+      "clothing.collared->ch-210",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.roundGlasses"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-14.hr-155-43.ch-210-90.lg-280-91.sh-290-85"
+  },
+  {
+    "id": "gen-sanaa",
+    "gender": "F",
+    "traits": {
+      "hair": "coily",
+      "clothing": "tee",
+      "accessory": "headband",
+      "beard": false,
+      "skinHex": "#5b341f",
+      "hairHex": "#1d1a17",
+      "shirt": "#da7623"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.coily->hr-3090",
+      "clothing.tee->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.headband"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-30.hr-3090-45.ch-665-72.lg-3023-91.sh-905-85"
+  },
+  {
+    "id": "gen-milo",
+    "gender": "M",
+    "traits": {
+      "hair": "cropped",
+      "clothing": "hoodie",
+      "accessory": "cap",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#7a3b22",
+      "shirt": "#f4dfb7"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.cropped->hr-100",
+      "clothing.hoodie->ch-3030",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290",
+      "accessory.cap->ha-1002"
+    ],
+    "missed": [],
+    "fallbacks": {},
+    "score": 1.0,
+    "figure": "hd-180-14.hr-100-39.ch-3030-1320.lg-280-90.sh-290-85.ha-1002-1320"
+  },
+  {
+    "id": "gen-lara",
+    "gender": "F",
+    "traits": {
+      "hair": "bob",
+      "clothing": "jacket",
+      "accessory": "necklace",
+      "beard": false,
+      "skinHex": "#c88968",
+      "hairHex": "#5a3d28",
+      "shirt": "#15946e"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.bob->hr-545",
+      "clothing.jacket->ch-3321",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.necklace"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-1370.hr-545-45.ch-3321-85.lg-3023-85.sh-905-85"
+  },
+  {
+    "id": "gen-bruno",
+    "gender": "M",
+    "traits": {
+      "hair": "curls",
+      "clothing": "collared",
+      "accessory": "necklace",
+      "beard": false,
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "shirt": "#ffffff"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.curls->hr-889",
+      "clothing.collared->ch-210",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.necklace"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-1371.hr-889-45.ch-210-74.lg-280-75.sh-290-85"
+  },
+  {
+    "id": "gen-yara",
+    "gender": "F",
+    "traits": {
+      "hair": "hijab",
+      "clothing": "tee",
+      "accessory": "beard",
+      "beard": true,
+      "skinHex": "#c88968",
+      "hairHex": "#a8a8b0",
+      "shirt": "#5c9a57"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "clothing.tee->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905",
+      "hair.hijab->ha-1013"
+    ],
+    "missed": [
+      "accessory.beard"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-1370.ch-665-84.lg-3023-85.sh-905-85.ha-1013-84"
+  },
+  {
+    "id": "gen-asher",
+    "gender": "M",
+    "traits": {
+      "hair": "messy",
+      "clothing": "tee",
+      "accessory": "necklace",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "shirt": "#242426"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.messy->hr-165",
+      "clothing.tee->ch-255",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.necklace"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-14.hr-165-45.ch-255-85.lg-280-85.sh-290-85"
+  },
+  {
+    "id": "gen-elena",
+    "gender": "F",
+    "traits": {
+      "hair": "messy",
+      "clothing": "blazer",
+      "accessory": "hoops",
+      "beard": true,
+      "skinHex": "#c88968",
+      "hairHex": "#c9973f",
+      "shirt": "#dfd8d8"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.messy->hr-679",
+      "clothing.blazer->ch-3321",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.beard"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-1370.hr-679-43.ch-3321-1408.lg-3023-76.sh-905-85"
+  },
+  {
+    "id": "gen-kai",
+    "gender": "M",
+    "traits": {
+      "hair": "cropped",
+      "clothing": "collared",
+      "accessory": "none",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#1d1a17",
+      "shirt": "#0d66a5"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.cropped->hr-100",
+      "clothing.collared->ch-210",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [],
+    "fallbacks": {},
+    "score": 1.0,
+    "figure": "hd-180-14.hr-100-45.ch-210-82.lg-280-85.sh-290-85"
+  },
+  {
+    "id": "gen-lucy",
+    "gender": "F",
+    "traits": {
+      "hair": "bob",
+      "clothing": "tee",
+      "accessory": "beret",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#5a3d28",
+      "shirt": "#d84e40"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.bob->hr-545",
+      "clothing.tee->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905",
+      "accessory.beret->ha-1010"
+    ],
+    "missed": [],
+    "fallbacks": {},
+    "score": 1.0,
+    "figure": "hd-600-14.hr-545-45.ch-665-72.lg-3023-73.sh-905-85.ha-1010-72"
+  },
+  {
+    "id": "gen-romeo",
+    "gender": "M",
+    "traits": {
+      "hair": "cropped",
+      "clothing": "collared",
+      "accessory": "hoops",
+      "beard": false,
+      "skinHex": "#5b341f",
+      "hairHex": "#c9973f",
+      "shirt": "#276f37"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.cropped->hr-100",
+      "clothing.collared->ch-210",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.hoops"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-30.hr-100-43.ch-210-85.lg-280-85.sh-290-85"
+  },
+  {
+    "id": "gen-adeline",
+    "gender": "F",
+    "traits": {
+      "hair": "bob",
+      "clothing": "turtleneck",
+      "accessory": "roundGlasses",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "shirt": "#f1e4c5"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.bob->hr-545",
+      "clothing.turtleneck->ch-680",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.roundGlasses"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-14.hr-545-45.ch-680-1320.lg-3023-76.sh-905-85"
+  },
+  {
+    "id": "gen-felix",
+    "gender": "M",
+    "traits": {
+      "hair": "bald",
+      "clothing": "hoodie",
+      "accessory": "necklace",
+      "beard": false,
+      "skinHex": "#c88968",
+      "hairHex": "#c9973f",
+      "shirt": "#f4c02e"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "clothing.hoodie->ch-3030",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.necklace"
+    ],
+    "fallbacks": {},
+    "score": 0.8,
+    "figure": "hd-180-1370.ch-3030-66.lg-280-88.sh-290-85"
+  },
+  {
+    "id": "gen-ines",
+    "gender": "F",
+    "traits": {
+      "hair": "longWaves",
+      "clothing": "tee",
+      "accessory": "headband",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "shirt": "#ed78a9"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.longWaves->hr-676",
+      "clothing.tee->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.headband"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-14.hr-676-45.ch-665-75.lg-3023-91.sh-905-85"
+  },
+  {
+    "id": "gen-priya",
+    "gender": "F",
+    "traits": {
+      "hair": "longWaves",
+      "clothing": "tee",
+      "accessory": "hoops",
+      "beard": false,
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "shirt": "#7f42b5"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "hair.longWaves->hr-676",
+      "clothing.tee->ch-665",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "accessory.hoops"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-600-1371.hr-676-45.ch-665-76.lg-3023-64.sh-905-85"
+  },
+  {
+    "id": "gen-hugo",
+    "gender": "M",
+    "traits": {
+      "hair": "curls",
+      "clothing": "collared",
+      "accessory": "roundGlasses",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#5a3d28",
+      "shirt": "#226aa0"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.curls->hr-889",
+      "clothing.collared->ch-210",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [
+      "accessory.roundGlasses"
+    ],
+    "fallbacks": {},
+    "score": 0.833,
+    "figure": "hd-180-14.hr-889-45.ch-210-82.lg-280-64.sh-290-85"
+  },
+  {
+    "id": "gen-noor",
+    "gender": "F",
+    "traits": {
+      "hair": "bald",
+      "clothing": "bare",
+      "accessory": "beard",
+      "beard": true,
+      "skinHex": "#3f2417",
+      "hairHex": "#1d1a17",
+      "shirt": "#5a7b69"
+    },
+    "matched": [
+      "defaults.hd->hd-600",
+      "defaults.lg->lg-3023",
+      "defaults.sh->sh-905"
+    ],
+    "missed": [
+      "clothing.bare",
+      "accessory.beard"
+    ],
+    "fallbacks": {
+      "ch": "ch-680"
+    },
+    "score": 0.5,
+    "figure": "hd-600-30.ch-680-91.lg-3023-85.sh-905-85"
+  },
+  {
+    "id": "gen-tyler",
+    "gender": "M",
+    "traits": {
+      "hair": "messy",
+      "clothing": "jacket",
+      "accessory": "none",
+      "beard": false,
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "shirt": "#282a2f"
+    },
+    "matched": [
+      "defaults.hd->hd-180",
+      "hair.messy->hr-165",
+      "clothing.jacket->ch-3321",
+      "defaults.lg->lg-280",
+      "defaults.sh->sh-290"
+    ],
+    "missed": [],
+    "fallbacks": {},
+    "score": 1.0,
+    "figure": "hd-180-14.hr-165-45.ch-3321-85.lg-280-85.sh-290-85"
+  }
+]

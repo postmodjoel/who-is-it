@@ -432,6 +432,9 @@ function newGame(seedSalt, opts = {}) {
   replayBrand();   // WHO? / IS IT? slides back in for the fresh round
   stopOpponentSim();
   if (opts.resume) return;   // resume path applies the effect itself (silently, no wheel animation)
+  // Opening round of a fresh game: a swirling "new dimension" warp fades in over the freshly-dealt
+  // board (not the joiner's throwaway deal). Every later round just deals normally.
+  if (plainRound && !opts.silentEffect) showDimensionWarp();
   // The rest of the round setup (plain deal / joiner throwaway / wheel spin) is unchanged from the
   // two-player build. For 3+ players we just show a brief team-reveal first, then run it.
   const proceed = () => {
@@ -607,9 +610,78 @@ function skinLuminance(ch) {
   const n = parseInt(hex.replace("#", ""), 16);
   return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
 }
+function hexHueValue(hex) {
+  const clean = String(hex || "#5a3d28").replace("#", "");
+  const n = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
+  if (Number.isNaN(n)) return 0;
+  const r = ((n >> 16) & 255) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  return h * 1000 + lum;
+}
+function characterAppeal(ch) {
+  const t = ch.traits || {};
+  const eyeMismatch =
+    Math.abs((Number(t.eyeLeftX) || 0) - (Number(t.eyeRightX) || 0)) * 4 +
+    Math.abs((Number(t.eyeLeftY) || 0) - (Number(t.eyeRightY) || 0)) * 4;
+  const earMismatch =
+    Math.abs((Number(t.earLeftX) || 0) - (Number(t.earRightX) || 0)) * 2 +
+    Math.abs((Number(t.earLeftY) || 0) - (Number(t.earRightY) || 0)) * 2;
+  const browMismatch = Math.abs((Number(t.browLeftAngle) || 0) - (Number(t.browRightAngle) || 0)) * 1.8;
+  const headWarp =
+    Math.abs((Number(t.headScaleX) || 1) - 1) * 70 +
+    Math.abs((Number(t.headScaleY) || 1) - 1) * 70 +
+    Math.abs(Number(t.headTilt) || 0) * 3;
+  const asymmetry =
+    Math.abs(Number(t.lazyEye) || 0) * 12 +
+    Math.abs(Number(t.pupilX) || 0) * 6 +
+    Math.abs(Number(t.pupilY) || 0) * 3 +
+    Math.abs(Number(t.eyeX) || 0) * 2 +
+    Math.abs(Number(t.eyeY) || 0) * 1.5 +
+    eyeMismatch +
+    earMismatch +
+    browMismatch +
+    Math.abs(Number(t.accessoryX) || 0) * 1.8 +
+    Math.abs(Number(t.accessoryRot) || 0) * 0.8 +
+    Math.abs(Number(t.beardX) || 0) * 2 +
+    Math.abs(Number(t.moustacheX) || 0) * 2 +
+    Math.abs(Number(t.moustacheY) || 0) * 1.2 +
+    Math.abs(Number(t.tattooX) || 0) * 0.25 +
+    Math.abs(Number(t.tattooRot) || 0) * 0.15 +
+    headWarp +
+    Math.abs((Number(t.bodyWidth) || 1) - 1) * 45 +
+    Math.abs((Number(t.shoulderSlope) || 0.5) - 0.5) * 35;
+  return Math.max(0, 1000 - asymmetry);
+}
+function hairAmount(ch) {
+  const t = ch.traits || {};
+  const base = {
+    bald: 0, cropped: 18, buzz: 18, bob: 45, messy: 50, curls: 66, locs: 74,
+    longWaves: 82, bun: 62, hijab: 35
+  }[t.hair] ?? 42;
+  const locks = Array.isArray(t.hairLocks) ? t.hairLocks.length * 7 : 0;
+  const beard = (Number(t.beardLength) || 0) * 80 + (Array.isArray(t.beardBlobs) ? t.beardBlobs.length * 5 : 0);
+  const facial = ["beard", "moustache"].includes(t.accessory) ? 25 : 0;
+  return base + locks + beard + facial;
+}
 function characterStat(ch, key) {
   if (key === "name") return ch.name;
   if (key === "skin") return skinLuminance(ch);
+  if (key === "eye") return hexHueValue(ch.traits?.eyeColor || "#5a3d28");
+  if (key === "ear") return Number(ch.traits?.earScale) || 1;
+  if (key === "hairamount") return hairAmount(ch);
+  if (key === "appeal") return characterAppeal(ch);
   if (key === "abortions") return ch.abortions || 0;
   // Where the active mode actually tracks the stat, sort by the REAL value.
   const a = state.global.mystery?.assignments?.[ch.id];
@@ -634,17 +706,18 @@ function characterStat(ch, key) {
   // "fuck" (fuckability) and anything the mode doesn't track fall back to a deterministic comedy stat.
   return stableHash(`${state.gameSalt}:sortstat:${key}:${ch.id}`) % 1000;
 }
-// Baseline stats every character "holds"; extra options appear only for the modes that track them, and
-// the chosen sort persists across rounds (unless it's not valid for the new mode).
-const BASE_SORTS = [["", "Board order"], ["name", "Name A–Z"], ["skin", "Skin tone 🎨"], ["fuck", "Fuckability 😏"], ["abortions", "Abortions 👼"]];
+// Baseline visual stats every character "holds"; extra options appear only for the modes that track
+// them, and the chosen sort persists across rounds unless it is not valid for the new mode.
+const BASE_SORTS = [["eye", "Eye colour"], ["skin", "Skin colour"], ["ear", "Ear size"], ["hairamount", "Amount of hair"], ["appeal", "General appeal"]];
 function rebuildSortOptions() {
   const sel = els.sortSelect;
   if (!sel) return;
-  // PG mode - and the plain FIRST round - hide the sort dropdown entirely (ordinary Guess Who has none).
-  if (state.settings.pg || state.plainRound) { state.sortKey = ""; sel.value = ""; sel.style.display = "none"; return; }
   sel.style.display = "";
-  const opts = [...BASE_SORTS, ...MysteryModes.modeSorts(state.global.mystery?.id)];
-  if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = "";   // drop a sort the new mode can't do
+  const openingRound = state.roundAge === 0;
+  const opts = openingRound
+    ? BASE_SORTS
+    : [...BASE_SORTS, ...MysteryModes.modeSorts(state.global.mystery?.id)];
+  if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = opts[0]?.[0] || "";
   sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
   sel.value = state.sortKey;
 }
@@ -657,7 +730,18 @@ function sortedBoard() {
   const arr = [...state.board];
   if (key === "name") return arr.sort((a, b) => a.name.localeCompare(b.name));
   if (key === "skin") return arr.sort((a, b) => skinLuminance(a) - skinLuminance(b) || a.name.localeCompare(b.name));
+  if (key === "eye") return arr.sort((a, b) => characterStat(a, key) - characterStat(b, key) || a.name.localeCompare(b.name));
   return arr.sort((a, b) => (characterStat(b, key) - characterStat(a, key)) || a.name.localeCompare(b.name));
+}
+
+function portraitForCharacter(character) {
+  const hasTattoo = !!character?.traits?.tattooText || (Array.isArray(character?.traits?.tattoos) && character.traits.tattoos.length);
+  if (!state.settings.pg || !hasTattoo || !window.faceGenerator) return character?.image || "";
+  try {
+    return window.faceGenerator.renderPortrait(character.seed || 0, { ...character.traits, pg: true });
+  } catch (e) {
+    return character?.image || "";
+  }
 }
 
 function renderLocation() {
@@ -772,7 +856,7 @@ function renderSecret() {
   els.secretCard.className = `secret-card character-card ${secret.variant || ""} ${m.cardClass || ""}`.trim();
   const bg = secret.traits?.background || "#cdd6e0";
   els.secretCard.setAttribute("style", `--secret-bg:${bg};${m.style || ""}`);
-  const portraitSrc = m.image || secret.image;
+  const portraitSrc = m.image || portraitForCharacter(secret);
   els.secretCard.innerHTML = `
     <div class="portrait-wrap">
       <img src="${portraitSrc}" alt="${escapeHtml(secret.name)}">
@@ -797,7 +881,7 @@ function updateFloatingSecret(secret, visible) {
   const name = fs.querySelector(".fs-name");
   const m = state.global.mystery ? getMysteryCardData(secret) : {};
   if (visible) {
-    img.src = m.image || secret.image;
+    img.src = m.image || portraitForCharacter(secret);
     img.style.visibility = "visible";
     name.textContent = displayName(secret);
     fs.style.setProperty("--secret-bg", secret.traits?.background || "#cdd6e0");
@@ -967,7 +1051,7 @@ function createCharacterCard(character, player) {
   const prop = mystery.propEmoji ? `<span class="prop-overlay" aria-label="${escapeHtml(mystery.primaryText)}">${mystery.propEmoji}</span>` : "";
   // Roles are hidden by default - they are not known initially and only surface once the
   // Role Reveal mystery effect is triggered (which renders them via mystery.html below).
-  let portraitSrc = mystery.image || character.image;
+  let portraitSrc = mystery.image || portraitForCharacter(character);
   const prepared = MysteryModes.prepareCardRender({ card, character, player, mystery, portraitSrc });
   portraitSrc = prepared.portraitSrc || portraitSrc;
   const modeOverlayHtml = prepared.overlayHtml || "";
@@ -1558,25 +1642,15 @@ function showRoundReveal(done) {
   // the character's send-off in the voice of the round that just ended.
   const epiMine = typeof modeEpilogue === "function" ? modeEpilogue(mine) : "";
   const epiTheirs = typeof modeEpilogue === "function" ? modeEpilogue(theirs) : "";
-  // Team mode: each side reveals as a TILE SET - the secret (crowned) plus every team member's
-  // persona - so the whole team is on screen, not one lonely portrait.
-  const sideTiles = (sec, side, epi) => {
-    const tiles = [`<div class="rr-tile rr-tile-secret"><img src="${sec ? sec.image : ""}" alt=""><span class="rr-tile-name">${escapeHtml(sec ? sec.name : "?")}</span><i>THE SECRET</i></div>`]
-      .concat(teamMembers(side).map((m) => {
-        const p = m.personaId ? characterById(m.personaId) : null;
-        return p ? `<div class="rr-tile"><img src="${p.image}" alt=""><span class="rr-tile-name">${escapeHtml(p.name)}</span><i>${escapeHtml(m.name)}</i></div>` : "";
-      }));
-    return `<div class="rr-tiles">${tiles.join("")}</div>${epi ? `<span class="rr-epilogue">${escapeHtml(epi)}</span>` : ""}`;
-  };
-  const theirSide = my === 0 ? 1 : 0;
-  const cardMine = teamMode
-    ? `<span class="rr-label rr-you">YOUR TEAM WAS</span>${sideTiles(mine, my, epiMine)}`
-    : `<span class="rr-label rr-you">YOU WERE</span><img src="${mine ? mine.image : ""}" alt=""><span class="rr-name">${escapeHtml(mine ? mine.name : "?")}</span>${epiMine ? `<span class="rr-epilogue">${escapeHtml(epiMine)}</span>` : ""}`;
-  const cardTheirs = teamMode
-    ? `<span class="rr-label rr-them">THEY WERE</span>${sideTiles(theirs, theirSide, epiTheirs)}`
-    : `<span class="rr-label rr-them">THEY WERE</span><img src="${theirs ? theirs.image : ""}" alt=""><span class="rr-name">${escapeHtml(theirs ? theirs.name : "?")}</span>${epiTheirs ? `<span class="rr-epilogue">${escapeHtml(epiTheirs)}</span>` : ""}`;
+  // ONE secret per side, whatever the team sizes. A side has a single shared secret; the team's
+  // members were already introduced at the round-start team reveal, so the end reveal is just the
+  // two secrets head-to-head (team label in 3+ games, "YOU WERE" in 2p).
+  const secretCardHtml = (sec, cls, label, epi) =>
+    `<span class="rr-label ${cls}">${label}</span><img src="${sec ? sec.image : ""}" alt=""><span class="rr-name">${escapeHtml(sec ? sec.name : "?")}</span>${epi ? `<span class="rr-epilogue">${escapeHtml(epi)}</span>` : ""}`;
+  const cardMine = secretCardHtml(mine, "rr-you", teamMode ? "YOUR TEAM WAS" : "YOU WERE", epiMine);
+  const cardTheirs = secretCardHtml(theirs, "rr-them", "THEY WERE", epiTheirs);
   const ov = document.createElement("div");
-  ov.className = "round-reveal" + (teamMode ? " rr-teamgrid" : "");
+  ov.className = "round-reveal";
   ov.innerHTML = `
     <div class="rr-title">ROUND OVER</div>
     <div class="rr-cards">
@@ -1837,8 +1911,12 @@ function showSessionEnd() {
     });
   });
   if (!cast.length) cast = state.board.slice(0, 12).map((ch) => ({ img: ch.image, name: ch.name, mode: "UNCREDITED" }));
-  // Pad short sessions so the roll never looks sparse, then duplicate for a seamless loop.
-  while (cast.length && cast.length < 12) cast = cast.concat(cast.slice(0, 12 - cast.length));
+  // Pad short sessions so ONE copy of the roll is taller than any viewport - otherwise a short cast
+  // clumps in a couple of rows at the very top with a big empty gap below. Duplicated for a seamless
+  // loop (the -50% keyframe scrolls exactly one copy).
+  const unique = cast.slice();
+  while (cast.length < 48) cast = cast.concat(unique);
+  cast = cast.slice(0, 48);
   const tile = (c) => `<div class="se-cast"><img src="${c.img}" alt=""><span class="se-cast-mode">${escapeHtml(String(c.mode).toUpperCase())}</span><span class="se-cast-name">${escapeHtml(c.name)}</span></div>`;
   const roll = cast.map(tile).join("");
   const ov = document.createElement("div");
@@ -2206,6 +2284,28 @@ function showTitleScreen() {
 
 // LOCAL: pass-and-play on one screen - the YOU/B (or team) toggle is how you hand off the device.
 // No args (or count <= 2) is the classic two-player game: empty roster, identical to the old build.
+// The "new dimension" intro: a swirling zoom + title card that fades away to reveal the dealt game.
+// One-shot; auto-removes. Purely cosmetic (the board is already dealt underneath).
+function showDimensionWarp() {
+  document.querySelector(".dimension-warp")?.remove();
+  const ov = document.createElement("div");
+  ov.className = "dimension-warp";
+  ov.innerHTML = `
+    <div class="dw-swirl" aria-hidden="true"></div>
+    <div class="dw-vortex" aria-hidden="true"></div>
+    <div class="dw-copy">
+      <p class="dw-line">Entering a new dimension.</p>
+      <p class="dw-line dw-line2">It's time to ask:</p>
+      <div class="dw-who"><span class="dw-who1">WHO?</span><span class="dw-who2">IS IT?</span></div>
+    </div>`;
+  document.body.appendChild(ov);
+  try { if (window.Sound && Sound.play) Sound.play("whoosh"); } catch (e) { /* silence is fine */ }
+  setTimeout(() => {
+    ov.classList.add("dw-out");
+    setTimeout(() => ov.remove(), 700);
+  }, 2400);
+}
+
 function startLocalGame(count, names) {
   state.gameMode = "local"; state.mySeat = 0; state.inLobby = false;
   if (count && count > 2) {

@@ -238,15 +238,17 @@ const state = {
     locations: true,
     roles: true,
     pg: true,           // "PG mode" - the wheel only lands on kid-safe modes, no breeding/woohoo
+    tiers: null,        // host intensity gate: null/[] = every tier on; else the enabled tier numbers
     boardSize: 24
   },
   currentPlayer: 0,
   roundAge: 0,         // how many rounds deep this session is (0 = the plain opening round). Drives prompt "heat".
   gameMode: "local",   // "local" (pass-and-play) or "online" (room-synced)
+  playMode: "team",    // "team" (3+ humans share two sides) or "solo" (3+ humans each get a seat)
   board: [],
-  players: [],          // ALWAYS length 2 - these are SIDES/teams, never per-human. See roster below.
+  players: [],          // Game seats. Team mode has 2 seats; solo mode has one seat per roster entry.
   playerCount: 2,       // 2-8 humans this game
-  roster: [],           // [{ name, clientId?, side }] - humans mapped onto the two sides. Empty ≙ classic 2p.
+  roster: [],           // [{ name, clientId?, side, personaId? }] - humans mapped onto seats/teams.
   clientId: "",         // online: minted once per tab session so teammates on one side are distinguishable
   myRosterIndex: 0,     // online: which roster slot is me
   isHost: false,        // online: did I open this room (roster authority)
@@ -295,6 +297,8 @@ const els = {
   settingLocations: document.querySelector("#settingLocations"),
   settingRoles: document.querySelector("#settingRoles"),
   settingPG: document.querySelector("#settingPG"),
+  settingTiers: document.querySelector("#settingTiers"),
+  setupRoomCode: document.querySelector("#setupRoomCode"),
 };
 
 els.houseMap = document.createElement("section");
@@ -397,14 +401,16 @@ function newGame(seedSalt, opts = {}) {
   // from each round's salt, or every new round would move rooms and the peer would miss the deal.
   // Local mode just needs a display code, so it can track the salt.
   if (state.gameMode !== "online") state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
-  assignRosterTeams();   // salt is final now; derive team sides (no-op for classic <=2 rosters)
+  assignRosterTeams({ preserveExisting: opts.resume || opts.preserveRosterSides });   // salt is final now; derive teams/seats
+  if (state.roster && state.roster.length) state.playerCount = state.roster.length;
   const takenSecrets = new Set();
-  state.players = [makePlayer(0, takenSecrets), makePlayer(1, takenSecrets)];
+  const seats = gameSeatCount();
+  state.players = Array.from({ length: seats }, (_, index) => makePlayer(index, takenSecrets));
   assignRosterPersonas(takenSecrets);   // 3+ players: everyone gets a board character to BE this round
-  state.currentPlayer = state.mySeat || 0;
+  state.currentPlayer = clampSeatIndex(state.mySeat || 0);
   state.log = [];
-  state.global.hints = [[], []];
-  state.global.undo = [[], []];
+  state.global.hints = Array.from({ length: seats }, () => []);
+  state.global.undo = Array.from({ length: seats }, () => []);
   state.global.roleMap = {};
   state.board.forEach((character, index) => {
     state.global.roleMap[character.id] = state.settings.roles ? characterRoles[index % characterRoles.length] : character.role;
@@ -424,7 +430,7 @@ function newGame(seedSalt, opts = {}) {
   if (state.gameMode === "online") {
     netConnect();   // no-op if already on this room's socket (won't drop the peer)
     // Announce the new round to the peer, UNLESS the lobby's START handler already sent it.
-    if (!opts.remote && !opts.announced) netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick });
+    if (!opts.remote && !opts.announced) netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
   }
   drawPrompt();
   addLog("New game dealt. Nobody looks trustworthy.");
@@ -474,8 +480,9 @@ function newGame(seedSalt, opts = {}) {
     }
     scheduleSave();
   };
-  // 3+ players: announce the two teams before the wheel/plain deal (never on resume). 2p is unchanged.
+  // 3+ players: announce teams/solo seats before the wheel/plain deal (never on resume). 2p is unchanged.
   if (rosterTeamMode()) showTeamReveal(proceed);
+  else if (rosterSoloMode()) showSoloReveal(proceed);
   else proceed();
 }
 
@@ -495,46 +502,71 @@ function makePlayer(index, taken) {
   };
 }
 
-// ===================== Roster / teams (2-8 players over two sides) =====================
-// The engine is a two-SIDE game forever (state.players.length === 2). A roster of 2-8 humans is
-// mapped deterministically onto those two sides; teammates share a side (and its secret/board).
-// Empty roster (or length <= 2) means "classic" - the game looks and behaves exactly like the
-// original two-player build.
+// ===================== Roster / teams / solo seats (2-8 humans) =====================
+// Team mode keeps the original two-side engine: humans are mapped onto TEAM A / TEAM B and share a
+// secret + board state. Solo mode turns every human into their own seat with their own secret and
+// crossed-off board state. A two-player game is always effectively solo/classic even if playMode is
+// still "team" in saved state.
 const SIDE_COUNT = 2, MIN_PLAYERS = 2, MAX_PLAYERS = 8;
+const RESERVED_PLAYER_NAMES = new Set(["guest", "host"]);
 
-function rosterTeamMode() { return !!(state.roster && state.roster.length > 2); }
-// The client id is a PERSISTENT device identity (localStorage), not a per-tab one: after an
-// accidental refresh the same id reconnects, so the host recognises the returning player instead
-// of seating a duplicate. Minted once per device, reused forever.
+function cleanPlayerName(value) {
+  return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, 16);
+}
+function isValidPlayerName(value) {
+  const name = cleanPlayerName(value);
+  return !!name && !RESERVED_PLAYER_NAMES.has(name.toLowerCase());
+}
+function rosterSoloMode() { return state.playMode === "solo" && !!(state.roster && state.roster.length > 2); }
+function rosterTeamMode() { return state.playMode !== "solo" && !!(state.roster && state.roster.length > 2); }
+function gameSeatCount() { return rosterSoloMode() ? Math.max(MIN_PLAYERS, state.roster.length) : SIDE_COUNT; }
+function clampSeatIndex(index) {
+  const max = Math.max(0, (state.players && state.players.length ? state.players.length : gameSeatCount()) - 1);
+  const n = Number(index);
+  return Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : 0;
+}
+function ensureSeatArrays(count = gameSeatCount()) {
+  state.global.hints = Array.from({ length: count }, (_, i) => state.global.hints[i] || []);
+  state.global.undo = Array.from({ length: count }, (_, i) => state.global.undo[i] || []);
+}
+// The client id is a per-TAB identity that survives refresh (sessionStorage): an accidental reload
+// reconnects on the same id so the host reseats the returning player instead of duplicating them -
+// while two tabs in one browser stay two distinct online clients (the documented BroadcastChannel
+// story in net.js, and how local multi-tab testing works). localStorage would merge every tab into
+// one identity.
 const CLIENT_ID_KEY = "whoisit_client_v1";
 function ensureClientId() {
   if (!state.clientId) {
-    try { state.clientId = localStorage.getItem(CLIENT_ID_KEY) || ""; } catch (e) { /* fine */ }
+    try { state.clientId = sessionStorage.getItem(CLIENT_ID_KEY) || ""; } catch (e) { /* fine */ }
   }
   if (!state.clientId) {
     state.clientId = `c-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    try { localStorage.setItem(CLIENT_ID_KEY, state.clientId); } catch (e) { /* fine */ }
+    try { sessionStorage.setItem(CLIENT_ID_KEY, state.clientId); } catch (e) { /* fine */ }
   }
   return state.clientId;
 }
-// Build a clean roster of {name} from a count + a names array/object (blank names get "Player N").
+// Build a clean roster of {name} from a count + a names array/object. UI entry points validate names
+// before this runs; the fallback only protects old saves / hand-called helpers from exploding.
 function normalizeRoster(count, names) {
   const n = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, count | 0));
   const out = [];
   for (let i = 0; i < n; i++) {
     const raw = Array.isArray(names) ? names[i] : (names && names[i]);
-    const nm = (raw == null ? "" : String(raw)).trim();
+    const nm = cleanPlayerName(raw);
     out.push({ name: nm || `Player ${i + 1}` });
   }
   return out;
 }
 // Deterministic team split from the salt: identical on every client (same salt + same roster order).
-// Writes `side` (0|1) onto each roster entry. Re-runs every round so teams rotate.
-function assignRosterTeams() {
+// Writes `side` onto each roster entry. Team mode writes 0|1; solo mode writes the player's own seat.
+// Re-runs every round so teams rotate, except snapshot/resume can preserve a mid-round late-join split.
+function assignRosterTeams(options = {}) {
   const roster = state.roster || [];
   const n = roster.length;
   if (n === 0) return;
+  if (rosterSoloMode()) { roster.forEach((r, i) => { r.side = i; }); return; }
   if (n <= SIDE_COUNT) { roster.forEach((r, i) => { r.side = i < SIDE_COUNT ? i : 1; }); return; }
+  if (options.preserveExisting && roster.every((r) => r.side === 0 || r.side === 1)) return;
   const order = roster.map((_, i) => i).sort((a, b) =>
     stableHash(`${state.gameSalt}:team:${a}:${roster[a].name}`) - stableHash(`${state.gameSalt}:team:${b}:${roster[b].name}`)
   );
@@ -544,6 +576,42 @@ function assignRosterTeams() {
   order.forEach((rosterIdx, pos) => { roster[rosterIdx].side = pos < size0 ? 0 : 1; });
 }
 function teamMembers(side) { return (state.roster || []).filter((r) => r.side === side); }
+function assignSeatForJoiningRosterIndex(index) {
+  const roster = state.roster || [];
+  const r = roster[index];
+  if (!r) return;
+  if (rosterSoloMode()) { roster.forEach((entry, i) => { entry.side = i; }); return; }
+  if (roster.length <= SIDE_COUNT) { roster.forEach((entry, i) => { entry.side = i < SIDE_COUNT ? i : 1; }); return; }
+  const counts = [0, 0];
+  roster.forEach((entry, i) => {
+    if (i === index) return;
+    if (entry.side === 0 || entry.side === 1) counts[entry.side] += 1;
+  });
+  r.side = counts[0] <= counts[1] ? 0 : 1;
+}
+function takenSecretIndexesFromPlayers() {
+  const taken = new Set();
+  (state.players || []).forEach((player) => {
+    const idx = state.board.findIndex((c) => c.id === player.secretId);
+    if (idx >= 0) taken.add(idx);
+  });
+  return taken;
+}
+function addMidGameRosterSeat(index) {
+  assignSeatForJoiningRosterIndex(index);
+  if (!state.board.length || !state.players.length) return;
+  if (rosterSoloMode()) {
+    const targetCount = gameSeatCount();
+    const taken = takenSecretIndexesFromPlayers();
+    for (let i = 0; i < targetCount; i++) {
+      if (!state.players[i]) state.players[i] = makePlayer(i, taken);
+    }
+    state.players.length = targetCount;
+  }
+  ensureSeatArrays(state.players.length || gameSeatCount());
+  assignRosterPersonas(takenSecretIndexesFromPlayers());
+  state.currentPlayer = clampSeatIndex(state.currentPlayer);
+}
 // 3+ players: every human is dealt a PERSONA - a board character that is theirs to voice and act
 // for the round (rotates with the salt each round). Personas never collide with each other or with
 // either team's secret, so playing your part can't leak the answer. Pure roleplay, no mechanics.
@@ -559,6 +627,7 @@ function assignRosterPersonas(takenIdx) {
 }
 // Display label for a side: team name in 3+ games, else the human's/classic A-B label.
 function teamLabel(side) {
+  if (rosterSoloMode()) return (state.roster && state.roster[side] && state.roster[side].name) || `Player ${side + 1}`;
   if (rosterTeamMode()) return side === 0 ? "TEAM A" : "TEAM B";
   const rname = state.roster && state.roster[side] && state.roster[side].name;
   return rname || (state.players[side] && state.players[side].pname) || (side === 0 ? "A" : "B");
@@ -569,13 +638,14 @@ function rosterPname(index) {
   if (state.roster && state.roster[index] && state.roster[index].name) return state.roster[index].name;
   return (state.lobby && state.lobby[index]) || (state.gameMode === "online" && index === (state.mySeat || 0) ? state.pname : null);
 }
-function sideFromMsg(msg) { return msg && msg.seat === 0 ? 0 : 1; }
+function sideFromMsg(msg) { return clampSeatIndex(msg && msg.seat); }
 // A wire-safe copy of the roster (names + clientIds, no derived `side`).
-function rosterForWire() { return (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId })); }
+function rosterForWire() { return (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side, personaId: r.personaId })); }
 // Adopt a roster broadcast by the host and locate myself in it by clientId.
 function applyRosterFromMsg(msg) {
   if (!Array.isArray(msg.roster)) return;
-  state.roster = msg.roster.map((r) => ({ name: r.name, clientId: r.clientId }));
+  if (msg.playMode === "solo" || msg.playMode === "team") state.playMode = msg.playMode;
+  state.roster = msg.roster.map((r) => ({ name: cleanPlayerName(r.name) || "Player", clientId: r.clientId, side: r.side, personaId: r.personaId }));
   state.playerCount = msg.playerCount || state.roster.length;
   const mine = state.roster.findIndex((r) => r.clientId && r.clientId === state.clientId);
   if (mine >= 0) state.myRosterIndex = mine;
@@ -584,7 +654,7 @@ function applyRosterFromMsg(msg) {
 // After the salt + roster are known, derive teams and set which side is mine.
 function syncMySeatFromRoster() {
   if (!state.roster || !state.roster.length || !state.gameSalt) return;
-  assignRosterTeams();
+  assignRosterTeams({ preserveExisting: true });
   const me = state.roster[state.myRosterIndex];
   if (me && typeof me.side === "number") state.mySeat = me.side;
 }
@@ -643,6 +713,20 @@ function characterAppeal(ch) {
     Math.abs((Number(t.headScaleX) || 1) - 1) * 70 +
     Math.abs((Number(t.headScaleY) || 1) - 1) * 70 +
     Math.abs(Number(t.headTilt) || 0) * 3;
+  // Grooming counts against "appeal" too: more hair reads as more to fault, and a beard is a
+  // reliable mid-tier deduction (never the whole story, but it stops a big-bearded symmetric face
+  // like Diego from topping the chart). Hair carries full weight; the beard is halved (mid-tier).
+  const hairVolume = {
+    bald: 0, cropped: 18, buzz: 18, bob: 45, messy: 50, curls: 66, locs: 74,
+    longWaves: 82, bun: 62, hijab: 35
+  }[t.hair] ?? 42;
+  const hairPenalty =
+    hairVolume * 0.9 +
+    (Array.isArray(t.hairLocks) ? t.hairLocks.length * 6 : 0);
+  const beardPenalty =
+    ((Number(t.beardLength) || 0) * 80 +
+      (Array.isArray(t.beardBlobs) ? t.beardBlobs.length * 5 : 0) +
+      (["beard", "moustache"].includes(t.accessory) ? 22 : 0)) * 0.5;
   const asymmetry =
     Math.abs(Number(t.lazyEye) || 0) * 12 +
     Math.abs(Number(t.pupilX) || 0) * 6 +
@@ -660,6 +744,8 @@ function characterAppeal(ch) {
     Math.abs(Number(t.tattooX) || 0) * 0.25 +
     Math.abs(Number(t.tattooRot) || 0) * 0.15 +
     headWarp +
+    hairPenalty +
+    beardPenalty +
     Math.abs((Number(t.bodyWidth) || 1) - 1) * 45 +
     Math.abs((Number(t.shoulderSlope) || 0.5) - 0.5) * 35;
   return Math.max(0, 1000 - asymmetry);
@@ -675,8 +761,17 @@ function hairAmount(ch) {
   const facial = ["beard", "moustache"].includes(t.accessory) ? 25 : 0;
   return base + locks + beard + facial;
 }
+// A hidden, deliberately absurd "Name Appropriateness" ranking. The joke is that the game claims to
+// score this at all: it's deterministic hash nonsense (with a faint "shorter name drifts higher"
+// nudge so it looks opinionated), NOT a real classifier of anything about the name.
+function nameAppropriateness(ch) {
+  const n = String(ch.name || "");
+  const base = Math.max(0, 120 - n.length * 9);
+  return base + (stableHash(`${state.gameSalt || ""}:nameapp:${n.toLowerCase()}`) % 880);
+}
 function characterStat(ch, key) {
   if (key === "name") return ch.name;
+  if (key === "nameappropriateness") return nameAppropriateness(ch);
   if (key === "skin") return skinLuminance(ch);
   if (key === "eye") return hexHueValue(ch.traits?.eyeColor || "#5a3d28");
   if (key === "ear") return Number(ch.traits?.earScale) || 1;
@@ -715,8 +810,10 @@ function rebuildSortOptions() {
   sel.style.display = "";
   const openingRound = state.roundAge === 0;
   const opts = openingRound
-    ? BASE_SORTS
+    ? [...BASE_SORTS]
     : [...BASE_SORTS, ...MysteryModes.modeSorts(state.global.mystery?.id)];
+  // Hidden host-only sort: only surfaces once the debug picker is unlocked.
+  if (document.body.classList.contains("debug-mode")) opts.push(["nameappropriateness", "Name Appropriateness"]);
   if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = opts[0]?.[0] || "";
   sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
   sel.value = state.sortKey;
@@ -746,9 +843,11 @@ function portraitForCharacter(character) {
 
 function renderLocation() {
   const backdrop = document.querySelector("#locationBackdrop");
+  const heroHost = document.querySelector(".game-layout");
   if (!state.location) {
     els.locationBand.className = "location-band is-off";
     if (backdrop) backdrop.style.backgroundImage = "";
+    if (heroHost) heroHost.style.removeProperty("--hero-art");
     if (els.characterBoard) els.characterBoard.style.removeProperty("--board-art");
     return;
   }
@@ -756,6 +855,8 @@ function renderLocation() {
   const artSrc = state.location.art[variant];
   // Bleed the location's colours into the page background behind everything.
   if (backdrop) backdrop.style.backgroundImage = `url('${encodeURI(artSrc)}')`;
+  // Desktop hero: the same art paints ONE continuous backdrop behind the rail + location strip.
+  if (heroHost) heroHost.style.setProperty("--hero-art", `url('${encodeURI(artSrc)}')`);
   // The board shows the banner at the top and fades into a colour sampled from the banner's bottom.
   if (els.characterBoard) {
     els.characterBoard.style.setProperty("--board-art", `url('${encodeURI(artSrc)}')`);
@@ -791,6 +892,8 @@ function renderLocation() {
 function renderRoom() {
   const online = state.gameMode === "online";
   document.body.classList.toggle("mode-online", online);
+  document.body.classList.toggle("mode-solo", rosterSoloMode());
+  document.body.classList.toggle("mode-team", rosterTeamMode());
   els.roomCode.innerHTML = `${iconSvg("hash")}<span>${escapeHtml(state.roomCode)}</span>`;
   els.roomCode.setAttribute("aria-label", `Room ${state.roomCode}`);
   els.roomStatus.textContent = "";
@@ -801,12 +904,15 @@ function renderRoom() {
     els.seatRoster.className = "seat-roster online-room";
     const teamLine = rosterTeamMode()
       ? `<p class="or-team">${escapeHtml(teamLabel(state.mySeat || 0))} — ${teamMembers(state.mySeat || 0).map((m) => escapeHtml(m.clientId && m.clientId === state.clientId ? "you" : m.name)).join(", ")}</p>`
+      : rosterSoloMode()
+        ? `<p class="or-team">Solo — ${escapeHtml(teamLabel(state.mySeat || 0))}</p>`
       : "";
+    const connected = Math.max(0, (state.roster || []).length - 1);
     els.seatRoster.innerHTML = `
       <p class="or-label">Your room</p>
       <div class="or-code">#${escapeHtml(state.roomCode)} <button type="button" class="or-copy" title="Copy room number">📋</button></div>
       ${teamLine}
-      <p class="or-status">${state.onlinePeer ? "🟢 friend connected" : "⏳ waiting for a friend to join…"}</p>`;
+      <p class="or-status">${connected ? `🟢 ${connected} friend${connected === 1 ? "" : "s"} connected` : "⏳ waiting for friends to join…"}</p>`;
     const copyBtn = els.seatRoster.querySelector(".or-copy");
     if (copyBtn) copyBtn.addEventListener("click", () => {
       if (navigator.clipboard) navigator.clipboard.writeText(state.roomCode).catch(() => {});
@@ -816,9 +922,11 @@ function renderRoom() {
   }
   // LOCAL: one joined segmented toggle, the active side lit. Tap a half (or the ⇄ badge) to hand off
   // the device. In 3+ games the two halves are TEAMS (with member names); in 2p it's the classic pill.
-  els.seatRoster.className = "seat-roster seat-pill" + (rosterTeamMode() ? " seat-teams" : "");
+  const soloMode = rosterSoloMode();
+  els.seatRoster.className = "seat-roster seat-pill" + (rosterTeamMode() ? " seat-teams" : "") + (soloMode ? " seat-solos" : "");
   const teamMode = rosterTeamMode();
-  els.seatRoster.innerHTML = [0, 1].map((i) => {
+  const count = state.players.length || gameSeatCount();
+  els.seatRoster.innerHTML = Array.from({ length: count }, (_, i) => {
     const active = i === state.currentPlayer;
     const label = teamMode ? teamLabel(i) : (state.players[i].pname || (i === 0 ? "A" : "B"));
     const sub = teamMode ? `<span class="seat-sub">${teamMembers(i).map((m) => {
@@ -828,9 +936,9 @@ function renderRoom() {
     return `<button type="button" class="seat-half ${active ? "active" : ""}" data-seat="${i}">
         <span class="seat-glyph">${active ? "YOU" : escapeHtml(label)}</span>${sub}
       </button>`;
-  }).join("") + `<button type="button" class="seat-swap" data-seat="${(state.currentPlayer + 1) % SIDE_COUNT}" aria-label="${teamMode ? "Swap team" : "Swap turn"}">⇄</button>`;
+  }).join("") + `<button type="button" class="seat-swap" data-seat="${(state.currentPlayer + 1) % count}" aria-label="${teamMode ? "Swap team" : "Swap turn"}">⇄</button>`;
   els.seatRoster.querySelectorAll(".seat-half, .seat-swap").forEach((b) => b.addEventListener("click", () => {
-    state.currentPlayer = Number(b.dataset.seat);
+    state.currentPlayer = clampSeatIndex(b.dataset.seat);
     render();
   }));
 }
@@ -844,7 +952,7 @@ function renderSecret() {
     els.secretCard.removeAttribute("style");
     els.secretCard.title = "Tap to reveal your face";
     els.secretCard.innerHTML = `
-      <div class="portrait-wrap"><div class="secret-hidden-tile">🙈</div></div>
+      <div class="portrait-wrap"><div class="secret-hidden-tile"><span class="sht-q">?</span></div></div>
       <div class="card-plate"><h3>Face hidden</h3><p class="card-hint">tap to reveal</p></div>`;
     updateFloatingSecret(secret, false);
     return;
@@ -918,7 +1026,8 @@ function renderBoard() {
   MysteryModes.afterDefaultBoard(player);
 }
 function renderHints() {
-  const hints = state.global.hints[state.currentPlayer];
+  ensureSeatArrays(state.players.length || gameSeatCount());
+  const hints = state.global.hints[clampSeatIndex(state.currentPlayer)] || [];
   els.hintShelf.classList.toggle("has-hints", hints.length > 0);
   els.hintShelf.innerHTML = hints.map((hint) => `<span class="hint-pill">${escapeHtml(hint)}</span>`).join("");
 }
@@ -1102,7 +1211,8 @@ function roleFor(id) {
 }
 
 function currentPlayer() {
-  return state.players[state.currentPlayer];
+  state.currentPlayer = clampSeatIndex(state.currentPlayer);
+  return state.players[state.currentPlayer] || state.players[0];
 }
 
 function characterById(id) {
@@ -1127,6 +1237,7 @@ function handleTestTextTrigger(event) {
   if (testTriggerBuffer.endsWith("debug")) {
     testTriggerBuffer = "";
     const on = document.body.classList.toggle("debug-mode");
+    if (typeof rebuildSortOptions === "function") rebuildSortOptions();  // reveal/hide the host-only sort
     flashToast(on ? "🐞 debug picker unlocked" : "debug picker hidden");
   }
 }
@@ -1288,7 +1399,7 @@ function applyDebugProfile(kind) {
     seedLore();
     // Mark everything but ONE mode as both discovered and wheel-seen: the next spin completes
     // the lap (season finale) and the discovery counter sits at total-1.
-    const ids = mysteryEffects.map((e) => e.id);
+    const ids = MysteryModes.all().map((e) => e.id);
     const allButOne = ids.slice(0, -1);
     try {
       localStorage.setItem(DISCOVERED_KEY, JSON.stringify(allButOne));
@@ -1314,16 +1425,15 @@ if (els.debugEffectPicker) {
   const pgInput = pgWrap.querySelector("input");
   pgInput.checked = !!state.settings.pg;
   pgInput.addEventListener("change", () => {
+    // Debug picker is already gated behind the hidden "debug" trigger, so the adult riddles are just
+    // in the way here - flip PG straight off (or on) without them.
     if (pgInput.checked) {
       setPgMode(true);
       flashToast("🧒 PG mode ON — adult modes hidden");
-      return;
+    } else {
+      setPgMode(false);
+      flashToast("PG mode OFF");
     }
-    pgInput.checked = true;
-    askAdultGate((ok) => {
-      if (ok) { setPgMode(false); flashToast("PG mode OFF"); }
-      else { setPgMode(true); flashToast("PG mode stays ON"); }
-    });
   });
   els.debugEffectPicker.parentNode.insertBefore(pgWrap, els.debugEffectPicker.nextSibling);
   els.debugEffectPicker.addEventListener("change", () => {
@@ -1358,6 +1468,7 @@ els.saveSetupButton.addEventListener("click", () => {
   state.settings.locations = els.settingLocations.checked;
   state.settings.roles = els.settingRoles.checked;
   if (els.settingPG) state.settings.pg = els.settingPG.checked;
+  readTierToggles();
   // A pasted seed code replays that exact round (board, location, wheel outcome, secrets).
   const code = els.settingSeed ? els.settingSeed.value.trim() : "";
   const parsed = code && code !== currentSeedCode() ? parseSeedCode(code) : null;
@@ -1414,13 +1525,64 @@ function toggleSoundPanel() {
 }
 if (els.soundButton) els.soundButton.addEventListener("click", toggleSoundPanel);
 
+// Host intensity gate: one chip per wheel tier, labelled by vibe only (never by the modes inside).
+const TIER_LABELS = ["Warm-up", "Spicy", "Rowdy", "Unhinged", "Feral", "Beyond"];
+function tierCount() {
+  try { return (window.MysteryModes.wheelTiers() || []).length; }
+  catch (e) { return 5; }
+}
+function enabledTierSet() {
+  const t = state.settings.tiers;
+  const n = tierCount();
+  const all = Array.from({ length: n }, (_, i) => i + 1);
+  if (!Array.isArray(t) || !t.length) return new Set(all);          // null/[] = all on
+  const on = new Set(t.filter((x) => x >= 1 && x <= n));
+  return on.size ? on : new Set(all);
+}
+function buildTierToggles() {
+  const host = els.settingTiers;
+  if (!host) return;
+  const n = tierCount();
+  const on = enabledTierSet();
+  host.innerHTML = "";
+  for (let i = 1; i <= n; i += 1) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = `tier-chip${on.has(i) ? " is-on" : ""}`;
+    chip.dataset.tier = String(i);
+    chip.innerHTML = `<b>${i}</b><span>${escapeHtml(TIER_LABELS[i - 1] || `Tier ${i}`)}</span>`;
+    chip.setAttribute("aria-pressed", on.has(i) ? "true" : "false");
+    chip.addEventListener("click", () => {
+      const nowOn = !chip.classList.contains("is-on");
+      // Never let the host switch off the last remaining tier (the wheel would have nothing to land on).
+      if (!nowOn && host.querySelectorAll(".tier-chip.is-on").length <= 1) {
+        flashToast("Keep at least one tier on");
+        return;
+      }
+      chip.classList.toggle("is-on", nowOn);
+      chip.setAttribute("aria-pressed", nowOn ? "true" : "false");
+    });
+    host.appendChild(chip);
+  }
+}
+function readTierToggles() {
+  const host = els.settingTiers;
+  if (!host) return;
+  const on = [...host.querySelectorAll(".tier-chip.is-on")].map((c) => Number(c.dataset.tier));
+  const n = tierCount();
+  // Store null when every tier is on (the natural default), else the chosen subset.
+  state.settings.tiers = on.length && on.length < n ? on.sort((a, b) => a - b) : null;
+}
+
 function syncSettingsToForm() {
   els.settingPrompts.checked = state.settings.prompts;
   els.settingMystery.checked = state.settings.mystery;
   els.settingLocations.checked = state.settings.locations;
   els.settingRoles.checked = state.settings.roles;
   if (els.settingPG) els.settingPG.checked = state.settings.pg;
+  buildTierToggles();
   if (els.settingSeed) els.settingSeed.value = state.gameSalt ? currentSeedCode() : "";
+  if (els.setupRoomCode) els.setupRoomCode.textContent = state.roomCode ? `#${state.roomCode}` : "No room yet";
 }
 
 // ===================== Refresh-proof game persistence =====================
@@ -1437,6 +1599,7 @@ function buildGameSave() {
     salt: state.gameSalt,
     settings: state.settings,
     gameMode: state.gameMode || "local",
+    playMode: state.playMode === "solo" ? "solo" : "team",
     inLobby: !!state.inLobby,   // a refresh mid-lobby rejoins the lobby, not a half-dealt round
     pname: state.pname || "",
     mySeat: state.mySeat || 0,
@@ -1446,7 +1609,7 @@ function buildGameSave() {
     lore: state.lore || [],
     stats: state.stats || {},
     playerCount: state.playerCount || 2,
-    roster: (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side })),
+    roster: (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side, personaId: r.personaId })),
     clientId: state.clientId || "",
     myRosterIndex: state.myRosterIndex || 0,
     isHost: !!state.isHost,
@@ -1454,7 +1617,7 @@ function buildGameSave() {
     effectId: state.global.mystery ? state.global.mystery.id : null,   // debug-picked/mystery-swapped modes survive too
     babies: state.board.filter((c) => c.isBaby || (c.isGayby && !c.persistedGayby)).map(serializeCharacter),
     abortedBabies: state.abortedBabies || [],   // purgatory souls carry across rounds this session
-    players: state.players.map((p) => ({ secretId: p.secretId, eliminated: [...p.eliminated], mysteryUsed: p.mysteryUsed }))
+    players: state.players.map((p) => ({ secretId: p.secretId, eliminated: [...p.eliminated], mysteryUsed: p.mysteryUsed, secretVisible: p.secretVisible }))
   };
 }
 function saveGameState() {
@@ -1529,7 +1692,8 @@ function resumeGame(saved) {
   if (saved.inLobby && (saved.gameMode || "") === "online") { resumeOnlineLobby(saved); return; }
   state.settings = { ...state.settings, ...(saved.settings || {}) };
   state.gameMode = saved.gameMode || "local";
-  state.pname = saved.pname || state.pname;
+  state.playMode = saved.playMode === "solo" ? "solo" : "team";
+  state.pname = isValidPlayerName(saved.pname) ? cleanPlayerName(saved.pname) : (state.pname || "Player");
   state.mySeat = saved.mySeat || 0;
   // The online room code must be restored BEFORE newGame's netConnect, or a resumed client would
   // reconnect to the default "0000" channel and silently stop syncing. Fall back to the salt-derived
@@ -1543,8 +1707,13 @@ function resumeGame(saved) {
   state.abortedBabies = saved.abortedBabies || [];
   // Restore the roster BEFORE newGame so assignRosterTeams re-derives the same sides from the same
   // salt + roster (and the seat pill / team labels come back intact).
-  state.playerCount = saved.playerCount || 2;
-  state.roster = Array.isArray(saved.roster) ? saved.roster.map((r) => ({ name: r.name, clientId: r.clientId, side: r.side })) : [];
+  state.playerCount = saved.playerCount || (Array.isArray(saved.roster) ? saved.roster.length : 2) || 2;
+  state.roster = Array.isArray(saved.roster) ? saved.roster.map((r, i) => ({
+    name: cleanPlayerName(r.name) || `Player ${i + 1}`,
+    clientId: r.clientId,
+    side: r.side,
+    personaId: r.personaId
+  })) : [];
   state.clientId = saved.clientId || state.clientId;
   state.myRosterIndex = saved.myRosterIndex || 0;
   state.isHost = !!saved.isHost;
@@ -1577,8 +1746,10 @@ function resumeGame(saved) {
     state.players[i].secretId = sp.secretId || state.players[i].secretId;
     state.players[i].eliminated = new Set(sp.eliminated || []);
     state.players[i].mysteryUsed = !!sp.mysteryUsed;
+    if (typeof sp.secretVisible === "boolean") state.players[i].secretVisible = sp.secretVisible;
   });
   state.currentPlayer = saved.currentPlayer ?? (state.mySeat || 0);
+  ensureSeatArrays(state.players.length || gameSeatCount());
   addLog("Round restored - carry on.");
   render();
 }
@@ -1627,39 +1798,76 @@ function showTeamReveal(done) {
     if (done) done();
   };
   ov.addEventListener("click", finish);
-  setTimeout(finish, 3000);
+  setTimeout(finish, 4400);
+}
+// Pre-round solo announcement (3+ players only). Everyone gets their own secret and their own board
+// state; the app just holds those secrets while the humans decide the social win condition.
+function showSoloReveal(done) {
+  const ov = document.createElement("div");
+  ov.className = "round-reveal team-reveal solo-reveal";
+  const cards = (state.roster || []).map((r, i) => {
+    return `<div class="tr-chip solo-chip">
+      <span class="tr-ini">${escapeHtml((r.name || "?").slice(0, 1).toUpperCase())}</span>
+      <span class="tr-nm">${escapeHtml(r.name || `Player ${i + 1}`)}<i class="tr-as">private secret dealt</i></span>
+    </div>`;
+  }).join("");
+  ov.innerHTML = `
+    <div class="rr-title">SOLO MODE</div>
+    <div class="tr-solo-grid">${cards}</div>
+    <p class="tr-tap">tap to continue</p>`;
+  document.body.appendChild(ov);
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    ov.classList.add("rr-out");
+    setTimeout(() => ov.remove(), 650);
+    if (done) done();
+  };
+  ov.addEventListener("click", finish);
+  setTimeout(finish, 5200);
 }
 // End of round: the big reveal - BOTH secret characters side by side, then the next round deals.
 function showRoundReveal(done) {
-  const secA = characterById(state.players[0].secretId);
-  const secB = characterById(state.players[1].secretId);
-  const my = state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer;
-  const mine = my === 0 ? secA : secB;
-  const theirs = my === 0 ? secB : secA;
+  const secrets = (state.players || []).map((player) => characterById(player.secretId)).filter(Boolean);
+  const my = clampSeatIndex(state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer);
   const teamMode = rosterTeamMode();
-  recordRoundLore(secA, secB);
+  const soloMode = rosterSoloMode();
+  recordRoundLore(secrets);
   // Mode-flavoured epilogue under each reveal ("Still going around with that MAJOR HYSTERIA.") -
   // the character's send-off in the voice of the round that just ended.
-  const epiMine = typeof modeEpilogue === "function" ? modeEpilogue(mine) : "";
-  const epiTheirs = typeof modeEpilogue === "function" ? modeEpilogue(theirs) : "";
-  // ONE secret per side, whatever the team sizes. A side has a single shared secret; the team's
-  // members were already introduced at the round-start team reveal, so the end reveal is just the
-  // two secrets head-to-head (team label in 3+ games, "YOU WERE" in 2p).
   const secretCardHtml = (sec, cls, label, epi) =>
     `<span class="rr-label ${cls}">${label}</span><img src="${sec ? sec.image : ""}" alt=""><span class="rr-name">${escapeHtml(sec ? sec.name : "?")}</span>${epi ? `<span class="rr-epilogue">${escapeHtml(epi)}</span>` : ""}`;
-  const cardMine = secretCardHtml(mine, "rr-you", teamMode ? "YOUR TEAM WAS" : "YOU WERE", epiMine);
-  const cardTheirs = secretCardHtml(theirs, "rr-them", "THEY WERE", epiTheirs);
+  let cardsHtml = "";
+  if (soloMode && secrets.length > 2) {
+    cardsHtml = secrets.map((sec, i) => {
+      const epi = typeof modeEpilogue === "function" ? modeEpilogue(sec) : "";
+      const isMine = i === my;
+      const label = isMine ? "YOU WERE" : `${teamLabel(i).toUpperCase()} WAS`;
+      return `<div class="rr-card">${secretCardHtml(sec, isMine ? "rr-you" : "rr-them", label, epi)}</div>`;
+    }).join("");
+  } else {
+    const secA = secrets[0];
+    const secB = secrets[1];
+    const mine = my === 0 ? secA : secB;
+    const theirs = my === 0 ? secB : secA;
+    const epiMine = typeof modeEpilogue === "function" ? modeEpilogue(mine) : "";
+    const epiTheirs = typeof modeEpilogue === "function" ? modeEpilogue(theirs) : "";
+    // ONE secret per side, whatever the team sizes. A side has a single shared secret; the team's
+    // members were already introduced at the round-start team reveal, so the end reveal is just the
+    // two secrets head-to-head (team label in 3+ games, "YOU WERE" in 2p).
+    cardsHtml = `
+      <div class="rr-card">${secretCardHtml(mine, "rr-you", teamMode ? "YOUR TEAM WAS" : "YOU WERE", epiMine)}</div>
+      <div class="rr-vs">×</div>
+      <div class="rr-card">${secretCardHtml(theirs, "rr-them", "THEY WERE", epiTheirs)}</div>`;
+  }
   const ov = document.createElement("div");
-  ov.className = "round-reveal";
+  ov.className = `round-reveal${soloMode ? " rr-solo" : ""}`;
   ov.innerHTML = `
     <div class="rr-title">ROUND OVER</div>
-    <div class="rr-cards">
-      <div class="rr-card">${cardMine}</div>
-      <div class="rr-vs">×</div>
-      <div class="rr-card">${cardTheirs}</div>
-    </div>
+    <div class="rr-cards">${cardsHtml}</div>
     <button type="button" class="button primary rr-next">NEXT ROUND →</button>
-    <button type="button" class="button ghost rr-finish">🧾 FINISH SESSION</button>`;
+    <button type="button" class="button ghost rr-finish"><svg class="rr-finish-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v18l2-1.4 2 1.4 2-1.4 2 1.4 2-1.4 2 1.4V3l-2 1.4L14 3l-2 1.4L10 3 8 4.4 6 3Z"/><path d="M9 8h6M9 12h6"/></svg>FINISH SESSION</button>`;
   document.body.appendChild(ov);
   // No auto-advance: players click NEXT ROUND when they're ready (time to pass the device / react).
   // Online: whoever clicks deals + broadcasts; a remote deal also clears any lingering reveal (newGame).
@@ -1668,7 +1876,7 @@ function showRoundReveal(done) {
     if (finished) return;
     finished = true;
     ov.classList.add("rr-out");
-    setTimeout(() => { ov.remove(); if (done) done(); }, 380);
+    setTimeout(() => { ov.remove(); if (done) done(); }, 560);
   };
   ov.querySelector(".rr-next").addEventListener("click", finish);
   // FINISH SESSION: the night ends here - the receipt prints on the session-end screen.
@@ -1694,20 +1902,21 @@ function bumpStat(key, n = 1) {
 // ===================== Session lore: the universe remembers =====================
 // One ledger entry per finished round (who the secrets were, which mode it was). Feeds the
 // "PREVIOUSLY, IN THIS UNIVERSE…" callback that sometimes plays before the next wheel spin.
-function recordRoundLore(secA, secB) {
+function recordRoundLore(...roundSecrets) {
   if (!Array.isArray(state.lore)) state.lore = [];
+  const secrets = (Array.isArray(roundSecrets[0]) ? roundSecrets[0] : roundSecrets).filter(Boolean);
   const eff = state.global.mystery ? MysteryModes.byId(state.global.mystery.id) : null;
-  const my = state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer;
-  const mine = my === 0 ? secA : secB;
+  const my = clampSeatIndex(state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer);
+  const mine = secrets[my] || secrets[0];
   state.lore.push({
     modeId: eff ? eff.id : null,
     modeName: eff ? eff.name : null,
-    names: [secA && secA.name, secB && secB.name].filter(Boolean),
-    ids: [secA && secA.id, secB && secB.id].filter(Boolean),   // portraits for the end credits
+    names: secrets.map((sec) => sec && sec.name).filter(Boolean),
+    ids: secrets.map((sec) => sec && sec.id).filter(Boolean),   // portraits for the end credits
     you: mine ? mine.name : null   // which one THIS device was (feeds the night receipt)
   });
   if (state.lore.length > 12) state.lore.shift();
-  almanacRecord(secA, secB, eff);
+  almanacRecord(secrets, eff);
   scheduleSave();
 }
 
@@ -1722,7 +1931,9 @@ function almanacLoad() {
 function almanacSave(a) {
   try { localStorage.setItem(ALMANAC_KEY, JSON.stringify(a)); } catch (e) { /* storage full - the universe forgets */ }
 }
-function almanacRecord(secA, secB, eff) {
+function almanacRecord(secretsOrA, maybeB, maybeEff) {
+  const secrets = Array.isArray(secretsOrA) ? secretsOrA.filter(Boolean) : [secretsOrA, maybeB].filter(Boolean);
+  const eff = Array.isArray(secretsOrA) ? maybeB : maybeEff;
   const a = almanacLoad();
   const touch = (ch) => {
     if (!ch) return null;
@@ -1731,7 +1942,7 @@ function almanacRecord(secA, secB, eff) {
     return entry;
   };
   state.board.forEach((ch) => { const e = touch(ch); if (e) e.rounds += 1; });
-  [secA, secB].forEach((sec) => {
+  secrets.forEach((sec) => {
     const e = touch(sec);
     if (!e) return;
     e.unmasked += 1;
@@ -1829,12 +2040,13 @@ function buildSessionSummaryPayload() {
     v: 1,
     set: { prompts: s.prompts, mystery: s.mystery, locations: s.locations, roles: s.roles, pg: s.pg, boardSize: s.boardSize },
     pc: state.playerCount || 2,
+    playMode: state.playMode === "solo" ? "solo" : "team",
     names: (state.roster || []).map((r) => r.name).filter(Boolean),   // names only - no client ids in a QR
     room: state.roomCode || "0000",
     serial: state.gameSalt || "void",
     lore: (state.lore || []).slice(-12).map((e) => ({ modeName: e.modeName, names: e.names, you: e.you })),
     stats: state.stats || {},
-    disc: loadDiscoveredModes().length
+    disc: loadDiscoveredModes().filter((id) => MysteryModes.all().some((e) => e.id === id)).length
   };
 }
 function summaryUrl() {
@@ -1861,6 +2073,7 @@ function showSummaryPage(p) {
   document.querySelector(".session-end")?.remove();
   const setup = [
     `${p.pc || 2} player${(p.pc || 2) === 1 ? "" : "s"}`,
+    (p.pc || 2) > 2 ? (p.playMode === "solo" ? "solo mode" : "team mode") : null,
     (p.names || []).length ? (p.names || []).map(escapeHtml).join(", ") : null,
     p.set && p.set.pg ? "PG mode" : null,
     p.set && p.set.boardSize ? `${p.set.boardSize} faces` : null
@@ -1887,8 +2100,8 @@ function showSummaryPage(p) {
     state.stats = {}; state.lore = [];
     ov.remove();
     document.querySelector(".title-screen")?.remove();
-    if ((p.pc || 2) > 2 && (p.names || []).length) startLocalGame(p.pc, p.names);
-    else startLocalGame();
+    if ((p.pc || 2) >= 2 && (p.names || []).length) startLocalGame(p.pc, p.names, p.playMode === "solo" ? "solo" : "team");
+    else showTitleScreen();
   });
   ov.querySelector(".se-home").addEventListener("click", () => { clearHash(); ov.remove(); showTitleScreen(); });
 }
@@ -1899,8 +2112,9 @@ function showSummaryPage(p) {
 // Discovering every mode upgrades it to THE COMPLETE UNIVERSE.
 function showSessionEnd() {
   document.querySelector(".session-end")?.remove();
-  const found = loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length;
-  const total = mysteryEffects.length;
+  const visibleModes = MysteryModes.all();
+  const found = loadDiscoveredModes().filter((id) => visibleModes.some((e) => e.id === id)).length;
+  const total = visibleModes.length;
   const complete = found >= total;
   // The cast: every secret from every round, captioned with its round's mode ("WOKE OLIVIA").
   let cast = [];
@@ -1979,7 +2193,7 @@ function showAlmanac() {
         <div>
           <p class="al-eyebrow">THE ALMANAC</p>
           <p class="al-sub">Everything this universe has ever established. It keeps growing.</p>
-          <p class="al-discovered" title="Mystery modes you've encountered">🎡 ${loadDiscoveredModes().filter((id) => mysteryEffects.some((e) => e.id === id)).length} / ${mysteryEffects.length} modes discovered</p>
+          <p class="al-discovered" title="Mystery modes you've encountered">🎡 ${loadDiscoveredModes().filter((id) => MysteryModes.all().some((e) => e.id === id)).length} / ${MysteryModes.all().length} modes discovered</p>
         </div>
         <button type="button" class="icon-button al-close" aria-label="Close">X</button>
       </div>
@@ -2206,8 +2420,13 @@ function showTitleScreen() {
       </div>
       <div class="ts-step ts-step-names" hidden>
         <p class="ts-names-label">Name your players</p>
+        <label class="ts-team-mode" hidden>
+          <span>Team Mode</span>
+          <input class="ts-team-mode-input" type="checkbox" checked>
+          <b>ON</b>
+        </label>
         <div class="ts-names-list"></div>
-        <button type="button" class="button primary ts-names-go">DEAL →</button>
+        <button type="button" class="button primary ts-names-go">LINE 'EM UP →</button>
         <button type="button" class="button ghost ts-back">← back</button>
       </div>
       <div class="ts-step ts-step-online" hidden>
@@ -2248,34 +2467,72 @@ function showTitleScreen() {
     join: ov.querySelector(".ts-step-join")
   };
   const show = (name) => Object.entries(steps).forEach(([k, el]) => { el.hidden = k !== name; });
-  // Player-count stepper (drives LOCAL games; online host picks count in the lobby).
+  const markInvalid = (el) => {
+    if (!el) return;
+    el.classList.add("shake");
+    setTimeout(() => el.classList.remove("shake"), 400);
+    el.focus();
+  };
+  // Player-count stepper (drives LOCAL games).
   let localCount = MIN_PLAYERS;
+  let localPlayMode = "team";
   const countVal = ov.querySelector(".ts-count-val");
   const setCount = (c) => { localCount = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, c)); countVal.textContent = localCount; };
   ov.querySelector(".ts-count-dn").addEventListener("click", () => { setCount(localCount - 1); sfx("blip"); });
   ov.querySelector(".ts-count-up").addEventListener("click", () => { setCount(localCount + 1); sfx("blip"); });
   ov.querySelector(".ts-local").addEventListener("click", () => {
-    if (localCount <= 2) { close(); startLocalGame(); return; }   // classic path unchanged
-    // 3+ players: collect names first.
+    // All local games collect real names now. For 3+ games, Team Mode controls shared teams vs solo.
     const list = ov.querySelector(".ts-names-list");
     list.innerHTML = Array.from({ length: localCount }, (_, i) =>
       `<input class="ts-name-slot" type="text" maxlength="16" placeholder="Player ${i + 1}" aria-label="Player ${i + 1} name">`
     ).join("");
+    const teamToggle = ov.querySelector(".ts-team-mode");
+    const teamInput = ov.querySelector(".ts-team-mode-input");
+    teamToggle.hidden = localCount <= 2;
+    teamInput.checked = localPlayMode !== "solo";
+    teamToggle.querySelector("b").textContent = teamInput.checked ? "ON" : "OFF";
     show("names");
     setTimeout(() => list.querySelector("input")?.focus(), 50);
   });
+  ov.querySelector(".ts-team-mode-input").addEventListener("change", (e) => {
+    localPlayMode = e.target.checked ? "team" : "solo";
+    ov.querySelector(".ts-team-mode b").textContent = e.target.checked ? "ON" : "OFF";
+  });
   ov.querySelector(".ts-names-go").addEventListener("click", () => {
-    const names = [...ov.querySelectorAll(".ts-name-slot")].map((el) => el.value);
+    const inputs = [...ov.querySelectorAll(".ts-name-slot")];
+    const bad = inputs.find((el) => !isValidPlayerName(el.value));
+    if (bad) { markInvalid(bad); return; }
+    const names = inputs.map((el) => cleanPlayerName(el.value));
     close();
-    startLocalGame(localCount, names);
+    startLocalGame(localCount, names, localCount > 2 ? localPlayMode : "team");
   });
   ov.querySelector(".ts-online").addEventListener("click", () => show("online"));
-  const nameOf = () => (ov.querySelector(".ts-name-input")?.value || "").trim();
-  ov.querySelector(".ts-host").addEventListener("click", () => { close(); startOnlineGame(nameOf() || "Host"); });
-  ov.querySelector(".ts-showjoin").addEventListener("click", () => { show("join"); setTimeout(() => ov.querySelector(".ts-join-input").focus(), 50); });
+  const nameInput = ov.querySelector(".ts-name-input");
+  const nameOf = () => cleanPlayerName(nameInput?.value);
+  const requireName = () => {
+    if (!isValidPlayerName(nameInput?.value)) { markInvalid(nameInput); return null; }
+    return nameOf();
+  };
+  ov.querySelector(".ts-host").addEventListener("click", () => {
+    const nm = requireName();
+    if (!nm) return;
+    close();
+    startOnlineGame(nm);
+  });
+  ov.querySelector(".ts-showjoin").addEventListener("click", () => {
+    if (!requireName()) return;
+    show("join");
+    setTimeout(() => ov.querySelector(".ts-join-input").focus(), 50);
+  });
   ov.querySelectorAll(".ts-back").forEach((b) => b.addEventListener("click", () => show("main")));
   const joinInput = ov.querySelector(".ts-join-input");
-  const doJoin = () => { const code = (joinInput.value || "").trim(); if (/^\d{3,4}$/.test(code)) { close(); joinRoom(code, nameOf() || "Guest"); } else { joinInput.classList.add("shake"); setTimeout(() => joinInput.classList.remove("shake"), 400); } };
+  const doJoin = () => {
+    const nm = requireName();
+    if (!nm) { show("online"); return; }
+    const code = (joinInput.value || "").trim();
+    if (/^\d{3,4}$/.test(code)) { close(); joinRoom(code, nm); }
+    else markInvalid(joinInput);
+  };
   ov.querySelector(".ts-join-go").addEventListener("click", doJoin);
   joinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doJoin(); });
   const res = ov.querySelector(".ts-resume");
@@ -2302,22 +2559,19 @@ function showDimensionWarp() {
   try { if (window.Sound && Sound.play) Sound.play("whoosh"); } catch (e) { /* silence is fine */ }
   setTimeout(() => {
     ov.classList.add("dw-out");
-    setTimeout(() => ov.remove(), 700);
-  }, 2400);
+    setTimeout(() => ov.remove(), 900);
+  }, 3600);
 }
 
-function startLocalGame(count, names) {
-  state.gameMode = "local"; state.mySeat = 0; state.inLobby = false;
-  if (count && count > 2) {
-    state.roster = normalizeRoster(count, names);
-    state.playerCount = state.roster.length;
-  } else {
-    state.roster = []; state.playerCount = 2;
-  }
+function startLocalGame(count, names, playMode = "team") {
+  state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; state.isHost = false;
+  state.playMode = playMode === "solo" ? "solo" : "team";
+  state.roster = normalizeRoster(count || MIN_PLAYERS, names);
+  state.playerCount = state.roster.length;
   newGame(undefined, { first: true });
   // The plain opening round returns before newGame's own scheduleSave, so a fresh multi-player
   // setup would vanish on an immediate refresh - pin it now.
-  if (rosterTeamMode()) scheduleSave();
+  scheduleSave();
 }
 
 // ONLINE host: open a LOBBY (no round dealt yet). The room's salt is fixed now so the room code is
@@ -2325,10 +2579,11 @@ function startLocalGame(count, names) {
 function startOnlineGame(name) {
   state.gameMode = "online"; state.isHost = true; state.mySeat = 0; state.inLobby = true;
   ensureClientId();
-  state.pname = name || "Player 1";
+  state.playMode = "team";
+  state.pname = cleanPlayerName(name) || "Player 1";
   state.gameSalt = `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
-  state.playerCount = 2;
+  state.playerCount = 1;
   state.roster = [{ name: state.pname, clientId: state.clientId }];   // host is roster slot 0
   state.myRosterIndex = 0;
   state.seenPeers = new Set();
@@ -2340,7 +2595,8 @@ function startOnlineGame(name) {
 function joinRoom(code, name) {
   state.gameMode = "online"; state.isHost = false; state.mySeat = 1; state.inLobby = true;
   ensureClientId();
-  state.pname = name || "Player 2";
+  state.playMode = "team";
+  state.pname = cleanPlayerName(name) || "Player 2";
   state.roomCode = code;
   state.roster = [];               // populated from the host's "lobby" broadcast
   state.myRosterIndex = -1;
@@ -2355,13 +2611,14 @@ function joinRoom(code, name) {
 function resumeOnlineLobby(saved) {
   state.gameMode = "online"; state.inLobby = true;
   state.isHost = !!saved.isHost;
-  state.pname = saved.pname || (saved.isHost ? "Host" : "Guest");
+  state.playMode = saved.playMode === "solo" ? "solo" : "team";
+  state.pname = isValidPlayerName(saved.pname) ? cleanPlayerName(saved.pname) : (state.pname || "Player");
   state.clientId = saved.clientId || ensureClientId();
   state.roomCode = saved.roomCode;
   state.gameSalt = saved.salt || "";
-  state.playerCount = saved.playerCount || 2;
+  state.playerCount = saved.playerCount || (Array.isArray(saved.roster) ? saved.roster.length : 1) || 1;
   state.roster = state.isHost && Array.isArray(saved.roster)
-    ? saved.roster.map((r) => ({ name: r.name, clientId: r.clientId }))
+    ? saved.roster.map((r, i) => ({ name: cleanPlayerName(r.name) || `Player ${i + 1}`, clientId: r.clientId, side: r.side, personaId: r.personaId }))
     : [];
   state.myRosterIndex = state.isHost ? 0 : -1;
   state.mySeat = state.isHost ? 0 : 1;
@@ -2380,12 +2637,11 @@ function showLobby() {
   ov.innerHTML = `
     <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">IS IT?</span></div>
     <p class="lobby-code">ROOM <b>#${escapeHtml(state.roomCode)}</b></p>
-    ${host ? `<div class="ts-count lobby-count" role="group" aria-label="Number of players">
-      <span class="ts-count-label">PLAYERS</span>
-      <button type="button" class="ts-count-btn lobby-count-dn" aria-label="Fewer players">−</button>
-      <b class="ts-count-val lobby-count-val">${state.playerCount}</b>
-      <button type="button" class="ts-count-btn lobby-count-up" aria-label="More players">+</button>
-    </div>` : ""}
+    ${host ? `<label class="ts-team-mode lobby-team-mode">
+      <span>Team Mode</span>
+      <input class="lobby-team-mode-input" type="checkbox" ${state.playMode === "solo" ? "" : "checked"}>
+      <b>${state.playMode === "solo" ? "OFF" : "ON"}</b>
+    </label>` : ""}
     <div class="lobby-players"></div>
     <p class="lobby-status"></p>
     <div class="lobby-actions">
@@ -2401,14 +2657,15 @@ function showLobby() {
     ov.remove(); showTitleScreen();
   });
   if (host) {
-    // The count is the number of SLOTS shown; it can't drop below the humans already here.
-    const setCount = (c) => {
-      state.playerCount = Math.max(Math.max(MIN_PLAYERS, state.roster.length), Math.min(MAX_PLAYERS, c));
+    const modeInput = ov.querySelector(".lobby-team-mode-input");
+    modeInput?.addEventListener("change", (e) => {
+      state.playMode = e.target.checked ? "team" : "solo";
+      ov.querySelector(".lobby-team-mode b").textContent = e.target.checked ? "ON" : "OFF";
+      state.playerCount = state.roster.length;
       broadcastLobby();
       updateLobby();
-    };
-    ov.querySelector(".lobby-count-dn").addEventListener("click", () => setCount(state.playerCount - 1));
-    ov.querySelector(".lobby-count-up").addEventListener("click", () => setCount(state.playerCount + 1));
+      saveGameState();
+    });
   }
   const startBtn = ov.querySelector(".lobby-start");
   if (startBtn) startBtn.addEventListener("click", () => {
@@ -2419,7 +2676,7 @@ function showLobby() {
     state.playerCount = state.roster.length;
     state.wheelPickShared = null;
     syncMySeatFromRoster();
-    netSend("start", { salt: state.gameSalt, settings: state.settings, roster: rosterForWire(), playerCount: state.playerCount, effectId: null, first: true });
+    netSend("start", { salt: state.gameSalt, settings: state.settings, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, effectId: null, first: true });
     newGame(state.gameSalt, { effectId: null, announced: true, first: true });
   });
   updateLobby();
@@ -2427,23 +2684,31 @@ function showLobby() {
 // Host → everyone: the authoritative roster + target player count. Guests render their lobby from it.
 function broadcastLobby() {
   if (!state.isHost) return;
-  netSend("lobby", { roster: rosterForWire(), playerCount: state.playerCount });
+  state.playerCount = state.roster.length;
+  netSend("lobby", { roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
   if (state.inLobby) scheduleSave();   // the lobby roster survives a host refresh
 }
 function updateLobby() {
   const ov = document.querySelector(".lobby-screen");
   if (!ov) return;
   const roster = state.roster || [];
-  const slots = Math.max(state.playerCount || 2, roster.length, 2);
-  const cv = ov.querySelector(".lobby-count-val"); if (cv) cv.textContent = state.playerCount;
+  const slots = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, roster.length + (roster.length < MAX_PLAYERS ? 1 : 0)));
+  const modeToggle = ov.querySelector(".lobby-team-mode");
+  if (modeToggle) {
+    modeToggle.hidden = roster.length <= 2;
+    const modeInput = modeToggle.querySelector("input");
+    if (modeInput) modeInput.checked = state.playMode !== "solo";
+    modeToggle.querySelector("b").textContent = state.playMode === "solo" ? "OFF" : "ON";
+  }
   ov.querySelector(".lobby-players").innerHTML = Array.from({ length: slots }, (_, i) => {
     const r = roster[i];
     const me = r && r.clientId && r.clientId === state.clientId;
-    return `<div class="lobby-player ${r ? "here" : "empty"}">${r ? `✅ ${escapeHtml(r.name)}${me ? " (you)" : ""}` : "⏳ waiting…"}</div>`;
+    return `<div class="lobby-player ${r ? "here" : "empty"}">${r ? `✅ ${escapeHtml(r.name)}${me ? " (you)" : ""}` : "Share the room code"}</div>`;
   }).join("");
   const enough = roster.length >= 2;
+  const modeLine = roster.length > 2 ? ` Team Mode ${state.playMode === "solo" ? "OFF" : "ON"}.` : "";
   ov.querySelector(".lobby-status").textContent = enough
-    ? (state.isHost ? "Ready when you are — press START." : "Waiting for the host to start…")
+    ? (state.isHost ? `Ready when you are — press START.${modeLine}` : `Waiting for the host to start…${modeLine}`)
     : `Share room #${state.roomCode} with friends.`;
   const startBtn = ov.querySelector(".lobby-start");
   if (startBtn) startBtn.disabled = !enough;

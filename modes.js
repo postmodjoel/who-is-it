@@ -17,7 +17,7 @@ const MYSTERY_EFFECT_DEFINITIONS = [
   },
   {
     id: "knockoff-manor",
-    name: "MURDER TIME!!!",
+    name: "MURDER! LIVE!",
     apply: applyKnockoffManor,
     exampleQuestion: "Is your person in the BATHS ROOM?"
   },
@@ -212,7 +212,7 @@ const MYSTERY_MODE_META = {
   habbo: { tier: 1, wheelOrder: 80, pgSafe: true, glyph: "⌂", boardClasses: ["habbo-board"], flash: "#2fb6d8", renderBoard: renderHabboBoard, afterRenderSecret: pixelateHabboSecret, teardown: resetHabbo },
   "heads-only": { tier: 1, wheelOrder: 90, pgSafe: true, glyph: "⊚", boardClasses: ["heads-board"], flash: "#7a5cff", renderBoard: renderHeadsOnlyBoard, teardown: resetHeadsAnim },
   gallery: { tier: 1, wheelOrder: 95, pgSafe: true, glyph: "◫", boardClasses: ["gallery-board"], flash: "#c9a24b" },
-  "knockoff-manor": { tier: 2, wheelOrder: 10, pgSafe: false, glyph: "☠", boardClasses: ["knockoff-manor-board"], renderBoard: renderKnockoffManorBoard, renderHouseMap },
+  "knockoff-manor": { tier: 2, wheelOrder: 10, pgSafe: false, glyph: "☠", boardClasses: ["knockoff-manor-board"], renderBoard: renderKnockoffManorBoard, renderHouseMap, decorateLocation: decorateMurderLocation, teardown: stopManorLoop },
   "family-tree-disaster": { tier: 2, wheelOrder: 20, pgSafe: true, glyph: "⚭", boardClasses: ["family-tree-board"], renderBoard: renderFamilyBoard },
   yugioh: { tier: 2, wheelOrder: 30, pgSafe: true, glyph: "◈", boardClasses: ["ygo-board"], bodyClasses: ["mode-yugioh"], flash: "#a05aff", decorateLocation: decorateYugiohLocation, prepareCard: prepareYugiohCard },
   pixall: { tier: 2, wheelOrder: 40, pgSafe: true, glyph: "▦", boardClasses: ["pixall-board"], bodyClasses: ["mode-pixall"], flash: "#5dff8f", afterDefaultBoard: startPixallLoop, teardown: stopPixallLoop },
@@ -271,6 +271,19 @@ const mysteryEffects = MYSTERY_EFFECT_DEFINITIONS.map(registerMysteryEffect);
 const PG_SAFE_MODES = mysteryEffects.filter((effect) => effect.pgSafe).map((effect) => effect.id);
 const WOKE_PREREQS = ["gay-frogged", "orgy", "drugs", "disease", "fertility", "work", "disguise"];
 const WHEEL_TIERS = deriveWheelTiers();
+const DEV_ONLY_MODES = new Set(["ps1-mode"]);
+
+function devModeEnabled(id) {
+  if (!DEV_ONLY_MODES.has(id)) return true;
+  try {
+    return window.WHOISIT_DEV_PS1 === true || new URLSearchParams(location.search).get("devPs1") === "1";
+  } catch (e) {
+    return false;
+  }
+}
+function playableMysteryEffects() {
+  return mysteryEffects.filter((effect) => devModeEnabled(effect.id));
+}
 
 function deriveWheelTiers() {
   const tiers = [];
@@ -293,7 +306,8 @@ const MODE_BODY_CLASSES = Array.from(new Set(mysteryEffects.flatMap((effect) => 
 // ---- wheel ----
 // What the Wheel of Fate WILL land on for the current salt (deterministic; includes "no effect").
 function wheelTarget() {
-  const pool = state.settings.pg ? mysteryEffects.filter((e) => PG_SAFE_MODES.includes(e.id)) : mysteryEffects;
+  const playable = playableMysteryEffects().filter((e) => tierAllowed(e.tier - 1));
+  const pool = state.settings.pg ? playable.filter((e) => PG_SAFE_MODES.includes(e.id)) : playable;
   const n = pool.length + 1;   // +1 = the No Effect cell
   const idx = stableHash(`${state.gameSalt}:wheel`) % n;
   return idx < pool.length ? pool[idx].id : null;
@@ -310,10 +324,20 @@ function wheelBag() {
 // Escalating derangement: the registry derives TIERS from per-mode metadata, tame -> unhinged.
 // WOKE still needs every component mode experienced first (belt-and-braces beyond its tier).
 function wheelPgOk(id) { return !state.settings.pg || id === null || PG_SAFE_MODES.includes(id); }
+// Host intensity gate: the host can switch whole tiers off in setup (to skip the tame warm-up modes
+// and drop straight into the rowdier ones) WITHOUT ever seeing which modes live in a tier. Empty /
+// missing = every tier on. All-off would strand the wheel, so that degrades to "everything on".
+function tierAllowed(tierIdx) {
+  const t = state.settings && state.settings.tiers;
+  if (!Array.isArray(t) || !t.length) return true;
+  return t.includes(tierIdx + 1);
+}
 function wheelTargetFromBag() {
-  const known = new Set(mysteryEffects.map((e) => e.id));
+  const known = new Set(playableMysteryEffects().map((e) => e.id));
   const seen = wheelBag();
-  for (const tier of WHEEL_TIERS) {
+  for (let ti = 0; ti < WHEEL_TIERS.length; ti += 1) {
+    if (!tierAllowed(ti)) continue;
+    const tier = WHEEL_TIERS[ti];
     let pool = tier.filter((id) => (id === null || known.has(id)) && !seen.includes(id) && wheelPgOk(id));
     // Gate WOKE until its prerequisite modes have all been seen.
     pool = pool.filter((id) => id !== "woke" || WOKE_PREREQS.every((p) => seen.includes(p)));
@@ -327,8 +351,13 @@ function wheelTargetFromBag() {
     localStorage.setItem(SEASON_KEY, String(season));
     state.pendingFinale = season - 1;   // the season that just wrapped
   } catch (e) { /* fine */ }
-  const first = WHEEL_TIERS[0].filter((id) => (id === null || known.has(id)) && wheelPgOk(id));
-  return (first.length ? first[stableHash(`${state.gameSalt}:wheel`) % first.length] : null);
+  // Fresh lap: fall to the first ENABLED tier (not always tier 1 - the host may have gated it off).
+  for (let ti = 0; ti < WHEEL_TIERS.length; ti += 1) {
+    if (!tierAllowed(ti)) continue;
+    const first = WHEEL_TIERS[ti].filter((id) => (id === null || known.has(id)) && wheelPgOk(id));
+    if (first.length) return first[stableHash(`${state.gameSalt}:wheel`) % first.length];
+  }
+  return null;
 }
 const SEASON_KEY = "whoisit_season_v1";
 function markWheelSeen(id) {
@@ -669,7 +698,14 @@ function habboIso(col, row) {
 function habboCamera(id) {
   const room = habboCtx?.room;
   if (!room) return;
-  if (!id || !habboPos.has(id)) { room.style.transform = ""; return; }
+  const resetCamera = () => {
+    room.style.setProperty("--hb-cam-x", "0px");
+    room.style.setProperty("--hb-cam-y", "0px");
+    room.style.setProperty("--hb-cam-scale", "1");
+  };
+  if (!id || !habboPos.has(id)) { resetCamera(); return; }
+  const mobileRoomFit = !!(window.matchMedia && window.matchMedia("(max-width: 640px), (pointer: coarse)").matches);
+  if (mobileRoomFit) { resetCamera(); return; }
   const p = habboIso(habboPos.get(id).col, habboPos.get(id).row);
   // clientWidth/Height = the visible viewport (excludes scrollbars); getBoundingClientRect can read
   // odd during transitions. The room's transform-origin is 0 0, so we just map (cx,cy) → viewport centre.
@@ -677,7 +713,9 @@ function habboCamera(id) {
   const vh = els.characterBoard.clientHeight || els.characterBoard.getBoundingClientRect().height;
   const scale = 2.6;                             // a proper Habbo close-up, not a distant wide shot
   const cx = p.x, cy = p.y - 62;                 // aim at the FACE (upper body), not the mid-torso
-  room.style.transform = `translate(${(vw / 2 - cx * scale).toFixed(0)}px, ${(vh / 2 - cy * scale).toFixed(0)}px) scale(${scale})`;
+  room.style.setProperty("--hb-cam-x", `${(vw / 2 - cx * scale).toFixed(0)}px`);
+  room.style.setProperty("--hb-cam-y", `${(vh / 2 - cy * scale).toFixed(0)}px`);
+  room.style.setProperty("--hb-cam-scale", String(scale));
 }
 function selectHabbo(id) {
   // Click the already-selected avatar again to zoom back out.
@@ -713,25 +751,26 @@ function renderHabboSelectionUI(focusChat = false) {
   if (!ch) return;
   const a = state.global.mystery.assignments[ch.id] || {};
   const banned = currentPlayer().eliminated.has(ch.id);
+  const face = habboFaceSrc(a);   // real Habbo head if we have a sprite, else the generated portrait
   const cam = document.createElement("div");
   cam.id = "habboCam"; cam.className = "hb-cam";
   cam.innerHTML = `<p class="hb-cam-top"><span class="hb-rec">● REC</span><span>ROOM CAM</span></p>`
-    + `<div class="hb-cam-screen"><img src="${a.head || ch.image}" alt=""></div>`
+    + `<div class="hb-cam-screen"><img class="${face ? "hb-real-face" : ""}" src="${face || a.head || ch.image}" alt=""></div>`
     + `<p class="hb-cam-name">${displayName(ch)}</p>`
     + `<button type="button" class="hb-cam-ban ${banned ? "is-banned" : ""}">${banned ? "UNBAN" : "BAN"}</button>`;
   wrap.appendChild(cam);
-  // Gentler crunch (84px vs the room's 30) - recognisable, still pixel-art.
-  if (a.head) pixelateSrc(a.head, 84, (url) => { const img = cam.querySelector(".hb-cam-screen img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
+  // Only the generated-portrait fallback gets pixel-crunched; a real Habbo head is already pixel-art.
+  if (!face && a.head) pixelateSrc(a.head, 84, (url) => { const img = cam.querySelector(".hb-cam-screen img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
   cam.querySelector(".hb-cam-ban").addEventListener("click", () => banHabbo(ch.id));
   if (HABBO_HAS_KEYBOARD && !banned) {
     const bar = document.createElement("div");
     bar.id = "habboChat"; bar.className = "hb-chatbar";
     bar.dataset.forId = ch.id;
-    bar.innerHTML = `<img src="${a.head || ch.image}" alt="">`
+    bar.innerHTML = `<img class="${face ? "hb-real-face" : ""}" src="${face || a.head || ch.image}" alt="">`
       + `<input type="text" maxlength="90" placeholder="Chat as ${displayName(ch)}…" aria-label="Chat as ${displayName(ch)}">`
       + `<button type="button">SAY</button>`;
     wrap.appendChild(bar);
-    if (a.head) pixelateSrc(a.head, 30, (url) => { const img = bar.querySelector("img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
+    if (!face && a.head) pixelateSrc(a.head, 30, (url) => { const img = bar.querySelector("img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
     const input = bar.querySelector("input");
     if (draft) input.value = draft;
     // The bobba filter runs ONCE at send time (not per client), so everyone reads the same censored
@@ -754,9 +793,36 @@ function renderHabboSelectionUI(focusChat = false) {
   }
 }
 function banHabbo(id) {
-  if (!currentPlayer().eliminated.has(id)) bumpStat("habboBans");
+  const wasBanned = currentPlayer().eliminated.has(id);
+  if (!wasBanned) bumpStat("habboBans");
+  // Set selection BEFORE the re-render toggleEliminated triggers: a fresh ban drops them into the
+  // void and deselects (camera pulls back); readmitting refocuses them as they walk back in.
+  habboSelected = wasBanned ? id : null;
   toggleEliminated(id);
-  if (habboSelected !== id) habboSelected = id;
+}
+// Banned avatars get thrown OUT of the room into the black void below it - greyed out, and tappable
+// to readmit them (they keep their habboPos tile reserved, so they walk back to their old spot).
+function renderHabboVoid(banned) {
+  els.characterBoard.querySelector(".habbo-void")?.remove();
+  if (!banned || !banned.length) return;
+  const strip = document.createElement("div");
+  strip.className = "habbo-void";
+  const row = document.createElement("div");
+  row.className = "hb-void-row";
+  banned.forEach((ch) => {
+    const a = state.global.mystery.assignments[ch.id] || {};
+    const face = habboFaceSrc(a);
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "hb-void-fig"; b.dataset.id = ch.id;
+    b.title = `Readmit ${displayName(ch)}`;
+    b.innerHTML = `<img src="${face || a.head || ch.image}" alt=""><span class="hb-void-name">${escapeHtml(displayName(ch))}</span>`;
+    b.addEventListener("click", (e) => { e.stopPropagation(); banHabbo(ch.id); });
+    row.appendChild(b);
+    if (!face && a.head) pixelateSrc(a.head, 34, (url) => { const img = b.querySelector("img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
+  });
+  strip.innerHTML = `<span class="hb-void-label">🚫 BANNED — tap to readmit</span>`;
+  strip.appendChild(row);
+  els.characterBoard.appendChild(strip);
 }
 // The Habbo word filter: random words become "bobba", exactly like the hotel's censor - the joke is
 // that it fires on completely innocent words, and the table has to guess what was really said.
@@ -1203,10 +1269,10 @@ function renderHabboBoard(player) {
   room.appendChild(figs);
   const figEls = new Map();
   list.forEach((ch) => {
+    if (player.eliminated.has(ch.id)) return;   // banned avatars leave the room for the void strip
     const a = state.global.mystery.assignments[ch.id] || {};
     const pos = habboPos.get(ch.id);
     const p = habboIso(pos.col, pos.row);
-    const isDown = player.eliminated.has(ch.id);
     // Iso facing: instead of staring at the camera, everyone looks diagonally toward the room's
     // centre - pupils shifted sideways+down and a slight head turn, Habbo-style.
     const facing = pos.col >= pos.row ? -1 : 1;   // right half of the room looks left, left half right
@@ -1221,9 +1287,9 @@ function renderHabboBoard(player) {
     }
     const el = document.createElement("button");
     el.type = "button";
-    el.className = `habbo-fig ${facing === 1 ? "hb-face-r" : "hb-face-l"} ${isDown ? "is-down" : ""} ${ch.id === habboSelected ? "selected" : ""}`.trim();
+    el.className = `habbo-fig ${facing === 1 ? "hb-face-r" : "hb-face-l"} ${ch.id === habboSelected ? "selected" : ""}`.trim();
     el.dataset.id = ch.id;
-    el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)${isDown ? " rotate(-8deg)" : ""}`;
+    el.style.transform = `translate(${p.x.toFixed(0)}px, ${p.y.toFixed(0)}px)`;
     el.style.zIndex = String(100 + pos.col + pos.row);
     // The figure: one local Habbo-style pixel sprite (habbo-avatar.js) built from the character's
     // traits. Facing is handled by CSS scaleX on .hb-avatar - never re-rendered mid-walk. Falls back
@@ -1251,6 +1317,7 @@ function renderHabboBoard(player) {
     if (!a.avatar && a.head) pixelateSrc(a.head, 36, (url) => { const img = el.querySelector(".hb-head"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
   });
   habboCtx = { figEls, room };
+  renderHabboVoid(list.filter((ch) => player.eliminated.has(ch.id)));   // banned avatars in the black void
   if (habboSelected && !figEls.has(habboSelected)) habboSelected = null;
   if (habboSelected) habboCamera(habboSelected);
   renderHabboSelectionUI();
@@ -1274,8 +1341,7 @@ function renderKnockoffManorBoard(player) {
   const mystery = state.global.mystery;
   const rooms = mystery.rooms || [];
   els.characterBoard.classList.add("knockoff-manor-board");
-  els.characterBoard.setAttribute("aria-label", "MURDER TIME room board");
-  renderMurderCenter(mystery);
+  els.characterBoard.setAttribute("aria-label", "MURDER! LIVE! room board");
   rooms.forEach((room) => {
     const roomTile = document.createElement("section");
     roomTile.className = `manor-room-tile ${room.id === mystery.bloodRoomId ? "has-blood" : ""}`.trim();
@@ -1285,11 +1351,15 @@ function renderKnockoffManorBoard(player) {
     roomTile.style.setProperty("--room-row-span", room.rowSpan);
     roomTile.style.setProperty("--room-col-span", room.colSpan);
     roomTile.style.setProperty("--room-tone", room.tone);
+    const weapon = room.weaponEmoji
+      ? `<span class="manor-weapon wc-${room.weaponCorner || 0}" style="--wtilt:${room.weaponTilt || 0}deg" title="${escapeHtml(room.weaponName || "weapon")}" aria-hidden="true">${escapeHtml(room.weaponEmoji)}</span>`
+      : "";
     roomTile.innerHTML = `
       <div class="manor-room-label">
         <span>${escapeHtml(room.name)}</span>
       </div>
       ${room.id === mystery.bloodRoomId ? "<div class=\"blood-splatter\" aria-hidden=\"true\"></div>" : ""}
+      ${weapon}
       <div class="manor-room-cards"></div>
     `;
     const cardWrap = roomTile.querySelector(".manor-room-cards");
@@ -1310,18 +1380,39 @@ function renderKnockoffManorBoard(player) {
     });
     els.characterBoard.appendChild(roomTile);
   });
+  startManorLoop();
 }
 
-function renderMurderCenter(mystery) {
-  const center = document.createElement("section");
-  center.className = "murder-center";
-  center.setAttribute("aria-label", "Murder weapons");
-  center.innerHTML = `
-    <div class="weapon-pile">
-      ${(mystery.weapons || []).map((weapon) => `<span>${escapeHtml(weapon.emoji)}</span>`).join("")}
-    </div>
-  `;
-  els.characterBoard.appendChild(center);
+// Live theatre: every ~10s one (non-eliminated) suspect wanders into a different room, so the board
+// is never static - "someone's on the move". Local-only cosmetic drift (like Habbo's idle wander), so
+// it's not synced; manual drags still route through manorMoveTo. Cleared on teardown / mode change.
+let manorLoopTimer = null;
+function stopManorLoop() { if (manorLoopTimer) { clearInterval(manorLoopTimer); manorLoopTimer = null; } }
+function startManorLoop() {
+  stopManorLoop();
+  if (state.gameMode === "online") return;      // avoid peers drifting out of sync
+  manorLoopTimer = setInterval(() => {
+    const mystery = state.global.mystery;
+    if (!mystery || mystery.id !== "knockoff-manor" || !els.characterBoard?.querySelector(".manor-room-tile")) {
+      stopManorLoop();
+      return;
+    }
+    const rooms = mystery.rooms || [];
+    if (rooms.length < 2) return;
+    const player = currentPlayer();
+    const movable = state.board.filter((c) => !player.eliminated.has(c.id) && mystery.assignments[c.id]);
+    if (!movable.length) return;
+    const mover = movable[Math.floor(Math.random() * movable.length)];
+    const fromId = mystery.assignments[mover.id].roomId;
+    const others = rooms.filter((r) => r.id !== fromId);
+    const dest = others[Math.floor(Math.random() * others.length)];
+    if (!dest) return;
+    mystery.assignments[mover.id].roomId = dest.id;
+    mystery.assignments[mover.id].roomName = dest.name;
+    state.justMovedManor = mover.id;             // one-shot "just walked in" highlight
+    renderBoard();
+    state.justMovedManor = null;
+  }, 10000);
 }
 
 
@@ -1332,7 +1423,7 @@ const FALLBACK_GLYPHS = ["✦", "⚛", "⬢", "✶", "⟁", "⌖", "☯", "⚙",
 // Spin a slot-machine of abstract symbols at the start of a round; it decelerates onto a random mode,
 // flashes chaotically, then reveals + applies it. done(id) fires with the chosen mode id (or null).
 function spinModeRoulette(done) {
-  const modes = mysteryEffects.map((e, i) => ({ id: e.id, name: e.name, glyph: e.glyph || FALLBACK_GLYPHS[i % FALLBACK_GLYPHS.length], hue: (i * 47) % 360 }));
+  const modes = playableMysteryEffects().map((e, i) => ({ id: e.id, name: e.name, glyph: e.glyph || FALLBACK_GLYPHS[i % FALLBACK_GLYPHS.length], hue: (i * 47) % 360 }));
   modes.push({ id: null, name: "No Effect", glyph: "∅", hue: 210 });
   // Lands on the no-repeat bag pick (shared via the start message); legacy fallback: salt hash.
   const targetId = state.wheelPick !== undefined ? state.wheelPick : wheelTarget();
@@ -1363,9 +1454,9 @@ function spinModeRoulette(done) {
   const jitter = (Math.random() - 0.5) * (CELL * 0.5);
   const finalX = -(landIndex * CELL + CELL / 2 - center + jitter);
   strip.style.transform = "translateX(0)";
-  if (window.Sound) window.Sound.spinTicks(3400, 32, 340);   // fast-then-slow ticks match the deceleration
+  if (window.Sound) window.Sound.spinTicks(4500, 36, 420);   // fast-then-slow ticks match the deceleration
   requestAnimationFrame(() => {
-    strip.style.transition = "transform 3.4s cubic-bezier(.1,.62,.2,1)";
+    strip.style.transition = "transform 4.5s cubic-bezier(.1,.62,.2,1)";
     strip.style.transform = `translateX(${finalX}px)`;
   });
   // Drive the reveal off a timer (matches the 3.4s spin) rather than transitionend, which can be
@@ -1376,8 +1467,8 @@ function spinModeRoulette(done) {
     rev.textContent = target.id ? target.name : "NO EFFECT — clean round";
     rev.style.setProperty("--hue", target.hue);
     overlay.classList.add("is-landed", "is-flash");
-    setTimeout(() => { overlay.remove(); done(target.id); }, 1400);
-  }, 3500);
+    setTimeout(() => { overlay.remove(); done(target.id); }, 1800);
+  }, 4600);
 }
 
 function applyMysteryEffect(effectId) {
@@ -1499,14 +1590,16 @@ function flashForCurrentMode() {
 }
 
 function randomMysteryEffect() {
-  const pool = state.settings.pg ? mysteryEffects.filter((effect) => effect.pgSafe) : mysteryEffects;
+  const playable = playableMysteryEffects();
+  const pool = state.settings.pg ? playable.filter((effect) => effect.pgSafe) : playable;
   return pool[Math.floor(Math.random() * pool.length)] || null;
 }
 
 const MysteryModes = {
   registry: mysteryRegistry,
   effects: mysteryEffects,
-  all: () => mysteryEffects,
+  all: () => playableMysteryEffects(),
+  allRegistered: () => mysteryEffects,
   byId: (id) => mysteryRegistry[id] || null,
   current: currentMysteryEffect,
   isPgSafe: (id) => !!mysteryRegistry[id]?.pgSafe,
@@ -1569,9 +1662,21 @@ function decorateYugiohLocation(context) {
   };
 }
 
-function pixelateHabboSecret({ card }) {
+function pixelateHabboSecret({ card, character }) {
   const img = card?.querySelector(".portrait-wrap > img");
-  if (img && img.src) {
+  if (!img) return;
+  const a = character ? (state.global.mystery?.assignments?.[character.id] || {}) : {};
+  const face = habboFaceSrc(a);
+  if (face) {                       // real front-facing Habbo avatar, zoomed onto the head - no filter
+    img.style.imageRendering = "pixelated";
+    img.style.objectFit = "cover";
+    img.style.objectPosition = "50% 22%";
+    img.style.transform = "scale(1.65)";
+    img.style.transformOrigin = "center";
+    img.src = face;
+    return;
+  }
+  if (img.src) {                    // fallback: crunch the generated portrait into Habbo pixels
     img.style.imageRendering = "pixelated";
     pixelateSrc(img.src, 40, (url) => { if (img.isConnected) img.src = url; });
   }
@@ -1662,21 +1767,24 @@ function createManorCharacterToken(character, player) {
   const inBlood = assignment?.roomId && assignment.roomId === state.global.mystery?.bloodRoomId;
   token.type = "button";
   token.id = `token-${character.id}`;
-  token.className = `manor-token ${inBlood ? "in-blood" : ""}`.trim();
+  // Demeanor is the suspect's OWN tell (nervous / shifty / calm), independent of which room they're in.
+  const demeanor = assignment?.demeanor || "shifty";
+  const justMoved = state.justMovedManor === character.id;
+  token.className = `manor-token manor-${demeanor} ${inBlood ? "in-blood" : ""} ${justMoved ? "just-moved" : ""}`.replace(/\s+/g, " ").trim();
   token.classList.toggle("is-down", player.eliminated.has(character.id));
   token.dataset.id = character.id;
   if (assignment?.roomName) token.dataset.houseRoom = assignment.roomName;
   token.setAttribute("aria-label", `${character.name}${assignment?.roomName ? ` in ${assignment.roomName}` : ""}`);
   token.setAttribute("title", `${character.name} — drag between rooms to move a suspect`);
-  // Everyone's shifty: a per-suspect nervous glance/shuffle (hashed offset + speed), guilt sweat
-  // for whoever's currently in the blood room.
+  // Each demeanor animates on its own hashed beat so a roomful never fidgets in lockstep.
   const sway = 2.2 + (stableHash(character.id + ":shift") % 240) / 100;
   const delay = -(stableHash(character.id + ":shiftd") % 3000) / 1000;
   token.style.setProperty("--shift-dur", `${sway.toFixed(2)}s`);
   token.style.setProperty("--shift-delay", `${delay.toFixed(2)}s`);
   token.innerHTML = `
     <img src="${character.image}" alt="">
-    ${inBlood ? '<span class="manor-sweat" aria-hidden="true">💧</span>' : ""}
+    ${demeanor === "nervous" ? '<span class="manor-sweat" aria-hidden="true">💧</span>' : ""}
+    ${demeanor === "shifty" ? '<span class="manor-eyes" aria-hidden="true">👀</span>' : ""}
     <span class="manor-name">${escapeHtml(character.name)}</span>
   `;
   // Tap crosses off; a real drag relocates the suspect. (manordrag flag set by the drag handler.)
@@ -1687,25 +1795,63 @@ function createManorCharacterToken(character, player) {
 // Drag a suspect from one room onto another to move them (repositioning to reason about alibis).
 // The drop target is the room tile the pointer is over.
 let manorTouchDrag = null;
+const MANOR_TOUCH_HOLD_MS = 350;
 function wireManorDnD(token, id) {
   token.draggable = true;
   token.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "move"; token.classList.add("dragging"); token.dataset.manordrag = "1"; });
   token.addEventListener("dragend", () => token.classList.remove("dragging"));
-  // Touch: finger-drag the token onto another room tile.
-  token.addEventListener("touchstart", (e) => { manorTouchDrag = { id, token }; }, { passive: true });
+  // Touch: hold first, then finger-drag the token onto another room tile. Moving before the hold
+  // stays a normal scroll gesture.
+  token.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    manorTouchDrag = {
+      id,
+      token,
+      x: t.clientX,
+      y: t.clientY,
+      active: false,
+      timer: setTimeout(() => {
+        if (!manorTouchDrag || manorTouchDrag.id !== id) return;
+        manorTouchDrag.active = true;
+        token.dataset.manordrag = "1";
+        token.classList.add("dragging");
+      }, MANOR_TOUCH_HOLD_MS)
+    };
+  }, { passive: true });
   token.addEventListener("touchmove", (e) => {
     if (!manorTouchDrag) return;
-    manorTouchDrag.moved = true;
+    const t = e.touches[0];
+    const movedEnough = Math.abs(t.clientX - manorTouchDrag.x) > 8 || Math.abs(t.clientY - manorTouchDrag.y) > 8;
+    if (!manorTouchDrag.active && movedEnough) {
+      clearTimeout(manorTouchDrag.timer);
+      manorTouchDrag = null;
+      return;
+    }
+    if (!manorTouchDrag.active) return;
+    e.preventDefault();
     token.dataset.manordrag = "1";
     token.classList.add("dragging");
-  }, { passive: true });
-  token.addEventListener("touchend", (e) => {
-    if (!manorTouchDrag || !manorTouchDrag.moved) { manorTouchDrag = null; return; }
-    const t = e.changedTouches[0];
+    document.querySelectorAll(".manor-room-tile.drop-target").forEach((el) => el.classList.remove("drop-target"));
     const tile = document.elementFromPoint(t.clientX, t.clientY)?.closest(".manor-room-tile");
+    if (tile) tile.classList.add("drop-target");
+  }, { passive: false });
+  token.addEventListener("touchend", (e) => {
     token.classList.remove("dragging");
-    if (tile) manorMoveTo(id, tile.dataset.roomId);
+    document.querySelectorAll(".manor-room-tile.drop-target").forEach((el) => el.classList.remove("drop-target"));
+    if (manorTouchDrag) clearTimeout(manorTouchDrag.timer);
+    if (manorTouchDrag && manorTouchDrag.active) {
+      e.preventDefault();
+      const t = e.changedTouches[0];
+      const tile = document.elementFromPoint(t.clientX, t.clientY)?.closest(".manor-room-tile");
+      if (tile) manorMoveTo(id, tile.dataset.roomId);
+    }
     manorTouchDrag = null;
+  });
+  token.addEventListener("touchcancel", () => {
+    if (manorTouchDrag) clearTimeout(manorTouchDrag.timer);
+    manorTouchDrag = null;
+    token.classList.remove("dragging");
+    document.querySelectorAll(".manor-room-tile.drop-target").forEach((el) => el.classList.remove("drop-target"));
   });
 }
 function manorMoveTo(charId, roomId) {
@@ -2182,17 +2328,26 @@ function showLastWords(charId) {
   if (!ch) return;
   const el = document.getElementById(`card-${charId}`) || document.querySelector(`.float-head[data-id="${charId}"]`);
   if (!el) return;
-  el.querySelectorAll(".lastwords-bubble").forEach((b) => b.remove());
+  document.querySelectorAll(".lastwords-bubble").forEach((b) => b.remove());
   const bub = document.createElement("span");
   bub.className = "lastwords-bubble";
   bub.textContent = modeLastWords(ch);
-  // Lift the speaking card above its neighbours (and their shadows) while the bubble is up.
-  const prevZ = el.style.zIndex;
-  el.style.zIndex = "60";
-  el.appendChild(bub);
+  if (el.classList.contains("float-head")) bub.classList.add("lw-floathead");
+  // The eliminated card carries a heavy dimming filter (brightness 0.4), and a filter darkens its
+  // whole subtree - so a bubble parented to the card would be greyed out and unreadable (worst on the
+  // pitch-black Disguise tiles). Park it on <body> with fixed positioning over the card instead, fully
+  // outside the filtered element. Ephemeral (3.2s), so not following mid-scroll is fine.
+  const place = () => {
+    const r = el.getBoundingClientRect();
+    bub.style.left = `${Math.round(r.left + r.width / 2)}px`;
+    bub.style.top = `${Math.round(r.top + 8)}px`;
+  };
+  bub.style.position = "fixed";
+  document.body.appendChild(bub);
+  place();
   setTimeout(() => {
     bub.classList.add("lw-out");
-    setTimeout(() => { bub.remove(); el.style.zIndex = prevZ; }, 380);
+    setTimeout(() => bub.remove(), 380);
   }, 3200);
 }
 
@@ -2202,21 +2357,18 @@ function getMysteryCardData(character) {
   const assignment = mystery.assignments[character.id];
   if (!assignment) return { html: "", dataset: {} };
   if (mystery.id === "prop-panic") {
-    // The prop is WIELDED, not a corner badge: big, plonked somewhere on the person at a hashed
-    // angle/position, wobbling on its own beat. The panic loop periodically swaps props around.
-    // Hands/torso zone (not plastered over the face): x 14-64%, y 52-78% of the portrait.
-    const px = 14 + (stableHash(character.id + ":ppx") % 50);
-    const py = 52 + (stableHash(character.id + ":ppy") % 26);
-    const rot = -28 + (stableHash(character.id + ":ppr") % 57);
+    // The prop floats in one consistent spot (bottom-right of every portrait) so it reads as "what's
+    // in this hand?" at a glance, not a scavenger hunt. Only the wobble beat is desynced per person;
+    // the icon alone tells the story - no ROCK/WATER text label (funnier as a pure pictogram).
     const dl = -(stableHash(character.id + ":ppd") % 2400) / 1000;
     return {
       effectName: mystery.name,
       primaryText: assignment.value,
       propEmoji: assignment.emoji,
       cardClass: "prop-mode",
-      style: `--pp-x:${px}%;--pp-y:${py}%;--pp-rot:${rot}deg;--pp-delay:${dl.toFixed(2)}s`,
+      style: `--pp-delay:${dl.toFixed(2)}s`,
       dataset: { mysteryValue: assignment.value },
-      html: addMysteryBadge(assignment.value, "prop")
+      html: ""
     };
   }
   if (mystery.id === "family-tree-disaster") {
@@ -3473,6 +3625,13 @@ function getHabboAvatarId(character) {
 // The sprite src for a figure: requested direction if it exists, else d3, else the default body.
 // Facing left = SW (dir 5), facing right = SE (dir 3); walking swaps to the walk frame set.
 // Cache-busted with the manifest version so re-approved PNGs actually show up.
+// The character's FACE in Habbo mode: the FRONT-FACING d3 pose (cropped to the head via CSS so it
+// reads like the game's other portraits), falling back to the .head asset, then null so callers use
+// the pixelated generated portrait.
+function habboFaceSrc(a) {
+  const src = a && a.sprites && ((a.sprites.directions || {})["3"] || a.sprites.head);
+  return src ? `${src}?v=${window.HabboAvatarVersion || 1}` : null;
+}
 function habboSpriteSrc(entry, facingRight, walking) {
   if (!entry) return null;
   const dir = facingRight ? "3" : "5";
@@ -3733,13 +3892,15 @@ function applyNeighbourhoodWatch(effect) {
 // game card on a coloured square.
 const GALLERY_STYLES = [
   { key: "destijl", label: "De Stijl", era: [1917, 1931], bgs: ["#f4f1ea", "#efe9dd"] },
-  { key: "renaissance", label: "Renaissance", era: [1495, 1600], bgs: ["#2b2018", "#33261a", "#232019"] },
+  { key: "renaissance", label: "Renaissance", era: [1495, 1600], bgs: ["#3d2e20", "#453322", "#392c1f"] },
   { key: "impressionist", label: "Impressionist", era: [1865, 1895], bgs: ["#dfe8dd", "#e8e2d3", "#dee4ec"] },
   { key: "popart", label: "Pop Art", era: [1955, 1970], bgs: ["#ffd23a", "#ff5a72", "#4dd2ff", "#5dff8f"] },
-  { key: "baroque", label: "Baroque", era: [1600, 1700], bgs: ["#191310", "#221a12"] },
+  { key: "baroque", label: "Baroque", era: [1600, 1700], bgs: ["#2c2116", "#352818"] },
   { key: "watercolour", label: "Watercolour", era: [1790, 1880], bgs: ["#f7f4ec", "#f2ede2"] },
   { key: "brutalist", label: "Brutalist", era: [1950, 1975], bgs: ["#d8d8d4", "#c9c9c4"] },
-  { key: "ukiyoe", label: "Ukiyo-e", era: [1760, 1850], bgs: ["#efe3c1", "#e9dbb4"] }
+  { key: "ukiyoe", label: "Ukiyo-e", era: [1760, 1850], bgs: ["#efe3c1", "#e9dbb4"] },
+  { key: "cubist", label: "Cubist", era: [1907, 1925], bgs: ["#cabfa4", "#b8a888"] },
+  { key: "artnouveau", label: "Art Nouveau", era: [1890, 1912], bgs: ["#e7ddc2", "#dcc9a0"] }
 ];
 function applyGallery(effect) {
   const D = window.GameData;
@@ -4242,17 +4403,17 @@ const KNOCKOFF_ROOM_NAMES = [
   "MUD ROOM COURT"
 ];
 
-// A tight 3x3 of equal room blocks wrapping the central weapon pile (rows 4-6 / cols 4-6), so there's
-// no big empty moat around the middle - every cell of the 9x9 grid is filled.
+// A proper floorplan seen from directly above: rooms of DIFFERENT sizes tessellating a 6-col x 7-row
+// grid with no gaps (a tall wing here, a wide hall there, a couple of poky rooms). Each room hides one
+// weapon somewhere inside it. Order matters - guests are dealt round-robin, so mix big/small early.
 const KNOCKOFF_ROOM_LAYOUTS = [
-  { row: 1, col: 1, rowSpan: 3, colSpan: 3 },
-  { row: 1, col: 4, rowSpan: 3, colSpan: 3 },
-  { row: 1, col: 7, rowSpan: 3, colSpan: 3 },
-  { row: 4, col: 1, rowSpan: 3, colSpan: 3 },
-  { row: 4, col: 7, rowSpan: 3, colSpan: 3 },
-  { row: 7, col: 1, rowSpan: 3, colSpan: 3 },
-  { row: 7, col: 4, rowSpan: 3, colSpan: 3 },
-  { row: 7, col: 7, rowSpan: 3, colSpan: 3 }
+  { row: 1, col: 3, rowSpan: 2, colSpan: 4 },   // wide hall, top
+  { row: 1, col: 1, rowSpan: 3, colSpan: 2 },   // tall wing, top-left
+  { row: 3, col: 3, rowSpan: 2, colSpan: 2 },   // square room
+  { row: 3, col: 5, rowSpan: 2, colSpan: 2 },   // square room
+  { row: 4, col: 1, rowSpan: 4, colSpan: 2 },   // long tall wing, left
+  { row: 5, col: 3, rowSpan: 3, colSpan: 2 },   // tall room
+  { row: 5, col: 5, rowSpan: 3, colSpan: 2 }    // tall room
 ];
 
 const KNOCKOFF_ROOM_TONES = [
@@ -4287,27 +4448,45 @@ function applyKnockoffManor(effect) {
     KNOCKOFF_ROOM_NAMES.map((name, index) => ({ id: `room-name-${index}`, name })),
     `${state.gameSalt}:${effect.id}:names`
   ).slice(0, roomCount);
-  const rooms = roomNames.map((roomName, index) => ({
-    id: `manor-room-${index + 1}`,
-    name: roomName.name,
-    row: KNOCKOFF_ROOM_LAYOUTS[index].row,
-    col: KNOCKOFF_ROOM_LAYOUTS[index].col,
-    rowSpan: KNOCKOFF_ROOM_LAYOUTS[index].rowSpan,
-    colSpan: KNOCKOFF_ROOM_LAYOUTS[index].colSpan,
-    tone: KNOCKOFF_ROOM_TONES[index % KNOCKOFF_ROOM_TONES.length]
-  }));
+  // One weapon hidden in each room (shuffled deterministically so peers agree). A weapon lands at a
+  // hashed corner of its room.
+  const weaponBag = deterministicOrder(
+    MURDER_WEAPONS.map((weapon, index) => ({ ...weapon, id: `weapon-${index}` })),
+    `${state.gameSalt}:${effect.id}:weapons`
+  );
+  const rooms = roomNames.map((roomName, index) => {
+    const weapon = weaponBag[index % weaponBag.length];
+    return {
+      id: `manor-room-${index + 1}`,
+      name: roomName.name,
+      row: KNOCKOFF_ROOM_LAYOUTS[index].row,
+      col: KNOCKOFF_ROOM_LAYOUTS[index].col,
+      rowSpan: KNOCKOFF_ROOM_LAYOUTS[index].rowSpan,
+      colSpan: KNOCKOFF_ROOM_LAYOUTS[index].colSpan,
+      tone: KNOCKOFF_ROOM_TONES[index % KNOCKOFF_ROOM_TONES.length],
+      weaponEmoji: weapon.emoji,
+      weaponName: weapon.name,
+      // which corner the weapon sits in, and a small tilt - purely cosmetic, salt-stable.
+      weaponCorner: stableHash(`${state.gameSalt}:${effect.id}:wpos:${index}`) % 4,
+      weaponTilt: (stableHash(`${state.gameSalt}:${effect.id}:wrot:${index}`) % 31) - 15
+    };
+  });
   const assignments = {};
+  // Everyone gets a demeanor that is THEIRS, not the room's: nervous (fidget + sweat) or shifty
+  // (darting glances). A calmer few read as unbothered. Deterministic so both peers see the same tells.
+  const DEMEANORS = ["nervous", "shifty", "nervous", "shifty", "calm"];
   deterministicOrder(state.board, `${state.gameSalt}:${effect.id}:guests`).forEach((character, index) => {
     const room = rooms[index % rooms.length];
-    assignments[character.id] = { roomId: room.id, roomName: room.name };
+    const demeanor = DEMEANORS[stableHash(`${state.gameSalt}:${effect.id}:tell:${character.id}`) % DEMEANORS.length];
+    assignments[character.id] = { roomId: room.id, roomName: room.name, demeanor };
   });
   const bloodRoom = rooms[stableHash(`${state.gameSalt}:${effect.id}:blood-room`) % rooms.length];
-  const weapons = deterministicOrder(MURDER_WEAPONS.map((weapon, index) => ({
-    id: `weapon-${index}`,
-    name: weapon.name,
-    emoji: weapon.emoji
-  })), `${state.gameSalt}:${effect.id}:weapons`).slice(0, 6);
-  return { id: effect.id, name: effect.name, assignments, rooms, bloodRoomId: bloodRoom.id, weapons };
+  return { id: effect.id, name: effect.name, assignments, rooms, bloodRoomId: bloodRoom.id };
+}
+// Location banner: MURDER! AT THE <venue>.
+function decorateMurderLocation(context) {
+  const base = (context.name || context.location?.name || "the manor").toUpperCase();
+  return { ...context, name: `MURDER! AT THE ${base}`, eyebrow: "🔪 Live broadcast" };
 }
 
 function applyEmotionalAudit(effect) {
@@ -4643,7 +4822,7 @@ function playEffectAnnouncement(name) {
   overlay.appendChild(word);
 
   document.body.appendChild(overlay);
-  window.setTimeout(() => overlay.remove(), 3050);   // linger - let the title actually land
+  window.setTimeout(() => overlay.remove(), 4300);   // linger - let the title actually land
 }
 
 function showMysteryAnnouncement(_effectName, _exampleQuestion) {

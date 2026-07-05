@@ -471,8 +471,9 @@ function playBirthAnimation(imgA, imgB, baby, grind, done, opts) {
   setTimeout(() => { ov.remove(); done(); }, grind ? 3200 : 2500);
 }
 // Shared drag-and-drop wiring: any card / floating head can be dragged onto another to breed. Works
-// with the mouse (HTML5 drag) AND touch (a manual finger-drag).
+// with the mouse (HTML5 drag) AND touch (a manual long-press finger-drag).
 let breedTouch = null;
+const BREED_TOUCH_HOLD_MS = 350;
 function wireBreedDnD(el, id) {
   el.draggable = true;
   el.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "copy"; el.classList.add("dragging"); });
@@ -484,16 +485,34 @@ function wireBreedDnD(el, id) {
     const src = e.dataTransfer.getData("text/plain");
     if (src && src !== id) breedCharacters(src, id);
   });
-  // Touch: drag a finger from one card onto another to breed. A tap (no real drag) still eliminates.
+  // Touch: hold briefly, then drag a finger from one card onto another to breed. A tap still
+  // eliminates, and a normal scroll starting on a card remains a scroll.
   el.addEventListener("touchstart", (e) => {
     const t = e.touches[0];
-    breedTouch = { id, x: t.clientX, y: t.clientY, moved: false };
+    breedTouch = {
+      id,
+      x: t.clientX,
+      y: t.clientY,
+      active: false,
+      moved: false,
+      timer: setTimeout(() => {
+        if (!breedTouch || breedTouch.id !== id) return;
+        breedTouch.active = true;
+        el.classList.add("dragging");
+      }, BREED_TOUCH_HOLD_MS)
+    };
   }, { passive: true });
   el.addEventListener("touchmove", (e) => {
     if (!breedTouch || breedTouch.id !== id) return;
     const t = e.touches[0];
-    if (!breedTouch.moved && (Math.abs(t.clientX - breedTouch.x) > 8 || Math.abs(t.clientY - breedTouch.y) > 8)) breedTouch.moved = true;
-    if (breedTouch.moved) {
+    const movedEnough = Math.abs(t.clientX - breedTouch.x) > 8 || Math.abs(t.clientY - breedTouch.y) > 8;
+    if (!breedTouch.active && movedEnough) {
+      clearTimeout(breedTouch.timer);
+      breedTouch = null;
+      return;
+    }
+    if (breedTouch.active) {
+      breedTouch.moved = movedEnough || breedTouch.moved;
       e.preventDefault();                               // don't scroll while dragging a face
       el.classList.add("dragging");
       document.querySelectorAll(".drop-target").forEach((x) => x.classList.remove("drop-target"));
@@ -504,11 +523,19 @@ function wireBreedDnD(el, id) {
   el.addEventListener("touchend", (e) => {
     el.classList.remove("dragging");
     document.querySelectorAll(".drop-target").forEach((x) => x.classList.remove("drop-target"));
-    if (breedTouch && breedTouch.id === id && breedTouch.moved) {
+    if (breedTouch) clearTimeout(breedTouch.timer);
+    if (breedTouch && breedTouch.id === id && breedTouch.active) {
+      e.preventDefault();
       const t = e.changedTouches[0];
       const under = document.elementFromPoint(t.clientX, t.clientY)?.closest("[data-id]");
-      if (under && under.dataset.id !== id) { e.preventDefault(); breedCharacters(id, under.dataset.id); }
+      if (under && under.dataset.id !== id) breedCharacters(id, under.dataset.id);
     }
     breedTouch = null;
+  });
+  el.addEventListener("touchcancel", () => {
+    if (breedTouch) clearTimeout(breedTouch.timer);
+    breedTouch = null;
+    el.classList.remove("dragging");
+    document.querySelectorAll(".drop-target").forEach((x) => x.classList.remove("drop-target"));
   });
 }

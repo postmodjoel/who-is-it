@@ -873,6 +873,18 @@
   // base seed id (not the "gen-" portrait id). Drop an exported character's correction block here to
   // make its studio look the permanent default.
   const studioBakes = {
+    "aaron": {
+      "hairOutlineMode": "off",
+      "hairOutline": "#ff0000",
+      "neckLength": 3,
+      "headY": -18,
+      "tattooY": -16,
+      "tattooX": 69,
+      "tattooScale": 0.85,
+      "headScaleX": 0.93,
+      "mouthY": 8,
+      "noseWidth": 0.87
+    },
     "javier": {
       "backHairY": -4,
       "hair": "locs",
@@ -2220,6 +2232,92 @@
           "lines": true
         }
       ]
+    },
+    "tiana": {
+      "headScaleX": 0.93,
+      "chinWidth": 0.78,
+      "build": 69,
+      "bodyWidth": 1.11,
+      "belly": 0.15,
+      "background": "#4776a9",
+      "jewelleryScale": 1.14,
+      "accessoryScale": 0.6
+    },
+    "milo": {
+      "earScale": 0.82,
+      "earX": -3.5,
+      "earLeftX": 12.5,
+      "earRightX": -10.5,
+      "earRot": 10,
+      "jewellery": "studs",
+      "jewelleryScale": 0.8,
+      "jewelleryY": -1,
+      "bodyWidth": 0.86,
+      "shoulderSlope": 0.74,
+      "bust": 0.8,
+      "belly": 0.55,
+      "clothing": "collared",
+      "hairLocks": [
+        {
+          "lock": "hookSideLock",
+          "x": 65,
+          "y": 44,
+          "scale": 0.68,
+          "rot": 0,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "roundedPuffSide",
+          "x": 55,
+          "y": 24,
+          "scale": 0.8,
+          "rot": -93,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "roundedPuffSide",
+          "x": 54,
+          "y": 18,
+          "scale": 0.6,
+          "rot": -94,
+          "lines": true
+        },
+        {
+          "lock": "cowlickSprout",
+          "x": 60,
+          "y": 13,
+          "scale": 0.32,
+          "rot": 41,
+          "lines": true,
+          "outline": "#a77b00"
+        },
+        {
+          "lock": "curtainBangs",
+          "x": 49,
+          "y": 35,
+          "scale": 0.3,
+          "rot": 0,
+          "lines": true
+        },
+        {
+          "lock": "angularArc",
+          "x": 39,
+          "y": 8,
+          "scale": 0.3,
+          "rot": 180,
+          "lines": true,
+          "behind": true
+        }
+      ],
+      "eyeOpen": 1.04,
+      "headScaleX": 0.91,
+      "headScaleY": 0.99,
+      "eyeGap": 50,
+      "neckWidth": 1.15,
+      "neckLength": 1,
+      "headY": -16
     }
   };
   const characterOverrides = {
@@ -2857,8 +2955,8 @@
     const sx = Number(traits.headScaleX) || 1;
     const sy = Number(traits.headScaleY) || 1;
     if (Math.abs(sx - sy) < 0.001) return markup;
-    const rx = Math.sqrt(sy / sx);
-    const ry = Math.sqrt(sx / sy);
+    const rx = 1 / sx;
+    const ry = 1 / sy;
     const f = (n) => n.toFixed(4);
     return `<g transform='translate(${cx} ${cy}) scale(${f(rx)} ${f(ry)}) translate(${-cx} ${-cy})'>${markup}</g>`;
   }
@@ -2892,7 +2990,7 @@
     const scaleY = Number(traits.headScaleY) || 1;
     if (Math.abs(scaleX - 1) < 0.001 && Math.abs(scaleY - 1) < 0.001) return content;
     const pivotX = 128;
-    const pivotY = 145;
+    const pivotY = 150;
     return `<g transform='translate(${pivotX} ${pivotY}) scale(${scaleX} ${scaleY}) translate(-${pivotX} -${pivotY})'>${content}</g>`;
   }
 
@@ -2945,9 +3043,10 @@
     const widthPct = (dur, period) => Math.max(1, Math.min(26, (dur / period) * 100));
     const eyeOpen = Number(traits.eyeOpen) || 1;
     const eyeScale = Number(traits.eyeScale) || 1;
-    const blinkTightness = Math.max(0.72, Math.min(1.08, 0.84 + eyeOpen * 0.2 + (eyeScale - 1) * 0.08));
-    const lidTravel = Math.max(15, Math.min(25, 14 + eyeOpen * 8 + (eyeScale - 1) * 4)).toFixed(1);
-    const blinkSquash = Math.max(0.58, Math.min(0.84, 0.72 + (blinkTightness - 0.9) * 0.45)).toFixed(2);
+    const slimEye = Math.max(0, 0.92 - eyeOpen) + Math.max(0, 0.94 - eyeScale);
+    const blinkTightness = Math.max(0.7, Math.min(1.08, 0.84 + eyeOpen * 0.2 + (eyeScale - 1) * 0.08 - slimEye * 0.05));
+    const lidTravel = Math.max(15, Math.min(26, 14 + eyeOpen * 8 + (eyeScale - 1) * 4 + slimEye * 3.5)).toFixed(1);
+    const blinkSquash = Math.max(0.5, Math.min(0.84, 0.72 + (blinkTightness - 0.9) * 0.45 - slimEye * 0.08)).toFixed(2);
     const kf = [];
     const rules = ["g.fa-eye,g.fa-iris{transform-box:fill-box;transform-origin:center}"];
     if (blink > 0 && !squint) {
@@ -3270,7 +3369,8 @@
       <path d='${shoulderPath(traits)}' fill='${under}'/>
       <path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>
     `;
-    const openCentre = `<path d='M106 203C115 210 121 222 128 241C135 222 141 210 150 203L139 256H117Z' fill='${under}'/>`;
+    const openCentreTop = y + 16;
+    const openCentre = `<path d='M108 ${openCentreTop}C116 ${openCentreTop + 7} 122 ${openCentreTop + 19} 128 241C134 ${openCentreTop + 19} 140 ${openCentreTop + 7} 148 ${openCentreTop}L139 256H117Z' fill='${under}'/>`;
     const fullCoverage = new Set(["flannel", "denim", "varsity", "bomber", "cardigan", "labCoat", "raincoat", "leather"]);
     const layerShell = fullCoverage.has(style)
       ? `<path d='${shoulderPath(traits)}' fill='${outer}'/><path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>${openCentre}`
@@ -3483,8 +3583,8 @@
     const neckShift = neckAnchorOffset(traits);
     const neckWidth = Math.max(0.72, Math.min(1.38, Number(traits.neckWidth) || 1));
     const neckHalf = (sh < 76 ? 24 : 26) * neckWidth;
-    const neckY = 206 + neckShift;
-    const tipY = 211 + slope * 20 + neckShift;          // how far the shoulder drops
+    const neckY = 202 + neckShift;
+    const tipY = 207 + slope * 20 + neckShift;          // how far the shoulder drops
     // Bottom (torso) half-width as a fraction of the shoulder width. 1 = straight sides (no tuck);
     // >1 flares the body out (reads as a torso, not a tapering limbless wedge); <1 tucks it in.
     const botHalf = sh * (Number(traits.bodyWidth) || 1);
@@ -3511,8 +3611,8 @@
     const neckShift = neckAnchorOffset(traits);
     const neckWidth = Math.max(0.72, Math.min(1.38, Number(traits.neckWidth) || 1));
     const neckHalf = (sh < 76 ? 24 : 26) * neckWidth;
-    const neckY = 206 + neckShift;
-    const tipY = 211 + slope * 20 + neckShift;
+    const neckY = 202 + neckShift;
+    const tipY = 207 + slope * 20 + neckShift;
     const botHalf = sh * (Number(traits.bodyWidth) || 1);
     const r = 7 + slope * 4;
     const nl = 128 - neckHalf, nr = 128 + neckHalf;
@@ -3531,11 +3631,11 @@
   // Neckline geometry shared by the skin column and the collar so they always meet on the same
   // curve. `y` is where the neckline crosses; it dips ~7px lower at centre for a soft crew curve.
   function neckAnchorOffset(traits) {
-    const headLift = Number(traits.headY) || 0;
     const headScaleY = Number(traits.headScaleY) || 1;
-    // The chin moves when the whole head is lifted and also when the head is stretched taller.
-    // Tie the collar/neckline to that same motion so clothes do not stay behind as a detached body.
-    return headLift + ((headScaleY - 1) * 55 * 0.86);
+    // Head Position should move the head independently of the body so the user can create a
+    // convincingly longer/shorter neck. Only skull-height changes should gently influence where the
+    // neck/body junction sits, otherwise the whole torso chases the head and kills that effect.
+    return (headScaleY - 1) * 55 * 0.86;
   }
 
   function necklineY(traits) {
@@ -3604,7 +3704,7 @@
     // Head + shoulders covering with an eye opening punched out (evenodd).
     const outer = "M42 118C42 56 86 34 128 34C170 34 214 56 214 118L214 256L42 256Z";
     // A thin horizontal eye slit (the only opening), so just the eyes read through the covering.
-    const eyeSlot = "M95 131C112 127 144 127 161 131C163 134 163 138 161 142C144 146 112 146 95 142C93 138 93 134 95 131Z";
+    const eyeSlot = "M88 128C108 122 148 122 168 128C171 132 171 141 168 145C148 151 108 151 88 145C85 141 85 132 88 128Z";
     return `<g>
       <path d='${outer} ${eyeSlot}' fill='${cloth}' fill-rule='evenodd' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
       <path d='${eyeSlot}' fill='none' stroke='${ink}' stroke-width='2.6' stroke-linejoin='round'/>
@@ -3774,10 +3874,12 @@
     const scale = Number(traits.earScale) || 1;
     const commonY = Number(traits.earY) || 0;
     const commonX = Number(traits.earX) || 0;
+    const skullWidthOffset = ((Number(traits.headScaleX) || 1) - 1) * 24;
+    const skullHeightOffset = ((Number(traits.headScaleY) || 1) - 1) * 8;
     const one = (side, cx) => {
       const sx = side === "left" ? -1 : 1;
-      const x = commonX + (Number(traits[`${side}EarX`]) || 0) + (Number(traits[side === "left" ? "earLeftX" : "earRightX"]) || 0);
-      const y = commonY + (Number(traits[`${side}EarY`]) || 0) + (Number(traits[side === "left" ? "earLeftY" : "earRightY"]) || 0);
+      const x = commonX + skullWidthOffset * sx + (Number(traits[`${side}EarX`]) || 0) + (Number(traits[side === "left" ? "earLeftX" : "earRightX"]) || 0);
+      const y = commonY + skullHeightOffset + (Number(traits[`${side}EarY`]) || 0) + (Number(traits[side === "left" ? "earLeftY" : "earRightY"]) || 0);
       const rot = Number(traits[`${side}EarRot`]) || Number(traits.earRot) || 0;
       const markup = fillTemplate(template[side] + (template[`${side}Detail`] || ""));
       if (scale === 1 && !x && !y && !rot) return markup;

@@ -23,7 +23,7 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   { group: "Face", key: "headScaleX", label: "Head Width", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
   { group: "Face", key: "headScaleY", label: "Head Height", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
   { group: "Face", key: "neckWidth", label: "Neck Width", min: 0.72, max: 1.38, step: 0.01, fallback: 1 },
-  { group: "Face", key: "neckLength", label: "Neck Length", min: -8, max: 16, step: 0.5, fallback: 0 },
+  { group: "Face", key: "neckLength", label: "Neckline Height", min: -8, max: 16, step: 0.5, fallback: 0 },
   { group: "Face", key: "headTilt", label: "Head Tilt", min: -12, max: 12, step: 0.5, fallback: 0 },
   { group: "Face", key: "headY", label: "Head Position", min: -10, max: 10, step: 1, fallback: 0 },
   { group: "Face", key: "eyeGap", label: "Eye Gap", min: 40, max: 62, step: 1, fallback: 47 },

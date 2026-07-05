@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Habbo furni catalogue review</title>
+<!--
+  Visual review of the CURATED room catalogue (assets/habbo/habbo-room-catalogue.json).
+  Serve from the project root:  python3 -m http.server 4188
+  then open  http://localhost:4188/habbo_audit_mapping_ready/tools/habbo-furni-review.html
+  Read-only: gives the eyes, not the pen. Edit the JSON (enabled/weight), rerun the builder.
+-->
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 18px; background: #14161d; color: #f2f2ee; font: 14px/1.45 system-ui, sans-serif; }
+  h1 { font-size: 1.2rem; margin: 0 0 4px; }
+  .sub { color: #9aa0ae; font-size: 0.8rem; margin: 0 0 14px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .tabs button { background: #232733; color: #f2f2ee; border: 1px solid #3a4050; border-radius: 999px; padding: 5px 12px; font-weight: 700; cursor: pointer; font-size: 0.78rem; }
+  .tabs button.on { background: #ffbe0b; color: #14161d; border-color: #ffbe0b; }
+  h2 { font-size: 0.9rem; margin: 18px 0 8px; color: #8fa3c8; letter-spacing: 0.06em; text-transform: uppercase; }
+  .items { display: flex; flex-wrap: wrap; gap: 8px; }
+  .item { width: 108px; background: #1c1f28; border: 1px solid #2c3140; border-radius: 8px; padding: 8px 6px; text-align: center; }
+  .item.off { opacity: 0.35; }
+  .item img { width: 52px; height: 52px; object-fit: contain; image-rendering: pixelated; }
+  .item .lb { font-size: 0.62rem; font-weight: 700; line-height: 1.2; margin-top: 3px; }
+  .item .fn { font-size: 0.52rem; color: #9aa0ae; word-break: break-all; }
+  .item .meta { font-size: 0.56rem; color: #c8a34a; }
+  .preview { margin: 10px 0 4px; background: linear-gradient(180deg, #2a2e3a, #23262f); border: 1px solid #3a4050; border-radius: 12px; padding: 14px; min-height: 130px; display: flex; align-items: flex-end; gap: 4px; flex-wrap: wrap; }
+  .preview img { image-rendering: pixelated; }
+  .preview .bg { height: 56px; opacity: 0.8; }
+  .preview .large { height: 78px; }
+  .preview .medium { height: 56px; }
+  .preview .small { height: 38px; }
+  .pv-note { font-size: 0.68rem; color: #9aa0ae; margin: 0 0 14px; }
+  .reroll { margin-left: 8px; }
+</style>
+</head>
+<body>
+<h1>Habbo furni catalogue review</h1>
+<p class="sub">The curated gameplay catalogue — what rooms are allowed to pick from (never the raw 12k dump). Faded = disabled in the JSON.</p>
+<div class="tabs" id="tabs"></div>
+<h2>Sample room <button class="reroll" id="reroll">🎲 reroll</button></h2>
+<div class="preview" id="preview"></div>
+<p class="pv-note" id="pvNote"></p>
+<div id="groups"></div>
+
+<script src="../habbo-assets.js"></script>
+<script>
+let cat = null, current = null, rerolls = 0;
+const FURNI = (f) => `../assets/habbo/furni/${f}`;
+
+async function boot() {
+  cat = await (await fetch("../assets/habbo/habbo-room-catalogue.json?t=" + Date.now())).json();
+  const tabs = document.getElementById("tabs");
+  Object.keys(cat.rooms).forEach((k) => {
+    const b = document.createElement("button");
+    const total = Object.values(cat.rooms[k]).reduce((n, g) => n + g.length, 0);
+    b.textContent = `${k} (${total})`;
+    b.addEventListener("click", () => { current = k; render(); });
+    b.dataset.k = k;
+    tabs.appendChild(b);
+  });
+  current = Object.keys(cat.rooms)[0];
+  render();
+}
+
+function render() {
+  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.k === current));
+  // Sample room via the same picker the game will use (deterministic per reroll seed).
+  const pick = window.HabboRooms.pick(current, `review:${current}:${rerolls}`);
+  const pv = document.getElementById("preview");
+  pv.innerHTML = pick.items.map((it) => `<img class="${it.size === "background" ? "bg" : it.size}" src="${FURNI(it.file)}" title="${it.label} (${it.size})">`).join("");
+  document.getElementById("pvNote").textContent =
+    `picked ${pick.items.length} items from "${pick.room}" — mix: ` +
+    ["background", "large", "medium", "small"].map((s) => `${s}:${pick.items.filter((i) => i.size === s).length}`).join(" ");
+  const groups = document.getElementById("groups");
+  groups.innerHTML = "";
+  for (const size of ["background", "large", "medium", "small"]) {
+    const list = cat.rooms[current][size] || [];
+    const h = document.createElement("h2");
+    h.textContent = `${size} · ${list.length}`;
+    groups.appendChild(h);
+    const wrap = document.createElement("div");
+    wrap.className = "items";
+    wrap.innerHTML = list.map((e) => `
+      <div class="item ${e.enabled ? "" : "off"}">
+        <img src="${FURNI(e.file)}" loading="lazy" alt="">
+        <div class="lb">${e.label}</div>
+        <div class="meta">w${e.weight} · ${e.enabled ? "enabled" : "DISABLED"}</div>
+        <div class="fn">${e.file}</div>
+      </div>`).join("");
+    groups.appendChild(wrap);
+  }
+}
+document.getElementById("reroll").addEventListener("click", () => { rerolls++; render(); });
+boot();
+</script>
+</body>
+</html>

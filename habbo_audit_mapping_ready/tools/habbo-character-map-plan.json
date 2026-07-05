@@ -1,0 +1,753 @@
+[
+  {
+    "id": "gen-aaron",
+    "name": "Aaron",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#f4c9a6",
+      "hairHex": "#5a3d28",
+      "hair": "coily",
+      "shirt": "#256ba8",
+      "clothing": "bare",
+      "accessory": "choker",
+      "beard": true
+    },
+    "mappedTokens": {
+      "hr": "hr-3322",
+      "ch": "ch-255",
+      "fa": "fa-1211"
+    }
+  },
+  {
+    "id": "gen-maya",
+    "name": "Maya",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#865335",
+      "hairHex": "#3a2418",
+      "hair": "messy",
+      "shirt": "#b063c8",
+      "clothing": "vneck",
+      "accessory": "dropEarrings",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-679",
+      "ch": "ch-680",
+      "fa": "fa-1205"
+    }
+  },
+  {
+    "id": "gen-leon",
+    "name": "Leon",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "hair": "coily",
+      "shirt": "#22834b",
+      "clothing": "hoodie",
+      "accessory": "none",
+      "beard": true
+    },
+    "mappedTokens": {
+      "hr": "hr-3339",
+      "ch": "ch-3110",
+      "fa": "fa-1211"
+    }
+  },
+  {
+    "id": "gen-naomi",
+    "name": "Naomi",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#f4c9a6",
+      "hairHex": "#a8a8b0",
+      "hair": "cropped",
+      "shirt": "#73497e",
+      "clothing": "singlet",
+      "accessory": "flowerClip",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-125",
+      "ch": "ch-235",
+      "ha": "ha-3347"
+    }
+  },
+  {
+    "id": "gen-javier",
+    "name": "Javier",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#c88968",
+      "hairHex": "#3a2418",
+      "hair": "locs",
+      "shirt": "#ddba78",
+      "clothing": "jacket",
+      "accessory": "moustache",
+      "beard": true
+    },
+    "mappedTokens": {
+      "hr": "hr-3339",
+      "ch": "ch-3030",
+      "fa": "fa-1211"
+    }
+  },
+  {
+    "id": "gen-tiana",
+    "name": "Tiana",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#f4c9a6",
+      "hairHex": "#3a2418",
+      "hair": "bald",
+      "shirt": "#545454",
+      "clothing": "collared",
+      "accessory": "necklace",
+      "beard": false
+    },
+    "mappedTokens": {
+      "ch": "ch-690",
+      "fa": "fa-1210"
+    }
+  },
+  {
+    "id": "gen-diego",
+    "name": "Diego",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#c88968",
+      "hairHex": "#3a2418",
+      "hair": "curls",
+      "shirt": "#f6b334",
+      "clothing": "collared",
+      "accessory": "none",
+      "beard": true
+    },
+    "mappedTokens": {
+      "hr": "hr-889",
+      "ch": "ch-665",
+      "fa": "fa-1211"
+    }
+  },
+  {
+    "id": "gen-sophia",
+    "name": "Sophia",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#c88968",
+      "hairHex": "#c9973f",
+      "hair": "bob",
+      "shirt": "#000000",
+      "clothing": "collared",
+      "accessory": "studs",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-545",
+      "ch": "ch-665",
+      "fa": "fa-1201"
+    }
+  },
+  {
+    "id": "gen-zeke",
+    "name": "Zeke",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "hair": "locs",
+      "shirt": "#f1e4c5",
+      "clothing": "tee",
+      "accessory": "chain",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-3090",
+      "ch": "ch-665",
+      "fa": "fa-1210"
+    }
+  },
+  {
+    "id": "gen-meilin",
+    "name": "Meilin",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#c88968",
+      "hairHex": "#7a3b22",
+      "hair": "bald",
+      "shirt": "#e17fba",
+      "clothing": "tee",
+      "accessory": "roundGlasses",
+      "beard": false
+    },
+    "mappedTokens": {
+      "ch": "ch-215",
+      "ea": "ea-6331"
+    }
+  },
+  {
+    "id": "gen-gianni",
+    "name": "Gianni",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#c88968",
+      "hairHex": "#a8a8b0",
+      "hair": "cropped",
+      "shirt": "#6d5b43",
+      "clothing": "turtleneck",
+      "accessory": "none",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-596",
+      "ch": "ch-235"
+    }
+  },
+  {
+    "id": "gen-aisha",
+    "name": "Aisha",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#865335",
+      "hairHex": "#3a2418",
+      "hair": "bald",
+      "shirt": "#2a3c39",
+      "clothing": "jacket",
+      "accessory": "studs",
+      "beard": true
+    },
+    "mappedTokens": {
+      "ch": "ch-3321",
+      "fa": "fa-1211"
+    }
+  },
+  {
+    "id": "gen-lucas",
+    "name": "Lucas",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "hair": "curls",
+      "shirt": "#2a8b65",
+      "clothing": "collared",
+      "accessory": "roundGlasses",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-889",
+      "ch": "ch-665",
+      "ea": "ea-3318"
+    }
+  },
+  {
+    "id": "gen-stella",
+    "name": "Stella",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#cf8038",
+      "hairHex": "#d8639a",
+      "hair": "bob",
+      "shirt": "#2d2d36",
+      "clothing": "singlet",
+      "accessory": "squareGlasses",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-890",
+      "ch": "ch-235",
+      "ea": "ea-1404"
+    }
+  },
+  {
+    "id": "gen-jamal",
+    "name": "Jamal",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "hair": "cropped",
+      "shirt": "#ddc978",
+      "clothing": "hoodie",
+      "accessory": "beanie",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-515",
+      "ch": "ch-3109",
+      "ha": "ha-1005"
+    }
+  },
+  {
+    "id": "gen-olivia",
+    "name": "Olivia",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#f4c9a6",
+      "hairHex": "#a8a8b0",
+      "hair": "bald",
+      "shirt": "#63b7df",
+      "clothing": "bare",
+      "accessory": "hoops",
+      "beard": false
+    },
+    "mappedTokens": {
+      "ch": "ch-215",
+      "fa": "fa-1201"
+    }
+  },
+  {
+    "id": "gen-arjun",
+    "name": "Arjun",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "hair": "cropped",
+      "shirt": "#1d69a4",
+      "clothing": "collared",
+      "accessory": "squareGlasses",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-125",
+      "ch": "ch-665",
+      "ea": "ea-6332"
+    }
+  },
+  {
+    "id": "gen-matilda",
+    "name": "Matilda",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "hair": "curls",
+      "shirt": "#f7a51b",
+      "clothing": "overalls",
+      "accessory": "headband",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-889",
+      "ch": "ch-3110",
+      "ha": "ha-1009"
+    }
+  },
+  {
+    "id": "gen-niko",
+    "name": "Niko",
+    "sourceTraits": {
+      "pronouns": "they",
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "hair": "messy",
+      "shirt": "#1f1f22",
+      "clothing": "tee",
+      "accessory": "squareGlasses",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-3025",
+      "ch": "ch-255",
+      "ea": "ea-3388"
+    }
+  },
+  {
+    "id": "gen-celeste",
+    "name": "Celeste",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#ad704e",
+      "hairHex": "#c9973f",
+      "hair": "curls",
+      "shirt": "#0e78a8",
+      "clothing": "jacket",
+      "accessory": "headband",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-3377",
+      "ch": "ch-3030",
+      "ha": "ha-1013"
+    }
+  },
+  {
+    "id": "gen-ryan",
+    "name": "Ryan",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#efbd94",
+      "hairHex": "#1d1a17",
+      "hair": "cropped",
+      "shirt": "#3a8866",
+      "clothing": "tee",
+      "accessory": "scarf",
+      "beard": true
+    },
+    "mappedTokens": {
+      "hr": "hr-596",
+      "ch": "ch-215",
+      "fa": "fa-1211"
+    }
+  },
+  {
+    "id": "gen-amira",
+    "name": "Amira",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#ad704e",
+      "hairHex": "#5a3d28",
+      "hair": "longWaves",
+      "shirt": "#813fc0",
+      "clothing": "tee",
+      "accessory": "hoops",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-676",
+      "ch": "ch-665",
+      "fa": "fa-1201"
+    }
+  },
+  {
+    "id": "gen-eli",
+    "name": "Eli",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#efbd94",
+      "hairHex": "#c9973f",
+      "hair": "sidePart",
+      "shirt": "#9a6336",
+      "clothing": "collared",
+      "accessory": "roundGlasses",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-155",
+      "ch": "ch-210",
+      "ea": "ea-1406"
+    }
+  },
+  {
+    "id": "gen-sanaa",
+    "name": "Sanaa",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#5b341f",
+      "hairHex": "#1d1a17",
+      "hair": "coily",
+      "shirt": "#da7623",
+      "clothing": "tee",
+      "accessory": "headband",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-3090",
+      "ch": "ch-665",
+      "ha": "ha-1009"
+    }
+  },
+  {
+    "id": "gen-milo",
+    "name": "Milo",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#efbd94",
+      "hairHex": "#7a3b22",
+      "hair": "cropped",
+      "shirt": "#f4dfb7",
+      "clothing": "hoodie",
+      "accessory": "cap",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-515",
+      "ch": "ch-3109",
+      "ha": "ha-1002"
+    }
+  },
+  {
+    "id": "gen-lara",
+    "name": "Lara",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#c88968",
+      "hairHex": "#5a3d28",
+      "hair": "bob",
+      "shirt": "#15946e",
+      "clothing": "jacket",
+      "accessory": "necklace",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-890",
+      "ch": "ch-3342",
+      "fa": "fa-1204"
+    }
+  },
+  {
+    "id": "gen-bruno",
+    "name": "Bruno",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "hair": "curls",
+      "shirt": "#ffffff",
+      "clothing": "collared",
+      "accessory": "necklace",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-3322",
+      "ch": "ch-210",
+      "fa": "fa-1204"
+    }
+  },
+  {
+    "id": "gen-yara",
+    "name": "Yara",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#c88968",
+      "hairHex": "#a8a8b0",
+      "hair": "hijab",
+      "shirt": "#5c9a57",
+      "clothing": "tee",
+      "accessory": "beard",
+      "beard": true
+    },
+    "mappedTokens": {
+      "ha_from_hijab": "ha-1009",
+      "ch": "ch-215",
+      "fa": "fa-1211"
+    }
+  },
+  {
+    "id": "gen-asher",
+    "name": "Asher",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "hair": "messy",
+      "shirt": "#242426",
+      "clothing": "tee",
+      "accessory": "necklace",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-165",
+      "ch": "ch-665",
+      "fa": "fa-1208"
+    }
+  },
+  {
+    "id": "gen-elena",
+    "name": "Elena",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#c88968",
+      "hairHex": "#c9973f",
+      "hair": "messy",
+      "shirt": "#dfd8d8",
+      "clothing": "blazer",
+      "accessory": "hoops",
+      "beard": true
+    },
+    "mappedTokens": {
+      "hr": "hr-3025",
+      "ch": "ch-3321",
+      "fa": "fa-1211"
+    }
+  },
+  {
+    "id": "gen-kai",
+    "name": "Kai",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#efbd94",
+      "hairHex": "#1d1a17",
+      "hair": "cropped",
+      "shirt": "#0d66a5",
+      "clothing": "collared",
+      "accessory": "none",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-515",
+      "ch": "ch-690"
+    }
+  },
+  {
+    "id": "gen-lucy",
+    "name": "Lucy",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#efbd94",
+      "hairHex": "#5a3d28",
+      "hair": "bob",
+      "shirt": "#d84e40",
+      "clothing": "tee",
+      "accessory": "beret",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-890",
+      "ch": "ch-255",
+      "ha": "ha-1010"
+    }
+  },
+  {
+    "id": "gen-romeo",
+    "name": "Romeo",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#5b341f",
+      "hairHex": "#c9973f",
+      "hair": "cropped",
+      "shirt": "#276f37",
+      "clothing": "collared",
+      "accessory": "hoops",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-596",
+      "ch": "ch-210",
+      "fa": "fa-1206"
+    }
+  },
+  {
+    "id": "gen-adeline",
+    "name": "Adeline",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "hair": "bob",
+      "shirt": "#f1e4c5",
+      "clothing": "turtleneck",
+      "accessory": "roundGlasses",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-545",
+      "ch": "ch-3332",
+      "ea": "ea-3318"
+    }
+  },
+  {
+    "id": "gen-felix",
+    "name": "Felix",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#c88968",
+      "hairHex": "#c9973f",
+      "hair": "bald",
+      "shirt": "#f4c02e",
+      "clothing": "hoodie",
+      "accessory": "necklace",
+      "beard": false
+    },
+    "mappedTokens": {
+      "ch": "ch-3030",
+      "fa": "fa-1204"
+    }
+  },
+  {
+    "id": "gen-ines",
+    "name": "Ines",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "hair": "longWaves",
+      "shirt": "#ed78a9",
+      "clothing": "tee",
+      "accessory": "headband",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-681",
+      "ch": "ch-255",
+      "ha": "ha-1013"
+    }
+  },
+  {
+    "id": "gen-priya",
+    "name": "Priya",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#865335",
+      "hairHex": "#1d1a17",
+      "hair": "longWaves",
+      "shirt": "#7f42b5",
+      "clothing": "tee",
+      "accessory": "hoops",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-893",
+      "ch": "ch-665",
+      "fa": "fa-1206"
+    }
+  },
+  {
+    "id": "gen-hugo",
+    "name": "Hugo",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#efbd94",
+      "hairHex": "#5a3d28",
+      "hair": "curls",
+      "shirt": "#226aa0",
+      "clothing": "collared",
+      "accessory": "roundGlasses",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-3090",
+      "ch": "ch-267",
+      "ea": "ea-1406"
+    }
+  },
+  {
+    "id": "gen-noor",
+    "name": "Noor",
+    "sourceTraits": {
+      "pronouns": "she",
+      "skinHex": "#3f2417",
+      "hairHex": "#1d1a17",
+      "hair": "bald",
+      "shirt": "#5a7b69",
+      "clothing": "bare",
+      "accessory": "beard",
+      "beard": true
+    },
+    "mappedTokens": {
+      "ch": "ch-215",
+      "fa": "fa-1211"
+    }
+  },
+  {
+    "id": "gen-tyler",
+    "name": "Tyler",
+    "sourceTraits": {
+      "pronouns": "he",
+      "skinHex": "#efbd94",
+      "hairHex": "#3a2418",
+      "hair": "messy",
+      "shirt": "#282a2f",
+      "clothing": "jacket",
+      "accessory": "none",
+      "beard": false
+    },
+    "mappedTokens": {
+      "hr": "hr-679",
+      "ch": "ch-3342"
+    }
+  }
+]

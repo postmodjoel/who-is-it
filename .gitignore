@@ -4,3 +4,21 @@
 
 # macOS
 .DS_Store
+
+# test tooling
+node_modules/
+test-results/
+playwright-report/
+
+# Habbo audit + review workspace (~117MB) — NOT used at runtime.
+# The game loads its avatars from assets/habbo/avatars/, not from here.
+habbo_audit_mapping_ready/
+
+# Reference material / saved pages (not part of the game)
+Example/
+*.webarchive
+
+# Backups / scratch artifacts
+*.BACKUP*
+*.bak
+*.orig

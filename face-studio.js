@@ -23,7 +23,15 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   { group: "Face", key: "headScaleX", label: "Head Width", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
   { group: "Face", key: "headScaleY", label: "Head Height", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
   { group: "Face", key: "neckWidth", label: "Neck Width", min: 0.72, max: 1.38, step: 0.01, fallback: 1 },
+  { group: "Face", key: "neckTaper", label: "Neck Taper", min: -1, max: 1, step: 0.05, fallback: 0 },
   { group: "Face", key: "neckLength", label: "Neckline Height", min: -8, max: 16, step: 0.5, fallback: 0 },
+  { group: "Face", key: "neckOutline", label: "Neck Outline", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
+  { group: "Face", key: "neckOutlineWidth", label: "Neck Outline Width", min: 0.5, max: 3, step: 0.05, fallback: 1 },
+  { group: "Face", key: "neckTerminationY", label: "Neck Join Depth", min: -6, max: 12, step: 0.5, fallback: 0 },
+  { group: "Face Lines", key: "adamAppleStyle", label: "Adam's Apple", type: "select", options: () => [["off", "Off"], ["soft", "Soft"], ["line", "Line"], ["notch", "Notch"]], fallback: "off" },
+  { group: "Face Lines", key: "adamAppleScale", label: "Adam's Apple Size", min: 0.5, max: 1.8, step: 0.05, fallback: 1 },
+  { group: "Face Lines", key: "adamAppleOpacity", label: "Adam's Apple Opacity", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Face Lines", key: "adamAppleY", label: "Adam's Apple Y", min: -10, max: 10, step: 0.5, fallback: 0 },
   { group: "Face", key: "headTilt", label: "Head Tilt", min: -12, max: 12, step: 0.5, fallback: 0 },
   { group: "Face", key: "headY", label: "Head Position", min: -10, max: 10, step: 1, fallback: 0 },
   { group: "Face", key: "eyeGap", label: "Eye Gap", min: 40, max: 62, step: 1, fallback: 47 },
@@ -161,17 +169,6 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   { group: "Accessory", key: "accessoryScale", label: "Accessory Size", min: 0.68, max: 1.36, step: 0.02, fallback: 1 },
   { group: "Accessory", key: "accessoryRot", label: "Accessory Rotate", min: -45, max: 45, step: 1, fallback: 0 },
   { group: "Accessory", key: "accessoryLayer", label: "Accessory Layer", type: "select", options: () => [["auto", "Auto"], ["beforeHead", "Behind Head"], ["behindHair", "Behind Hair"], ["beforeMouth", "Before Mouth"], ["afterMouth", "Front"]], fallback: "auto" },
-  // Jewellery
-  { group: "Jewellery", key: "jewellery", label: "Jewellery", type: "select", options: () => selectOptions(traitBook.jewellery || ["none"]), fallback: "none" },
-  { group: "Jewellery", key: "jewellerySide", label: "Side", type: "select", options: () => [["both", "Both"], ["left", "Left"], ["right", "Right"]], fallback: "both" },
-  { group: "Jewellery", key: "jewelleryColor", label: "Colour", type: "color", fallback: "" },
-  { group: "Jewellery", key: "jewelleryColor2", label: "Second Colour", type: "color", fallback: "" },
-  { group: "Jewellery", key: "jewelleryMetal", label: "Metal", type: "select", options: () => [["", "Auto"], ["silver", "Silver"], ["gold", "Gold"], ["black", "Black"], ["roseGold", "Rose Gold"]], fallback: "" },
-  { group: "Jewellery", key: "jewelleryX", label: "Jewellery X", min: -24, max: 24, step: 1, fallback: 0 },
-  { group: "Jewellery", key: "jewelleryY", label: "Jewellery Y", min: -24, max: 24, step: 1, fallback: 0 },
-  { group: "Jewellery", key: "jewelleryScale", label: "Jewellery Size", min: 0.5, max: 1.8, step: 0.02, fallback: 1 },
-  { group: "Jewellery", key: "jewelleryRot", label: "Jewellery Rotate", min: -45, max: 45, step: 1, fallback: 0 },
-  { group: "Jewellery", key: "jewelleryLayer", label: "Jewellery Layer", type: "select", options: () => [["beforeHead", "Behind Head"], ["behindHair", "Behind Hair"], ["beforeMouth", "Before Mouth"], ["afterMouth", "Front"]], fallback: "behindHair" },
   // Beard
   { group: "Beard", key: "beardLength", label: "Beard Length", min: 0, max: 1, step: 0.02, fallback: 0.35 },
   { group: "Beard", key: "beardX", label: "Beard X", min: -18, max: 18, step: 1, fallback: 0 },
@@ -201,6 +198,14 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   { group: "Tattoo", key: "tattooOpacity", label: "Fade", min: 0, max: 1, step: 0.05, fallback: 1 },
   { group: "Tattoo", key: "tattooLayer", label: "Layer", type: "select", options: () => [["overClothes", "Over Clothes"], ["onSkin", "On Skin"]], fallback: "overClothes" }
 ];
+
+if (!editorFields.some((field) => field.key === "neckDebug")) {
+  editorFields.splice(
+    Math.max(0, editorFields.findIndex((field) => field.key === "headTilt")),
+    0,
+    { group: "Face", key: "neckDebug", label: "Neck Debug", type: "select", options: () => [["off", "Off"], ["fill", "Fill"], ["outline", "Outline"], ["all", "All"]], fallback: "off" }
+  );
+}
 
 const hotspots = [
   { label: "Face Shape", group: "Face", left: 2, top: 2, width: 18, height: 10 },
@@ -239,7 +244,7 @@ function savePenLocks(list) { localStorage.setItem(PEN_LOCK_KEY, JSON.stringify(
 
 const editorGroups = (sharedGroupOrder || [...new Set(editorFields.map((field) => field.group))])
   .filter((group, index, all) => all.indexOf(group) === index)
-  .filter((group) => editorFields.some((field) => field.group === group));
+  .filter((group) => editorFields.some((field) => field.group === group) || ["Tattoo", "Jewellery"].includes(group));
 
 const els = {
   expressionFilter: document.querySelector("#expressionFilter"),
@@ -594,6 +599,7 @@ function renderEditor(character) {
 
   const rows = editorFields
     .filter((field) => field.group === state.activeGroup)
+    .filter((field) => !(state.activeGroup === "Jewellery" && field.group === "Jewellery"))
     .filter((field) => !field.when || field.when({ ...character.traits, ...correction }))
     .map((field) => {
     const base = baseValueFor(character, field);
@@ -649,11 +655,13 @@ function renderEditor(character) {
   });
   const designer = state.activeGroup === "Hair" ? lockDesignerMarkup(character)
     : state.activeGroup === "Beard" ? beardDesignerMarkup(character)
-    : state.activeGroup === "Tattoo" ? tattooDesignerMarkup(character) : "";
+    : state.activeGroup === "Tattoo" ? tattooDesignerMarkup(character)
+    : state.activeGroup === "Jewellery" ? jewelleryDesignerMarkup(character) : "";
   els.editorControls.innerHTML = nav + `<div class="editor-active-group">${rows.join("")}${designer}</div>`;
   if (state.activeGroup === "Hair") wireLockDesigner(character);
   if (state.activeGroup === "Beard") wireBeardDesigner(character);
   if (state.activeGroup === "Tattoo") wireTattooDesigner(character);
+  if (state.activeGroup === "Jewellery") wireJewelleryDesigner(character);
   els.editorControls.querySelectorAll(".editor-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       state.activeGroup = tab.dataset.group;
@@ -816,8 +824,6 @@ function colorAutoFor(character, field) {
   if (field.key === "tattooColor") return character.traits.tattooColor || "#23232b";
   if (field.key === "accessoryColor") return character.traits.accessoryColor || character.traits.accent || "#171512";
   if (field.key === "eyelashColor") return character.traits.eyelashColor || "#1f2330";
-  if (field.key === "jewelleryColor") return character.traits.jewelleryColor || character.traits.accessoryColor || "#e2b84f";
-  if (field.key === "jewelleryColor2") return character.traits.jewelleryColor2 || "#ff9bb0";
   if (field.key === "eyeColor") return character.traits.eyeColor || "#5a3d28";
   if (field.key === "hairOutline") return character.traits.hairOutline || "#1f2330";
   return "#000000";
@@ -948,6 +954,153 @@ function tattooDefaults(character) {
   }
   if (Array.isArray(t.tattoos) && t.tattoos.length) return t.tattoos.map((item) => ({ ...item }));
   return [];
+}
+
+function jewelleryDefaults(character) {
+  const t = { ...character.traits, ...correctionFor(character.id) };
+  if (window.WhoEditorShared && window.WhoEditorShared.normalizeJewelleryList) {
+    return window.WhoEditorShared.normalizeJewelleryList(t);
+  }
+  if (Array.isArray(t.jewelleryItems) && t.jewelleryItems.length) return t.jewelleryItems.map((item) => ({ ...item }));
+  return [];
+}
+
+function setJewelleryList(character, items) {
+  const keep = items.filter((item) => item.type && item.type !== "none");
+  const next = { ...correctionFor(character.id) };
+  delete next.jewellery;
+  delete next.jewellerySide;
+  delete next.jewelleryColor;
+  delete next.jewelleryColor2;
+  delete next.jewelleryMetal;
+  delete next.jewelleryX;
+  delete next.jewelleryY;
+  delete next.jewelleryScale;
+  delete next.jewelleryRot;
+  delete next.jewelleryLayer;
+  delete next.jewelleryArcStart;
+  delete next.jewelleryArcVisible;
+  if (keep.length) next.jewelleryItems = keep;
+  else delete next.jewelleryItems;
+  setCorrection(character.id, next);
+  refreshPortrait(character);
+  renderCorrectionExport();
+}
+
+function jewelleryDesignerMarkup(character) {
+  const items = jewelleryDefaults(character);
+  const typeOptions = traitBook.jewellery || ["none"];
+  const sideOptions = [["both", "Both"], ["left", "Left"], ["right", "Right"]];
+  const layerOptions = [["beforeHead", "Behind Head"], ["behindHair", "Behind Hair"], ["beforeMouth", "Before Mouth"], ["afterMouth", "Front"]];
+  const metalOptions = [["", "Auto"], ["silver", "Silver"], ["gold", "Gold"], ["black", "Black"], ["roseGold", "Rose Gold"]];
+  const optionList = (options, selected) => options.map(([value, label]) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
+  const num = (idx, key, label, min, max, step, fallback) => {
+    const value = items[idx]?.[key] ?? fallback;
+    return `<label class="lock-num">${escapeHtml(label)}
+      <span class="lock-num-pair">
+        <input type="range" min="${min}" max="${max}" step="${step}" value="${escapeHtml(value)}" data-jewel-num="${idx}:${key}" data-pair="j:${idx}:${key}">
+        <input type="number" step="${step}" value="${escapeHtml(value)}" data-jewel-num="${idx}:${key}" data-pair="j:${idx}:${key}" aria-label="${escapeHtml(label)} value">
+      </span>
+      <span class="editor-value">${formatNumber(value)}</span>
+    </label>`;
+  };
+  const rows = items.map((item, idx) => `
+    <div class="lock-instance tattoo-instance" data-jewellery-index="${idx}">
+      <div class="lock-head">
+        <strong>Jewellery ${idx + 1}</strong>
+        <span>
+          <button type="button" class="mini-button" data-jewellery-up="${idx}" ${idx === 0 ? "disabled" : ""}>Up</button>
+          <button type="button" class="mini-button" data-jewellery-down="${idx}" ${idx === items.length - 1 ? "disabled" : ""}>Down</button>
+          <button type="button" class="mini-button" data-jewellery-remove="${idx}">Remove</button>
+        </span>
+      </div>
+      <label class="editor-control-inline"><span>Type</span><select data-jewellery-select="${idx}:type">${typeOptions.map((value) => `<option value="${escapeHtml(value)}" ${value === item.type ? "selected" : ""}>${escapeHtml(titleCase(value))}</option>`).join("")}</select></label>
+      <label class="editor-control-inline"><span>Side</span><select data-jewellery-select="${idx}:side">${optionList(sideOptions, item.side || "both")}</select></label>
+      <label class="editor-control-inline"><span>Layer</span><select data-jewellery-select="${idx}:layer">${optionList(layerOptions, item.layer || "behindHair")}</select></label>
+      <label class="editor-control-inline"><span>Metal</span><select data-jewellery-select="${idx}:metal">${optionList(metalOptions, item.metal || "")}</select></label>
+      <label class="editor-control-inline"><span>Colour</span><span class="mini-colorrow"><input id="jewel-color-${idx}" type="color" value="${escapeHtml(item.color || "#e2b84f")}" data-jewellery-color="${idx}:color">${miniSwatchButton(`jewel-color-${idx}`)}</span></label>
+      <label class="editor-control-inline"><span>Second Colour</span><span class="mini-colorrow"><input id="jewel-color2-${idx}" type="color" value="${escapeHtml(item.color2 || "#ff9bb0")}" data-jewellery-color="${idx}:color2">${miniSwatchButton(`jewel-color2-${idx}`)}</span></label>
+      ${num(idx, "x", "X", -120, 120, 1, 0)}
+      ${num(idx, "y", "Y", -120, 120, 1, 0)}
+      ${num(idx, "scale", "Size", 0.25, 2.4, 0.02, 1)}
+      ${num(idx, "rot", "Rotate", -180, 180, 1, 0)}
+      ${num(idx, "arcStart", "Arc Start", -180, 180, 1, 0)}
+      ${num(idx, "arcVisible", "Arc Visible", 0.08, 1, 0.02, 1)}
+    </div>
+  `).join("");
+  return `
+    <div class="lock-designer tattoo-designer">
+      <div class="lock-toolbar">
+        <button type="button" class="mini-button" data-jewellery-add>Add jewellery</button>
+        ${items.length ? `<button type="button" class="mini-button" data-jewellery-clear>Clear jewellery</button>` : ""}
+      </div>
+      ${rows || `<p class="editor-empty">No jewellery items yet.</p>`}
+    </div>`;
+}
+
+function wireJewelleryDesigner(character) {
+  const root = els.editorControls.querySelector(".tattoo-designer");
+  if (!root) return;
+  wireInlineSwatchButtons(root);
+  const withList = (fn) => {
+    const items = jewelleryDefaults(character);
+    fn(items);
+    setJewelleryList(character, items);
+    renderEditor(character);
+  };
+  root.querySelector("[data-jewellery-add]")?.addEventListener("click", () => withList((items) => {
+    items.push({ type: "studs", side: "both", color: "#e2b84f", color2: "#ff9bb0", metal: "", x: 0, y: 0, scale: 1, rot: 0, layer: "behindHair", arcStart: 0, arcVisible: 1 });
+  }));
+  root.querySelector("[data-jewellery-clear]")?.addEventListener("click", () => withList((items) => items.splice(0)));
+  root.querySelectorAll("[data-jewellery-remove]").forEach((btn) => btn.addEventListener("click", () => withList((items) => items.splice(Number(btn.dataset.jewelleryRemove), 1))));
+  root.querySelectorAll("[data-jewellery-up]").forEach((btn) => btn.addEventListener("click", () => withList((items) => {
+    const i = Number(btn.dataset.jewelleryUp);
+    if (i > 0) [items[i - 1], items[i]] = [items[i], items[i - 1]];
+  })));
+  root.querySelectorAll("[data-jewellery-down]").forEach((btn) => btn.addEventListener("click", () => withList((items) => {
+    const i = Number(btn.dataset.jewelleryDown);
+    if (i < items.length - 1) [items[i + 1], items[i]] = [items[i], items[i + 1]];
+  })));
+  root.querySelectorAll("[data-jewellery-select]").forEach((select) => select.addEventListener("change", () => {
+    const [idx, key] = select.dataset.jewellerySelect.split(":");
+    const items = jewelleryDefaults(character);
+    const item = items[Number(idx)];
+    if (!item) return;
+    item[key] = select.value;
+    setJewelleryList(character, items);
+  }));
+  root.querySelectorAll("[data-jewellery-color]").forEach((input) => input.addEventListener("input", () => {
+    const [idx, key] = input.dataset.jewelleryColor.split(":");
+    const items = jewelleryDefaults(character);
+    const item = items[Number(idx)];
+    if (!item) return;
+    item[key] = input.value;
+    setJewelleryList(character, items);
+  }));
+  root.querySelectorAll("[data-jewel-num]").forEach((input) => input.addEventListener("input", () => {
+    const [idx, key] = input.dataset.jewelNum.split(":");
+    const items = jewelleryDefaults(character);
+    const item = items[Number(idx)];
+    if (!item) return;
+    item[key] = Number(input.value);
+    if (input.dataset.pair) {
+      root.querySelectorAll(`[data-pair="${cssEscape(input.dataset.pair)}"]`).forEach((peer) => {
+        if (peer === input) return;
+        if (peer.type === "range") {
+          const min = Number(peer.min);
+          const max = Number(peer.max);
+          const val = Number(input.value);
+          if (Number.isFinite(val) && val >= min && val <= max) peer.value = input.value;
+        } else {
+          peer.value = input.value;
+        }
+      });
+    }
+    const wrap = input.closest(".lock-num");
+    const valueLabel = wrap && wrap.querySelector(".editor-value");
+    if (valueLabel) valueLabel.textContent = formatNumber(input.value);
+    setJewelleryList(character, items);
+  }));
 }
 
 function setTattooList(character, tattoos) {

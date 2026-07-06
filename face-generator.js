@@ -386,11 +386,23 @@
     },
     hoops: (traits = {}) => {
       const c = traits.accessoryColor || "#f6bd2f";
+      const arcVisible = Math.max(0.08, Math.min(1, Number(traits.accessoryArcVisible) || 1));
+      const arcStart = (Number(traits.accessoryArcStart) || 0) - 90;
+      const arc = (cx, cy, r) => {
+        const start = (arcStart * Math.PI) / 180;
+        const end = ((arcStart + arcVisible * 360) * Math.PI) / 180;
+        const large = arcVisible > 0.5 ? 1 : 0;
+        const sx = cx + Math.cos(start) * r;
+        const sy = cy + Math.sin(start) * r;
+        const ex = cx + Math.cos(end) * r;
+        const ey = cy + Math.sin(end) * r;
+        return `M${sx.toFixed(2)} ${sy.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+      };
       return `
-      <circle cx='60' cy='145' r='7.5' fill='none' stroke='#f6bd2f' stroke-width='3'/>
-      <circle cx='196' cy='145' r='7.5' fill='none' stroke='#f6bd2f' stroke-width='3'/>
+      <path d='${arc(60, 145, 7.5)}' fill='none' stroke='${c}' stroke-width='3' stroke-linecap='round'/>
+      <path d='${arc(196, 145, 7.5)}' fill='none' stroke='${c}' stroke-width='3' stroke-linecap='round'/>
       <path d='M60 137c2 1 3 2 4 4M196 137c-2 1-3 2-4 4' fill='none' stroke='rgba(255,255,255,.5)' stroke-width='1.6' stroke-linecap='round'/>
-    `.split("#f6bd2f").join(c);
+    `;
     },
     studs: (traits = {}) => {
       const c = traits.accessoryColor || "#ffd569";
@@ -422,7 +434,19 @@
     },
     ring: (traits = {}) => {
       const c = traits.accessoryColor || "#e2b84f";
-      return `<g transform='translate(128 232)'><ellipse cx='0' cy='0' rx='9' ry='6' fill='none' stroke='${c}' stroke-width='3'/><path d='M-5 -4q5 -5 10 0' fill='none' stroke='rgba(255,255,255,.55)' stroke-width='1.5' stroke-linecap='round'/></g>`;
+      const arcVisible = Math.max(0.08, Math.min(1, Number(traits.accessoryArcVisible) || 1));
+      const arcStart = (Number(traits.accessoryArcStart) || 0) - 90;
+      const ellipseArc = (rx, ry) => {
+        const start = (arcStart * Math.PI) / 180;
+        const end = ((arcStart + arcVisible * 360) * Math.PI) / 180;
+        const large = arcVisible > 0.5 ? 1 : 0;
+        const sx = Math.cos(start) * rx;
+        const sy = Math.sin(start) * ry;
+        const ex = Math.cos(end) * rx;
+        const ey = Math.sin(end) * ry;
+        return `M${sx.toFixed(2)} ${sy.toFixed(2)} A ${rx} ${ry} 0 ${large} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+      };
+      return `<g transform='translate(128 232)'><path d='${ellipseArc(9, 6)}' fill='none' stroke='${c}' stroke-width='3' stroke-linecap='round'/><path d='M-5 -4q5 -5 10 0' fill='none' stroke='rgba(255,255,255,.55)' stroke-width='1.5' stroke-linecap='round'/></g>`;
     },
     beard: (traits, faceShape) => {
       // Two distinct looks driven by one `beardLength` knob, both clipped to the real face silhouette
@@ -2767,6 +2791,13 @@
       }
       traits.accessory = "none";
     }
+    const shared = typeof window !== "undefined" ? window.WhoEditorShared : null;
+    if (shared && shared.normalizeJewelleryList) {
+      traits.jewelleryItems = shared.normalizeJewelleryList(traits);
+    } else if (!Array.isArray(traits.jewelleryItems)) {
+      traits.jewelleryItems = [];
+    }
+    if (traits.neckOutline == null || traits.neckOutline === "") traits.neckOutline = "on";
     return traits;
   }
 
@@ -2807,10 +2838,11 @@
         </defs>
         ${traits.headOnly ? "" : `<rect width='256' height='256' fill='${traits.background}'/>`}
         ${animCSS(traits, seed)}
-        ${traits.headOnly ? "" : renderNeckBase(traits, skin)}
+        ${traits.headOnly ? "" : renderNeckBase(traits, skin, "fill")}
         ${bodyTattooBeforeClothes}
         ${traits.headOnly ? "" : renderClothing(outfit, traits, seed)}
         ${bodyTattooAfterClothes}
+        ${traits.headOnly ? "" : renderNeckBase(traits, skin, "lines")}
         ${traits.headOnly ? "" : renderCollar(traits)}
         ${traits.headOnly ? "" : renderTattoo(traits, "body", "overClothes")}
         ${traits.headOnly ? "" : (accessorySvg.beforeHead || "")}
@@ -3229,16 +3261,20 @@
       const x0 = 128 + s * (sh * 0.62), x1 = 128 + s * (sh * 0.98);
       return `<path d='M${(x0).toFixed(1)} 214 C ${(x0 + s * 8).toFixed(1)} 226 ${(x1 - s * 4).toFixed(1)} 234 ${(x1).toFixed(1)} 252' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.5'/>`;
     };
-    const sleeves = garment.bare ? "" : seam(-1) + seam(1);
+    const seamFriendly = new Set(["blazer", "jacket"]);
+    const seamOpacity = seamFriendly.has(traits.clothing) ? 0.18 : 0;
+    const sleeves = garment.bare || !seamOpacity ? "" : `<g opacity='${seamOpacity}'>${seam(-1)}${seam(1)}</g>`;
+    const bustFriendly = new Set(["bare", "singlet"]);
+    const bustSvg = bustFriendly.has(traits.clothing) ? renderBust(traits, sh, shadeColor(fill, 0.78), garment.bare) : "";
+    const chestArcOpacity = garment.bare ? ".1" : (traits.clothing === "singlet" ? ".12" : "0");
     const bodyShell = `
-      <path d='${shoulderPath(traits)}' fill='${fill}'/>
+      <path d='${shoulderFillPath(traits)}' fill='${fill}'/>
       <path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>
     `;
-    const neckArcOpacity = garment.bare ? ".14" : ".38";
     const body = `
       ${bodyShell}
-      ${renderBust(traits, sh, shadeColor(fill, 0.78), garment.bare)}
-      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.whisper}' stroke-linecap='round' opacity='${neckArcOpacity}'/>
+      ${bustSvg}
+      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.whisper}' stroke-linecap='round' opacity='${chestArcOpacity}'/>
       ${sleeves}
       ${traits.clothing === "singlet" ? renderSinglet(traits, c, sh) : ""}
     `;
@@ -3276,9 +3312,9 @@
     const sh = Number(traits.build) || 82;
     const arc = `M${(128 - sh * 0.5).toFixed(1)} 248C${(128 - sh * 0.3).toFixed(1)} 228 ${(128 - sh * 0.14).toFixed(1)} 220 128 220C${(128 + sh * 0.14).toFixed(1)} 220 ${(128 + sh * 0.3).toFixed(1)} 228 ${(128 + sh * 0.5).toFixed(1)} 248`;
     return `
-      <path d='${shoulderPath(traits)}' fill='${fill}'/>
+      <path d='${shoulderFillPath(traits)}' fill='${fill}'/>
       <path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>
-      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.34'/>
+      <path d='${arc}' fill='none' stroke='${lo}' stroke-width='${stroke.detail}' stroke-linecap='round' opacity='.18'/>
       ${extra}
     `;
   }
@@ -3366,14 +3402,14 @@
     const lo = shadeColor(outer, 0.76);
     const hi = shadeColor(outer, 1.12);
     const body = `
-      <path d='${shoulderPath(traits)}' fill='${under}'/>
+      <path d='${shoulderFillPath(traits)}' fill='${under}'/>
       <path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>
     `;
     const openCentreTop = y + 16;
     const openCentre = `<path d='M108 ${openCentreTop}C116 ${openCentreTop + 7} 122 ${openCentreTop + 19} 128 241C134 ${openCentreTop + 19} 140 ${openCentreTop + 7} 148 ${openCentreTop}L139 256H117Z' fill='${under}'/>`;
     const fullCoverage = new Set(["flannel", "denim", "varsity", "bomber", "cardigan", "labCoat", "raincoat", "leather"]);
     const layerShell = fullCoverage.has(style)
-      ? `<path d='${shoulderPath(traits)}' fill='${outer}'/><path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>${openCentre}`
+      ? `<path d='${shoulderFillPath(traits)}' fill='${outer}'/><path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>${openCentre}`
       : "";
     const details = renderLayerDetails(style, traits, outer, under, accent, lo, hi);
     const neck = renderLayerNeck(style, traits, outer, under, accent, lo, hi);
@@ -3603,6 +3639,43 @@
       + ` C ${(tr - r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${nr + 7} ${dropY} ${nr} ${neckY} Z`;
   }
 
+  function shoulderFillPath(traits) {
+    const sh = Math.max(60, Math.min(104, Number(traits.build) || 82));
+    const slope = traits.shoulderSlope != null
+      ? Math.max(0, Math.min(1, Number(traits.shoulderSlope)))
+      : Math.max(0.18, Math.min(0.9, 0.92 - (sh - 68) / 42));
+    const neckShift = neckAnchorOffset(traits);
+    const neckWidth = Math.max(0.72, Math.min(1.38, Number(traits.neckWidth) || 1));
+    const neckHalf = (sh < 76 ? 24 : 26) * neckWidth;
+    const neckY = 202 + neckShift;
+    const tipY = 207 + slope * 20 + neckShift;
+    const botHalf = sh * (Number(traits.bodyWidth) || 1);
+    const r = 7 + slope * 4;
+    const nl = 128 - neckHalf, nr = 128 + neckHalf;
+    const tl = 128 - sh, tr = 128 + sh;
+    const bl = 128 - botHalf, br = 128 + botHalf;
+    const belly = Math.max(0, Math.min(1, Number(traits.belly) || 0)) * 18;
+    const dropY = neckY + 4 + slope * 7;
+    const garment = clothing[traits.clothing] || clothing.tee;
+    const collarStyle = garment.collar || "crew";
+    const terminationOffset = Math.max(-6, Math.min(12, Number(traits.neckTerminationY) || 0));
+    const chestDip = garment.bare
+      ? 10 + terminationOffset * 0.75
+      : collarStyle === "vneck"
+        ? 8 + terminationOffset * 0.55
+        : collarStyle === "crew"
+          ? 5 + terminationOffset * 0.35
+          : 2 + Math.max(0, terminationOffset) * 0.2;
+    const topCurveY = Math.max(neckY + 1.5, neckY + chestDip);
+    return `M${nl} ${neckY}`
+      + ` C ${nl - 7} ${dropY} ${(tl + r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${tl} ${tipY.toFixed(1)}`
+      + ` C ${(tl - r + 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${(bl - 1 - belly).toFixed(1)} ${(tipY + 13).toFixed(1)} ${(bl - belly * 0.8).toFixed(1)} 256`
+      + ` L ${(br + belly * 0.8).toFixed(1)} 256`
+      + ` C ${(br + 1 + belly).toFixed(1)} ${(tipY + 13).toFixed(1)} ${(tr + r - 2).toFixed(1)} ${(tipY + r).toFixed(1)} ${tr} ${tipY.toFixed(1)}`
+      + ` C ${(tr - r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${nr + 7} ${dropY} ${nr} ${neckY}`
+      + ` Q 128 ${topCurveY.toFixed(1)} ${nl} ${neckY} Z`;
+  }
+
   function shoulderOuterStrokePath(traits) {
     const sh = Math.max(60, Math.min(104, Number(traits.build) || 82));
     const slope = traits.shoulderSlope != null
@@ -3642,40 +3715,118 @@
     return 189 + (Number(traits.neckLength) || 0) + neckAnchorOffset(traits);
   }
 
-  function renderNeckBase(traits, skin) {
-    // The neck lives behind the head and merges into the torso/collar. Keep its outline soft: hard
-    // black side/bottom strokes read like a separate pasted-on rectangle, especially with chokers.
+  function renderNeckBase(traits, skin, mode = "all") {
+    const f = (value) => Number(value).toFixed(1);
     const top = 150 + neckAnchorOffset(traits);
     const y = necklineY(traits);
+    const neckShift = neckAnchorOffset(traits);
     const width = Math.max(0.72, Math.min(1.38, Number(traits.neckWidth) || 1));
-    const left = 128 - 20 * width;
-    const right = 128 + 20 * width;
-    const innerLeft = 128 - 13 * width;
-    const innerRight = 128 + 13 * width;
-    const side = shadeColor(skin, 0.82);
-    const jaw = shadeColor(skin, 0.74);
+    const neckTaper = Math.max(-1, Math.min(1, Number(traits.neckTaper) || 0));
+    const topHalf = 20 * width;
+    const sh = Math.max(60, Math.min(104, Number(traits.build) || 82));
+    const shoulderNeckHalf = (sh < 76 ? 24 : 26) * width;
+    const joinNarrowing = 1 - neckTaper * 0.26;
+    const neckJoinHalf = Math.max(topHalf * 0.82, shoulderNeckHalf * joinNarrowing);
+    const shoulderJoinY = 202 + neckShift;
+    const terminationOffset = Math.max(-6, Math.min(12, Number(traits.neckTerminationY) || 0));
+    const garment = clothing[traits.clothing] || clothing.tee;
+    const collarStyle = garment.collar || "crew";
+    const neckOutlineOn = traits.neckOutline !== "off";
+    const neckOutlineWidth = Math.max(0.5, Math.min(3, Number(traits.neckOutlineWidth) || 1));
+    const debug = traits.neckDebug || "off";
+    const debugFill = debug === "fill" || debug === "all";
+    const debugOutline = debug === "outline" || debug === "all";
+    const debugAll = debug === "all";
     const neckwear = new Set(["choker", "necklace", "chain", "scarf", "bow"]);
-    const hasNeckwear = neckwear.has(traits.accessory) || neckwear.has(traits.jewellery);
-    // Bare/singlet: the neck merges straight into the chest - no crew-neckline curve (that bottom
-    // stroke read as a choker/necklace under the neck). Fill a soft bridge down into the body and
-    // use low-contrast modelling lines instead of ink outlines.
-    if ((clothing[traits.clothing] || {}).bare) {
-      const fill = `M${left.toFixed(1)} ${top} C${(left + 1).toFixed(1)} ${top + 22} ${(left + 3).toFixed(1)} ${y - 8} ${(left - 8).toFixed(1)} ${y + 18} C${(left - 1).toFixed(1)} ${y + 24} ${(128 - 12 * width).toFixed(1)} ${y + 27} 128 ${y + 26} C${(128 + 12 * width).toFixed(1)} ${y + 27} ${(right + 1).toFixed(1)} ${y + 24} ${(right + 8).toFixed(1)} ${y + 18} C${(right - 3).toFixed(1)} ${y - 8} ${(right - 1).toFixed(1)} ${top + 22} ${right.toFixed(1)} ${top} Z`;
-      const sideOpacity = hasNeckwear ? ".08" : ".16";
-      const arcOpacity = hasNeckwear ? ".04" : ".1";
-      return `
-        <path d='${fill}' fill='${skin}'/>
-        <path d='M${(left + 3).toFixed(1)} ${top + 10} C${(left + 4).toFixed(1)} ${top + 28} ${(left + 1).toFixed(1)} ${y - 3} ${(left - 6).toFixed(1)} ${y + 13}' fill='none' stroke='${side}' stroke-width='1.3' stroke-linecap='round' opacity='${sideOpacity}'/>
-        <path d='M${(right - 3).toFixed(1)} ${top + 10} C${(right - 4).toFixed(1)} ${top + 28} ${(right - 1).toFixed(1)} ${y - 3} ${(right + 6).toFixed(1)} ${y + 13}' fill='none' stroke='${side}' stroke-width='1.3' stroke-linecap='round' opacity='${sideOpacity}'/>
-        <path d='M${(innerLeft - 8).toFixed(1)} ${y - 8} Q128 ${y - 1} ${(innerRight + 8).toFixed(1)} ${y - 8}' fill='none' stroke='${jaw}' stroke-width='1.7' stroke-linecap='round' opacity='${arcOpacity}'/>
-      `;
-    }
-    const d = `M${left.toFixed(1)} ${top} C${left.toFixed(1)} ${top + 20} ${(innerLeft - 2).toFixed(1)} ${y - 5} ${innerLeft.toFixed(1)} ${y + 3} C${(innerLeft + 2).toFixed(1)} ${y + 9} ${(128 - 6 * width).toFixed(1)} ${y + 12} 128 ${y + 12} C${(128 + 6 * width).toFixed(1)} ${y + 12} ${(innerRight - 2).toFixed(1)} ${y + 9} ${innerRight.toFixed(1)} ${y + 3} C${(innerRight + 2).toFixed(1)} ${y - 5} ${right.toFixed(1)} ${top + 20} ${right.toFixed(1)} ${top} Z`;
-    return `
-      <path d='${d}' fill='${skin}'/>
-      <path d='M${(innerLeft - 2).toFixed(1)} ${top + 8} C${(innerLeft - 1).toFixed(1)} ${top + 28} ${innerLeft.toFixed(1)} ${y - 4} ${(128 - 7 * width).toFixed(1)} ${y + 2}' fill='none' stroke='${side}' stroke-width='1.5' stroke-linecap='round' opacity='.22'/>
-      <path d='M${(innerRight + 2).toFixed(1)} ${top + 8} C${(innerRight + 1).toFixed(1)} ${top + 28} ${innerRight.toFixed(1)} ${y - 4} ${(128 + 7 * width).toFixed(1)} ${y + 2}' fill='none' stroke='${side}' stroke-width='1.5' stroke-linecap='round' opacity='.22'/>
-    `;
+    const jewelleryItems = Array.isArray(traits.jewelleryItems) ? traits.jewelleryItems : [];
+    const hasNeckwear = neckwear.has(traits.accessory) || jewelleryItems.some((item) => neckwear.has(item.type));
+    const faceLineMaster = (traits.faceLineOpacity != null && traits.faceLineOpacity !== "") ? Number(traits.faceLineOpacity) : 1;
+
+    const topLeft = 128 - topHalf;
+    const topRight = 128 + topHalf;
+    const joinLeft = 128 - neckJoinHalf;
+    const joinRight = 128 + neckJoinHalf;
+    const joinDepth = garment.bare ? 3 : (collarStyle === "crew" ? 2 : collarStyle === "vneck" ? 0 : -1);
+    const joinY = shoulderJoinY + joinDepth + terminationOffset;
+    const edgePull = garment.bare ? 0.42 : 0.32;
+
+    const neckShape = [
+      `M${f(topLeft)} ${f(top)}`,
+      `C${f(topLeft + 1)} ${f(top + 24)} ${f(joinLeft - 5)} ${f(joinY - 18)} ${f(joinLeft)} ${f(joinY)}`,
+      `C${f(joinLeft + (128 - joinLeft) * edgePull)} ${f(joinY + 7)} ${f(joinRight - (joinRight - 128) * edgePull)} ${f(joinY + 7)} ${f(joinRight)} ${f(joinY)}`,
+      `C${f(joinRight + 5)} ${f(joinY - 18)} ${f(topRight - 1)} ${f(top + 24)} ${f(topRight)} ${f(top)}`,
+      "Z"
+    ].join(" ");
+
+    const openCollar = new Set(["crew", "vneck"]);
+    const collarOwnsJoin = !garment.bare && !openCollar.has(collarStyle);
+    const sideVisibleY = collarOwnsJoin ? Math.min(joinY, y - 16) : joinY;
+    const sideVisibleHalf = collarOwnsJoin
+      ? Math.max(13 * width, neckJoinHalf - 6)
+      : neckJoinHalf;
+    const contourTail = collarOwnsJoin
+      ? 0
+      : Math.max(0, (garment.bare ? 7 : (collarStyle === "vneck" ? 5 : 4)) + terminationOffset * 0.45);
+    const modelTail = collarOwnsJoin
+      ? 0
+      : Math.max(0, (garment.bare ? 5 : 3)) + Math.max(0, terminationOffset) * 0.3;
+    const visibleSidePath = (side) => {
+      const sign = side === "left" ? -1 : 1;
+      const lowerHalf = Math.max(topHalf * 0.74, sideVisibleHalf - (garment.bare ? 1.6 : 0.8));
+      const controlHalf = Math.max(topHalf * 0.78, sideVisibleHalf - (garment.bare ? 0.9 : 0.4));
+      return `M${f(128 + sign * topHalf)} ${f(top + 3)} C${f(128 + sign * topHalf)} ${f(top + 22)} ${f(128 + sign * (sideVisibleHalf + 4))} ${f(sideVisibleY - 15)} ${f(128 + sign * sideVisibleHalf)} ${f(sideVisibleY)}`
+        + (contourTail > 0
+          ? ` Q${f(128 + sign * controlHalf)} ${f(sideVisibleY + contourTail * 0.48)} ${f(128 + sign * lowerHalf)} ${f(sideVisibleY + contourTail)}`
+          : "");
+    };
+    const modelSidePath = (side) => {
+      const sign = side === "left" ? -1 : 1;
+      const lowerHalf = Math.max(topHalf * 0.8, neckJoinHalf - (garment.bare ? 0.9 : 0.35));
+      const controlHalf = Math.max(topHalf * 0.84, neckJoinHalf - (garment.bare ? 0.45 : 0.15));
+      return `M${f(128 + sign * topHalf)} ${f(top + 3)} C${f(128 + sign * topHalf)} ${f(top + 24)} ${f(128 + sign * (neckJoinHalf + 5))} ${f(joinY - 18)} ${f(128 + sign * neckJoinHalf)} ${f(joinY)}`
+        + (modelTail > 0
+          ? ` Q${f(128 + sign * controlHalf)} ${f(joinY + modelTail * 0.5)} ${f(128 + sign * lowerHalf)} ${f(joinY + modelTail)}`
+          : "");
+    };
+
+    const contourStroke = f((garment.bare ? 2.1 : 2.25) * neckOutlineWidth);
+    const modelStroke = f((garment.bare ? 1.25 : 1.4) * neckOutlineWidth);
+    const neckFill = debugFill ? "rgba(255,0,200,.62)" : skin;
+    const contour = debugOutline ? "#00e5ff" : ink;
+    const model = debugAll ? "#ffe14a" : shadeColor(skin, 0.82);
+    const modelOpacity = debugAll ? ".95" : (hasNeckwear ? ".06" : ".16");
+    const centerModelOpacity = debugAll ? ".95" : (hasNeckwear ? ".03" : ".08");
+    const centerY = garment.bare ? Math.min(joinY - 8, y + 16) : Math.min(sideVisibleY + 5, y + 6);
+    const centerHalf = Math.max(12, (sideVisibleHalf - 5));
+    const adamStyle = traits.adamAppleStyle || "off";
+    const adamScale = Math.max(0.5, Math.min(1.8, Number(traits.adamAppleScale) || 1));
+    const adamOpacity = Math.max(0, Math.min(1, Number(traits.adamAppleOpacity) || 0));
+    const adamY = Number(traits.adamAppleY) || 0;
+    const adamAllowed = adamStyle !== "off" && adamOpacity > 0.01 && !collarOwnsJoin;
+    const adamLine = debugAll ? "#ff8a00" : shadeColor(skin, 0.7);
+    const adamShadow = debugAll ? "#8f00ff" : shadeColor(skin, 0.82);
+    const adamBaseY = Math.max(top + 20, Math.min(joinY - 10, top + 38 + adamY));
+    const adamHalf = 6.5 * adamScale;
+    const adamArc = `<path d='M${f(128 - adamHalf)} ${f(adamBaseY)} Q128 ${f(adamBaseY + 4.8 * adamScale)} ${f(128 + adamHalf)} ${f(adamBaseY)}' fill='none' stroke='${adamLine}' stroke-width='${f((1.1 + adamScale * 0.45) * neckOutlineWidth)}' stroke-linecap='round' opacity='${f(Math.min(0.9, (0.14 + 0.52 * adamOpacity) * faceLineMaster))}' data-neck-part='adam-arc'/>`;
+    const adamCenter = `<path d='M128 ${f(adamBaseY - 1.6 * adamScale)} Q128 ${f(adamBaseY + 2.2 * adamScale)} 128 ${f(adamBaseY + 5.8 * adamScale)}' fill='none' stroke='${adamShadow}' stroke-width='${f((0.8 + adamScale * 0.3) * neckOutlineWidth)}' stroke-linecap='round' opacity='${f(Math.min(0.85, (0.08 + 0.42 * adamOpacity) * faceLineMaster))}' data-neck-part='adam-center'/>`;
+    const adamAppleSvg = !adamAllowed ? "" : (
+      adamStyle === "soft"
+        ? adamArc
+        : adamStyle === "line"
+          ? `${adamCenter}`
+          : `${adamArc}${adamCenter}`
+    );
+
+    const fillSvg = `<path d='${neckShape}' fill='${neckFill}' data-neck-part='fill'/>`;
+    const lineSvg = `${neckOutlineOn ? `<path d='${visibleSidePath("left")}' fill='none' stroke='${contour}' stroke-width='${contourStroke}' stroke-linecap='round' stroke-linejoin='round' data-neck-part='left-contour'/>
+      <path d='${visibleSidePath("right")}' fill='none' stroke='${contour}' stroke-width='${contourStroke}' stroke-linecap='round' stroke-linejoin='round' data-neck-part='right-contour'/>
+      <path d='${modelSidePath("left")}' fill='none' stroke='${model}' stroke-width='${modelStroke}' stroke-linecap='round' opacity='${modelOpacity}' data-neck-part='left-model'/>
+      <path d='${modelSidePath("right")}' fill='none' stroke='${model}' stroke-width='${modelStroke}' stroke-linecap='round' opacity='${modelOpacity}' data-neck-part='right-model'/>
+      <path d='M${f(128 - centerHalf)} ${f(centerY)} Q128 ${f(centerY + 6)} ${f(128 + centerHalf)} ${f(centerY)}' fill='none' stroke='${debugAll ? "#50ff5c" : shadeColor(skin, 0.74)}' stroke-width='${f(1.5 * neckOutlineWidth)}' stroke-linecap='round' opacity='${centerModelOpacity}' data-neck-part='center-model'/>` : ""}
+      ${adamAppleSvg}`;
+    if (mode === "fill") return fillSvg;
+    if (mode === "lines") return lineSvg;
+    return `${fillSvg}${lineSvg}`;
   }
 
   // The cut neck left behind in Fireworks Mode (when the head has popped off). A skin-rimmed wound
@@ -4930,25 +5081,34 @@
   }
 
   function renderJewellery(traits, faceShape) {
-    const jewel = traits.jewellery || "none";
-    if (!jewel || jewel === "none") return { beforeMouth: "", afterMouth: "" };
-    const render = accessories[jewel] || accessories.none;
-    const jewelTraits = {
-      ...traits,
-      accessory: jewel,
-      accessoryColor: traits.jewelleryColor || traits.accessoryColor,
-      accessoryMetal: traits.jewelleryMetal || traits.accessoryMetal,
-      accessoryX: traits.jewelleryX,
-      accessoryY: traits.jewelleryY,
-      accessoryScale: traits.jewelleryScale,
-      accessoryRot: traits.jewelleryRot
-    };
-    let output = tintAccessory(render(jewelTraits, faceShape), jewelTraits);
-    output = filterJewellerySide(output, traits.jewellerySide || "both", jewel);
-    const transformed = transformAccessory(output, jewelTraits, "accessory");
-    const earrings = ["hoops", "studs", "dropEarrings"].includes(jewel);
-    const layer = traits.jewelleryLayer || (earrings ? "behindHair" : "afterMouth");
-    return layerBucket(layer, transformed);
+    const items = Array.isArray(traits.jewelleryItems) ? traits.jewelleryItems.filter((item) => item && item.type && item.type !== "none") : [];
+    if (!items.length) return { beforeHead: "", behindHair: "", beforeMouth: "", afterMouth: "" };
+    const buckets = { beforeHead: "", behindHair: "", beforeMouth: "", afterMouth: "" };
+    items.forEach((item) => {
+      const jewel = item.type || "none";
+      const render = accessories[jewel] || accessories.none;
+      const jewelTraits = {
+        ...traits,
+        accessory: jewel,
+        accessoryColor: item.color || traits.accessoryColor,
+        accessoryColor2: item.color2 || traits.jewelleryColor2 || traits.accessoryColor2,
+        accessoryMetal: item.metal || traits.accessoryMetal,
+        accessoryX: item.x,
+        accessoryY: item.y,
+        accessoryScale: item.scale,
+        accessoryRot: item.rot,
+        accessoryArcStart: item.arcStart,
+        accessoryArcVisible: item.arcVisible
+      };
+      let output = tintAccessory(render(jewelTraits, faceShape), jewelTraits);
+      output = filterJewellerySide(output, item.side || "both", jewel);
+      const transformed = transformAccessory(output, jewelTraits, "accessory");
+      const earrings = ["hoops", "studs", "dropEarrings"].includes(jewel);
+      const layer = item.layer || (earrings ? "behindHair" : "afterMouth");
+      const bucketed = layerBucket(layer, transformed);
+      Object.keys(buckets).forEach((key) => { buckets[key] += bucketed[key] || ""; });
+    });
+    return buckets;
   }
 
   function filterJewellerySide(svg, side, jewel) {

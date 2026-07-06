@@ -5628,6 +5628,20 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   color: #fffdf7; font-weight: 800; letter-spacing: 0.03em; font-size: 0.78rem; cursor: pointer;
 }
 .ts-toggle input { width: 40px; height: 22px; accent-color: #ffbe0b; }
+/* Single audio button: sound + music together, the whole thing toggles on/off. */
+.ts-audio {
+  width: min(320px, 82vw); box-sizing: border-box; margin-top: 2px;
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 10px 16px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06); border: 2px solid rgba(255, 255, 255, 0.2);
+  color: #fffdf7; font: 900 0.86rem "Archivo", sans-serif; letter-spacing: 0.04em; cursor: pointer;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+.ts-audio:hover { background: rgba(255, 255, 255, 0.12); }
+.ts-audio:not(.on) { opacity: 0.72; }
+.ts-audio-ico { font-size: 1.05rem; letter-spacing: 0.12em; }
+.ts-audio b { padding: 2px 9px; border-radius: 6px; background: #b3261e; color: #fffdf7; font-size: 0.74rem; }
+.ts-audio.on b { background: #178a47; }
 .setup-room-code {
   display: inline-flex;
   align-items: center;
@@ -7093,3 +7107,31 @@ body:not(.observer) #observerBar { display: none; }
 .ob-chip.ob-mode { background: #ffbe0b; color: #1a1a1a; border-color: #ffbe0b; }
 .ob-chip.ob-loc { background: rgba(58, 134, 255, 0.22); border-color: rgba(122, 170, 255, 0.5); }
 .observer-wait .obw-hint { margin-top: 10px; font-size: 1.05rem; font-weight: 700; color: rgba(255, 255, 255, 0.72); }
+
+/* ===== Desktop rail is a solid DARK bar now. LinkedIn / Neighbourhood-Watch used to paint the whole
+   panel white (built for the old boxed rail), which turned the white question text invisible. Keep
+   their BOARD/feed theming but restore the standard dark rail + readable text at the top. ===== */
+@media (min-width: 861px) {
+  body.mode-linkedin .side-panel,
+  body.mode-neighbourhood-watch .side-panel,
+  body.mode-neighbourhood .side-panel,
+  body.mode-nw .side-panel {
+    background: #12141c;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  }
+  body.mode-linkedin .cue-card,
+  body.mode-neighbourhood-watch .cue-card,
+  body.mode-neighbourhood .cue-card,
+  body.mode-nw .cue-card {
+    background: none;
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
+  body.mode-linkedin .question-prompt,
+  body.mode-neighbourhood-watch .question-prompt,
+  body.mode-neighbourhood .question-prompt,
+  body.mode-nw .question-prompt { color: #fff; }
+}

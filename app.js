@@ -2437,15 +2437,11 @@ function boardSizeMarkup() {
   const pills = [18, 24, 30].map((n) => `<button type="button" class="ts-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
   return `<div class="ts-set-row"><span>Board size</span><span class="ts-size-pills">${pills}</span></div>`;
 }
-// Sound + music sit as toggles at the very bottom of the setup step.
-function soundTogglesMarkup() {
+// One audio button (sound FX + music together) - the whole thing toggles on/off.
+function audioToggleMarkup() {
   const S = window.Sound;
-  const soundOn = S ? S.isEnabled() : true;
-  const musicOn = S ? S.isMusicOn() : false;
-  return `<div class="ts-toggles">
-    <label class="ts-toggle"><span>🔊 Sound</span><input type="checkbox" class="ts-sound" ${soundOn ? "checked" : ""}></label>
-    <label class="ts-toggle"><span>🎵 Music</span><input type="checkbox" class="ts-music" ${musicOn ? "checked" : ""}></label>
-  </div>`;
+  const on = S ? S.isEnabled() : true;
+  return `<button type="button" class="ts-audio ${on ? "on" : ""}" aria-pressed="${on}"><span class="ts-audio-ico">🔊 🎵</span><b>${on ? "ON" : "OFF"}</b></button>`;
 }
 function showTitleScreen() {
   const saved = loadGameSave();
@@ -2479,17 +2475,15 @@ function showTitleScreen() {
           <button type="button" class="button ghost ts-back">← Back</button>
           <button type="button" class="button primary ts-names-go">BEGIN</button>
         </div>
-        ${soundTogglesMarkup()}
+        ${audioToggleMarkup()}
       </div>
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
-        ${pgToggleMarkup()}
-        ${boardSizeMarkup()}
-        <button type="button" class="button primary ts-host">🎪 HOST A ROOM</button>
+        <button type="button" class="button primary ts-host">🏠 HOST A ROOM</button>
         <button type="button" class="button secondary ts-showjoin">🔑 JOIN A ROOM</button>
         <button type="button" class="button ghost ts-observe">📺 DISPLAY ON A TV</button>
         <button type="button" class="button ghost ts-back">← Back</button>
-        ${soundTogglesMarkup()}
+        ${audioToggleMarkup()}
       </div>
       <div class="ts-step ts-step-join" hidden>
         <p class="ts-join-label">Enter your friend's room number</p>
@@ -2523,17 +2517,12 @@ function showTitleScreen() {
     ov.querySelectorAll(".ts-size").forEach((x) => x.classList.toggle("on", Number(x.dataset.n) === n));
     sfx("blip");
   }));
-  ov.querySelectorAll(".ts-sound").forEach((box) => box.addEventListener("change", (e) => {
-    const on = e.target.checked;
-    if (window.Sound) Sound.setEnabled(on);
-    savePrefs({ sound: on });
-    ov.querySelectorAll(".ts-sound").forEach((x) => { x.checked = on; });
-  }));
-  ov.querySelectorAll(".ts-music").forEach((box) => box.addEventListener("change", (e) => {
-    const on = e.target.checked;
-    if (window.Sound) { Sound.resume(); Sound.setMusic(on); }
-    savePrefs({ music: on });
-    ov.querySelectorAll(".ts-music").forEach((x) => { x.checked = on; });
+  // One audio button toggles sound FX + music together; every instance stays in sync.
+  ov.querySelectorAll(".ts-audio").forEach((btn) => btn.addEventListener("click", () => {
+    const on = !btn.classList.contains("on");
+    if (window.Sound) { Sound.setEnabled(on); if (on) Sound.resume(); Sound.setMusic(on); }
+    savePrefs({ sound: on, music: on });
+    ov.querySelectorAll(".ts-audio").forEach((x) => { x.classList.toggle("on", on); x.setAttribute("aria-pressed", String(on)); x.querySelector("b").textContent = on ? "ON" : "OFF"; });
   }));
   const steps = {
     main: ov.querySelector(".ts-step-main"),
@@ -2783,7 +2772,9 @@ function showLobby() {
       <span>Team Mode</span>
       <input class="lobby-team-mode-input" type="checkbox" ${state.playMode === "solo" ? "" : "checked"}>
       <b>${state.playMode === "solo" ? "OFF" : "ON"}</b>
-    </label>` : ""}
+    </label>
+    ${pgToggleMarkup()}
+    ${boardSizeMarkup()}` : ""}
     <div class="lobby-players"></div>
     <p class="lobby-status"></p>
     <div class="lobby-actions">
@@ -2808,6 +2799,20 @@ function showLobby() {
       updateLobby();
       saveGameState();
     });
+    // PG + board size are HOST-only room settings (guests inherit them at START via the settings
+    // broadcast). Same controls as the local setup.
+    const pgBtn = ov.querySelector(".ts-pg");
+    const paintPg = () => { if (!pgBtn) return; pgBtn.classList.toggle("on", state.settings.pg); pgBtn.querySelector("b").textContent = state.settings.pg ? "ON" : "OFF"; pgBtn.setAttribute("aria-pressed", String(state.settings.pg)); };
+    pgBtn?.addEventListener("click", () => {
+      if (!state.settings.pg) { setPgMode(true); paintPg(); sfx("blip"); saveGameState(); return; }
+      askAdultGate((ok) => { if (ok) { setPgMode(false); paintPg(); sfx("coin"); } else { setPgMode(true); paintPg(); sfx("buzzer"); } saveGameState(); });
+    });
+    ov.querySelectorAll(".ts-size").forEach((btn) => btn.addEventListener("click", () => {
+      const n = Number(btn.dataset.n);
+      state.settings.boardSize = n; savePrefs({ boardSize: n });
+      ov.querySelectorAll(".ts-size").forEach((x) => x.classList.toggle("on", Number(x.dataset.n) === n));
+      sfx("blip"); saveGameState();
+    }));
   }
   const startBtn = ov.querySelector(".lobby-start");
   if (startBtn) startBtn.addEventListener("click", () => {

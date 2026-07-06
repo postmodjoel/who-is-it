@@ -3610,6 +3610,15 @@ function avadaKedavra(ch) {
 // Which APPROVED avatar a character wears in the hotel. Babies/new creations never get their own
 // Habbo avatar (no runtime fetching, no approval card): they INHERIT a parent's approved sprite -
 // the first parent with a manifest entry wins.
+// A deterministic spare for anyone without a bespoke/parent avatar (gaybys, new creations, and base
+// characters beyond the 40 hand-approved ones). Stable per character + salt so both peers agree and
+// it doesn't reshuffle between renders.
+function spareAvatarId(character) {
+  const spares = window.HabboSpareAvatars || {};
+  const keys = Object.keys(spares);
+  if (!keys.length) return null;                     // no spares loaded -> classic figure fallback
+  return keys[stableHash(`${state.gameSalt}:habbospare:${character.id}`) % keys.length];
+}
 function getHabboAvatarId(character) {
   if (!character) return null;
   const sprites = window.HabboAvatarSprites || {};
@@ -3622,10 +3631,14 @@ function getHabboAvatarId(character) {
       .concat([character.parentId, character.sourceParentId, character.generatedFrom, character.createdFrom])
       .filter(Boolean)
       .map((p) => (typeof p === "object" ? p.id : p));
-    for (const pid of candidates) if (sprites[pid]) return pid;
-    return null;   // no resolvable parent avatar -> classic figure fallback
+    for (const pid of candidates) if (sprites[pid]) return pid;   // inherit a parent's approved sprite
+    return spareAvatarId(character);                 // else a random spare (no more plain blocky body)
   }
-  return character.id;
+  return sprites[character.id] ? character.id : spareAvatarId(character);
+}
+// Sprite entry by id: a bespoke approved avatar, else one of the generated spares. Same shape either way.
+function habboSpritesById(id) {
+  return (window.HabboAvatarSprites || {})[id] || (window.HabboSpareAvatars || {})[id] || null;
 }
 // The sprite src for a figure: requested direction if it exists, else d3, else the default body.
 // Facing left = SW (dir 5), facing right = SE (dir 3); walking swaps to the walk frame set.
@@ -3665,9 +3678,9 @@ function applyHabbo(effect) {
       ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, headOnly: true })
       : ch.image;
     const shirt = ch.traits?.shirt || (tb?.skinToneHex?.[ch.traits?.skin]) || "#4a90e2";
-    // Babies/creations inherit a parent's approved sprite (getHabboAvatarId); anyone without a
-    // resolvable manifest entry falls back to the classic head+CSS-body figure.
-    const sprites = (window.HabboAvatarSprites || {})[getHabboAvatarId(ch)] || null;
+    // Bespoke sprite -> inherited parent sprite -> a deterministic generated spare (getHabboAvatarId);
+    // only characters with no spares available at all fall back to the classic head+CSS-body figure.
+    const sprites = habboSpritesById(getHabboAvatarId(ch));
     assignments[ch.id] = {
       head, shirt, sprites,
       avatar: sprites ? habboSpriteSrc(sprites, false, false) : null,

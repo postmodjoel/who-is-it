@@ -1027,6 +1027,7 @@ function castShadowDesignerMarkup(character) {
   const presetOptions = (traitBook.castShadowPresets || ["hairline", "sweptLeft", "sweptRight", "capBrim", "sideLeft", "sideRight", "beardJaw"]).filter((value) => value !== "off");
   const surfaceOptions = [["face", "Face"], ["neck", "Neck"], ["both", "Face + Neck"]];
   const sideOptions = [["one", "One Side"], ["both", "Both Sides"]];
+  const tintOptions = [["neutral", "Neutral"], ["warm", "Warm"], ["cool", "Cool"], ["hairLinked", "Hair-Linked"]];
   const optionList = (options, selected) => options.map(([value, label]) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
   const num = (idx, key, label, min, max, step, fallback) => {
     const value = items[idx]?.[key] ?? fallback;
@@ -1051,6 +1052,7 @@ function castShadowDesignerMarkup(character) {
       <label class="editor-control-inline"><span>Preset</span><select data-shadow-select="${idx}:preset">${presetOptions.map((value) => `<option value="${escapeHtml(value)}" ${value === item.preset ? "selected" : ""}>${escapeHtml(titleCase(value))}</option>`).join("")}</select></label>
       <label class="editor-control-inline"><span>Surface</span><select data-shadow-select="${idx}:surface">${optionList(surfaceOptions, item.surface || "face")}</select></label>
       <label class="editor-control-inline"><span>Sides</span><select data-shadow-select="${idx}:sides">${optionList(sideOptions, item.sides || "one")}</select></label>
+      <label class="editor-control-inline"><span>Tint</span><select data-shadow-select="${idx}:tint">${optionList(tintOptions, item.tint || "neutral")}</select></label>
       ${num(idx, "x", "X", -120, 120, 1, 0)}
       ${num(idx, "y", "Y", -120, 120, 1, 0)}
       ${num(idx, "spread", "Spread", 0, 80, 1, 0)}
@@ -1082,7 +1084,7 @@ function wireCastShadowDesigner(character) {
     renderEditor(character);
   };
   root.querySelector("[data-shadow-add]")?.addEventListener("click", () => withList((items) => {
-    items.push({ preset: "capBrim", surface: "face", sides: "one", x: 0, y: 0, spread: 0, darkness: 0, scaleX: 1, scaleY: 1, rot: 0, opacity: 0.35, softness: 1 });
+    items.push({ preset: "capBrim", surface: "face", sides: "one", x: 0, y: 0, spread: 0, darkness: 0, tint: "neutral", scaleX: 1, scaleY: 1, rot: 0, opacity: 0.35, softness: 1 });
   }));
   root.querySelector("[data-shadow-clear]")?.addEventListener("click", () => withList((items) => items.splice(0)));
   root.querySelectorAll("[data-shadow-remove]").forEach((btn) => btn.addEventListener("click", () => withList((items) => items.splice(Number(btn.dataset.shadowRemove), 1))));

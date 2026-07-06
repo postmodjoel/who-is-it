@@ -79,6 +79,7 @@
       y: Number(t.castShadowY) || 0,
       spread: 0,
       darkness: 0,
+      tint: "neutral",
       scaleX: 1,
       scaleY: 1,
       rot: Number(t.castShadowAngle) || 0,

@@ -4099,12 +4099,13 @@
       y: clampNumber(item.y, -120, 120, 0),
       spread: clampNumber(item.spread, 0, 80, 0),
       darkness: clampNumber(item.darkness, -1.5, 3, 0),
+      tint: item.tint || "neutral",
       scaleX: clampNumber(item.scaleX, 0.4, 2.6, 1),
       scaleY: clampNumber(item.scaleY, 0.4, 2.6, 1)
     };
   }
 
-  function castShadowColor(skin, darkness = 0) {
+  function castShadowColor(skin, darkness = 0, tint = "neutral", traits = {}) {
     const clean = skin.replace("#", "");
     const n = parseInt(clean, 16);
     const lum = 0.299 * ((n >> 16) & 0xff) + 0.587 * ((n >> 8) & 0xff) + 0.114 * (n & 0xff);
@@ -4113,7 +4114,12 @@
       ? baseBlend + darkness * 0.24
       : baseBlend + darkness * 0.12;
     const blend = clampNumber(amount, 0.03, 0.82, baseBlend);
-    return mixColor(skin, ink, blend);
+    const base = mixColor(skin, ink, blend);
+    const hair = traits.hairHex || hairColors[traits.hairColor] || "#5a3320";
+    if (tint === "warm") return mixColor(base, "#8e5a46", 0.28);
+    if (tint === "cool") return mixColor(base, "#4a607f", 0.32);
+    if (tint === "hairLinked") return mixColor(base, shadeColor(hair, 0.72), 0.34);
+    return base;
   }
 
   function castShadowBlur(softness) {
@@ -4169,7 +4175,7 @@
     items.forEach((item, idx) => {
       const cfg = castShadowConfig(item);
       if (!cfg || (cfg.surface !== "face" && cfg.surface !== "both")) return;
-      const shadow = castShadowColor(skin, cfg.darkness);
+      const shadow = castShadowColor(skin, cfg.darkness, cfg.tint, traits);
       const gradId = `cast-face-grad-${seed}-${idx}`;
       const sideId = `cast-face-side-${seed}-${idx}`;
       const radialId = `cast-face-rad-${seed}-${idx}`;
@@ -4229,7 +4235,7 @@
     items.forEach((item, idx) => {
       const cfg = castShadowConfig(item);
       if (!cfg || (cfg.surface !== "neck" && cfg.surface !== "both")) return;
-      const shadow = castShadowColor(skin, cfg.darkness);
+      const shadow = castShadowColor(skin, cfg.darkness, cfg.tint, traits);
       const gradId = `cast-neck-grad-${seed}-${idx}`;
       const radialId = `cast-neck-rad-${seed}-${idx}`;
       const blurId = `cast-neck-blur-${seed}-${idx}`;

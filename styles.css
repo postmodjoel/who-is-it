@@ -5335,8 +5335,11 @@ body.low-power .side-you.seat-slide-back { animation: none; }
 }
 .side-panel .secret-card.character-card:hover { transform: none; box-shadow: none; }
 .side-panel .secret-card .portrait-wrap { aspect-ratio: 1; }
-/* Phones: collapse to a compact face + name strip (stats stay on the main board). */
-@media (max-width: 640px) {
+/* Phones + tablets (everything below the 861px desktop rail): collapse to a compact face + name
+   strip. Above 640 the single-column layout used to render the secret card at full width, ballooning
+   the portrait into a giant square - this keeps the whole sub-rail range on the same compact strip so
+   it reads as one coherent mobile layout, not an awkward in-between. */
+@media (max-width: 860px) {
   /* :not(.ygo) - the Yu-Gi-Oh secret is a 59/86 trading card; forcing it into this face+name ROW
      stretches its gold frame across the screen with the portrait crushed into a sliver. */
   .side-panel .secret-card.character-card:not(.ygo) { display: flex; flex-direction: row; align-items: stretch; }

@@ -314,6 +314,7 @@ function renderEditorControls() {
       ${field("Preset", `<select data-key="__shadow:${i}:preset">${(T.castShadowPresets || ["capBrim"]).filter((value) => value !== "off").map((value) => `<option value="${escapeHtml(value)}" ${value === (item.preset || "capBrim") ? "selected" : ""}>${escapeHtml(titleCaseText(value))}</option>`).join("")}</select>`)}
       ${field("Surface", `<select data-key="__shadow:${i}:surface"><option value="face" ${(item.surface || "face") === "face" ? "selected" : ""}>Face</option><option value="neck" ${(item.surface || "face") === "neck" ? "selected" : ""}>Neck</option><option value="both" ${(item.surface || "face") === "both" ? "selected" : ""}>Face + Neck</option></select>`)}
       ${field("Sides", `<select data-key="__shadow:${i}:sides"><option value="one" ${(item.sides || "one") === "one" ? "selected" : ""}>One Side</option><option value="both" ${(item.sides || "one") === "both" ? "selected" : ""}>Both Sides</option></select>`)}
+      ${field("Tint", `<select data-key="__shadow:${i}:tint"><option value="neutral" ${(item.tint || "neutral") === "neutral" ? "selected" : ""}>Neutral</option><option value="warm" ${(item.tint || "neutral") === "warm" ? "selected" : ""}>Warm</option><option value="cool" ${(item.tint || "neutral") === "cool" ? "selected" : ""}>Cool</option><option value="hairLinked" ${(item.tint || "neutral") === "hairLinked" ? "selected" : ""}>Hair-Linked</option></select>`)}
       ${slide(`__shadow:${i}:x`, "X", -120, 120, 1, item.x ?? 0)}
       ${slide(`__shadow:${i}:y`, "Y", -120, 120, 1, item.y ?? 0)}
       ${slide(`__shadow:${i}:spread`, "Spread", 0, 80, 1, item.spread ?? 0)}
@@ -612,7 +613,7 @@ function wireEditorJewelleryButtons() {
 function wireEditorShadowButtons() {
   const root = editorDialog.querySelector(".editor-controls");
   root.querySelector(".ed-shadowadd")?.addEventListener("click", () => {
-    ensureCastShadowList().push({ preset: "capBrim", surface: "face", sides: "one", x: 0, y: 0, spread: 0, darkness: 0, scaleX: 1, scaleY: 1, rot: 0, opacity: 0.35, softness: 1 });
+    ensureCastShadowList().push({ preset: "capBrim", surface: "face", sides: "one", x: 0, y: 0, spread: 0, darkness: 0, tint: "neutral", scaleX: 1, scaleY: 1, rot: 0, opacity: 0.35, softness: 1 });
     renderEditorControls(); renderEditorPreview();
   });
   root.querySelector(".ed-shadowclear")?.addEventListener("click", () => {

@@ -2428,6 +2428,21 @@ function showTitleSettings() {
 function pgToggleMarkup() {
   return `<button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE 🧒</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>`;
 }
+// Board size lives inline in the setup step now (no nested settings panel).
+function boardSizeMarkup() {
+  const pills = [18, 24, 30].map((n) => `<button type="button" class="ts-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
+  return `<div class="ts-set-row"><span>Board size</span><span class="ts-size-pills">${pills}</span></div>`;
+}
+// Sound + music sit as toggles at the very bottom of the setup step.
+function soundTogglesMarkup() {
+  const S = window.Sound;
+  const soundOn = S ? S.isEnabled() : true;
+  const musicOn = S ? S.isMusicOn() : false;
+  return `<div class="ts-toggles">
+    <label class="ts-toggle"><span>🔊 Sound</span><input type="checkbox" class="ts-sound" ${soundOn ? "checked" : ""}></label>
+    <label class="ts-toggle"><span>🎵 Music</span><input type="checkbox" class="ts-music" ${musicOn ? "checked" : ""}></label>
+  </div>`;
+}
 function showTitleScreen() {
   const saved = loadGameSave();
   const ov = document.createElement("div");
@@ -2455,15 +2470,21 @@ function showTitleScreen() {
           <b>ON</b>
         </label>
         ${pgToggleMarkup()}
-        <button type="button" class="button primary ts-names-go">LINE 'EM UP →</button>
-        <button type="button" class="button ghost ts-back">← Back</button>
+        ${boardSizeMarkup()}
+        <div class="ts-btn-row">
+          <button type="button" class="button ghost ts-back">← Back</button>
+          <button type="button" class="button primary ts-names-go">BEGIN</button>
+        </div>
+        ${soundTogglesMarkup()}
       </div>
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
         ${pgToggleMarkup()}
+        ${boardSizeMarkup()}
         <button type="button" class="button primary ts-host">🎪 HOST A ROOM</button>
         <button type="button" class="button secondary ts-showjoin">🔑 JOIN A ROOM</button>
         <button type="button" class="button ghost ts-back">← Back</button>
+        ${soundTogglesMarkup()}
       </div>
       <div class="ts-step ts-step-join" hidden>
         <p class="ts-join-label">Enter your friend's room number</p>
@@ -2471,16 +2492,13 @@ function showTitleScreen() {
         <button type="button" class="button primary ts-join-go">JOIN ROOM →</button>
         <button type="button" class="button ghost ts-back">← Back</button>
       </div>
-    </div>
-    <div class="ts-bottom-row">
-      <button type="button" class="button secondary ts-gear" aria-label="Settings" title="Settings"><span class="ts-gear-ico">⚙</span> SETTINGS</button>
     </div>`;
   document.body.appendChild(ov);
   const close = () => { if (window.Sound) Sound.titleLoop(false); ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
   // The title groove (bass + drums) can only start after a user gesture unlocks the AudioContext.
   ov.addEventListener("pointerdown", () => { if (window.Sound) { Sound.resume(); Sound.titleLoop(true); } }, { once: true });
-  // Every menu tap clicks (PG/gear play their own richer sounds).
-  ov.querySelectorAll("button:not(.ts-pg):not(.ts-gear)").forEach((b) => b.addEventListener("click", () => sfx("click")));
+  // Every menu tap clicks (PG plays its own richer sound).
+  ov.querySelectorAll("button:not(.ts-pg)").forEach((b) => b.addEventListener("click", () => sfx("click")));
   // PG toggle(s): the same control appears in the local + host setup steps; one handler keeps every
   // instance in sync. Turning PG ON is free; turning it OFF is gated behind an adults-only riddle.
   const paintPg = () => ov.querySelectorAll(".ts-pg").forEach((b) => {
@@ -2492,7 +2510,26 @@ function showTitleScreen() {
     if (!state.settings.pg) { setPgMode(true); paintPg(); sfx("blip"); return; }
     askAdultGate((ok) => { if (ok) { setPgMode(false); paintPg(); sfx("coin"); } else { setPgMode(true); paintPg(); sfx("buzzer"); } });
   }));
-  ov.querySelector(".ts-gear").addEventListener("click", () => { sfx("click"); showTitleSettings(); });
+  // Inline settings (board size + sound + music) live in the local/host steps, mirrored across both.
+  ov.querySelectorAll(".ts-size").forEach((btn) => btn.addEventListener("click", () => {
+    const n = Number(btn.dataset.n);
+    state.settings.boardSize = n;
+    savePrefs({ boardSize: n });
+    ov.querySelectorAll(".ts-size").forEach((x) => x.classList.toggle("on", Number(x.dataset.n) === n));
+    sfx("blip");
+  }));
+  ov.querySelectorAll(".ts-sound").forEach((box) => box.addEventListener("change", (e) => {
+    const on = e.target.checked;
+    if (window.Sound) Sound.setEnabled(on);
+    savePrefs({ sound: on });
+    ov.querySelectorAll(".ts-sound").forEach((x) => { x.checked = on; });
+  }));
+  ov.querySelectorAll(".ts-music").forEach((box) => box.addEventListener("change", (e) => {
+    const on = e.target.checked;
+    if (window.Sound) { Sound.resume(); Sound.setMusic(on); }
+    savePrefs({ music: on });
+    ov.querySelectorAll(".ts-music").forEach((x) => { x.checked = on; });
+  }));
   const steps = {
     main: ov.querySelector(".ts-step-main"),
     names: ov.querySelector(".ts-step-names"),

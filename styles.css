@@ -5598,6 +5598,36 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   text-align: right;
   color: #ffbe0b;
 }
+/* Inline setup settings: board size row, Back|Begin split, sound/music toggles at the bottom. */
+.ts-set-row {
+  width: min(320px, 82vw);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 7px 12px; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06);
+  color: #fffdf7; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.82rem;
+}
+.ts-size-pills { display: inline-flex; gap: 6px; }
+.ts-size {
+  min-width: 38px; padding: 5px 9px; border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7); font-family: "Archivo", sans-serif; font-weight: 900; cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.ts-size:hover { background: rgba(255, 255, 255, 0.1); }
+.ts-size.on { background: #ffbe0b; border-color: #ffbe0b; color: #1a1a1a; }
+/* Back | Begin, back-to-back, each half-width. */
+.ts-btn-row { display: flex; gap: 10px; width: min(320px, 82vw); }
+.ts-btn-row .button { flex: 1 1 0; width: auto; min-width: 0; }
+/* Sound / music toggles pinned to the bottom of the step. */
+.ts-toggles { display: flex; gap: 10px; width: min(320px, 82vw); margin-top: 2px; }
+.ts-toggle {
+  flex: 1 1 0; min-width: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05);
+  color: #fffdf7; font-weight: 800; letter-spacing: 0.03em; font-size: 0.78rem; cursor: pointer;
+}
+.ts-toggle input { width: 40px; height: 22px; accent-color: #ffbe0b; }
 .setup-room-code {
   display: inline-flex;
   align-items: center;
@@ -7021,3 +7051,7 @@ body.low-power *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+
+/* Editor: debug-only controls (e.g. Export character JSON) hidden unless the debug picker is unlocked. */
+.ed-debug-only { display: none; }
+body.debug-mode .ed-debug-only { display: inline-flex; }

@@ -20,9 +20,10 @@ const netPeers = new Map();   // clientId -> { name, lastSeen, gone }
 let netHeartbeatTimer = null;
 function notePeer(msg) {
   if (!msg.clientId || msg.clientId === state.clientId) return;
+  const name = typeof cleanPlayerName === "function" ? cleanPlayerName(msg.pname) : String(msg.pname || "").trim();
   let p = netPeers.get(msg.clientId);
-  if (!p) { p = { name: msg.pname || "A friend", lastSeen: 0, gone: false }; netPeers.set(msg.clientId, p); }
-  if (msg.pname) p.name = msg.pname;
+  if (!p) { p = { name: name || "A friend", lastSeen: 0, gone: false }; netPeers.set(msg.clientId, p); }
+  if (name) p.name = name;
   if (p.gone) {
     p.gone = false;
     state.onlinePeer = true;
@@ -113,7 +114,9 @@ function scheduleReconnect(room) {
 }
 function netSend(type, data) {
   if (!net) return;
-  try { net.post({ type, seat: state.mySeat || 0, clientId: state.clientId || "", ...data }); } catch (e) { /* channel closed */ }
+  // `observe` rides every message so the host's hello handler can tell a TV/observer client from a
+  // real player and NOT seat it in the roster.
+  try { net.post({ type, seat: state.mySeat || 0, clientId: state.clientId || "", observe: !!state.isObserver, ...data }); } catch (e) { /* channel closed */ }
 }
 function markPeerOnline() {
   if (!state.onlinePeer) {
@@ -157,25 +160,38 @@ function handleNetMsg(msg) {
       }
       return;
     }
+    const cleanName = typeof cleanPlayerName === "function" ? cleanPlayerName(msg.pname) : String(msg.pname || "").trim();
+    // Observers (TV displays) never take a seat: they only receive the broadcast to render the board.
+    if (msg.observe) {
+      if (state.inLobby) { broadcastLobby(); }
+      else if (typeof buildGameSave === "function") netSend("snapshot", { save: buildGameSave() });
+      return;
+    }
     if (msg.clientId && !state.roster.some((r) => r.clientId === msg.clientId)) {
       // A new client: register them in the next open slot (up to the cap).
       if (state.roster.length < MAX_PLAYERS) {
-        state.roster.push({ name: msg.pname || `Player ${state.roster.length + 1}`, clientId: msg.clientId });
-        if (state.playerCount < state.roster.length) state.playerCount = state.roster.length;
-        addLog(`${msg.pname || "A player"} has arrived.`);
+        const index = state.roster.length;
+        state.roster.push({ name: cleanName || `Player ${index + 1}`, clientId: msg.clientId });
+        state.playerCount = state.roster.length;
+        if (!state.inLobby && typeof addMidGameRosterSeat === "function") addMidGameRosterSeat(index);
+        addLog(`${cleanName || "A player"} has arrived.`);
       }
-    } else if (msg.clientId && msg.pname) {
+    } else if (msg.clientId && cleanName) {
       // Known client updating their name.
       const r = state.roster.find((x) => x.clientId === msg.clientId);
-      if (r) r.name = msg.pname;
+      if (r) r.name = cleanName;
     }
     if (state.inLobby) { broadcastLobby(); updateLobby(); }
     // Mid-game hello (a reconnecting refresh OR a fresh joiner): ship the FULL authoritative
     // snapshot - same shape as the on-disk save - so they restore the exact round: board,
     // secrets, eliminations, babies, effect, lore, the lot. (The old salt-only "sync" couldn't
     // bring back crossings.)
-    else if (typeof buildGameSave === "function") netSend("snapshot", { for: msg.clientId, save: buildGameSave() });
-    else netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount });
+    else if (typeof buildGameSave === "function") {
+      const save = buildGameSave();
+      netSend("snapshot", { save });
+      if (typeof saveGameState === "function") saveGameState();
+    }
+    else netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
     return;
   }
   if (msg.type === "snapshot") {
@@ -184,8 +200,14 @@ function handleNetMsg(msg) {
     if (state.isHost) return;                        // the host never adopts a snapshot
     const save = msg.save;
     if (!save || !save.salt) return;
-    // Already fully in this round? Don't re-deal under our own feet.
-    if (save.salt === state.gameSalt && state.board.length && !state.inLobby) return;
+    // Already fully in this round? Don't re-deal under our own feet unless the host's snapshot has
+    // a larger roster/seat set (mid-game join) or a play-mode change we have not adopted.
+    if (save.salt === state.gameSalt && state.board.length && !state.inLobby) {
+      const incomingRoster = Array.isArray(save.roster) ? save.roster.length : 0;
+      const incomingSeats = Array.isArray(save.players) ? save.players.length : 0;
+      const playModeChanged = save.playMode && save.playMode !== state.playMode;
+      if (!playModeChanged && incomingRoster <= (state.roster || []).length && incomingSeats <= (state.players || []).length) return;
+    }
     markPeerOnline();
     // Adopt the host's game but keep MY identity: locate myself in the shipped roster.
     const idx = (save.roster || []).findIndex((r) => r.clientId === state.clientId);

@@ -1,0 +1,165 @@
+import { expect, test } from "@playwright/test";
+
+const SPECIAL_EXPECTATIONS = {
+  habbo: [".habbo-room", ".habbo-fig"],
+  "heads-only": [".heads-toolbar", ".float-head"],
+  "knockoff-manor": [".manor-room-tile", ".manor-token"],
+  yugioh: [".ygo-board", ".character-card"],
+  linkedin: [".linkedin-board", "#linkedinTicker"],
+  gallery: [".gallery-board", ".character-card"],
+  "family-tree-disaster": [".family-tree-board", ".family-cluster"]
+};
+
+async function startNamedLocalGame(page, count = 3, solo = true) {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  // Local setup lives in the names step now: enter it, then add player rows to reach `count`.
+  await page.locator(".ts-local").click();
+  await page.locator(".ts-name-row").first().waitFor();
+  for (let i = 2; i < count; i += 1) {
+    await page.locator(".ts-add-player").click();
+  }
+  if (count > 2 && solo) {
+    await page.locator(".ts-step-names .ts-team-mode-input").uncheck();
+  }
+  const inputs = page.locator(".ts-name-slot");
+  for (let i = 0; i < count; i += 1) {
+    await inputs.nth(i).fill(`Player ${i + 1}`);
+  }
+  await page.locator(".ts-names-go").click();
+  await page.locator(".round-reveal").click().catch(() => {});
+  await expect(page.locator("#characterBoard")).toBeVisible();
+  await expect(page.locator("#characterBoard [data-id]").first()).toBeVisible();
+}
+
+async function applyMode(page, id) {
+  await page.evaluate((modeId) => {
+    window.MysteryModes.clearMysteryEffectUI();
+    window.MysteryModes.applyMysteryEffect(modeId);
+    window.render();
+  }, id);
+  await page.waitForTimeout(120);
+}
+
+async function assertBoardIsUsable(page, modeId) {
+  const board = page.locator("#characterBoard");
+  await expect(board).toBeVisible();
+  const box = await board.boundingBox();
+  expect(box?.width || 0, `${modeId} board width`).toBeGreaterThan(120);
+  expect(box?.height || 0, `${modeId} board height`).toBeGreaterThan(120);
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow, `${modeId} horizontal overflow`).toBeLessThanOrEqual(3);
+
+  const tileCount = await page.locator("#characterBoard [data-id]").count();
+  expect(tileCount, `${modeId} rendered tiles`).toBeGreaterThan(1);
+
+  const contentOk = await page.locator("#characterBoard [data-id]").evaluateAll((els) =>
+    els.slice(0, 8).every((el) => {
+      const rect = el.getBoundingClientRect();
+      const img = el.querySelector("img");
+      const text = el.textContent || "";
+      const imgRect = img ? img.getBoundingClientRect() : rect;
+      return rect.width > 12 && rect.height > 12 && imgRect.width > 0 && imgRect.height > 0 && text.trim().length > 0;
+    })
+  );
+  expect(contentOk, `${modeId} card content`).toBe(true);
+
+  for (const selector of SPECIAL_EXPECTATIONS[modeId] || []) {
+    await expect(page.locator(selector).first(), `${modeId} ${selector}`).toBeVisible();
+  }
+}
+
+test("mandatory names and solo mode create one seat per player", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.locator(".ts-local").click();
+  await page.locator(".ts-name-row").first().waitFor();
+  await page.locator(".ts-add-player").click();          // 2 -> 3 players
+  await expect(page.locator(".ts-step-names .ts-team-mode")).toBeVisible();
+  await page.locator(".ts-step-names .ts-team-mode-input").uncheck();
+  await page.locator(".ts-names-go").click();
+  await expect(page.locator(".ts-name-slot").first()).toHaveClass(/shake/);
+  const inputs = page.locator(".ts-name-slot");
+  await inputs.nth(0).fill("Ada");
+  await inputs.nth(1).fill("Bea");
+  await inputs.nth(2).fill("Cal");
+  await page.locator(".ts-names-go").click();
+  await page.locator(".round-reveal").click().catch(() => {});
+  await expect(page.locator("body")).toHaveClass(/mode-solo/);
+  await expect(page.locator(".seat-half")).toHaveCount(3);
+});
+
+test("all playable mystery modes render without blank or overflowing boards", async ({ page }) => {
+  // Inherently long: ~30 modes each applied + asserted with settle waits. The default 60s budget
+  // is tight when webkit/tablet emulation runs under parallel load, so give it real headroom.
+  test.setTimeout(180_000);
+  await startNamedLocalGame(page, 3, true);
+  const ids = await page.evaluate(() => window.MysteryModes.all().map((effect) => effect.id));
+  expect(ids).not.toContain("ps1-mode");
+  for (const id of ids) {
+    await applyMode(page, id);
+    await assertBoardIsUsable(page, id);
+  }
+});
+
+test("touch semantics: tap toggles, scroll is not captured, long press starts drag", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "Synthetic TouchEvent support is inconsistent in WebKit.");
+  await startNamedLocalGame(page, 3, true);
+  await applyMode(page, "fertility");
+  const first = page.locator("#characterBoard [data-id]").first();
+  await first.click();
+  await expect(first).toHaveClass(/is-down/);
+  await first.click();
+  await expect(first).not.toHaveClass(/is-down/);
+
+  const before = await page.evaluate(() => window.scrollY);
+  await first.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const touch = new Touch({ identifier: 1, target: el, clientX: r.left + 12, clientY: r.top + 12 });
+    el.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true, touches: [touch], targetTouches: [touch] }));
+    const moved = new Touch({ identifier: 1, target: el, clientX: r.left + 12, clientY: r.top + 80 });
+    el.dispatchEvent(new TouchEvent("touchmove", { bubbles: true, cancelable: true, touches: [moved], targetTouches: [moved] }));
+    window.scrollTo(0, 120);
+    el.dispatchEvent(new TouchEvent("touchend", { bubbles: true, cancelable: true, changedTouches: [moved] }));
+  });
+  const after = await page.evaluate(() => window.scrollY);
+  expect(after).toBeGreaterThanOrEqual(before);
+  await expect(first).not.toHaveClass(/dragging/);
+
+  await first.evaluate(async (el) => {
+    const r = el.getBoundingClientRect();
+    const touch = new Touch({ identifier: 2, target: el, clientX: r.left + 16, clientY: r.top + 16 });
+    el.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true, touches: [touch], targetTouches: [touch] }));
+    await new Promise((resolve) => setTimeout(resolve, 390));
+    const moved = new Touch({ identifier: 2, target: el, clientX: r.left + 68, clientY: r.top + 16 });
+    el.dispatchEvent(new TouchEvent("touchmove", { bubbles: true, cancelable: true, touches: [moved], targetTouches: [moved] }));
+  });
+  await expect(first).toHaveClass(/dragging/);
+});
+
+test("Habbo selection shows room cam; coarse pointers skip the camera jump", async ({ page }, testInfo) => {
+  const touch = !!testInfo.project.use.hasTouch;
+  await startNamedLocalGame(page, 3, true);
+  await applyMode(page, "habbo");
+  const fig = page.locator(".habbo-fig").first();
+  if (touch) await fig.tap();
+  else await fig.click();
+  await expect(fig).toHaveClass(/selected/);
+  await expect(page.locator("#habboCam")).toBeVisible();
+  const camera = await page.locator(".habbo-room").evaluate((el) => ({
+    scale: getComputedStyle(el).getPropertyValue("--hb-cam-scale").trim(),
+    x: getComputedStyle(el).getPropertyValue("--hb-cam-x").trim(),
+    y: getComputedStyle(el).getPropertyValue("--hb-cam-y").trim()
+  }));
+  if (touch) {
+    // iPhone/tablet: selecting someone must NOT fling the room around - cam panel only.
+    expect(camera).toEqual({ scale: "1", x: "0px", y: "0px" });
+  } else {
+    // Desktop keeps the zoom-follow camera.
+    expect(Number(camera.scale)).toBeGreaterThan(1);
+  }
+  await assertBoardIsUsable(page, "habbo");
+});

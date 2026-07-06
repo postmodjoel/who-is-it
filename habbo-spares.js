@@ -1,0 +1,1402 @@
+window.HabboSpareAvatars = {
+  "spare-001": {
+    "id": "spare-001",
+    "gender": "M",
+    "figure": "hd-180-30.hr-3025-88.ch-3321-66.lg-280-88.sh-290-75.fa-1206-85",
+    "body": "assets/habbo/spares/spare-001.png",
+    "head": "assets/habbo/spares/spare-001_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-001_d0.png",
+      "1": "assets/habbo/spares/spare-001_d1.png",
+      "2": "assets/habbo/spares/spare-001_d2.png",
+      "3": "assets/habbo/spares/spare-001_d3.png",
+      "4": "assets/habbo/spares/spare-001_d4.png",
+      "5": "assets/habbo/spares/spare-001_d5.png",
+      "6": "assets/habbo/spares/spare-001_d6.png",
+      "7": "assets/habbo/spares/spare-001_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-001_walk_d0.png",
+      "1": "assets/habbo/spares/spare-001_walk_d1.png",
+      "2": "assets/habbo/spares/spare-001_walk_d2.png",
+      "3": "assets/habbo/spares/spare-001_walk_d3.png",
+      "4": "assets/habbo/spares/spare-001_walk_d4.png",
+      "5": "assets/habbo/spares/spare-001_walk_d5.png",
+      "6": "assets/habbo/spares/spare-001_walk_d6.png",
+      "7": "assets/habbo/spares/spare-001_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-002": {
+    "id": "spare-002",
+    "gender": "F",
+    "figure": "hd-600-1370.hr-596-39.ch-3110-1320.lg-3023-40.sh-905-84.ha-1002-85.ea-6331-85",
+    "body": "assets/habbo/spares/spare-002.png",
+    "head": "assets/habbo/spares/spare-002_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-002_d0.png",
+      "1": "assets/habbo/spares/spare-002_d1.png",
+      "2": "assets/habbo/spares/spare-002_d2.png",
+      "3": "assets/habbo/spares/spare-002_d3.png",
+      "4": "assets/habbo/spares/spare-002_d4.png",
+      "5": "assets/habbo/spares/spare-002_d5.png",
+      "6": "assets/habbo/spares/spare-002_d6.png",
+      "7": "assets/habbo/spares/spare-002_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-002_walk_d0.png",
+      "1": "assets/habbo/spares/spare-002_walk_d1.png",
+      "2": "assets/habbo/spares/spare-002_walk_d2.png",
+      "3": "assets/habbo/spares/spare-002_walk_d3.png",
+      "4": "assets/habbo/spares/spare-002_walk_d4.png",
+      "5": "assets/habbo/spares/spare-002_walk_d5.png",
+      "6": "assets/habbo/spares/spare-002_walk_d6.png",
+      "7": "assets/habbo/spares/spare-002_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-003": {
+    "id": "spare-003",
+    "gender": "M",
+    "figure": "hd-180-14.hr-3339-85.ch-3109-66.lg-280-90.sh-290-90.fa-1206-85",
+    "body": "assets/habbo/spares/spare-003.png",
+    "head": "assets/habbo/spares/spare-003_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-003_d0.png",
+      "1": "assets/habbo/spares/spare-003_d1.png",
+      "2": "assets/habbo/spares/spare-003_d2.png",
+      "3": "assets/habbo/spares/spare-003_d3.png",
+      "4": "assets/habbo/spares/spare-003_d4.png",
+      "5": "assets/habbo/spares/spare-003_d5.png",
+      "6": "assets/habbo/spares/spare-003_d6.png",
+      "7": "assets/habbo/spares/spare-003_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-003_walk_d0.png",
+      "1": "assets/habbo/spares/spare-003_walk_d1.png",
+      "2": "assets/habbo/spares/spare-003_walk_d2.png",
+      "3": "assets/habbo/spares/spare-003_walk_d3.png",
+      "4": "assets/habbo/spares/spare-003_walk_d4.png",
+      "5": "assets/habbo/spares/spare-003_walk_d5.png",
+      "6": "assets/habbo/spares/spare-003_walk_d6.png",
+      "7": "assets/habbo/spares/spare-003_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-004": {
+    "id": "spare-004",
+    "gender": "M",
+    "figure": "hd-180-14.hr-3377-45.ch-215-64.lg-280-40.sh-290-66",
+    "body": "assets/habbo/spares/spare-004.png",
+    "head": "assets/habbo/spares/spare-004_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-004_d0.png",
+      "1": "assets/habbo/spares/spare-004_d1.png",
+      "2": "assets/habbo/spares/spare-004_d2.png",
+      "3": "assets/habbo/spares/spare-004_d3.png",
+      "4": "assets/habbo/spares/spare-004_d4.png",
+      "5": "assets/habbo/spares/spare-004_d5.png",
+      "6": "assets/habbo/spares/spare-004_d6.png",
+      "7": "assets/habbo/spares/spare-004_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-004_walk_d0.png",
+      "1": "assets/habbo/spares/spare-004_walk_d1.png",
+      "2": "assets/habbo/spares/spare-004_walk_d2.png",
+      "3": "assets/habbo/spares/spare-004_walk_d3.png",
+      "4": "assets/habbo/spares/spare-004_walk_d4.png",
+      "5": "assets/habbo/spares/spare-004_walk_d5.png",
+      "6": "assets/habbo/spares/spare-004_walk_d6.png",
+      "7": "assets/habbo/spares/spare-004_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-005": {
+    "id": "spare-005",
+    "gender": "M",
+    "figure": "hd-180-1371.hr-3339-39.ch-3332-1320.lg-280-92.sh-290-82",
+    "body": "assets/habbo/spares/spare-005.png",
+    "head": "assets/habbo/spares/spare-005_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-005_d0.png",
+      "1": "assets/habbo/spares/spare-005_d1.png",
+      "2": "assets/habbo/spares/spare-005_d2.png",
+      "3": "assets/habbo/spares/spare-005_d3.png",
+      "4": "assets/habbo/spares/spare-005_d4.png",
+      "5": "assets/habbo/spares/spare-005_d5.png",
+      "6": "assets/habbo/spares/spare-005_d6.png",
+      "7": "assets/habbo/spares/spare-005_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-005_walk_d0.png",
+      "1": "assets/habbo/spares/spare-005_walk_d1.png",
+      "2": "assets/habbo/spares/spare-005_walk_d2.png",
+      "3": "assets/habbo/spares/spare-005_walk_d3.png",
+      "4": "assets/habbo/spares/spare-005_walk_d4.png",
+      "5": "assets/habbo/spares/spare-005_walk_d5.png",
+      "6": "assets/habbo/spares/spare-005_walk_d6.png",
+      "7": "assets/habbo/spares/spare-005_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-006": {
+    "id": "spare-006",
+    "gender": "F",
+    "figure": "hd-600-1371.hr-890-82.ch-3110-39.lg-3023-72.sh-905-64.ea-1404-85",
+    "body": "assets/habbo/spares/spare-006.png",
+    "head": "assets/habbo/spares/spare-006_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-006_d0.png",
+      "1": "assets/habbo/spares/spare-006_d1.png",
+      "2": "assets/habbo/spares/spare-006_d2.png",
+      "3": "assets/habbo/spares/spare-006_d3.png",
+      "4": "assets/habbo/spares/spare-006_d4.png",
+      "5": "assets/habbo/spares/spare-006_d5.png",
+      "6": "assets/habbo/spares/spare-006_d6.png",
+      "7": "assets/habbo/spares/spare-006_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-006_walk_d0.png",
+      "1": "assets/habbo/spares/spare-006_walk_d1.png",
+      "2": "assets/habbo/spares/spare-006_walk_d2.png",
+      "3": "assets/habbo/spares/spare-006_walk_d3.png",
+      "4": "assets/habbo/spares/spare-006_walk_d4.png",
+      "5": "assets/habbo/spares/spare-006_walk_d5.png",
+      "6": "assets/habbo/spares/spare-006_walk_d6.png",
+      "7": "assets/habbo/spares/spare-006_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-007": {
+    "id": "spare-007",
+    "gender": "F",
+    "figure": "hd-600-1371.hr-681-39.ch-3342-1408.lg-3023-68.sh-905-61.fa-1201-85",
+    "body": "assets/habbo/spares/spare-007.png",
+    "head": "assets/habbo/spares/spare-007_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-007_d0.png",
+      "1": "assets/habbo/spares/spare-007_d1.png",
+      "2": "assets/habbo/spares/spare-007_d2.png",
+      "3": "assets/habbo/spares/spare-007_d3.png",
+      "4": "assets/habbo/spares/spare-007_d4.png",
+      "5": "assets/habbo/spares/spare-007_d5.png",
+      "6": "assets/habbo/spares/spare-007_d6.png",
+      "7": "assets/habbo/spares/spare-007_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-007_walk_d0.png",
+      "1": "assets/habbo/spares/spare-007_walk_d1.png",
+      "2": "assets/habbo/spares/spare-007_walk_d2.png",
+      "3": "assets/habbo/spares/spare-007_walk_d3.png",
+      "4": "assets/habbo/spares/spare-007_walk_d4.png",
+      "5": "assets/habbo/spares/spare-007_walk_d5.png",
+      "6": "assets/habbo/spares/spare-007_walk_d6.png",
+      "7": "assets/habbo/spares/spare-007_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-008": {
+    "id": "spare-008",
+    "gender": "M",
+    "figure": "hd-180-19.hr-3377-66.ch-690-75.lg-280-61.sh-290-43",
+    "body": "assets/habbo/spares/spare-008.png",
+    "head": "assets/habbo/spares/spare-008_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-008_d0.png",
+      "1": "assets/habbo/spares/spare-008_d1.png",
+      "2": "assets/habbo/spares/spare-008_d2.png",
+      "3": "assets/habbo/spares/spare-008_d3.png",
+      "4": "assets/habbo/spares/spare-008_d4.png",
+      "5": "assets/habbo/spares/spare-008_d5.png",
+      "6": "assets/habbo/spares/spare-008_d6.png",
+      "7": "assets/habbo/spares/spare-008_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-008_walk_d0.png",
+      "1": "assets/habbo/spares/spare-008_walk_d1.png",
+      "2": "assets/habbo/spares/spare-008_walk_d2.png",
+      "3": "assets/habbo/spares/spare-008_walk_d3.png",
+      "4": "assets/habbo/spares/spare-008_walk_d4.png",
+      "5": "assets/habbo/spares/spare-008_walk_d5.png",
+      "6": "assets/habbo/spares/spare-008_walk_d6.png",
+      "7": "assets/habbo/spares/spare-008_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-009": {
+    "id": "spare-009",
+    "gender": "M",
+    "figure": "hd-180-14.hr-893-39.ch-235-84.lg-280-82.sh-290-40",
+    "body": "assets/habbo/spares/spare-009.png",
+    "head": "assets/habbo/spares/spare-009_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-009_d0.png",
+      "1": "assets/habbo/spares/spare-009_d1.png",
+      "2": "assets/habbo/spares/spare-009_d2.png",
+      "3": "assets/habbo/spares/spare-009_d3.png",
+      "4": "assets/habbo/spares/spare-009_d4.png",
+      "5": "assets/habbo/spares/spare-009_d5.png",
+      "6": "assets/habbo/spares/spare-009_d6.png",
+      "7": "assets/habbo/spares/spare-009_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-009_walk_d0.png",
+      "1": "assets/habbo/spares/spare-009_walk_d1.png",
+      "2": "assets/habbo/spares/spare-009_walk_d2.png",
+      "3": "assets/habbo/spares/spare-009_walk_d3.png",
+      "4": "assets/habbo/spares/spare-009_walk_d4.png",
+      "5": "assets/habbo/spares/spare-009_walk_d5.png",
+      "6": "assets/habbo/spares/spare-009_walk_d6.png",
+      "7": "assets/habbo/spares/spare-009_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-010": {
+    "id": "spare-010",
+    "gender": "M",
+    "figure": "hd-180-14.hr-515-84.ch-3109-1408.lg-280-1320.sh-290-1320.ea-1406-85.ha-1009-85",
+    "body": "assets/habbo/spares/spare-010.png",
+    "head": "assets/habbo/spares/spare-010_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-010_d0.png",
+      "1": "assets/habbo/spares/spare-010_d1.png",
+      "2": "assets/habbo/spares/spare-010_d2.png",
+      "3": "assets/habbo/spares/spare-010_d3.png",
+      "4": "assets/habbo/spares/spare-010_d4.png",
+      "5": "assets/habbo/spares/spare-010_d5.png",
+      "6": "assets/habbo/spares/spare-010_d6.png",
+      "7": "assets/habbo/spares/spare-010_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-010_walk_d0.png",
+      "1": "assets/habbo/spares/spare-010_walk_d1.png",
+      "2": "assets/habbo/spares/spare-010_walk_d2.png",
+      "3": "assets/habbo/spares/spare-010_walk_d3.png",
+      "4": "assets/habbo/spares/spare-010_walk_d4.png",
+      "5": "assets/habbo/spares/spare-010_walk_d5.png",
+      "6": "assets/habbo/spares/spare-010_walk_d6.png",
+      "7": "assets/habbo/spares/spare-010_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-011": {
+    "id": "spare-011",
+    "gender": "M",
+    "figure": "hd-180-19.hr-596-68.ch-210-88.lg-280-90.sh-290-75.ha-1002-85",
+    "body": "assets/habbo/spares/spare-011.png",
+    "head": "assets/habbo/spares/spare-011_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-011_d0.png",
+      "1": "assets/habbo/spares/spare-011_d1.png",
+      "2": "assets/habbo/spares/spare-011_d2.png",
+      "3": "assets/habbo/spares/spare-011_d3.png",
+      "4": "assets/habbo/spares/spare-011_d4.png",
+      "5": "assets/habbo/spares/spare-011_d5.png",
+      "6": "assets/habbo/spares/spare-011_d6.png",
+      "7": "assets/habbo/spares/spare-011_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-011_walk_d0.png",
+      "1": "assets/habbo/spares/spare-011_walk_d1.png",
+      "2": "assets/habbo/spares/spare-011_walk_d2.png",
+      "3": "assets/habbo/spares/spare-011_walk_d3.png",
+      "4": "assets/habbo/spares/spare-011_walk_d4.png",
+      "5": "assets/habbo/spares/spare-011_walk_d5.png",
+      "6": "assets/habbo/spares/spare-011_walk_d6.png",
+      "7": "assets/habbo/spares/spare-011_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-012": {
+    "id": "spare-012",
+    "gender": "F",
+    "figure": "hd-600-14.hr-679-1320.ch-3332-43.lg-3023-1320.sh-905-39.fa-1205-45",
+    "body": "assets/habbo/spares/spare-012.png",
+    "head": "assets/habbo/spares/spare-012_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-012_d0.png",
+      "1": "assets/habbo/spares/spare-012_d1.png",
+      "2": "assets/habbo/spares/spare-012_d2.png",
+      "3": "assets/habbo/spares/spare-012_d3.png",
+      "4": "assets/habbo/spares/spare-012_d4.png",
+      "5": "assets/habbo/spares/spare-012_d5.png",
+      "6": "assets/habbo/spares/spare-012_d6.png",
+      "7": "assets/habbo/spares/spare-012_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-012_walk_d0.png",
+      "1": "assets/habbo/spares/spare-012_walk_d1.png",
+      "2": "assets/habbo/spares/spare-012_walk_d2.png",
+      "3": "assets/habbo/spares/spare-012_walk_d3.png",
+      "4": "assets/habbo/spares/spare-012_walk_d4.png",
+      "5": "assets/habbo/spares/spare-012_walk_d5.png",
+      "6": "assets/habbo/spares/spare-012_walk_d6.png",
+      "7": "assets/habbo/spares/spare-012_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-013": {
+    "id": "spare-013",
+    "gender": "F",
+    "figure": "hd-600-19.hr-515-64.ch-235-40.lg-3023-43.sh-905-1320.ha-1005-85",
+    "body": "assets/habbo/spares/spare-013.png",
+    "head": "assets/habbo/spares/spare-013_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-013_d0.png",
+      "1": "assets/habbo/spares/spare-013_d1.png",
+      "2": "assets/habbo/spares/spare-013_d2.png",
+      "3": "assets/habbo/spares/spare-013_d3.png",
+      "4": "assets/habbo/spares/spare-013_d4.png",
+      "5": "assets/habbo/spares/spare-013_d5.png",
+      "6": "assets/habbo/spares/spare-013_d6.png",
+      "7": "assets/habbo/spares/spare-013_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-013_walk_d0.png",
+      "1": "assets/habbo/spares/spare-013_walk_d1.png",
+      "2": "assets/habbo/spares/spare-013_walk_d2.png",
+      "3": "assets/habbo/spares/spare-013_walk_d3.png",
+      "4": "assets/habbo/spares/spare-013_walk_d4.png",
+      "5": "assets/habbo/spares/spare-013_walk_d5.png",
+      "6": "assets/habbo/spares/spare-013_walk_d6.png",
+      "7": "assets/habbo/spares/spare-013_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-014": {
+    "id": "spare-014",
+    "gender": "F",
+    "figure": "hd-600-19.hr-893-39.ch-690-64.lg-3023-66.sh-905-85",
+    "body": "assets/habbo/spares/spare-014.png",
+    "head": "assets/habbo/spares/spare-014_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-014_d0.png",
+      "1": "assets/habbo/spares/spare-014_d1.png",
+      "2": "assets/habbo/spares/spare-014_d2.png",
+      "3": "assets/habbo/spares/spare-014_d3.png",
+      "4": "assets/habbo/spares/spare-014_d4.png",
+      "5": "assets/habbo/spares/spare-014_d5.png",
+      "6": "assets/habbo/spares/spare-014_d6.png",
+      "7": "assets/habbo/spares/spare-014_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-014_walk_d0.png",
+      "1": "assets/habbo/spares/spare-014_walk_d1.png",
+      "2": "assets/habbo/spares/spare-014_walk_d2.png",
+      "3": "assets/habbo/spares/spare-014_walk_d3.png",
+      "4": "assets/habbo/spares/spare-014_walk_d4.png",
+      "5": "assets/habbo/spares/spare-014_walk_d5.png",
+      "6": "assets/habbo/spares/spare-014_walk_d6.png",
+      "7": "assets/habbo/spares/spare-014_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-015": {
+    "id": "spare-015",
+    "gender": "F",
+    "figure": "hd-600-1371.hr-889-84.ch-255-75.lg-3023-1408.sh-905-32",
+    "body": "assets/habbo/spares/spare-015.png",
+    "head": "assets/habbo/spares/spare-015_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-015_d0.png",
+      "1": "assets/habbo/spares/spare-015_d1.png",
+      "2": "assets/habbo/spares/spare-015_d2.png",
+      "3": "assets/habbo/spares/spare-015_d3.png",
+      "4": "assets/habbo/spares/spare-015_d4.png",
+      "5": "assets/habbo/spares/spare-015_d5.png",
+      "6": "assets/habbo/spares/spare-015_d6.png",
+      "7": "assets/habbo/spares/spare-015_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-015_walk_d0.png",
+      "1": "assets/habbo/spares/spare-015_walk_d1.png",
+      "2": "assets/habbo/spares/spare-015_walk_d2.png",
+      "3": "assets/habbo/spares/spare-015_walk_d3.png",
+      "4": "assets/habbo/spares/spare-015_walk_d4.png",
+      "5": "assets/habbo/spares/spare-015_walk_d5.png",
+      "6": "assets/habbo/spares/spare-015_walk_d6.png",
+      "7": "assets/habbo/spares/spare-015_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-016": {
+    "id": "spare-016",
+    "gender": "M",
+    "figure": "hd-180-30.hr-681-32.ch-3110-1408.lg-280-90.sh-290-75",
+    "body": "assets/habbo/spares/spare-016.png",
+    "head": "assets/habbo/spares/spare-016_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-016_d0.png",
+      "1": "assets/habbo/spares/spare-016_d1.png",
+      "2": "assets/habbo/spares/spare-016_d2.png",
+      "3": "assets/habbo/spares/spare-016_d3.png",
+      "4": "assets/habbo/spares/spare-016_d4.png",
+      "5": "assets/habbo/spares/spare-016_d5.png",
+      "6": "assets/habbo/spares/spare-016_d6.png",
+      "7": "assets/habbo/spares/spare-016_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-016_walk_d0.png",
+      "1": "assets/habbo/spares/spare-016_walk_d1.png",
+      "2": "assets/habbo/spares/spare-016_walk_d2.png",
+      "3": "assets/habbo/spares/spare-016_walk_d3.png",
+      "4": "assets/habbo/spares/spare-016_walk_d4.png",
+      "5": "assets/habbo/spares/spare-016_walk_d5.png",
+      "6": "assets/habbo/spares/spare-016_walk_d6.png",
+      "7": "assets/habbo/spares/spare-016_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-017": {
+    "id": "spare-017",
+    "gender": "M",
+    "figure": "hd-180-1370.hr-155-68.ch-3321-61.lg-280-85.sh-290-32.ha-1002-85",
+    "body": "assets/habbo/spares/spare-017.png",
+    "head": "assets/habbo/spares/spare-017_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-017_d0.png",
+      "1": "assets/habbo/spares/spare-017_d1.png",
+      "2": "assets/habbo/spares/spare-017_d2.png",
+      "3": "assets/habbo/spares/spare-017_d3.png",
+      "4": "assets/habbo/spares/spare-017_d4.png",
+      "5": "assets/habbo/spares/spare-017_d5.png",
+      "6": "assets/habbo/spares/spare-017_d6.png",
+      "7": "assets/habbo/spares/spare-017_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-017_walk_d0.png",
+      "1": "assets/habbo/spares/spare-017_walk_d1.png",
+      "2": "assets/habbo/spares/spare-017_walk_d2.png",
+      "3": "assets/habbo/spares/spare-017_walk_d3.png",
+      "4": "assets/habbo/spares/spare-017_walk_d4.png",
+      "5": "assets/habbo/spares/spare-017_walk_d5.png",
+      "6": "assets/habbo/spares/spare-017_walk_d6.png",
+      "7": "assets/habbo/spares/spare-017_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-018": {
+    "id": "spare-018",
+    "gender": "M",
+    "figure": "hd-180-1371.hr-889-43.ch-3030-72.lg-280-1320.sh-290-76.fa-1210-85",
+    "body": "assets/habbo/spares/spare-018.png",
+    "head": "assets/habbo/spares/spare-018_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-018_d0.png",
+      "1": "assets/habbo/spares/spare-018_d1.png",
+      "2": "assets/habbo/spares/spare-018_d2.png",
+      "3": "assets/habbo/spares/spare-018_d3.png",
+      "4": "assets/habbo/spares/spare-018_d4.png",
+      "5": "assets/habbo/spares/spare-018_d5.png",
+      "6": "assets/habbo/spares/spare-018_d6.png",
+      "7": "assets/habbo/spares/spare-018_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-018_walk_d0.png",
+      "1": "assets/habbo/spares/spare-018_walk_d1.png",
+      "2": "assets/habbo/spares/spare-018_walk_d2.png",
+      "3": "assets/habbo/spares/spare-018_walk_d3.png",
+      "4": "assets/habbo/spares/spare-018_walk_d4.png",
+      "5": "assets/habbo/spares/spare-018_walk_d5.png",
+      "6": "assets/habbo/spares/spare-018_walk_d6.png",
+      "7": "assets/habbo/spares/spare-018_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-019": {
+    "id": "spare-019",
+    "gender": "F",
+    "figure": "hd-600-30.hr-890-1320.ch-3321-1320.lg-3023-39.sh-905-45.ea-6331-85",
+    "body": "assets/habbo/spares/spare-019.png",
+    "head": "assets/habbo/spares/spare-019_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-019_d0.png",
+      "1": "assets/habbo/spares/spare-019_d1.png",
+      "2": "assets/habbo/spares/spare-019_d2.png",
+      "3": "assets/habbo/spares/spare-019_d3.png",
+      "4": "assets/habbo/spares/spare-019_d4.png",
+      "5": "assets/habbo/spares/spare-019_d5.png",
+      "6": "assets/habbo/spares/spare-019_d6.png",
+      "7": "assets/habbo/spares/spare-019_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-019_walk_d0.png",
+      "1": "assets/habbo/spares/spare-019_walk_d1.png",
+      "2": "assets/habbo/spares/spare-019_walk_d2.png",
+      "3": "assets/habbo/spares/spare-019_walk_d3.png",
+      "4": "assets/habbo/spares/spare-019_walk_d4.png",
+      "5": "assets/habbo/spares/spare-019_walk_d5.png",
+      "6": "assets/habbo/spares/spare-019_walk_d6.png",
+      "7": "assets/habbo/spares/spare-019_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-020": {
+    "id": "spare-020",
+    "gender": "F",
+    "figure": "hd-600-1371.hr-165-72.ch-3110-39.lg-3023-43.sh-905-1408",
+    "body": "assets/habbo/spares/spare-020.png",
+    "head": "assets/habbo/spares/spare-020_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-020_d0.png",
+      "1": "assets/habbo/spares/spare-020_d1.png",
+      "2": "assets/habbo/spares/spare-020_d2.png",
+      "3": "assets/habbo/spares/spare-020_d3.png",
+      "4": "assets/habbo/spares/spare-020_d4.png",
+      "5": "assets/habbo/spares/spare-020_d5.png",
+      "6": "assets/habbo/spares/spare-020_d6.png",
+      "7": "assets/habbo/spares/spare-020_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-020_walk_d0.png",
+      "1": "assets/habbo/spares/spare-020_walk_d1.png",
+      "2": "assets/habbo/spares/spare-020_walk_d2.png",
+      "3": "assets/habbo/spares/spare-020_walk_d3.png",
+      "4": "assets/habbo/spares/spare-020_walk_d4.png",
+      "5": "assets/habbo/spares/spare-020_walk_d5.png",
+      "6": "assets/habbo/spares/spare-020_walk_d6.png",
+      "7": "assets/habbo/spares/spare-020_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-021": {
+    "id": "spare-021",
+    "gender": "M",
+    "figure": "hd-180-1371.hr-155-92.ch-680-92.lg-280-92.sh-290-82.fa-1208-85",
+    "body": "assets/habbo/spares/spare-021.png",
+    "head": "assets/habbo/spares/spare-021_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-021_d0.png",
+      "1": "assets/habbo/spares/spare-021_d1.png",
+      "2": "assets/habbo/spares/spare-021_d2.png",
+      "3": "assets/habbo/spares/spare-021_d3.png",
+      "4": "assets/habbo/spares/spare-021_d4.png",
+      "5": "assets/habbo/spares/spare-021_d5.png",
+      "6": "assets/habbo/spares/spare-021_d6.png",
+      "7": "assets/habbo/spares/spare-021_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-021_walk_d0.png",
+      "1": "assets/habbo/spares/spare-021_walk_d1.png",
+      "2": "assets/habbo/spares/spare-021_walk_d2.png",
+      "3": "assets/habbo/spares/spare-021_walk_d3.png",
+      "4": "assets/habbo/spares/spare-021_walk_d4.png",
+      "5": "assets/habbo/spares/spare-021_walk_d5.png",
+      "6": "assets/habbo/spares/spare-021_walk_d6.png",
+      "7": "assets/habbo/spares/spare-021_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-022": {
+    "id": "spare-022",
+    "gender": "F",
+    "figure": "hd-600-19.hr-3025-88.ch-210-66.lg-3023-84.sh-905-91.fa-1205-45",
+    "body": "assets/habbo/spares/spare-022.png",
+    "head": "assets/habbo/spares/spare-022_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-022_d0.png",
+      "1": "assets/habbo/spares/spare-022_d1.png",
+      "2": "assets/habbo/spares/spare-022_d2.png",
+      "3": "assets/habbo/spares/spare-022_d3.png",
+      "4": "assets/habbo/spares/spare-022_d4.png",
+      "5": "assets/habbo/spares/spare-022_d5.png",
+      "6": "assets/habbo/spares/spare-022_d6.png",
+      "7": "assets/habbo/spares/spare-022_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-022_walk_d0.png",
+      "1": "assets/habbo/spares/spare-022_walk_d1.png",
+      "2": "assets/habbo/spares/spare-022_walk_d2.png",
+      "3": "assets/habbo/spares/spare-022_walk_d3.png",
+      "4": "assets/habbo/spares/spare-022_walk_d4.png",
+      "5": "assets/habbo/spares/spare-022_walk_d5.png",
+      "6": "assets/habbo/spares/spare-022_walk_d6.png",
+      "7": "assets/habbo/spares/spare-022_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-023": {
+    "id": "spare-023",
+    "gender": "M",
+    "figure": "hd-180-1371.hr-676-72.ch-3109-1320.lg-280-64.sh-290-66.fa-1211-45",
+    "body": "assets/habbo/spares/spare-023.png",
+    "head": "assets/habbo/spares/spare-023_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-023_d0.png",
+      "1": "assets/habbo/spares/spare-023_d1.png",
+      "2": "assets/habbo/spares/spare-023_d2.png",
+      "3": "assets/habbo/spares/spare-023_d3.png",
+      "4": "assets/habbo/spares/spare-023_d4.png",
+      "5": "assets/habbo/spares/spare-023_d5.png",
+      "6": "assets/habbo/spares/spare-023_d6.png",
+      "7": "assets/habbo/spares/spare-023_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-023_walk_d0.png",
+      "1": "assets/habbo/spares/spare-023_walk_d1.png",
+      "2": "assets/habbo/spares/spare-023_walk_d2.png",
+      "3": "assets/habbo/spares/spare-023_walk_d3.png",
+      "4": "assets/habbo/spares/spare-023_walk_d4.png",
+      "5": "assets/habbo/spares/spare-023_walk_d5.png",
+      "6": "assets/habbo/spares/spare-023_walk_d6.png",
+      "7": "assets/habbo/spares/spare-023_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-024": {
+    "id": "spare-024",
+    "gender": "F",
+    "figure": "hd-600-19.hr-3025-90.ch-3109-43.lg-3023-1320.sh-905-61",
+    "body": "assets/habbo/spares/spare-024.png",
+    "head": "assets/habbo/spares/spare-024_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-024_d0.png",
+      "1": "assets/habbo/spares/spare-024_d1.png",
+      "2": "assets/habbo/spares/spare-024_d2.png",
+      "3": "assets/habbo/spares/spare-024_d3.png",
+      "4": "assets/habbo/spares/spare-024_d4.png",
+      "5": "assets/habbo/spares/spare-024_d5.png",
+      "6": "assets/habbo/spares/spare-024_d6.png",
+      "7": "assets/habbo/spares/spare-024_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-024_walk_d0.png",
+      "1": "assets/habbo/spares/spare-024_walk_d1.png",
+      "2": "assets/habbo/spares/spare-024_walk_d2.png",
+      "3": "assets/habbo/spares/spare-024_walk_d3.png",
+      "4": "assets/habbo/spares/spare-024_walk_d4.png",
+      "5": "assets/habbo/spares/spare-024_walk_d5.png",
+      "6": "assets/habbo/spares/spare-024_walk_d6.png",
+      "7": "assets/habbo/spares/spare-024_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-025": {
+    "id": "spare-025",
+    "gender": "M",
+    "figure": "hd-180-1371.hr-3377-1320.ch-3109-82.lg-280-68.sh-290-64.fa-1206-85",
+    "body": "assets/habbo/spares/spare-025.png",
+    "head": "assets/habbo/spares/spare-025_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-025_d0.png",
+      "1": "assets/habbo/spares/spare-025_d1.png",
+      "2": "assets/habbo/spares/spare-025_d2.png",
+      "3": "assets/habbo/spares/spare-025_d3.png",
+      "4": "assets/habbo/spares/spare-025_d4.png",
+      "5": "assets/habbo/spares/spare-025_d5.png",
+      "6": "assets/habbo/spares/spare-025_d6.png",
+      "7": "assets/habbo/spares/spare-025_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-025_walk_d0.png",
+      "1": "assets/habbo/spares/spare-025_walk_d1.png",
+      "2": "assets/habbo/spares/spare-025_walk_d2.png",
+      "3": "assets/habbo/spares/spare-025_walk_d3.png",
+      "4": "assets/habbo/spares/spare-025_walk_d4.png",
+      "5": "assets/habbo/spares/spare-025_walk_d5.png",
+      "6": "assets/habbo/spares/spare-025_walk_d6.png",
+      "7": "assets/habbo/spares/spare-025_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-026": {
+    "id": "spare-026",
+    "gender": "M",
+    "figure": "hd-180-14.hr-889-64.ch-3030-92.lg-280-74.sh-290-32",
+    "body": "assets/habbo/spares/spare-026.png",
+    "head": "assets/habbo/spares/spare-026_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-026_d0.png",
+      "1": "assets/habbo/spares/spare-026_d1.png",
+      "2": "assets/habbo/spares/spare-026_d2.png",
+      "3": "assets/habbo/spares/spare-026_d3.png",
+      "4": "assets/habbo/spares/spare-026_d4.png",
+      "5": "assets/habbo/spares/spare-026_d5.png",
+      "6": "assets/habbo/spares/spare-026_d6.png",
+      "7": "assets/habbo/spares/spare-026_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-026_walk_d0.png",
+      "1": "assets/habbo/spares/spare-026_walk_d1.png",
+      "2": "assets/habbo/spares/spare-026_walk_d2.png",
+      "3": "assets/habbo/spares/spare-026_walk_d3.png",
+      "4": "assets/habbo/spares/spare-026_walk_d4.png",
+      "5": "assets/habbo/spares/spare-026_walk_d5.png",
+      "6": "assets/habbo/spares/spare-026_walk_d6.png",
+      "7": "assets/habbo/spares/spare-026_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-027": {
+    "id": "spare-027",
+    "gender": "F",
+    "figure": "hd-600-1371.hr-3090-39.ch-3342-88.lg-3023-75.sh-905-90",
+    "body": "assets/habbo/spares/spare-027.png",
+    "head": "assets/habbo/spares/spare-027_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-027_d0.png",
+      "1": "assets/habbo/spares/spare-027_d1.png",
+      "2": "assets/habbo/spares/spare-027_d2.png",
+      "3": "assets/habbo/spares/spare-027_d3.png",
+      "4": "assets/habbo/spares/spare-027_d4.png",
+      "5": "assets/habbo/spares/spare-027_d5.png",
+      "6": "assets/habbo/spares/spare-027_d6.png",
+      "7": "assets/habbo/spares/spare-027_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-027_walk_d0.png",
+      "1": "assets/habbo/spares/spare-027_walk_d1.png",
+      "2": "assets/habbo/spares/spare-027_walk_d2.png",
+      "3": "assets/habbo/spares/spare-027_walk_d3.png",
+      "4": "assets/habbo/spares/spare-027_walk_d4.png",
+      "5": "assets/habbo/spares/spare-027_walk_d5.png",
+      "6": "assets/habbo/spares/spare-027_walk_d6.png",
+      "7": "assets/habbo/spares/spare-027_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-028": {
+    "id": "spare-028",
+    "gender": "M",
+    "figure": "hd-180-19.hr-3025-84.ch-235-88.lg-280-61.sh-290-72",
+    "body": "assets/habbo/spares/spare-028.png",
+    "head": "assets/habbo/spares/spare-028_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-028_d0.png",
+      "1": "assets/habbo/spares/spare-028_d1.png",
+      "2": "assets/habbo/spares/spare-028_d2.png",
+      "3": "assets/habbo/spares/spare-028_d3.png",
+      "4": "assets/habbo/spares/spare-028_d4.png",
+      "5": "assets/habbo/spares/spare-028_d5.png",
+      "6": "assets/habbo/spares/spare-028_d6.png",
+      "7": "assets/habbo/spares/spare-028_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-028_walk_d0.png",
+      "1": "assets/habbo/spares/spare-028_walk_d1.png",
+      "2": "assets/habbo/spares/spare-028_walk_d2.png",
+      "3": "assets/habbo/spares/spare-028_walk_d3.png",
+      "4": "assets/habbo/spares/spare-028_walk_d4.png",
+      "5": "assets/habbo/spares/spare-028_walk_d5.png",
+      "6": "assets/habbo/spares/spare-028_walk_d6.png",
+      "7": "assets/habbo/spares/spare-028_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-029": {
+    "id": "spare-029",
+    "gender": "F",
+    "figure": "hd-600-1371.hr-155-43.ch-3109-1320.lg-3023-68.sh-905-90",
+    "body": "assets/habbo/spares/spare-029.png",
+    "head": "assets/habbo/spares/spare-029_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-029_d0.png",
+      "1": "assets/habbo/spares/spare-029_d1.png",
+      "2": "assets/habbo/spares/spare-029_d2.png",
+      "3": "assets/habbo/spares/spare-029_d3.png",
+      "4": "assets/habbo/spares/spare-029_d4.png",
+      "5": "assets/habbo/spares/spare-029_d5.png",
+      "6": "assets/habbo/spares/spare-029_d6.png",
+      "7": "assets/habbo/spares/spare-029_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-029_walk_d0.png",
+      "1": "assets/habbo/spares/spare-029_walk_d1.png",
+      "2": "assets/habbo/spares/spare-029_walk_d2.png",
+      "3": "assets/habbo/spares/spare-029_walk_d3.png",
+      "4": "assets/habbo/spares/spare-029_walk_d4.png",
+      "5": "assets/habbo/spares/spare-029_walk_d5.png",
+      "6": "assets/habbo/spares/spare-029_walk_d6.png",
+      "7": "assets/habbo/spares/spare-029_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-030": {
+    "id": "spare-030",
+    "gender": "F",
+    "figure": "hd-600-14.hr-155-66.ch-3030-1320.lg-3023-92.sh-905-45.ha-1010-84",
+    "body": "assets/habbo/spares/spare-030.png",
+    "head": "assets/habbo/spares/spare-030_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-030_d0.png",
+      "1": "assets/habbo/spares/spare-030_d1.png",
+      "2": "assets/habbo/spares/spare-030_d2.png",
+      "3": "assets/habbo/spares/spare-030_d3.png",
+      "4": "assets/habbo/spares/spare-030_d4.png",
+      "5": "assets/habbo/spares/spare-030_d5.png",
+      "6": "assets/habbo/spares/spare-030_d6.png",
+      "7": "assets/habbo/spares/spare-030_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-030_walk_d0.png",
+      "1": "assets/habbo/spares/spare-030_walk_d1.png",
+      "2": "assets/habbo/spares/spare-030_walk_d2.png",
+      "3": "assets/habbo/spares/spare-030_walk_d3.png",
+      "4": "assets/habbo/spares/spare-030_walk_d4.png",
+      "5": "assets/habbo/spares/spare-030_walk_d5.png",
+      "6": "assets/habbo/spares/spare-030_walk_d6.png",
+      "7": "assets/habbo/spares/spare-030_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-031": {
+    "id": "spare-031",
+    "gender": "M",
+    "figure": "hd-180-1371.hr-3025-82.ch-235-61.lg-280-66.sh-290-45.ha-1004-85.ha-1002-85",
+    "body": "assets/habbo/spares/spare-031.png",
+    "head": "assets/habbo/spares/spare-031_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-031_d0.png",
+      "1": "assets/habbo/spares/spare-031_d1.png",
+      "2": "assets/habbo/spares/spare-031_d2.png",
+      "3": "assets/habbo/spares/spare-031_d3.png",
+      "4": "assets/habbo/spares/spare-031_d4.png",
+      "5": "assets/habbo/spares/spare-031_d5.png",
+      "6": "assets/habbo/spares/spare-031_d6.png",
+      "7": "assets/habbo/spares/spare-031_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-031_walk_d0.png",
+      "1": "assets/habbo/spares/spare-031_walk_d1.png",
+      "2": "assets/habbo/spares/spare-031_walk_d2.png",
+      "3": "assets/habbo/spares/spare-031_walk_d3.png",
+      "4": "assets/habbo/spares/spare-031_walk_d4.png",
+      "5": "assets/habbo/spares/spare-031_walk_d5.png",
+      "6": "assets/habbo/spares/spare-031_walk_d6.png",
+      "7": "assets/habbo/spares/spare-031_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-032": {
+    "id": "spare-032",
+    "gender": "F",
+    "figure": "hd-600-19.hr-100-76.ch-255-45.lg-3023-75.sh-905-88",
+    "body": "assets/habbo/spares/spare-032.png",
+    "head": "assets/habbo/spares/spare-032_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-032_d0.png",
+      "1": "assets/habbo/spares/spare-032_d1.png",
+      "2": "assets/habbo/spares/spare-032_d2.png",
+      "3": "assets/habbo/spares/spare-032_d3.png",
+      "4": "assets/habbo/spares/spare-032_d4.png",
+      "5": "assets/habbo/spares/spare-032_d5.png",
+      "6": "assets/habbo/spares/spare-032_d6.png",
+      "7": "assets/habbo/spares/spare-032_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-032_walk_d0.png",
+      "1": "assets/habbo/spares/spare-032_walk_d1.png",
+      "2": "assets/habbo/spares/spare-032_walk_d2.png",
+      "3": "assets/habbo/spares/spare-032_walk_d3.png",
+      "4": "assets/habbo/spares/spare-032_walk_d4.png",
+      "5": "assets/habbo/spares/spare-032_walk_d5.png",
+      "6": "assets/habbo/spares/spare-032_walk_d6.png",
+      "7": "assets/habbo/spares/spare-032_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-033": {
+    "id": "spare-033",
+    "gender": "M",
+    "figure": "hd-180-1370.hr-100-61.ch-3109-1320.lg-280-75.sh-290-76.fa-1205-45",
+    "body": "assets/habbo/spares/spare-033.png",
+    "head": "assets/habbo/spares/spare-033_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-033_d0.png",
+      "1": "assets/habbo/spares/spare-033_d1.png",
+      "2": "assets/habbo/spares/spare-033_d2.png",
+      "3": "assets/habbo/spares/spare-033_d3.png",
+      "4": "assets/habbo/spares/spare-033_d4.png",
+      "5": "assets/habbo/spares/spare-033_d5.png",
+      "6": "assets/habbo/spares/spare-033_d6.png",
+      "7": "assets/habbo/spares/spare-033_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-033_walk_d0.png",
+      "1": "assets/habbo/spares/spare-033_walk_d1.png",
+      "2": "assets/habbo/spares/spare-033_walk_d2.png",
+      "3": "assets/habbo/spares/spare-033_walk_d3.png",
+      "4": "assets/habbo/spares/spare-033_walk_d4.png",
+      "5": "assets/habbo/spares/spare-033_walk_d5.png",
+      "6": "assets/habbo/spares/spare-033_walk_d6.png",
+      "7": "assets/habbo/spares/spare-033_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-034": {
+    "id": "spare-034",
+    "gender": "M",
+    "figure": "hd-180-14.hr-890-1320.ch-690-1408.lg-280-32.sh-290-61.ha-1013-84",
+    "body": "assets/habbo/spares/spare-034.png",
+    "head": "assets/habbo/spares/spare-034_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-034_d0.png",
+      "1": "assets/habbo/spares/spare-034_d1.png",
+      "2": "assets/habbo/spares/spare-034_d2.png",
+      "3": "assets/habbo/spares/spare-034_d3.png",
+      "4": "assets/habbo/spares/spare-034_d4.png",
+      "5": "assets/habbo/spares/spare-034_d5.png",
+      "6": "assets/habbo/spares/spare-034_d6.png",
+      "7": "assets/habbo/spares/spare-034_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-034_walk_d0.png",
+      "1": "assets/habbo/spares/spare-034_walk_d1.png",
+      "2": "assets/habbo/spares/spare-034_walk_d2.png",
+      "3": "assets/habbo/spares/spare-034_walk_d3.png",
+      "4": "assets/habbo/spares/spare-034_walk_d4.png",
+      "5": "assets/habbo/spares/spare-034_walk_d5.png",
+      "6": "assets/habbo/spares/spare-034_walk_d6.png",
+      "7": "assets/habbo/spares/spare-034_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-035": {
+    "id": "spare-035",
+    "gender": "M",
+    "figure": "hd-180-14.hr-3322-32.ch-3342-45.lg-280-74.sh-290-76.ea-6331-85",
+    "body": "assets/habbo/spares/spare-035.png",
+    "head": "assets/habbo/spares/spare-035_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-035_d0.png",
+      "1": "assets/habbo/spares/spare-035_d1.png",
+      "2": "assets/habbo/spares/spare-035_d2.png",
+      "3": "assets/habbo/spares/spare-035_d3.png",
+      "4": "assets/habbo/spares/spare-035_d4.png",
+      "5": "assets/habbo/spares/spare-035_d5.png",
+      "6": "assets/habbo/spares/spare-035_d6.png",
+      "7": "assets/habbo/spares/spare-035_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-035_walk_d0.png",
+      "1": "assets/habbo/spares/spare-035_walk_d1.png",
+      "2": "assets/habbo/spares/spare-035_walk_d2.png",
+      "3": "assets/habbo/spares/spare-035_walk_d3.png",
+      "4": "assets/habbo/spares/spare-035_walk_d4.png",
+      "5": "assets/habbo/spares/spare-035_walk_d5.png",
+      "6": "assets/habbo/spares/spare-035_walk_d6.png",
+      "7": "assets/habbo/spares/spare-035_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-036": {
+    "id": "spare-036",
+    "gender": "M",
+    "figure": "hd-180-14.hr-3322-1320.ch-235-76.lg-280-1320.sh-290-61",
+    "body": "assets/habbo/spares/spare-036.png",
+    "head": "assets/habbo/spares/spare-036_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-036_d0.png",
+      "1": "assets/habbo/spares/spare-036_d1.png",
+      "2": "assets/habbo/spares/spare-036_d2.png",
+      "3": "assets/habbo/spares/spare-036_d3.png",
+      "4": "assets/habbo/spares/spare-036_d4.png",
+      "5": "assets/habbo/spares/spare-036_d5.png",
+      "6": "assets/habbo/spares/spare-036_d6.png",
+      "7": "assets/habbo/spares/spare-036_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-036_walk_d0.png",
+      "1": "assets/habbo/spares/spare-036_walk_d1.png",
+      "2": "assets/habbo/spares/spare-036_walk_d2.png",
+      "3": "assets/habbo/spares/spare-036_walk_d3.png",
+      "4": "assets/habbo/spares/spare-036_walk_d4.png",
+      "5": "assets/habbo/spares/spare-036_walk_d5.png",
+      "6": "assets/habbo/spares/spare-036_walk_d6.png",
+      "7": "assets/habbo/spares/spare-036_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-037": {
+    "id": "spare-037",
+    "gender": "F",
+    "figure": "hd-600-1370.hr-596-88.ch-3342-45.lg-3023-43.sh-905-82.fa-1206-85",
+    "body": "assets/habbo/spares/spare-037.png",
+    "head": "assets/habbo/spares/spare-037_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-037_d0.png",
+      "1": "assets/habbo/spares/spare-037_d1.png",
+      "2": "assets/habbo/spares/spare-037_d2.png",
+      "3": "assets/habbo/spares/spare-037_d3.png",
+      "4": "assets/habbo/spares/spare-037_d4.png",
+      "5": "assets/habbo/spares/spare-037_d5.png",
+      "6": "assets/habbo/spares/spare-037_d6.png",
+      "7": "assets/habbo/spares/spare-037_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-037_walk_d0.png",
+      "1": "assets/habbo/spares/spare-037_walk_d1.png",
+      "2": "assets/habbo/spares/spare-037_walk_d2.png",
+      "3": "assets/habbo/spares/spare-037_walk_d3.png",
+      "4": "assets/habbo/spares/spare-037_walk_d4.png",
+      "5": "assets/habbo/spares/spare-037_walk_d5.png",
+      "6": "assets/habbo/spares/spare-037_walk_d6.png",
+      "7": "assets/habbo/spares/spare-037_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-038": {
+    "id": "spare-038",
+    "gender": "F",
+    "figure": "hd-600-19.hr-3090-84.ch-210-64.lg-3023-74.sh-905-1408.fa-1205-45",
+    "body": "assets/habbo/spares/spare-038.png",
+    "head": "assets/habbo/spares/spare-038_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-038_d0.png",
+      "1": "assets/habbo/spares/spare-038_d1.png",
+      "2": "assets/habbo/spares/spare-038_d2.png",
+      "3": "assets/habbo/spares/spare-038_d3.png",
+      "4": "assets/habbo/spares/spare-038_d4.png",
+      "5": "assets/habbo/spares/spare-038_d5.png",
+      "6": "assets/habbo/spares/spare-038_d6.png",
+      "7": "assets/habbo/spares/spare-038_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-038_walk_d0.png",
+      "1": "assets/habbo/spares/spare-038_walk_d1.png",
+      "2": "assets/habbo/spares/spare-038_walk_d2.png",
+      "3": "assets/habbo/spares/spare-038_walk_d3.png",
+      "4": "assets/habbo/spares/spare-038_walk_d4.png",
+      "5": "assets/habbo/spares/spare-038_walk_d5.png",
+      "6": "assets/habbo/spares/spare-038_walk_d6.png",
+      "7": "assets/habbo/spares/spare-038_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-039": {
+    "id": "spare-039",
+    "gender": "F",
+    "figure": "hd-600-30.hr-676-43.ch-690-88.lg-3023-1320.sh-905-39.fa-1204-85.ea-1406-85",
+    "body": "assets/habbo/spares/spare-039.png",
+    "head": "assets/habbo/spares/spare-039_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-039_d0.png",
+      "1": "assets/habbo/spares/spare-039_d1.png",
+      "2": "assets/habbo/spares/spare-039_d2.png",
+      "3": "assets/habbo/spares/spare-039_d3.png",
+      "4": "assets/habbo/spares/spare-039_d4.png",
+      "5": "assets/habbo/spares/spare-039_d5.png",
+      "6": "assets/habbo/spares/spare-039_d6.png",
+      "7": "assets/habbo/spares/spare-039_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-039_walk_d0.png",
+      "1": "assets/habbo/spares/spare-039_walk_d1.png",
+      "2": "assets/habbo/spares/spare-039_walk_d2.png",
+      "3": "assets/habbo/spares/spare-039_walk_d3.png",
+      "4": "assets/habbo/spares/spare-039_walk_d4.png",
+      "5": "assets/habbo/spares/spare-039_walk_d5.png",
+      "6": "assets/habbo/spares/spare-039_walk_d6.png",
+      "7": "assets/habbo/spares/spare-039_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-040": {
+    "id": "spare-040",
+    "gender": "M",
+    "figure": "hd-180-30.hr-100-82.ch-3030-66.lg-280-88.sh-290-68.ha-1005-85",
+    "body": "assets/habbo/spares/spare-040.png",
+    "head": "assets/habbo/spares/spare-040_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-040_d0.png",
+      "1": "assets/habbo/spares/spare-040_d1.png",
+      "2": "assets/habbo/spares/spare-040_d2.png",
+      "3": "assets/habbo/spares/spare-040_d3.png",
+      "4": "assets/habbo/spares/spare-040_d4.png",
+      "5": "assets/habbo/spares/spare-040_d5.png",
+      "6": "assets/habbo/spares/spare-040_d6.png",
+      "7": "assets/habbo/spares/spare-040_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-040_walk_d0.png",
+      "1": "assets/habbo/spares/spare-040_walk_d1.png",
+      "2": "assets/habbo/spares/spare-040_walk_d2.png",
+      "3": "assets/habbo/spares/spare-040_walk_d3.png",
+      "4": "assets/habbo/spares/spare-040_walk_d4.png",
+      "5": "assets/habbo/spares/spare-040_walk_d5.png",
+      "6": "assets/habbo/spares/spare-040_walk_d6.png",
+      "7": "assets/habbo/spares/spare-040_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-041": {
+    "id": "spare-041",
+    "gender": "M",
+    "figure": "hd-180-1371.hr-545-91.ch-215-74.lg-280-85.sh-290-88.fa-1208-85",
+    "body": "assets/habbo/spares/spare-041.png",
+    "head": "assets/habbo/spares/spare-041_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-041_d0.png",
+      "1": "assets/habbo/spares/spare-041_d1.png",
+      "2": "assets/habbo/spares/spare-041_d2.png",
+      "3": "assets/habbo/spares/spare-041_d3.png",
+      "4": "assets/habbo/spares/spare-041_d4.png",
+      "5": "assets/habbo/spares/spare-041_d5.png",
+      "6": "assets/habbo/spares/spare-041_d6.png",
+      "7": "assets/habbo/spares/spare-041_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-041_walk_d0.png",
+      "1": "assets/habbo/spares/spare-041_walk_d1.png",
+      "2": "assets/habbo/spares/spare-041_walk_d2.png",
+      "3": "assets/habbo/spares/spare-041_walk_d3.png",
+      "4": "assets/habbo/spares/spare-041_walk_d4.png",
+      "5": "assets/habbo/spares/spare-041_walk_d5.png",
+      "6": "assets/habbo/spares/spare-041_walk_d6.png",
+      "7": "assets/habbo/spares/spare-041_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-042": {
+    "id": "spare-042",
+    "gender": "M",
+    "figure": "hd-180-30.hr-165-88.ch-3109-32.lg-280-75.sh-290-32",
+    "body": "assets/habbo/spares/spare-042.png",
+    "head": "assets/habbo/spares/spare-042_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-042_d0.png",
+      "1": "assets/habbo/spares/spare-042_d1.png",
+      "2": "assets/habbo/spares/spare-042_d2.png",
+      "3": "assets/habbo/spares/spare-042_d3.png",
+      "4": "assets/habbo/spares/spare-042_d4.png",
+      "5": "assets/habbo/spares/spare-042_d5.png",
+      "6": "assets/habbo/spares/spare-042_d6.png",
+      "7": "assets/habbo/spares/spare-042_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-042_walk_d0.png",
+      "1": "assets/habbo/spares/spare-042_walk_d1.png",
+      "2": "assets/habbo/spares/spare-042_walk_d2.png",
+      "3": "assets/habbo/spares/spare-042_walk_d3.png",
+      "4": "assets/habbo/spares/spare-042_walk_d4.png",
+      "5": "assets/habbo/spares/spare-042_walk_d5.png",
+      "6": "assets/habbo/spares/spare-042_walk_d6.png",
+      "7": "assets/habbo/spares/spare-042_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-043": {
+    "id": "spare-043",
+    "gender": "F",
+    "figure": "hd-600-14.hr-676-1320.ch-3030-74.lg-3023-88.sh-905-84",
+    "body": "assets/habbo/spares/spare-043.png",
+    "head": "assets/habbo/spares/spare-043_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-043_d0.png",
+      "1": "assets/habbo/spares/spare-043_d1.png",
+      "2": "assets/habbo/spares/spare-043_d2.png",
+      "3": "assets/habbo/spares/spare-043_d3.png",
+      "4": "assets/habbo/spares/spare-043_d4.png",
+      "5": "assets/habbo/spares/spare-043_d5.png",
+      "6": "assets/habbo/spares/spare-043_d6.png",
+      "7": "assets/habbo/spares/spare-043_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-043_walk_d0.png",
+      "1": "assets/habbo/spares/spare-043_walk_d1.png",
+      "2": "assets/habbo/spares/spare-043_walk_d2.png",
+      "3": "assets/habbo/spares/spare-043_walk_d3.png",
+      "4": "assets/habbo/spares/spare-043_walk_d4.png",
+      "5": "assets/habbo/spares/spare-043_walk_d5.png",
+      "6": "assets/habbo/spares/spare-043_walk_d6.png",
+      "7": "assets/habbo/spares/spare-043_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-044": {
+    "id": "spare-044",
+    "gender": "F",
+    "figure": "hd-600-14.hr-3339-64.ch-255-1408.lg-3023-64.sh-905-84.fa-1201-85.ea-1404-85",
+    "body": "assets/habbo/spares/spare-044.png",
+    "head": "assets/habbo/spares/spare-044_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-044_d0.png",
+      "1": "assets/habbo/spares/spare-044_d1.png",
+      "2": "assets/habbo/spares/spare-044_d2.png",
+      "3": "assets/habbo/spares/spare-044_d3.png",
+      "4": "assets/habbo/spares/spare-044_d4.png",
+      "5": "assets/habbo/spares/spare-044_d5.png",
+      "6": "assets/habbo/spares/spare-044_d6.png",
+      "7": "assets/habbo/spares/spare-044_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-044_walk_d0.png",
+      "1": "assets/habbo/spares/spare-044_walk_d1.png",
+      "2": "assets/habbo/spares/spare-044_walk_d2.png",
+      "3": "assets/habbo/spares/spare-044_walk_d3.png",
+      "4": "assets/habbo/spares/spare-044_walk_d4.png",
+      "5": "assets/habbo/spares/spare-044_walk_d5.png",
+      "6": "assets/habbo/spares/spare-044_walk_d6.png",
+      "7": "assets/habbo/spares/spare-044_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-045": {
+    "id": "spare-045",
+    "gender": "F",
+    "figure": "hd-600-1370.hr-3377-64.ch-665-82.lg-3023-61.sh-905-84.ha-1013-84.ha-1002-85",
+    "body": "assets/habbo/spares/spare-045.png",
+    "head": "assets/habbo/spares/spare-045_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-045_d0.png",
+      "1": "assets/habbo/spares/spare-045_d1.png",
+      "2": "assets/habbo/spares/spare-045_d2.png",
+      "3": "assets/habbo/spares/spare-045_d3.png",
+      "4": "assets/habbo/spares/spare-045_d4.png",
+      "5": "assets/habbo/spares/spare-045_d5.png",
+      "6": "assets/habbo/spares/spare-045_d6.png",
+      "7": "assets/habbo/spares/spare-045_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-045_walk_d0.png",
+      "1": "assets/habbo/spares/spare-045_walk_d1.png",
+      "2": "assets/habbo/spares/spare-045_walk_d2.png",
+      "3": "assets/habbo/spares/spare-045_walk_d3.png",
+      "4": "assets/habbo/spares/spare-045_walk_d4.png",
+      "5": "assets/habbo/spares/spare-045_walk_d5.png",
+      "6": "assets/habbo/spares/spare-045_walk_d6.png",
+      "7": "assets/habbo/spares/spare-045_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-046": {
+    "id": "spare-046",
+    "gender": "F",
+    "figure": "hd-600-19.hr-889-40.ch-3110-82.lg-3023-45.sh-905-85.ea-1404-85",
+    "body": "assets/habbo/spares/spare-046.png",
+    "head": "assets/habbo/spares/spare-046_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-046_d0.png",
+      "1": "assets/habbo/spares/spare-046_d1.png",
+      "2": "assets/habbo/spares/spare-046_d2.png",
+      "3": "assets/habbo/spares/spare-046_d3.png",
+      "4": "assets/habbo/spares/spare-046_d4.png",
+      "5": "assets/habbo/spares/spare-046_d5.png",
+      "6": "assets/habbo/spares/spare-046_d6.png",
+      "7": "assets/habbo/spares/spare-046_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-046_walk_d0.png",
+      "1": "assets/habbo/spares/spare-046_walk_d1.png",
+      "2": "assets/habbo/spares/spare-046_walk_d2.png",
+      "3": "assets/habbo/spares/spare-046_walk_d3.png",
+      "4": "assets/habbo/spares/spare-046_walk_d4.png",
+      "5": "assets/habbo/spares/spare-046_walk_d5.png",
+      "6": "assets/habbo/spares/spare-046_walk_d6.png",
+      "7": "assets/habbo/spares/spare-046_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-047": {
+    "id": "spare-047",
+    "gender": "M",
+    "figure": "hd-180-14.hr-125-91.ch-3321-74.lg-280-88.sh-290-74.fa-1201-85.ha-1005-85",
+    "body": "assets/habbo/spares/spare-047.png",
+    "head": "assets/habbo/spares/spare-047_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-047_d0.png",
+      "1": "assets/habbo/spares/spare-047_d1.png",
+      "2": "assets/habbo/spares/spare-047_d2.png",
+      "3": "assets/habbo/spares/spare-047_d3.png",
+      "4": "assets/habbo/spares/spare-047_d4.png",
+      "5": "assets/habbo/spares/spare-047_d5.png",
+      "6": "assets/habbo/spares/spare-047_d6.png",
+      "7": "assets/habbo/spares/spare-047_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-047_walk_d0.png",
+      "1": "assets/habbo/spares/spare-047_walk_d1.png",
+      "2": "assets/habbo/spares/spare-047_walk_d2.png",
+      "3": "assets/habbo/spares/spare-047_walk_d3.png",
+      "4": "assets/habbo/spares/spare-047_walk_d4.png",
+      "5": "assets/habbo/spares/spare-047_walk_d5.png",
+      "6": "assets/habbo/spares/spare-047_walk_d6.png",
+      "7": "assets/habbo/spares/spare-047_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-048": {
+    "id": "spare-048",
+    "gender": "M",
+    "figure": "hd-180-30.hr-3377-76.ch-3109-92.lg-280-64.sh-290-74.ha-1013-84",
+    "body": "assets/habbo/spares/spare-048.png",
+    "head": "assets/habbo/spares/spare-048_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-048_d0.png",
+      "1": "assets/habbo/spares/spare-048_d1.png",
+      "2": "assets/habbo/spares/spare-048_d2.png",
+      "3": "assets/habbo/spares/spare-048_d3.png",
+      "4": "assets/habbo/spares/spare-048_d4.png",
+      "5": "assets/habbo/spares/spare-048_d5.png",
+      "6": "assets/habbo/spares/spare-048_d6.png",
+      "7": "assets/habbo/spares/spare-048_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-048_walk_d0.png",
+      "1": "assets/habbo/spares/spare-048_walk_d1.png",
+      "2": "assets/habbo/spares/spare-048_walk_d2.png",
+      "3": "assets/habbo/spares/spare-048_walk_d3.png",
+      "4": "assets/habbo/spares/spare-048_walk_d4.png",
+      "5": "assets/habbo/spares/spare-048_walk_d5.png",
+      "6": "assets/habbo/spares/spare-048_walk_d6.png",
+      "7": "assets/habbo/spares/spare-048_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-049": {
+    "id": "spare-049",
+    "gender": "M",
+    "figure": "hd-180-1370.hr-3377-76.ch-3030-43.lg-280-32.sh-290-74.ea-3318-85",
+    "body": "assets/habbo/spares/spare-049.png",
+    "head": "assets/habbo/spares/spare-049_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-049_d0.png",
+      "1": "assets/habbo/spares/spare-049_d1.png",
+      "2": "assets/habbo/spares/spare-049_d2.png",
+      "3": "assets/habbo/spares/spare-049_d3.png",
+      "4": "assets/habbo/spares/spare-049_d4.png",
+      "5": "assets/habbo/spares/spare-049_d5.png",
+      "6": "assets/habbo/spares/spare-049_d6.png",
+      "7": "assets/habbo/spares/spare-049_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-049_walk_d0.png",
+      "1": "assets/habbo/spares/spare-049_walk_d1.png",
+      "2": "assets/habbo/spares/spare-049_walk_d2.png",
+      "3": "assets/habbo/spares/spare-049_walk_d3.png",
+      "4": "assets/habbo/spares/spare-049_walk_d4.png",
+      "5": "assets/habbo/spares/spare-049_walk_d5.png",
+      "6": "assets/habbo/spares/spare-049_walk_d6.png",
+      "7": "assets/habbo/spares/spare-049_walk_d7.png"
+    },
+    "source": "random-spare"
+  },
+  "spare-050": {
+    "id": "spare-050",
+    "gender": "F",
+    "figure": "hd-600-1371.hr-515-66.ch-210-88.lg-3023-91.sh-905-91.ha-1004-85",
+    "body": "assets/habbo/spares/spare-050.png",
+    "head": "assets/habbo/spares/spare-050_head.png",
+    "directions": {
+      "0": "assets/habbo/spares/spare-050_d0.png",
+      "1": "assets/habbo/spares/spare-050_d1.png",
+      "2": "assets/habbo/spares/spare-050_d2.png",
+      "3": "assets/habbo/spares/spare-050_d3.png",
+      "4": "assets/habbo/spares/spare-050_d4.png",
+      "5": "assets/habbo/spares/spare-050_d5.png",
+      "6": "assets/habbo/spares/spare-050_d6.png",
+      "7": "assets/habbo/spares/spare-050_d7.png"
+    },
+    "walk": {
+      "0": "assets/habbo/spares/spare-050_walk_d0.png",
+      "1": "assets/habbo/spares/spare-050_walk_d1.png",
+      "2": "assets/habbo/spares/spare-050_walk_d2.png",
+      "3": "assets/habbo/spares/spare-050_walk_d3.png",
+      "4": "assets/habbo/spares/spare-050_walk_d4.png",
+      "5": "assets/habbo/spares/spare-050_walk_d5.png",
+      "6": "assets/habbo/spares/spare-050_walk_d6.png",
+      "7": "assets/habbo/spares/spare-050_walk_d7.png"
+    },
+    "source": "random-spare"
+  }
+};

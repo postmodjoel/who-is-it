@@ -199,8 +199,6 @@ function editorColorDefault(key, traits) {
   if (key === "shirt") return traits.shirt || "#3a86ff";
   if (key === "background") return traits.background || "#a9c4e0";
   if (key === "accessoryColor") return traits.accessoryColor || "#303840";
-  if (key === "jewelleryColor") return traits.jewelleryColor || "#e2b84f";
-  if (key === "jewelleryColor2") return traits.jewelleryColor2 || "#ff9bb0";
   if (key === "hairOutline") return traits.hairOutline || "#1f2330";
   if (key === "eyeColor") return traits.eyeColor || "#5a3d28";
   if (key === "eyelashColor") return traits.eyelashColor || "#1f2330";
@@ -266,6 +264,7 @@ function renderEditorControls() {
       ${field("· lines", editorColorWidget(`__lock:${i}:line`, colorOf("line", 0.62)))}
     </div>`;
   }).join("");
+  const titleCaseText = (window.WhoEditorShared && window.WhoEditorShared.titleCase) || ((value) => String(value));
   const tattooRows = tattooList(t).map((tattoo, i) => {
     const place = tattoo.place || "body";
     const font = tattoo.font || "bold";
@@ -293,9 +292,25 @@ function renderEditorControls() {
       ${slide(`__beard:${i}:y`, "Y", 160, 228, 1, blob.y ?? 198)}
     </div>`
   ).join("");
+  const jewelleryRows = jewelleryList(t).map((item, i) => `
+    <div class="ed-lockrow ed-tatrow">
+      <div class="ed-lockhead"><b>Jewellery ${i + 1}</b><span class="ed-rowtools"><button type="button" class="ed-rowbtn" data-jewelup="${i}" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="ed-rowbtn" data-jeweldown="${i}" ${i === jewelleryList(t).length - 1 ? "disabled" : ""}>↓</button><button type="button" class="ed-tatdel" data-jeweldel="${i}">✕</button></span></div>
+      ${field("Type", `<select data-key="__jewel:${i}:type">${(T.jewellery || ["studs"]).map((value) => `<option value="${escapeHtml(value)}" ${value === (item.type || "studs") ? "selected" : ""}>${escapeHtml(titleCaseText(value))}</option>`).join("")}</select>`)}
+      ${field("Side", `<select data-key="__jewel:${i}:side"><option value="both" ${(item.side || "both") === "both" ? "selected" : ""}>Both</option><option value="left" ${(item.side || "both") === "left" ? "selected" : ""}>Left</option><option value="right" ${(item.side || "both") === "right" ? "selected" : ""}>Right</option></select>`)}
+      ${field("Layer", `<select data-key="__jewel:${i}:layer"><option value="beforeHead" ${(item.layer || "behindHair") === "beforeHead" ? "selected" : ""}>Behind Head</option><option value="behindHair" ${(item.layer || "behindHair") === "behindHair" ? "selected" : ""}>Behind Hair</option><option value="beforeMouth" ${(item.layer || "behindHair") === "beforeMouth" ? "selected" : ""}>Before Mouth</option><option value="afterMouth" ${(item.layer || "behindHair") === "afterMouth" ? "selected" : ""}>Front</option></select>`)}
+      ${field("Metal", `<select data-key="__jewel:${i}:metal"><option value="" ${(item.metal || "") === "" ? "selected" : ""}>Auto</option><option value="silver" ${item.metal === "silver" ? "selected" : ""}>Silver</option><option value="gold" ${item.metal === "gold" ? "selected" : ""}>Gold</option><option value="black" ${item.metal === "black" ? "selected" : ""}>Black</option><option value="roseGold" ${item.metal === "roseGold" ? "selected" : ""}>Rose Gold</option></select>`)}
+      ${field("Colour", editorColorWidget(`__jewelc:${i}:color`, editorToHex(item.color || "#e2b84f")))}
+      ${field("Second", editorColorWidget(`__jewelc:${i}:color2`, editorToHex(item.color2 || "#ff9bb0")))}
+      ${slide(`__jewel:${i}:x`, "X", -120, 120, 1, item.x ?? 0)}
+      ${slide(`__jewel:${i}:y`, "Y", -120, 120, 1, item.y ?? 0)}
+      ${slide(`__jewel:${i}:scale`, "Size", 0.25, 2.4, 0.02, item.scale ?? 1)}
+      ${slide(`__jewel:${i}:rot`, "Rotate", -180, 180, 1, item.rot ?? 0)}
+      ${slide(`__jewel:${i}:arcStart`, "Arc Start", -180, 180, 1, item.arcStart ?? 0)}
+      ${slide(`__jewel:${i}:arcVisible`, "Arc Visible", 0.08, 1, 0.02, item.arcVisible ?? 1)}
+    </div>`).join("");
   const sharedFields = sharedEditorFieldList(T).filter((item) => {
     if (!item || !item.key) return false;
-    if (item.group === "Tattoo") return false; // use the richer tattoo-list editor below
+    if (item.group === "Tattoo" || item.group === "Jewellery") return false; // use the richer list editors below
     if (typeof item.when === "function" && !item.when(t)) return false;
     return true;
   });
@@ -321,6 +336,11 @@ function renderEditorControls() {
       sections.push(beardRows || `<p class="ed-note">No beard blobs placed.</p>`);
       sections.push(`<div class="ed-inlinebuttons"><button type="button" class="button ghost ed-beardadd">＋ Add beard blob</button>${beardRows ? `<button type="button" class="button ghost ed-beardclear">Clear beard blobs</button>` : ""}</div>`);
     }
+    if (groupName === "Jewellery") {
+      sections.push(group("Jewellery"));
+      sections.push(jewelleryRows || `<p class="ed-note">No jewellery items yet.</p>`);
+      sections.push(`<div class="ed-inlinebuttons"><button type="button" class="button ghost ed-jeweladd">＋ Add jewellery</button>${jewelleryRows ? `<button type="button" class="button ghost ed-jewelclear">Clear jewellery</button>` : ""}</div>`);
+    }
   });
   sections.push(group(sharedGroupTitle("Tattoo")));
   sections.push(tattooRows || `<p class="ed-note">No extra tattoos placed.</p>`);
@@ -330,6 +350,7 @@ function renderEditorControls() {
   wireEditorLockButtons();
   wireEditorBeardButtons();
   wireEditorTattooButtons();
+  wireEditorJewelleryButtons();
   wireEditorHotspots();
 }
 // Keep the three faces of each colour control (picker / hex / swatches) in lockstep.
@@ -468,6 +489,17 @@ function ensureTattooList() {
   }
   return editorState.traits.tattoos;
 }
+function jewelleryList(t) {
+  const shared = window.WhoEditorShared;
+  if (shared && shared.normalizeJewelleryList) return shared.normalizeJewelleryList(t);
+  return Array.isArray(t.jewelleryItems) ? t.jewelleryItems.map((item) => ({ ...item })) : [];
+}
+function ensureJewelleryList() {
+  if (!Array.isArray(editorState.traits.jewelleryItems)) {
+    editorState.traits.jewelleryItems = jewelleryList(editorState.traits).map((item) => ({ ...item }));
+  }
+  return editorState.traits.jewelleryItems;
+}
 function beardBlobList(t) {
   return Array.isArray(t.beardBlobs) ? t.beardBlobs : [];
 }
@@ -513,6 +545,33 @@ function wireEditorTattooButtons() {
   root.querySelectorAll("[data-tatdown]").forEach((b) => b.addEventListener("click", () => {
     const i = Number(b.dataset.tatdown);
     const list = ensureTattooList();
+    if (i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
+    renderEditorControls(); renderEditorPreview();
+  }));
+}
+function wireEditorJewelleryButtons() {
+  const root = editorDialog.querySelector(".editor-controls");
+  root.querySelector(".ed-jeweladd")?.addEventListener("click", () => {
+    ensureJewelleryList().push({ type: "studs", side: "both", color: "#e2b84f", color2: "#ff9bb0", metal: "", x: 0, y: 0, scale: 1, rot: 0, layer: "behindHair", arcStart: 0, arcVisible: 1 });
+    renderEditorControls(); renderEditorPreview();
+  });
+  root.querySelector(".ed-jewelclear")?.addEventListener("click", () => {
+    ensureJewelleryList().splice(0);
+    renderEditorControls(); renderEditorPreview();
+  });
+  root.querySelectorAll("[data-jeweldel]").forEach((b) => b.addEventListener("click", () => {
+    ensureJewelleryList().splice(Number(b.dataset.jeweldel), 1);
+    renderEditorControls(); renderEditorPreview();
+  }));
+  root.querySelectorAll("[data-jewelup]").forEach((b) => b.addEventListener("click", () => {
+    const i = Number(b.dataset.jewelup);
+    const list = ensureJewelleryList();
+    if (i > 0) [list[i - 1], list[i]] = [list[i], list[i - 1]];
+    renderEditorControls(); renderEditorPreview();
+  }));
+  root.querySelectorAll("[data-jeweldown]").forEach((b) => b.addEventListener("click", () => {
+    const i = Number(b.dataset.jeweldown);
+    const list = ensureJewelleryList();
     if (i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
     renderEditorControls(); renderEditorPreview();
   }));
@@ -565,6 +624,20 @@ function applyEditorValue(key, val, isNum) {
     const inst = ensureTattooList()[Number(iStr)];
     if (!inst) return;
     inst[prop] = isNum ? Number(val) : val;
+    return;
+  }
+  if (key.startsWith("__jewel:")) {
+    const [, iStr, prop] = key.split(":");
+    const inst = ensureJewelleryList()[Number(iStr)];
+    if (!inst) return;
+    inst[prop] = isNum ? Number(val) : val;
+    return;
+  }
+  if (key.startsWith("__jewelc:")) {
+    const [, iStr, prop] = key.split(":");
+    const inst = ensureJewelleryList()[Number(iStr)];
+    if (!inst) return;
+    inst[prop] = val;
     return;
   }
   if (key.startsWith("__beard:")) {
@@ -694,6 +767,7 @@ function buildEditorDialog() {
       <div class="editor-saved"><p class="label">On the board <span class="ed-sub">— edit & sync live to both players</span></p><div id="edBoardList" class="ed-saved-list"></div></div>
       <div class="editor-saved"><p class="label">Saved characters</p><div id="edSavedList" class="ed-saved-list"></div></div>
       <div class="dialog-actions">
+        <button type="button" id="edExport" class="button ghost ed-debug-only" title="Export this character as JSON">⤓ Export</button>
         <button type="button" id="edDelete" class="button ghost">Delete</button>
         <button type="button" id="edNew" class="button ghost">New</button>
         <button type="button" id="edAdd" class="button secondary">Add to board</button>
@@ -748,6 +822,29 @@ function buildEditorDialog() {
   d.querySelector("#edNew").addEventListener("click", () => { editorState = newEditorState(); renderEditorControls(); renderEditorPreview(); renderEditorBoard(); syncEditorButtons(); });
   d.querySelector("#edDelete").addEventListener("click", () => { if (editorState.existing) deleteCustom(editorState.id); editorState = newEditorState(); renderEditorControls(); renderEditorPreview(); renderEditorSaved(); syncEditorButtons(); });
   d.querySelector("#edClose").addEventListener("click", () => d.close());
+  // Debug-only: export the current character (name + pronouns + seed + full traits) as a JSON file, so
+  // an inspired GAYBY / restyle can be saved down and kept. Button only shows in debug mode.
+  d.querySelector("#edExport").addEventListener("click", () => {
+    const payload = {
+      schema: "whoisit-character-v1",
+      id: editorState.id, name: editorState.name, pronouns: editorState.pronouns,
+      seed: editorState.seed, traits: editorState.traits
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const slug = String(editorState.name || "character").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "character";
+    try {
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${slug}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (typeof flashToast === "function") flashToast(`⤓ Exported ${editorState.name}`);
+    } catch (e) {
+      try { navigator.clipboard.writeText(json); if (typeof flashToast === "function") flashToast("Copied character JSON to clipboard"); }
+      catch (e2) { /* nothing more to do */ }
+    }
+  });
   return d;
 }
 function openCharacterEditor() {

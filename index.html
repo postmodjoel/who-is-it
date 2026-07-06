@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Press+Start+2P&family=Cinzel:wght@500;600;700;800;900&family=MedievalSharp&family=Reem+Kufi:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="styles.css?v=206">
+    <link rel="stylesheet" href="styles.css?v=222">
   </head>
   <body>
     <div id="locationBackdrop" class="location-backdrop" aria-hidden="true"></div>
@@ -130,6 +130,22 @@
             </span>
             <input id="settingPG" type="checkbox" checked>
           </label>
+
+          <label class="toggle-row">
+            <span>
+              <strong>Low power mode 🔋</strong>
+              <small>Phone running warm? Pauses the looping animations + blur to keep it cool.</small>
+            </span>
+            <input id="settingLowPower" type="checkbox">
+          </label>
+        </div>
+
+        <div class="tier-section">
+          <div class="tier-head">
+            <strong>Intensity tiers 🎚</strong>
+            <small>Host only. Switch off the tame early tiers to drop straight into the wild ones — the actual modes stay a surprise.</small>
+          </div>
+          <div id="settingTiers" class="tier-toggles"></div>
         </div>
 
         <label class="select-row seed-row">
@@ -143,25 +159,36 @@
           </span>
         </label>
 
+        <div class="select-row room-share-row">
+          <span>
+            <strong>Room</strong>
+            <small>People can join from their device with this number.</small>
+          </span>
+          <span id="setupRoomCode" class="setup-room-code">No room yet</span>
+        </div>
+
+        <p id="setupApplyHint" class="setup-apply-hint" hidden>💡 Your settings will take over next round.</p>
         <div class="dialog-actions">
-          <button id="saveSetupButton" class="button primary" value="default" type="submit">Start</button>
+          <button id="quitToMenuButton" class="button ghost" value="cancel" type="button">← Main menu</button>
+          <button id="saveSetupButton" class="button primary" value="default" type="submit">Deal new round</button>
         </div>
       </form>
     </dialog>
 
     <script src="game-data.js?v=205"></script>
-    <script src="face-generator.js?v=214"></script>
+    <script src="face-generator.js?v=230"></script>
     <script src="faces-hair.js?v=205"></script>
     <script src="sound.js?v=205"></script>
-    <script src="net.js?v=205"></script>
+    <script src="net.js?v=220"></script>
     <script src="breeding.js?v=205"></script>
-    <script src="editor-shared.js?v=212"></script>
-    <script src="editor.js?v=213"></script>
+    <script src="editor-shared.js?v=217"></script>
+    <script src="editor.js?v=219"></script>
     <script src="vendor-qrcode.js?v=205"></script>
     <script src="opponent-sim.js?v=205"></script>
     <script src="habbo-assets.js?v=205"></script>
     <script src="habbo-avatars.js?v=205"></script>
-    <script src="modes.js?v=205"></script>
-    <script src="app.js?v=206"></script>
+    <script src="habbo-spares.js?v=218"></script>
+    <script src="modes.js?v=218"></script>
+    <script src="app.js?v=224"></script>
   </body>
 </html>

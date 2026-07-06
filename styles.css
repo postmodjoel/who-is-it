@@ -605,7 +605,7 @@ button:disabled {
 /* Mode badges (position / body-count / attribute orb) pinned to the card corners, like the board card:
    position + level on the left, eggplant / orb on the right - never cramped over the small portrait. */
 .secret-corner > .ygo-orb { position: absolute; top: 8px; right: 8px; left: auto; width: 30px; }
-.secret-corner > .orgy-bodycount { position: absolute; top: 8px; right: 10px; left: auto; font-size: 0.7rem; }
+.secret-corner > .orgy-bodycount { position: absolute; top: auto; bottom: 8px; right: 10px; left: auto; font-size: 0.7rem; }
 .secret-corner > .orgy-pos { position: absolute; top: 8px; left: 10px; font-size: 0.62rem; }
 .secret-corner > .ygo-toprow { position: absolute; top: 8px; left: 10px; }
 /* The active mode's dossier (orgy stat bars, Yu-Gi-Oh type line / ATK-DEF, badges) inside the card.
@@ -627,18 +627,21 @@ button:disabled {
 .secret-card.ygo { color: #f5e9c8; }
 
 /* Hidden state keeps the same card footprint (a censored tile), instead of collapsing to a bar. */
-.secret-card.is-hidden { color: var(--muted); background: var(--surface); }
+.secret-card.is-hidden { color: var(--ink); background: var(--panel); }
+.secret-card.is-hidden .card-plate { background: transparent; }
 .secret-hidden-tile {
   width: 100%;
   height: 100%;
   min-height: 100%;
   display: grid;
   place-items: center;
-  font-size: 2.6rem;
-  background:
-    linear-gradient(135deg, rgba(242, 95, 76, 0.16) 25%, transparent 25%) 0 0 / 18px 18px,
-    linear-gradient(315deg, rgba(0, 166, 118, 0.16) 25%, transparent 25%) 0 0 / 18px 18px,
-    var(--surface-soft, #e7e9ee);
+  background: radial-gradient(circle at 50% 34%, #2a2c3a, #131320 80%);
+}
+.sht-q {
+  font: 900 clamp(2.2rem, 8vw, 3.4rem) "Archivo", sans-serif;
+  color: var(--accent-4, #ffd400);
+  text-shadow: 0.05em 0.05em 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-4deg);
 }
 .secret-card.is-hidden .card-plate h3 { text-transform: uppercase; font-weight: 800; }
 .secret-card.is-hidden .card-hint { margin: 2px 0 0; font-size: 0.72rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -731,8 +734,8 @@ button:disabled {
 
 .character-board {
   display: grid;
-  /* At most 4 columns: each column's min width is >= a quarter of the row, so auto-fill can't pack a 5th. */
-  grid-template-columns: repeat(auto-fill, minmax(max(var(--card-min, 108px), calc((100% - 3 * 10px) / 4)), 1fr));
+  /* At most 6 columns on roomy screens, while the min card width keeps mobile at a readable 3-4. */
+  grid-template-columns: repeat(auto-fill, minmax(max(var(--card-min, 108px), calc((100% - 5 * 10px) / 6)), 1fr));
   gap: 10px;
   padding: 14px;
   border: 2px solid var(--line);
@@ -811,7 +814,12 @@ button:disabled {
 }
 
 /* PANTONE mode: the white plate becomes a Pantone colour-chip label (wordmark + name + code). */
+/* The card sits in a height-stretched grid row; without a white body, the dark card background
+   peeked out below the label as an odd black box (worst on short single-line chips, esp. on mobile).
+   A white card body + a grow-to-fill plate makes every card read as one clean swatch. */
+.pantone-mode.character-card { background: #fff; }
 .pantone-mode .card-plate {
+  flex: 1 1 auto;
   align-items: flex-start;
   text-align: left;
   background: #fff;
@@ -875,6 +883,17 @@ button:disabled {
 .hp-spell-row td b { color: #e6bb4c; font-weight: 800; }
 .hp-horcrux-row th { color: #d98ea0; }
 .hp-horcrux-row td { color: #f0c7d1; font-style: italic; }
+/* Mobile: the fixed-width label column strangles the value into one-letter-per-line wrapping.
+   Collapse the table to stacked blocks - label on its own line, value across the full card width. */
+@media (max-width: 860px) {
+  .hp-sheet, .hp-sheet tbody, .hp-sheet tr, .hp-sheet th, .hp-sheet td { display: block; width: auto; }
+  .hp-sheet tr { padding: 3px 2px; }
+  .hp-sheet th {
+    width: auto; text-align: left; border-right: none; padding: 0;
+    font-size: 0.5rem; color: #9aa0ac;
+  }
+  .hp-sheet td { padding: 1px 0 0; }
+}
 /* House-less roles read darker + eerier. */
 .hp-deatheater .hp-tag { background: #1b1420; border: 1px solid #5a3a6e; }
 .hp-darklord { border-color: #6a6a78 !important; box-shadow: 0 0 0 1px #2a2a34, 0 0 18px rgba(120,140,160,0.25); }
@@ -1368,78 +1387,18 @@ button:disabled {
 .knockoff-manor-board {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(9, minmax(48px, 1fr));
-  grid-template-rows: repeat(9, minmax(48px, 1fr));
+  grid-template-columns: repeat(6, minmax(40px, 1fr));
+  grid-template-rows: repeat(7, minmax(46px, 1fr));
   grid-auto-flow: initial;
-  gap: 4px;
-  min-height: min(78vw, 820px);
-  padding: 16px;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.28), transparent 34%),
-    #1b1d22;
+  /* Thin dark gap = the walls between rooms, read from directly above. Flat: no frame, no shadows. */
+  gap: 3px;
+  min-height: min(120vw, 760px);
+  padding: 3px;
+  background: #14161b;
 }
 
-.knockoff-manor-board::before {
-  position: absolute;
-  inset: 16px;
-  border: 5px solid #11131a;
-  border-radius: 10px;
-  content: "";
-  pointer-events: none;
-  z-index: 3;
-}
-
-.knockoff-manor-board::after {
-  content: none;
-}
-
-.murder-center {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-row: 4 / span 3;
-  grid-column: 4 / span 3;
-  place-items: center;
-  align-content: center;
-  min-width: 0;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  color: #11131a;
-  background: transparent;
-  box-shadow: none;
-  text-align: center;
-}
-
-.weapon-pile {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  max-width: 230px;
-}
-
-.weapon-pile span {
-  display: grid;
-  place-items: center;
-  width: clamp(40px, 6.1vw, 72px);
-  height: clamp(40px, 6.1vw, 72px);
-  border: 3px solid rgba(17, 19, 26, 0.82);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 3px 3px 0 rgba(17, 19, 26, 0.72);
-  font-size: clamp(1.45rem, 4.1vw, 2.7rem);
-  line-height: 1;
-}
-
-.weapon-pile span:nth-child(2n) {
-  transform: rotate(9deg);
-}
-
-.weapon-pile span:nth-child(3n) {
-  transform: rotate(-11deg);
-}
-
+/* Flat top-down room: a plain filled floor with a subtle floorboard texture. No frame, no drop shadow;
+   the thin board-gap between tiles reads as the wall. */
 .manor-room-tile {
   position: relative;
   z-index: 2;
@@ -1450,28 +1409,38 @@ button:disabled {
   gap: 6px;
   min-width: 0;
   min-height: 0;
-  padding: 7px;
+  padding: 6px;
   overflow: hidden;
-  border: 3px solid var(--line);
-  border-radius: 8px;
+  border: 0;
+  border-radius: 2px;
   color: var(--card-ink);
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(17, 19, 26, 0.09) 1px, transparent 1px),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.36), transparent 46%),
+    linear-gradient(90deg, rgba(17, 19, 26, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(17, 19, 26, 0.06) 1px, transparent 1px),
     var(--room-tone);
-  background-size: 18px 18px, 18px 18px, auto, auto;
-  box-shadow: 5px 5px 0 rgba(17, 19, 26, 0.76);
+  background-size: 20px 20px, 20px 20px, auto;
+  box-shadow: none;
 }
 
-.manor-room-tile::before {
+/* One weapon lying in the room, tucked into a hashed corner, tilted where it fell. */
+.manor-weapon {
   position: absolute;
-  inset: 12px;
-  border: 2px solid rgba(17, 19, 26, 0.14);
-  border-radius: 4px;
-  content: "";
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: clamp(26px, 4vw, 40px);
+  height: clamp(26px, 4vw, 40px);
+  font-size: clamp(1rem, 2.6vw, 1.7rem);
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(17, 19, 26, 0.4));
+  transform: rotate(var(--wtilt, 0deg));
   pointer-events: none;
+  opacity: 0.92;
 }
+.manor-weapon.wc-0 { right: 5px; bottom: 5px; }
+.manor-weapon.wc-1 { left: 5px; bottom: 5px; }
+.manor-weapon.wc-2 { right: 5px; top: 34px; }
+.manor-weapon.wc-3 { left: 5px; top: 34px; }
 
 .manor-room-tile.has-blood .blood-splatter {
   position: absolute;
@@ -1924,6 +1893,20 @@ button:disabled {
 .dialog-head {
   justify-content: space-between;
 }
+/* Setup close: a compact dark ghost icon matching the toolbar icon buttons (was a bright surface
+   square with a hard offset shadow that clashed with the dark panel). */
+.setup-dialog .dialog-head .icon-button {
+  min-height: 34px;
+  width: 34px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  box-shadow: none;
+}
+.setup-dialog .dialog-head .icon-button:hover { background: rgba(255, 255, 255, 0.13); transform: none; box-shadow: none; }
+.setup-dialog .dialog-head .icon-button:active { transform: translateY(1px); box-shadow: none; }
 
 .settings-grid {
   display: grid;
@@ -1962,6 +1945,53 @@ button:disabled {
   height: 28px;
   accent-color: var(--accent-2);
 }
+
+/* Host intensity gate: a row of tap-to-toggle tier chips (vibe label only, no mode names). */
+.tier-section {
+  margin-top: 10px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+.tier-head strong { display: block; font-size: 1rem; }
+.tier-head small { display: block; margin-top: 3px; color: var(--muted); font-weight: 700; }
+.tier-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+/* NB: --surface/--ink are BOTH light in the default (dark) theme (they're for text inputs), so the
+   chip must not lean on them, or an "on" chip is light-on-light. OFF uses the dark panel tone; ON is a
+   solid accent fill with white text - readable in both themes. */
+.tier-chip {
+  flex: 1 1 72px;
+  min-width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 8px 6px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.tier-chip b { font-size: 1.05rem; font-weight: 900; line-height: 1; }
+.tier-chip span { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.02em; text-transform: uppercase; }
+.tier-chip:hover { transform: translateY(-1px); }
+.tier-chip.is-on {
+  border-color: var(--accent-2);
+  background: var(--accent-2);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.tier-chip.is-on b,
+.tier-chip.is-on span { color: #fff; }
+.tier-chip:not(.is-on) { opacity: 0.72; }
 
 .select-row select {
   min-width: 140px;
@@ -2188,7 +2218,7 @@ button:disabled {
   inset: 0;
   background: radial-gradient(circle at center, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.5) 42%, transparent 72%);
   opacity: 0;
-  animation: effect-flash 560ms ease-out forwards;
+  animation: effect-flash 760ms ease-out forwards;
 }
 
 .effect-blast-wordpart { display: inline-flex; white-space: nowrap; }
@@ -2207,7 +2237,7 @@ button:disabled {
   text-align: center;
   text-transform: uppercase;
   color: var(--ink);
-  animation: effect-word 3s ease forwards;
+  animation: effect-word 4.2s ease forwards;
 }
 
 .effect-blast-letter {
@@ -2215,7 +2245,7 @@ button:disabled {
   opacity: 0;
   transform: translate(var(--dx, 0), var(--dy, 0)) rotate(var(--rot, 0deg)) scale(2.6);
   text-shadow: 0 0 30px rgba(0, 0, 0, 0.5), 0.06em 0.06em 0 rgba(0, 0, 0, 0.32);
-  animation: effect-letter 720ms cubic-bezier(0.16, 1, 0.2, 1) forwards;
+  animation: effect-letter 960ms cubic-bezier(0.16, 1, 0.2, 1) forwards;
   animation-delay: var(--delay, 0ms);
 }
 
@@ -2686,17 +2716,15 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 
 .game-layout {
   display: grid;
-  grid-template-columns: minmax(232px, 25%) minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
 }
 
 .game-side {
-  display: grid;
-  gap: 12px;
-  align-content: start;
   position: sticky;
-  top: 12px;
+  top: 8px;
+  z-index: 80;
 }
 
 .side-block {
@@ -2768,6 +2796,7 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
   .game-layout { grid-template-columns: minmax(0, 1fr); }
   .game-side { position: static; }
 }
+
 
 /* Banner content inside the half-height stage-top strip. */
 .stage-top .location-band .location-photo { position: absolute; inset: 0; background-size: cover; background-position: center 38%; }
@@ -3206,15 +3235,17 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 }
 .orgy-bodycount {
   position: absolute;
-  top: 5px;
+  bottom: 5px;
   right: 5px;
   z-index: 3;
   padding: 2px 6px;
   font-size: 0.58rem;
   font-weight: 800;
   color: #fff;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 .orgy-stats { display: flex; flex-direction: column; gap: 3px; }
 .orgy-cum {
@@ -3226,29 +3257,32 @@ body[data-character-renderer="ps1"] .character-card.facefirst .ps1-head-blob {
 }
 .orgy-bar {
   display: grid;
-  grid-template-columns: 58px 1fr;
+  grid-template-columns: 54px 1fr;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
 }
 .orgy-bar b {
-  font-size: 0.5rem;
+  font-size: 0.48rem;
   font-weight: 800;
-  letter-spacing: 0.03em;
-  color: #ffb3d2;
+  letter-spacing: 0.06em;
+  color: #ffa9cd;
+  text-transform: uppercase;
 }
 .orgy-bar i {
   display: block;
-  height: 7px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.12);
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, 0.35);
   overflow: hidden;
 }
 .orgy-bar s {
   display: block;
   width: var(--n, 50%);
   height: 100%;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #ff5e9c, #ff2d6e);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff7db0, #ff2d6e);
+  box-shadow: 0 0 6px -1px rgba(255, 45, 110, 0.6);
 }
 .orgy-links {
   font-size: 0.54rem;
@@ -3631,6 +3665,7 @@ body.mode-pixall .secret-card img {
   background: var(--panel, #16181f);
   box-shadow: var(--shadow);
 }
+.opp-card small { display: block; margin-top: 1px; color: var(--muted); font-size: 0.52rem; line-height: 1.1; }
 .opponent-panel:empty { display: none; }
 .opponent-panel .label { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .opp-live {
@@ -4109,6 +4144,13 @@ body.mode-pixall .secret-card img {
 .sim-bar s.sim-warn { background: linear-gradient(90deg, #ffe06a, #f0b23a); }
 .sim-bar s.sim-crit { background: linear-gradient(90deg, #ff7a6a, #e03a3a); }
 .sim-career { font-size: 0.54rem; color: #bfe6ff; }
+/* Mobile: skinnier tracks that span the card width (the fixed 66px block sat centred with dead space
+   to its right). The secret card hides .card-meta on phones, so a flexible track is safe here. */
+@media (max-width: 640px) {
+  .sims-board .sim-bar { grid-template-columns: 40px 1fr; gap: 6px; justify-content: stretch; }
+  .sims-board .sim-bar i { height: 4px; }
+  .sims-board .sim-sheet { gap: 2px; }
+}
 
 /* ===================== Orgy Mode: dripping ===================== */
 /* Pearly drips form along the bottom edge of each orgy card and fall off onto the cards below. The card
@@ -4331,7 +4373,15 @@ body.mode-pixall .secret-card img {
 .hbw-left  { transform-origin: 100% 0; transform: skewY(-26.565deg); filter: brightness(0.92); }
 .hbw-right { transform-origin: 0 0;   transform: skewY(26.565deg); }
 .hb-ground { position: absolute; inset: 0; z-index: 0; }
-.habbo-room { position: relative; width: 100%; min-height: 72vh; transform-origin: 0 0; transition: transform 0.5s ease; }
+.habbo-room {
+  --hb-fit-scale: 1;
+  --hb-cam-x: 0px;
+  --hb-cam-y: 0px;
+  --hb-cam-scale: 1;
+  position: relative; width: 100%; min-height: 72vh; transform-origin: 0 0;
+  transform: translate(var(--hb-cam-x), var(--hb-cam-y)) scale(var(--hb-fit-scale)) scale(var(--hb-cam-scale));
+  transition: transform 0.5s ease;
+}
 .habbo-floor, .habbo-figs { position: absolute; inset: 0; }
 .habbo-tile {
   /* Full 84x42 grid pitch so adjacent diamonds tessellate EDGE-TO-EDGE like a real Habbo floor -
@@ -4423,6 +4473,30 @@ body.mode-pixall .secret-card img {
 @keyframes hb-rec-blink { 50% { opacity: 0.25; } }
 .hb-cam-screen { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 0; background: #0a0812; border: 2px solid #111820; }
 .hb-cam-screen img { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+/* Real Habbo face = the front-facing d3 sprite (64x110, head at rows ~22-62) zoomed so the head
+   almost fills the square frame: centre the head via object-position, then scale in from the centre. */
+.hb-cam-screen img.hb-real-face { object-fit: cover; object-position: 50% 22%; transform: scale(1.65); transform-origin: center; }
+.hb-chatbar img.hb-real-face { object-fit: cover; object-position: 50% 22%; transform: scale(1.65); transform-origin: center; }
+/* ===== Banned avatars: thrown out of the room into the black void below, tap to readmit. ===== */
+.habbo-void {
+  position: absolute; left: 4px; top: 8px; bottom: 8px; right: auto; z-index: 40;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 8px 6px; pointer-events: none; max-width: 84px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.28) 70%, transparent);
+  border-radius: 10px;
+}
+.hb-void-label {
+  display: block; text-align: center; margin: 0;
+  font: 800 0.52rem "Archivo", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 120, 120, 0.92);
+}
+.hb-void-row { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 10px; align-items: center; justify-content: center; pointer-events: auto; overflow-y: auto; max-height: 100%; }
+.hb-void-fig {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0; border: 0; background: none; cursor: pointer;
+  filter: grayscale(1) brightness(0.66); opacity: 0.82; transition: filter 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+.hb-void-fig:hover { filter: grayscale(0.25) brightness(0.98); opacity: 1; transform: translateY(-3px); }
+.hb-void-fig img { width: 46px; height: 46px; object-fit: contain; image-rendering: pixelated; border-radius: 8px; background: rgba(255, 255, 255, 0.06); }
+.hb-void-name { font: 800 0.54rem "Archivo", sans-serif; letter-spacing: 0.04em; text-transform: uppercase; color: rgba(255, 253, 247, 0.72); max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hb-cam-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px); }
 .hb-cam-name { margin: 5px 0 0; text-align: center; font-family: "Press Start 2P", monospace; font-size: 0.48rem; color: #111820; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hb-cam-ban {
@@ -4766,14 +4840,23 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .sp-fx:active { transform: translateY(1px); }
 
 /* ===================== Title PG toggle + adults-only riddle ===================== */
-/* .button.ts-pg (0,2,0) to override .button.secondary's width:100% and match the step buttons. */
+/* .button.ts-pg (0,2,0) to override .button.secondary's width:100% and match the step buttons.
+   Lives inside the local/host setup steps now (display:none until shown), so NO entrance delay -
+   an animation-delay here would leave it invisible for a beat after the step opens. */
 .button.ts-pg {
-  width: min(320px, 82vw); min-width: 240px; box-sizing: border-box;
+  width: 100%; box-sizing: border-box;
   display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
-  color: var(--card-ink); font: 900 0.86rem "Archivo", sans-serif; letter-spacing: 0.04em;
-  /* Fade in with the rest of the UI (it's below .ts-actions' 0.95s fade, so land just after it). */
-  animation: ts-fade 0.5s 1.05s both;
+  /* Dark glass utility chip (was a naff light-blue secondary) - reads clean on the dark title. */
+  background: rgba(255, 255, 255, 0.07); border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #fffdf7; font: 900 0.86rem "Archivo", sans-serif; letter-spacing: 0.04em;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32);
 }
+.button.ts-pg:hover { background: rgba(255, 255, 255, 0.13); }
+.button.ts-gear {
+  background: rgba(255, 255, 255, 0.07); border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #fffdf7; box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32);
+}
+.button.ts-gear:hover { background: rgba(255, 255, 255, 0.13); }
 .ts-pg b { padding: 2px 7px; border-radius: 4px; background: #e01b1b; color: #fffdf7; font-size: 0.74rem; }
 .ts-pg.on b { background: #178a47; }
 
@@ -4846,7 +4929,7 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 /* ===================== Mobile: fit the fixed-size iso room + roomier heads toolbar ===================== */
 @media (max-width: 640px) {
   .game-stage .character-board.habbo-board { min-height: 40vh; overflow: hidden; }
-  .habbo-room { min-height: 560px; transform: scale(0.6); transform-origin: top center; width: 167%; margin-left: -33.5%; margin-bottom: -224px; }
+  .habbo-room { --hb-fit-scale: 0.6; min-height: 560px; transform-origin: top center; width: 167%; margin-left: -33.5%; margin-bottom: -224px; }
   .hb-cam { width: 100px; right: 8px; top: 8px; }
   .hb-cam-ban { font-size: 0.5rem; }
   .heads-toolbar { gap: 4px; }
@@ -4975,24 +5058,23 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 /* ===================== Prop Panic 2.0: wielded props + PROP SWAP ===================== */
 /* The prop is big and physically ON the person - hashed position/rotation, wobbling on its own beat. */
 .prop-mode .prop-overlay {
-  right: auto; bottom: auto;
-  left: var(--pp-x, 55%); top: var(--pp-y, 50%);
+  left: auto; top: auto;
+  right: 7px; bottom: 7px;
   width: 52px; height: 52px; font-size: 2.1rem;
-  transform: rotate(var(--pp-rot, 0deg));
   animation: prop-wobble 2.6s ease-in-out infinite;
   animation-delay: var(--pp-delay, 0s);
   border-width: 3px;
 }
 @keyframes prop-wobble {
-  0%, 100% { transform: rotate(var(--pp-rot, 0deg)) translateY(0); }
-  25% { transform: rotate(calc(var(--pp-rot, 0deg) - 9deg)) translateY(-3px); }
-  60% { transform: rotate(calc(var(--pp-rot, 0deg) + 8deg)) translateY(2px); }
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-9deg) translateY(-3px); }
+  60% { transform: rotate(8deg) translateY(2px); }
 }
 /* Berserk: right before a swap every prop rattles violently. */
 .character-board.prop-berserk .prop-overlay { animation: prop-berserk 0.09s linear infinite; }
 @keyframes prop-berserk {
-  0%, 100% { transform: rotate(var(--pp-rot, 0deg)) translate(-2px, 1px) scale(1.15); }
-  50% { transform: rotate(calc(var(--pp-rot, 0deg) + 14deg)) translate(2px, -2px) scale(1.2); }
+  0%, 100% { transform: rotate(0deg) translate(-2px, 1px) scale(1.15); }
+  50% { transform: rotate(14deg) translate(2px, -2px) scale(1.2); }
 }
 .prop-swap-flash {
   position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%) rotate(-4deg); z-index: 1004;
@@ -5187,11 +5269,11 @@ img.pol-mascot {
 /* Manor fits phones: the 9x9 grid drops its 48px minimums and tightens up. */
 @media (max-width: 640px) {
   .knockoff-manor-board {
-    grid-template-columns: repeat(9, minmax(0, 1fr));
-    grid-template-rows: repeat(9, minmax(32px, 1fr));
-    gap: 2px;
-    padding: 8px;
-    min-height: 96vw;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: repeat(7, minmax(44px, 1fr));
+    gap: 3px;
+    padding: 3px;
+    min-height: 140vw;
   }
 }
 
@@ -5241,9 +5323,13 @@ img.pol-mascot {
 .side-panel .secret-card .portrait-wrap { aspect-ratio: 1; }
 /* Phones: collapse to a compact face + name strip (stats stay on the main board). */
 @media (max-width: 640px) {
-  .side-panel .secret-card.character-card { display: flex; flex-direction: row; align-items: stretch; }
-  .side-panel .secret-card .portrait-wrap { width: 84px; flex: 0 0 auto; aspect-ratio: 1; }
-  .side-panel .secret-card .card-plate { flex: 1; justify-content: center; }
+  /* :not(.ygo) - the Yu-Gi-Oh secret is a 59/86 trading card; forcing it into this face+name ROW
+     stretches its gold frame across the screen with the portrait crushed into a sliver. */
+  .side-panel .secret-card.character-card:not(.ygo) { display: flex; flex-direction: row; align-items: stretch; }
+  .side-panel .secret-card.character-card.ygo { width: min(200px, 54vw); margin-inline: auto; }
+  .side-panel .secret-card:not(.ygo) .card-plate { align-items: flex-start; justify-content: center; text-align: left; padding: 8px 14px; }
+  .side-panel .secret-card:not(.ygo) .portrait-wrap { width: 84px; flex: 0 0 auto; aspect-ratio: 1; }
+  .side-panel .secret-card:not(.ygo) .card-plate { flex: 1; justify-content: center; }
   .side-panel .secret-card .card-meta,
   .side-panel .secret-card .card-pronouns,
   .side-panel .secret-card .card-role { display: none; }   /* face + name only on phones */
@@ -5253,27 +5339,44 @@ img.pol-mascot {
 /* Sort select now lives in the gameplay topbar. */
 #sortSelect { max-width: 150px; }
 
-/* ===================== MURDER TIME: shifty suspects + drag between rooms ===================== */
-/* Everyone glances around nervously - a per-suspect hashed sway/tilt. */
-.manor-token img { animation: manor-shifty var(--shift-dur, 3s) ease-in-out var(--shift-delay, 0s) infinite; }
+/* ===================== MURDER! LIVE!: suspects with tells + drag between rooms ===================== */
+/* Demeanor is the suspect's OWN tell, not the room's. Shifty = darting side glances; nervous = a fast
+   little tremble; calm = an unbothered slow breath. Each runs on its own hashed beat. */
+.manor-token.manor-shifty img { animation: manor-shifty var(--shift-dur, 3s) ease-in-out var(--shift-delay, 0s) infinite; }
+.manor-token.manor-nervous img { animation: manor-jitter calc(var(--shift-dur, 3s) * 0.32) ease-in-out var(--shift-delay, 0s) infinite; }
+.manor-token.manor-calm img { animation: manor-breathe calc(var(--shift-dur, 3s) * 1.9) ease-in-out var(--shift-delay, 0s) infinite; }
 @keyframes manor-shifty {
   0%, 100% { transform: scale(1.64) translateX(0) rotate(0deg); }
-  20% { transform: scale(1.64) translateX(-1.6px) rotate(-1.4deg); }
-  38% { transform: scale(1.64) translateX(1.4px) rotate(1deg); }
-  60% { transform: scale(1.66) translateX(-0.8px) rotate(-0.6deg); }
-  80% { transform: scale(1.64) translateX(1.2px) rotate(1.2deg); }
+  20% { transform: scale(1.64) translateX(-2px) rotate(-1.4deg); }
+  38% { transform: scale(1.64) translateX(1.8px) rotate(1deg); }
+  60% { transform: scale(1.66) translateX(-1px) rotate(-0.6deg); }
+  80% { transform: scale(1.64) translateX(1.6px) rotate(1.2deg); }
 }
+@keyframes manor-jitter {
+  0%, 100% { transform: scale(1.64) translate(0, 0) rotate(0deg); }
+  20% { transform: scale(1.64) translate(-1px, 0.6px) rotate(-2.6deg); }
+  45% { transform: scale(1.64) translate(1px, -0.5px) rotate(2.4deg); }
+  70% { transform: scale(1.64) translate(-0.8px, 0.5px) rotate(-1.8deg); }
+}
+@keyframes manor-breathe { 0%, 100% { transform: scale(1.63); } 50% { transform: scale(1.67); } }
 .manor-token.dragging { opacity: 0.55; transform: scale(1.14); z-index: 30; }
 .manor-token:hover img { animation-play-state: paused; }
-/* Whoever's in the blood room sweats guiltily and shudders harder. */
+/* Whoever's in the blood room shudders harder on top of their own tell. */
 .manor-token.in-blood { animation: manor-nervous 0.5s ease-in-out infinite; }
 @keyframes manor-nervous { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-1px, 0.5px); } 75% { transform: translate(1px, -0.5px); } }
-.manor-token .manor-sweat {
-  position: absolute; top: -6px; right: -4px; left: auto; max-width: none;
-  padding: 0; border: none; background: none; font-size: 0.8rem; transform: none;
-  animation: manor-drip 1.4s ease-in infinite; z-index: 6;
+/* Just walked in: a quick pop so the eye catches the mover. */
+.manor-token.just-moved { animation: manor-arrive 0.55s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 8; }
+@keyframes manor-arrive { 0% { transform: scale(0.55); opacity: 0.2; } 60% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+/* Nervous → sweat bead; shifty → darting eyes, both pinned to the token corner. */
+.manor-token .manor-sweat,
+.manor-token .manor-eyes {
+  position: absolute; left: auto; max-width: none;
+  padding: 0; border: none; background: none; transform: none; z-index: 6;
 }
+.manor-token .manor-sweat { top: -6px; right: -4px; font-size: 0.8rem; animation: manor-drip 1.4s ease-in infinite; }
+.manor-token .manor-eyes { top: -7px; left: -5px; font-size: 0.72rem; animation: manor-glance 2.4s ease-in-out infinite; }
 @keyframes manor-drip { 0% { opacity: 0; transform: translateY(-2px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(10px); } }
+@keyframes manor-glance { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-2px); } 65% { transform: translateX(2px); } }
 /* A room lights up when you drag a suspect over it. */
 .manor-room-tile.drop-target { outline: 3px dashed #ffd24d; outline-offset: -3px; filter: brightness(1.18); }
 .manor-token { cursor: grab; }
@@ -5374,8 +5477,9 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .round-reveal {
   position: fixed; inset: 0; z-index: 1900;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
-  background: rgba(8, 6, 16, 0.9); backdrop-filter: blur(6px);
-  transition: opacity 0.4s ease;
+  background: rgba(8, 6, 16, 0.95); backdrop-filter: blur(10px);
+  padding: 18px;
+  transition: opacity 0.56s ease;
 }
 .round-reveal.rr-out { opacity: 0; pointer-events: none; }
 .rr-title {
@@ -5383,12 +5487,12 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   font-size: clamp(2.6rem, 9vw, 5.5rem); color: #fffdf7;
   text-shadow: 0.045em 0.045em 0 #e0341a;
   transform: rotate(-2deg);
-  animation: ro-slam 0.4s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  animation: ro-slam 0.62s cubic-bezier(0.2, 1.35, 0.4, 1) both;
 }
-.rr-cards { display: flex; align-items: center; gap: clamp(14px, 4vw, 40px); }
+.rr-cards { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: clamp(14px, 4vw, 40px); max-width: min(1040px, 96vw); }
 .rr-card {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
-  animation: ts-fade 0.5s 0.3s both;
+  animation: ts-fade 0.7s 0.42s both;
 }
 .rr-card img {
   width: clamp(120px, 22vw, 210px); height: clamp(120px, 22vw, 210px);
@@ -5399,13 +5503,20 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .rr-label.rr-you { color: #ffbe0b; }
 .rr-label.rr-them { color: #7aa8ff; }
 .rr-name { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.3rem; text-transform: uppercase; color: #fffdf7; }
-.rr-vs { font-size: clamp(1.6rem, 5vw, 3rem); font-weight: 900; color: #e0341a; animation: ts-fade 0.5s 0.45s both; }
-.rr-next { margin-top: 6px; min-width: 240px; font-size: 1.05rem; font-weight: 900; letter-spacing: 0.02em; animation: ts-fade 0.5s 0.55s both; }
+.rr-solo .rr-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); width: min(920px, 94vw); gap: clamp(10px, 2vw, 18px); }
+.rr-solo .rr-card img { width: clamp(92px, 14vw, 150px); height: clamp(92px, 14vw, 150px); border-radius: 12px; }
+.rr-solo .rr-name { font-size: clamp(0.8rem, 1.8vw, 1.05rem); text-align: center; }
+.rr-solo .rr-label { text-align: center; letter-spacing: 0.08em; }
+.rr-vs { font-size: clamp(1.6rem, 5vw, 3rem); font-weight: 900; color: #e0341a; animation: ts-fade 0.7s 0.62s both; }
+.rr-next { margin-top: 6px; min-width: 240px; font-size: 1.05rem; font-weight: 900; letter-spacing: 0.02em; animation: ts-fade 0.7s 0.8s both; }
 @media (max-width: 560px) { .rr-cards { gap: 10px; } .rr-name { font-size: 0.95rem; } }
 
 /* Pre-round team announcement (3+ players) - shares .round-reveal's full-screen backdrop. */
 .team-reveal { cursor: pointer; }
-.tr-teams { display: flex; align-items: flex-start; justify-content: center; gap: clamp(16px, 5vw, 48px); animation: ts-fade 0.5s 0.3s both; }
+.tr-teams { display: flex; align-items: flex-start; justify-content: center; gap: clamp(16px, 5vw, 48px); animation: ts-fade 0.75s 0.45s both; }
+.tr-solo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; width: min(760px, 92vw); animation: ts-fade 0.75s 0.45s both; }
+.solo-chip { min-width: 0; }
+.tr-face { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.72); }
 .tr-team { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: clamp(120px, 26vw, 220px); }
 .tr-head { font-family: "Archivo", sans-serif; font-weight: 900; font-size: clamp(1.2rem, 4vw, 2rem); letter-spacing: 0.04em; text-transform: uppercase; }
 .tr-a .tr-head { color: #ffbe0b; }
@@ -5416,7 +5527,8 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .tr-a .tr-chip .tr-ini { background: #ffbe0b; }
 .tr-b .tr-chip .tr-ini { background: #7aa8ff; }
 .tr-nm { font-weight: 800; color: #fffdf7; font-size: 0.95rem; }
-.tr-tap { color: rgba(255, 255, 255, 0.55); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; animation: ts-fade 0.6s 0.9s both; }
+.tr-as { display: block; margin-top: 2px; font-size: 0.62rem; font-style: normal; color: rgba(255, 255, 255, 0.62); line-height: 1.2; }
+.tr-tap { color: rgba(255, 255, 255, 0.55); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; animation: ts-fade 0.8s 1.25s both; }
 @media (max-width: 560px) { .tr-teams { gap: 12px; } .tr-nm { font-size: 0.82rem; } }
 
 /* Player-count stepper (title screen + online lobby). */
@@ -5430,12 +5542,121 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .ts-count-btn:hover { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.6); }
 .ts-count-val { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.6rem; min-width: 1.4ch; text-align: center; color: #fffdf7; }
 .ts-names-label { font-weight: 800; color: #fffdf7; margin-bottom: 8px; }
-.ts-names-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; width: min(320px, 80vw); }
+.ts-names-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; width: min(320px, 80vw); }
+.ts-name-row { display: flex; align-items: stretch; gap: 6px; }
+.ts-name-row .ts-name-slot { flex: 1 1 auto; min-width: 0; }
+.ts-name-remove {
+  flex: 0 0 40px; width: 40px; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7); font-size: 1.2rem; font-weight: 900; line-height: 1; cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+.ts-name-remove:hover { background: rgba(255, 90, 90, 0.22); border-color: #ff6a6a; color: #fff; }
+.ts-name-remove:disabled { opacity: 0.28; cursor: default; }
+/* "＋ Add player": a dashed ghost row that reads as "there could be more here". */
+.ts-add-player {
+  width: min(320px, 80vw); margin-bottom: 12px; padding: 9px 14px; border-radius: 10px;
+  border: 2px dashed rgba(255, 255, 255, 0.3); background: transparent;
+  color: rgba(255, 255, 255, 0.82); font-family: "Archivo", sans-serif; font-weight: 800;
+  letter-spacing: 0.03em; cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
+}
+.ts-add-player:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.5); }
+.ts-add-player:disabled { opacity: 0.35; cursor: default; }
 .ts-name-slot {
   padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.06); color: #fffdf7; font-size: 1rem; font-weight: 600;
 }
 .ts-name-slot::placeholder { color: rgba(255, 255, 255, 0.4); font-weight: 500; }
+.ts-name-slot:focus,
+.ts-name-input:focus { outline: none; border-color: #ffbe0b; background: rgba(255, 255, 255, 0.12); }
+.ts-name-slot.shake,
+.ts-name-input.shake { animation: ts-shake 0.4s; border-color: #ff5a5a; }
+.ts-team-mode {
+  width: min(320px, 80vw);
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.07);
+  color: #fffdf7;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ts-team-mode[hidden] { display: none; }
+.ts-team-mode input {
+  width: 42px;
+  height: 24px;
+  accent-color: #18a589;
+}
+.ts-team-mode b {
+  min-width: 34px;
+  text-align: right;
+  color: #ffbe0b;
+}
+/* Inline setup settings: board size row, Back|Begin split, sound/music toggles at the bottom. */
+.ts-set-row {
+  width: min(320px, 82vw);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 7px 12px; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06);
+  color: #fffdf7; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.82rem;
+}
+.ts-size-pills { display: inline-flex; gap: 6px; }
+.ts-size {
+  min-width: 38px; padding: 5px 9px; border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7); font-family: "Archivo", sans-serif; font-weight: 900; cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.ts-size:hover { background: rgba(255, 255, 255, 0.1); }
+.ts-size.on { background: #ffbe0b; border-color: #ffbe0b; color: #1a1a1a; }
+/* Back | Begin, back-to-back, each half-width. */
+.ts-btn-row { display: flex; gap: 10px; width: min(320px, 82vw); }
+.ts-btn-row .button { flex: 1 1 0; width: auto; min-width: 0; }
+/* Sound / music toggles pinned to the bottom of the step. */
+.ts-toggles { display: flex; gap: 10px; width: min(320px, 82vw); margin-top: 2px; }
+.ts-toggle {
+  flex: 1 1 0; min-width: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05);
+  color: #fffdf7; font-weight: 800; letter-spacing: 0.03em; font-size: 0.78rem; cursor: pointer;
+}
+.ts-toggle input { width: 40px; height: 22px; accent-color: #ffbe0b; }
+/* Single audio button: sound + music together, the whole thing toggles on/off. */
+.ts-audio {
+  width: min(320px, 82vw); box-sizing: border-box; margin-top: 2px;
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 10px 16px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06); border: 2px solid rgba(255, 255, 255, 0.2);
+  color: #fffdf7; font: 900 0.86rem "Archivo", sans-serif; letter-spacing: 0.04em; cursor: pointer;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+.ts-audio:hover { background: rgba(255, 255, 255, 0.12); }
+.ts-audio:not(.on) { opacity: 0.72; }
+.ts-audio-ico { font-size: 1.05rem; letter-spacing: 0.12em; }
+.ts-audio b { padding: 2px 9px; border-radius: 6px; background: #b3261e; color: #fffdf7; font-size: 0.74rem; }
+.ts-audio.on b { background: #178a47; }
+.setup-room-code {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: #ffe14d;
+  color: var(--card-ink);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+.room-share-row small {
+  max-width: 28ch;
+}
 
 /* Team labels on the local seat pill + online room team line. */
 .seat-roster.seat-teams .seat-half { flex-direction: column; gap: 2px; padding-top: 6px; padding-bottom: 6px; }
@@ -5488,6 +5709,360 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 }
 .seat-pill .seat-swap:hover { background: var(--card-surface-2); transform: translate(-50%, -50%) scale(1.12); }
 .seat-pill .seat-swap:active { transform: translate(-50%, -50%) scale(0.94); }
+/* The floating ⇄ badge marks the SEAM of a two-seat pill. With 3+ seats the centre is a seat, not a
+   seam - it would sit on top of the middle player's name. Tapping a seat hands off directly, so the
+   badge simply disappears for 3+. */
+.seat-pill:has(.seat-half:nth-of-type(3)) .seat-swap { display: none; }
+
+@media (min-width: 861px) {
+  #app { max-width: 1680px; padding: 12px 18px 18px; }
+  /* ===== Desktop top rail, Claude-Design chip language: a dark chrome bar. Row 1 = brand +
+     controls; row 2 = your secret + the question. Everything is a translucent "chip"
+     (rgba(20,20,26,.7) / #2b2b36 border). Mobile layout below 861px is untouched. ===== */
+  .side-panel {
+    display: grid;
+    grid-template-columns: minmax(118px, auto) minmax(0, 1fr) auto;
+    grid-template-areas:
+      "head actions seats"
+      "you  cue     cue";
+    align-items: center;
+    gap: 10px 14px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #262630;
+    background: #14141a;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+  .side-head {
+    grid-area: head;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .side-head h1 {
+    font-size: clamp(1.15rem, 2.1vw, 1.6rem);
+    line-height: 0.88;
+    min-width: 86px;
+  }
+  .side-head .room-code {
+    align-self: center;
+    font-size: 0.66rem;
+    margin-left: 10px;
+    color: #9a9aa5;
+  }
+  /* Your secret: a compact chip - 52px face + name. */
+  .side-panel .side-you { grid-area: you; margin: 0; min-width: 0; justify-self: start; }
+  .side-panel .secret-card.character-card {
+    min-height: 52px;
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    align-items: center;
+    border-radius: 9px;
+    border: 1px solid #2b2b36;
+    background: rgba(20, 20, 26, 0.7);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+  }
+  .side-panel .secret-card .portrait-wrap {
+    width: 52px;
+    aspect-ratio: 1;
+    min-height: 52px;
+  }
+  .side-panel .secret-card .card-plate {
+    padding: 4px 14px 4px 10px;
+    justify-content: center;
+    min-width: 0;
+    background: none;
+  }
+  .side-panel .secret-card .card-plate h3 {
+    font-size: 0.8rem;
+    line-height: 1.05;
+    color: #fff;
+    letter-spacing: 0.06em;
+  }
+  .side-panel .secret-card .card-meta,
+  .side-panel .secret-card .card-pronouns,
+  .side-panel .secret-card .card-role { display: none; }
+  /* The question: eyebrow + prompt, split from the secret by a hairline. Kept modest - the
+     Claude Design mock's 25px reads too loud at rail height. */
+  .side-panel .cue-card {
+    grid-area: cue;
+    margin: 0;
+    padding: 2px 0 2px 16px;
+    background: none;
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0;
+    min-width: 0;
+  }
+  .side-panel .cue-card .label {
+    margin: 0 0 3px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--accent-4, #ffd400);
+  }
+  .side-panel .cue-card::after { font-size: 9px; margin-top: 3px; color: #9a9aa5; }
+  .side-panel .question-prompt {
+    font-size: clamp(0.9rem, 1.15vw, 1.08rem);
+    font-weight: 800;
+    line-height: 1.2;
+    color: #fff;
+    margin: 0;
+  }
+  .side-panel .mystery-result { margin: 4px 0 0; }
+  /* END ROUND: one bordered chip, hugging the right edge next to the seat pill. */
+  .side-panel .side-actions {
+    grid-area: actions;
+    justify-self: end;
+    margin: 0;
+    padding: 0;
+    border-top: 0;
+    display: flex;
+    align-items: center;
+  }
+  body .side-panel .game-bar-actions { height: auto; width: auto; margin: 0; }
+  body .side-panel .game-bar-actions .button,
+  body .side-panel .game-bar-actions .button.end-round-btn {
+    min-height: 34px;
+    background: rgba(20, 20, 26, 0.7);
+    border: 1px solid #3a3a46;
+    border-radius: 8px;
+    color: #e8e8ec;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    padding: 7px 13px;
+    box-shadow: none;
+    transform: none;
+  }
+  body .side-panel .game-bar-actions .button:hover { background: rgba(43, 43, 54, 0.85); }
+  /* Seat pill: one chip, active seat lit in accent. Wraps + shrinks so 3-8 named seats fit. */
+  .side-panel .seat-roster {
+    grid-area: seats;
+    margin: 0;
+    min-width: 0;
+    max-width: 40vw;
+  }
+  .side-panel .seat-roster.seat-pill {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+    padding: 4px;
+    border: 1px solid #2b2b36;
+    border-radius: 8px;
+    background: rgba(20, 20, 26, 0.7);
+  }
+  body .side-panel .seat-roster.seat-pill .seat-half {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    min-height: 0;
+    padding: 5px 10px;
+    border-radius: 6px;
+    color: #9a9aa5;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  body .side-panel .seat-roster.seat-pill .seat-half.active {
+    background: var(--accent-4, #ffd400);
+    color: #1a1a1a;
+    font-weight: 900;
+  }
+  body .side-panel .seat-roster.seat-pill .seat-swap {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    min-height: 0;
+    padding: 2px 4px;
+    color: #7c7c87;
+    font-size: 12px;
+  }
+  .side-panel .seat-half .seat-sub { display: none; }
+  .side-panel .seat-roster.online-room {
+    padding: 5px 12px;
+    border: 1px solid #2b2b36;
+    border-radius: 8px;
+    background: rgba(20, 20, 26, 0.7);
+    text-align: right;
+  }
+  .side-panel .seat-roster.online-room .or-label { display: none; }
+  .side-panel .seat-roster.online-room .or-code { font-size: 0.8rem; }
+  .side-panel .seat-roster.online-room .or-team,
+  .side-panel .seat-roster.online-room .or-status { font-size: 0.62rem; margin: 1px 0 0; }
+  /* Opponent feed (online): its own full-width row under the rail content. */
+  .side-panel .opponent-panel {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin: 0;
+    padding: 8px;
+    border-top: 0;
+    max-height: 96px;
+    overflow: hidden;
+  }
+  body:not(.mode-online) .side-panel .opponent-panel { display: none; }
+  .side-panel .room-status { grid-column: 1 / -1; margin: 0; }
+  .side-panel .room-status:empty { display: none; }
+}
+
+/* ===== Unified hero (desktop): rail + location strip + board top read as ONE component. The
+   location art paints a single backdrop (blurred, darkened, vignetted) behind a glass rail; the
+   location itself demotes from "second page title" to a small badge; the character grid fades in
+   from underneath. Mobile (<861px) keeps its own layout untouched. ===== */
+@media (min-width: 861px) {
+  .game-layout { position: relative; gap: 0; }
+  /* The scene: one continuous artwork behind everything in the hero. Slightly blurred + scaled so
+     the blur has no soft edges; scrims + vignette keep the UI text in charge. */
+  .game-layout::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 252px;
+    z-index: 0;
+    border-radius: 14px;
+    background-image: var(--hero-art, none);
+    background-size: cover;
+    background-position: center 32%;
+    filter: blur(2.5px) saturate(1.08) brightness(1.05);
+    transform: scale(1.012);
+    pointer-events: none;
+  }
+  .game-layout::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 254px;
+    z-index: 0;
+    border-radius: 14px;
+    pointer-events: none;
+    background:
+      radial-gradient(120% 100% at 50% 0%, transparent 58%, rgba(6, 6, 10, 0.32)),
+      linear-gradient(90deg, rgba(6, 6, 10, 0.32), rgba(6, 6, 10, 0.04) 45%, rgba(6, 6, 10, 0.2)),
+      linear-gradient(180deg, rgba(6, 6, 10, 0.26) 0%, rgba(6, 6, 10, 0.06) 34%, rgba(6, 6, 10, 0.24) 66%, var(--paper) 100%);
+  }
+  /* The rail is a SOLID bar (the frosted glass read naff, and blur over the scrolling board costs
+     heat). The game logo is dropped in-rail; the board toolbar (sort/settings/etc.) is relocated
+     here so it stays reachable when scrolled. */
+  .game-side { z-index: 5; }
+  /* Solid sticky bar. The rail keeps its proven grid for player/question/end-round/seats; the logo is
+     trimmed and the relocated toolbar is pinned as its own strip along the bottom (absolute = immune
+     to the grid-area cascade quirks that fought a flow-based placement). padding-bottom reserves it. */
+  .side-panel {
+    position: relative;
+    background: #12141c;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 10px 16px 44px;
+  }
+  .side-panel .side-head { display: none; }              /* logo trimmed on the in-game rail */
+  /* Relocated toolbar: bottom strip of the rail, right-aligned; chips match the seat / end-round chips.
+     NB the base .topbar-actions is position:absolute; top:0 — must override top or it pins to the top. */
+  .side-panel .topbar-actions.in-rail {
+    position: absolute;
+    top: auto;
+    height: auto;
+    left: 16px;
+    right: 16px;
+    bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    min-width: 0;
+  }
+  .side-panel .topbar-actions.in-rail .button {
+    min-height: 32px;
+    background: rgba(20, 20, 26, 0.7);
+    border: 1px solid #3a3a46;
+    border-radius: 8px;
+    color: #e8e8ec;
+    box-shadow: none;
+    flex: 0 0 auto;
+  }
+  .side-panel .topbar-actions.in-rail .button:hover { background: rgba(43, 43, 54, 0.9); }
+  .side-panel .topbar-actions.in-rail #sortSelect { max-width: 140px; }
+  /* Chips relax on glass: soft borders, soft shadows. */
+  .side-panel .secret-card.character-card,
+  .side-panel .seat-roster.seat-pill,
+  .side-panel .seat-roster.online-room,
+  body .side-panel .game-bar-actions .button,
+  body .side-panel .game-bar-actions .button.end-round-btn {
+    background: rgba(10, 10, 16, 0.44);
+    border-color: rgba(255, 255, 255, 0.13);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  }
+  /* Hierarchy: the QUESTION is the hero's focal point. */
+  .side-panel .question-prompt {
+    font-size: clamp(1.05rem, 1.5vw, 1.34rem);
+    line-height: 1.22;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+  }
+  .side-panel .cue-card { border-left-color: rgba(255, 255, 255, 0.16); }
+  /* The location strip: same art continues behind it; the name is a badge, not a headline. */
+  .game-stage { position: relative; z-index: 1; }
+  .stage-top { margin: 0; }
+  .stage-top .location-band {
+    height: 62px;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .stage-top .location-band .location-photo,
+  .stage-top .location-band .location-scrim,
+  .stage-top .location-band .location-rainbow { display: none; }
+  .stage-top .location-band .location-overlay { min-height: 0; padding: 0 16px 12px; }
+  .stage-top .location-band .location-copy h2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    padding: 7px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(10, 10, 16, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    text-shadow: none;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  }
+  .stage-top .location-band .location-copy h2::before { content: "📍"; font-size: 0.8rem; }
+  .stage-top .topbar-actions { height: 62px; right: 10px; }
+  .stage-top .topbar-actions .button,
+  .stage-top .topbar-actions select {
+    background: rgba(10, 10, 16, 0.44);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    box-shadow: none;
+  }
+  /* The grid emerges from UNDER the hero: no top border, corners squared into the fade, and the
+     board's own tint starts transparent so the last of the art glows behind the first row. */
+  .game-stage .character-board {
+    margin: 0;
+    border-radius: 0 0 14px 14px;
+    border-top: none;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--board-fade, #16140f) 30%, transparent) 0,
+      var(--board-fade, #16140f) 150px
+    );
+  }
+}
 
 /* ===================== Online lobby / waiting room ===================== */
 .ts-name-input {
@@ -5766,6 +6341,18 @@ body.mode-nw .brand-mark {
   font-family: Arial, Helvetica, sans-serif;
   text-transform: none;
 }
+/* Neighbourhood Watch reskins the whole page as Facebook. The WHO? / IS IT? logo collapses to a
+   single Facebook-blue line (no yellow/red splash shadows), in Facebook's own sans. */
+body.mode-neighbourhood-watch .side-head h1 {
+  white-space: nowrap;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: clamp(1.15rem, 4.8vw, 1.85rem);
+  letter-spacing: -0.03em;
+}
+body.mode-neighbourhood-watch .side-head h1 span,
+body.mode-neighbourhood-watch .side-head h1 .brand-who,
+body.mode-neighbourhood-watch .side-head h1 .brand-isit { display: inline; color: #1877f2; text-shadow: none; }
+body.mode-neighbourhood-watch .side-head h1 .brand-who { margin-right: 0.3em; }
 body.mode-neighbourhood-watch .button,
 body.mode-neighbourhood-watch select,
 body.mode-neighbourhood .button,
@@ -5850,8 +6437,8 @@ body.mode-nw .cue-card {
 }
 .lastwords-bubble.lw-out { opacity: 0; transform: translateX(-50%) translateY(-10px); transition: all 0.35s ease; }
 @keyframes lwIn { from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.8); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
-/* Floating heads are small - shrink the bubble to fit. */
-.float-head .lastwords-bubble { font-size: 0.56rem; padding: 4px 7px; top: -6px; }
+/* Floating heads are small - shrink the bubble to fit. (Bubble lives on <body>, hence the flat class.) */
+.lastwords-bubble.lw-floathead { font-size: 0.56rem; padding: 4px 7px; }
 
 /* ===================== Season finale: the recap montage ===================== */
 .finale-overlay {
@@ -5995,14 +6582,15 @@ body.mode-nw .cue-card {
 }
 .character-card.gallery .portrait-wrap { margin: 10px 10px 4px; position: relative; }
 .character-card.gallery .card-plate { background: none; padding: 2px 8px 8px; }
-/* The wall label: a small-caps serif name with a whispered "year · medium" beneath. No plaque box. */
+/* The wall label: a clean modern-museum sans (think a contemporary gallery vinyl label), with a
+   quiet "year · medium" beneath. No plaque box. */
 .character-card.gallery h3 {
-  font-family: Georgia, "Times New Roman", serif; font-weight: 700;
-  font-size: 0.74rem; letter-spacing: 0.1em; color: #3f3a30; text-transform: uppercase;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 700;
+  font-size: 0.72rem; letter-spacing: 0.08em; color: #2e2a24; text-transform: uppercase;
 }
 .gal-caption {
-  text-align: center; font-family: Georgia, "Times New Roman", serif; font-style: italic;
-  font-size: 0.56rem; color: #6d6558; line-height: 1.3;
+  text-align: center; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.54rem; font-weight: 400; color: #6d6558; line-height: 1.3; letter-spacing: 0.01em;
 }
 /* Painterly lighting laid over every canvas: soft top light + gentle corner falloff. */
 .character-card.gallery .portrait-wrap::before {
@@ -6046,7 +6634,7 @@ body.mode-nw .cue-card {
   border: 8px solid #4a3417;
   box-shadow: inset 0 0 0 2px #2b1d0a, 0 0 0 2px #6e522a, 0 5px 12px rgba(0,0,0,0.5);
 }
-.character-card.gal-baroque .portrait-wrap img { filter: contrast(1.3) brightness(0.78) sepia(0.28) saturate(1.15); }
+.character-card.gal-baroque .portrait-wrap img { filter: contrast(1.22) brightness(0.92) sepia(0.24) saturate(1.12); }
 /* Watercolour: thin washed frame, faded pigment. */
 .character-card.gal-watercolour .portrait-wrap {
   border: 4px solid #f6f1e6; box-shadow: 0 0 0 1px #c9c2b0, 0 2px 6px rgba(0,0,0,0.18);
@@ -6068,6 +6656,17 @@ body.mode-nw .cue-card {
   background: #c0281c; color: #fff; font-size: 10px; border-radius: 2px;
 }
 .character-card.gal-ukiyoe .portrait-wrap img { filter: sepia(0.22) saturate(1.35) hue-rotate(-12deg) contrast(1.05); }
+/* Cubist: hard charcoal frame, faceted high-contrast repaint. */
+.character-card.gal-cubist .portrait-wrap {
+  border: 5px solid #1c1a16; box-shadow: -7px 7px 0 -3px #8a8577, 0 0 0 2px #4a463c, 0 4px 10px rgba(0,0,0,0.3);
+}
+.character-card.gal-cubist .portrait-wrap img { filter: contrast(1.28) saturate(0.9) brightness(0.98); }
+/* Art Nouveau: ornate green-gold frame, warm decorative wash. */
+.character-card.gal-artnouveau .portrait-wrap {
+  border: 6px solid #6f7b45;
+  box-shadow: 0 0 0 2px #b8a24e, inset 0 0 0 2px #47502a, 0 0 0 4px #8a7a3a, 0 4px 10px rgba(0,0,0,0.3);
+}
+.character-card.gal-artnouveau .portrait-wrap img { filter: sepia(0.24) saturate(1.18) brightness(1.02) contrast(1.02); }
 
 .rc-foot { margin: 6px 0 0; text-align: center; font-size: 0.52rem; font-style: italic; opacity: 0.55; }
 .al-discovered { margin: 4px 0 0; font-size: 0.68rem; font-weight: 800; opacity: 0.8; }
@@ -6092,29 +6691,29 @@ body.mode-nw .cue-card {
   background: radial-gradient(circle at 50% 50%, #1c0b40 0%, #0a0618 62%, #000 100%);
   transition: opacity 0.7s ease, transform 0.7s ease;
 }
-.dimension-warp.dw-out { opacity: 0; transform: scale(1.5); pointer-events: none; }
+.dimension-warp.dw-out { opacity: 0; transform: scale(1.35); pointer-events: none; }
 .dw-swirl {
   position: absolute; width: 230vmax; height: 230vmax; left: 50%; top: 50%;
   margin: -115vmax 0 0 -115vmax;
   background: conic-gradient(from 0deg, transparent, rgba(124, 58, 237, 0.38), transparent, rgba(0, 200, 255, 0.32), transparent, rgba(255, 64, 129, 0.34), transparent);
-  animation: dw-spin 3.4s linear infinite, dw-zoom 3.1s cubic-bezier(0.4, 0, 0.6, 1) both;
+  animation: dw-spin 4.8s linear infinite, dw-zoom 4.2s cubic-bezier(0.4, 0, 0.6, 1) both;
 }
 .dw-vortex {
   position: absolute; width: 58vmax; height: 58vmax; border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 0 0 22px rgba(255, 255, 255, 0.045), 0 0 0 64px rgba(255, 255, 255, 0.03), 0 0 0 128px rgba(255, 255, 255, 0.02);
-  animation: dw-pulse 3.1s ease-out both;
+  animation: dw-pulse 4.2s ease-out both;
 }
 @keyframes dw-spin { to { transform: rotate(360deg); } }
 @keyframes dw-zoom { from { transform: scale(0.28); } to { transform: scale(1.7); } }
 @keyframes dw-pulse { from { transform: scale(0.2); opacity: 0; } 28% { opacity: 1; } to { transform: scale(2.5); opacity: 0; } }
 .dw-copy { position: relative; z-index: 2; text-align: center; padding: 0 18px; }
-.dw-line { font-family: "Archivo", sans-serif; font-weight: 800; font-size: clamp(1.1rem, 3.6vw, 2rem); color: #ece4ff; margin: 0 0 6px; opacity: 0; text-shadow: 0 2px 22px rgba(124, 58, 237, 0.7); animation: dw-fade 0.6s 0.3s both; }
-.dw-line2 { animation-delay: 0.95s; }
+.dw-line { font-family: "Archivo", sans-serif; font-weight: 800; font-size: clamp(1.1rem, 3.6vw, 2rem); color: #ece4ff; margin: 0 0 6px; opacity: 0; text-shadow: 0 2px 22px rgba(124, 58, 237, 0.7); animation: dw-fade 0.8s 0.45s both; }
+.dw-line2 { animation-delay: 1.25s; }
 .dw-who { display: flex; flex-direction: column; align-items: center; line-height: 0.9; margin-top: 12px; }
 .dw-who span { font-family: "Archivo", sans-serif; font-weight: 900; font-size: clamp(3rem, 12vw, 7rem); letter-spacing: -0.02em; }
-.dw-who1 { color: #ffd400; text-shadow: 0.045em 0.045em 0 #7c3aed; animation: dw-slam 0.5s 1.45s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
-.dw-who2 { color: #fffdf7; text-shadow: 0.045em 0.045em 0 #e0341a; animation: dw-slam 0.5s 1.75s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.dw-who1 { color: #ffd400; text-shadow: 0.045em 0.045em 0 #7c3aed; animation: dw-slam 0.7s 1.9s cubic-bezier(0.2, 1.35, 0.4, 1) both; }
+.dw-who2 { color: #fffdf7; text-shadow: 0.045em 0.045em 0 #e0341a; animation: dw-slam 0.7s 2.3s cubic-bezier(0.2, 1.35, 0.4, 1) both; }
 @keyframes dw-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes dw-slam { from { opacity: 0; transform: scale(2.6) rotate(-7deg); } to { opacity: 1; transform: scale(1) rotate(-2deg); } }
 @media (prefers-reduced-motion: reduce) {
@@ -6249,11 +6848,11 @@ body.mode-nw .cue-card {
 }
 
 /* ===================== Title-screen settings (gear next to PG) ===================== */
-.ts-bottom-row { display: flex; gap: 10px; align-items: stretch; justify-content: center; width: min(84vw, 300px); margin: 0 auto; animation: ts-fade 0.5s 1.05s both; }
-.ts-bottom-row .ts-pg { animation: none; flex: 1 1 auto; min-width: 0; }
-.ts-bottom-row .ts-gear { flex: 0 0 46px; width: 46px; min-width: 46px; font-size: 1.05rem; padding: 0; display: flex; align-items: center; justify-content: center; }
+.ts-bottom-row { display: flex; align-items: stretch; justify-content: center; width: min(320px, 82vw); margin: 0 auto; animation: ts-fade 0.5s 1.05s both; }
+.ts-bottom-row .ts-gear { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 900; letter-spacing: 0.06em; }
+.ts-bottom-row .ts-gear .ts-gear-ico { font-size: 1.05rem; }
 .ts-settings-panel {
-  position: fixed; inset: 0; z-index: 360;
+  position: fixed; inset: 0; z-index: 2100;
   display: flex; align-items: center; justify-content: center;
   background: rgba(10, 10, 16, 0.7);
   animation: loreIn 0.25s ease;
@@ -6293,7 +6892,7 @@ body.mode-nw .cue-card {
 .character-card.gal-baroque .portrait-wrap::before {
   background:
     radial-gradient(90% 70% at 38% 8%, rgba(255, 236, 190, 0.34), transparent 60%),
-    radial-gradient(150% 150% at 50% 60%, transparent 42%, rgba(12, 8, 4, 0.5) 100%);
+    radial-gradient(150% 150% at 50% 62%, transparent 52%, rgba(16, 11, 6, 0.34) 100%);
 }
 .character-card.gal-impressionist .portrait-wrap::before {
   background:
@@ -6423,3 +7022,132 @@ body.mode-nw .cue-card {
 .hb-furni-floor.hb-furni-large { width: 74px; height: 74px; margin-left: -37px; margin-top: -66px; }
 .hb-furni-floor.hb-furni-medium { width: 56px; height: 56px; margin-left: -28px; margin-top: -50px; }
 .hb-furni-floor.hb-furni-small { width: 40px; height: 40px; margin-left: -20px; margin-top: -34px; }
+
+/* ===================== Polish pass: mobile dark chrome + clean reveal ===================== */
+/* Round-over reveal: FINISH SESSION is a restrained outline chip (was a naff receipt-emoji solid),
+   so NEXT ROUND stays the clear primary. */
+.round-reveal .rr-finish {
+  background: rgba(255, 255, 255, 0.06); border: 1.5px solid rgba(255, 255, 255, 0.22);
+  color: #fffdf7; box-shadow: none; font-size: 0.82rem; padding: 9px 18px;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.round-reveal .rr-finish:hover { background: rgba(255, 255, 255, 0.12); }
+.rr-finish-ico { width: 15px; height: 15px; flex: 0 0 auto; }
+.round-reveal .rr-next { min-width: 240px; }
+
+/* Mobile (below the desktop hero breakpoint): the top strip must (a) match the dark theme instead of
+   a light card, and (b) line up with the board/location gutters. */
+@media (max-width: 860px) {
+  /* Align the top strip's width with the board + location strip (both inset 12px inside #app). */
+  .game-side { margin: 0 12px; }
+  /* Secret card = dark chrome, not a bright card floating on the dark UI. */
+  .side-panel .secret-card.character-card { background: var(--panel); border-color: var(--line); color: var(--ink); }
+  .side-panel .secret-card .card-plate { background: transparent; }
+  .side-panel .secret-card .card-plate h3 { color: var(--ink); }
+  .side-panel .secret-card .card-role,
+  .side-panel .secret-card .card-hint { color: var(--muted); }
+  /* END ROUND spans the full strip width on phones. */
+  .side-panel .side-actions { width: 100%; }
+  .side-panel .game-bar-actions { width: 100%; }
+  .side-panel .game-bar-actions .button { width: 100%; flex: 1 1 auto; }
+}
+
+/* ===================== Low power mode ===================== */
+/* Halts the continuous keyframe loops (after they finish their current pass), backdrop blur, and
+   state transitions - the GPU-side heat. The JS mode loops (rAF morphs, pixall canvas, idle wanders)
+   are separately short-circuited via lowPowerMode(). Entrance animations still complete once, so the
+   UI doesn't get stuck invisible. */
+body.low-power *,
+body.low-power *::before,
+body.low-power *::after {
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Editor: debug-only controls (e.g. Export character JSON) hidden unless the debug picker is unlocked. */
+.ed-debug-only { display: none; }
+body.debug-mode .ed-debug-only { display: inline-flex; }
+
+/* ===================== Observer / TV display mode ===================== */
+/* A spectator client (put on a TV): the player rail is gone; the board + location fill the screen
+   under a slim banner that names the room, the active mode and the location. */
+body.observer .game-side,
+body.observer .stage-top .topbar-actions,
+body.observer .stage-top .location-band { display: none; }
+body.observer #app { max-width: none; padding: 0; }
+body.observer .game-layout { display: block; gap: 0; }
+body.observer .game-layout::before,
+body.observer .game-layout::after { display: none; }
+body.observer .game-stage { min-height: calc(100vh - 60px); }
+body.observer .game-stage .board-wrap { padding: 18px; }
+body.observer .character-board { margin: 0 auto; max-width: 1600px; border-radius: 16px; }
+/* Bigger, TV-legible avatar cards. */
+body.observer .character-board { --card-min: 150px; gap: 14px; }
+body.observer .character-card h3 { font-size: 1rem; }
+
+#observerBar {
+  position: sticky; top: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 12px 22px;
+  background: #10121a; border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+}
+body:not(.observer) #observerBar { display: none; }
+.ob-brand { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.5rem; letter-spacing: -0.01em; }
+.ob-who { color: #ffbe0b; text-shadow: 0.03em 0.04em 0 #1533cc; }
+.ob-isit { color: #fffdf7; text-shadow: 0.03em 0.04em 0 #e01b1b; }
+.ob-meta { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ob-chip {
+  padding: 7px 15px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #eef0f4; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.82rem;
+}
+.ob-chip.ob-mode { background: #ffbe0b; color: #1a1a1a; border-color: #ffbe0b; }
+.ob-chip.ob-loc { background: rgba(58, 134, 255, 0.22); border-color: rgba(122, 170, 255, 0.5); }
+.observer-wait .obw-hint { margin-top: 10px; font-size: 1.05rem; font-weight: 700; color: rgba(255, 255, 255, 0.72); }
+
+/* ===== Desktop rail is a solid DARK bar now. LinkedIn / Neighbourhood-Watch used to paint the whole
+   panel white (built for the old boxed rail), which turned the white question text invisible. Keep
+   their BOARD/feed theming but restore the standard dark rail + readable text at the top. ===== */
+@media (min-width: 861px) {
+  body.mode-linkedin .side-panel,
+  body.mode-neighbourhood-watch .side-panel,
+  body.mode-neighbourhood .side-panel,
+  body.mode-nw .side-panel {
+    background: #12141c;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  }
+  body.mode-linkedin .cue-card,
+  body.mode-neighbourhood-watch .cue-card,
+  body.mode-neighbourhood .cue-card,
+  body.mode-nw .cue-card {
+    background: none;
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
+  body.mode-linkedin .question-prompt,
+  body.mode-neighbourhood-watch .question-prompt,
+  body.mode-neighbourhood .question-prompt,
+  body.mode-nw .question-prompt { color: #fff; }
+}
+
+/* Setup dialog: reminder that changes apply from the next deal (revealed when a setting is touched). */
+.setup-apply-hint {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-4, #ffd400) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-4, #ffd400) 12%, transparent);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  animation: setup-hint-in 0.24s ease;
+}
+.setup-apply-hint[hidden] { display: none; }
+@keyframes setup-hint-in { from { opacity: 0; transform: translateY(-4px); } }

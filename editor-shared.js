@@ -37,13 +37,45 @@
     }];
   }
 
+  function normalizeJewelleryList(traits) {
+    const t = traits || {};
+    if (Array.isArray(t.jewelleryItems) && t.jewelleryItems.length) {
+      return t.jewelleryItems
+        .map((item) => ({ ...item }))
+        .filter((item) => item && item.type && item.type !== "none");
+    }
+    if (!t.jewellery || t.jewellery === "none") return [];
+    return [{
+      type: t.jewellery,
+      side: t.jewellerySide || "both",
+      color: t.jewelleryColor || t.accessoryColor || "#e2b84f",
+      color2: t.jewelleryColor2 || "#ff9bb0",
+      metal: t.jewelleryMetal || t.accessoryMetal || "",
+      x: Number(t.jewelleryX) || 0,
+      y: Number(t.jewelleryY) || 0,
+      scale: t.jewelleryScale == null ? 1 : Number(t.jewelleryScale),
+      rot: Number(t.jewelleryRot) || 0,
+      layer: t.jewelleryLayer || "behindHair",
+      arcStart: Number(t.jewelleryArcStart) || 0,
+      arcVisible: t.jewelleryArcVisible == null ? 1 : Number(t.jewelleryArcVisible)
+    }];
+  }
+
   function fieldsForFaceStudio(traitBook, accessoryChoices) {
     return [
       { group: "Face", key: "faceShape", label: "Face Shape", type: "select", options: () => selectOptions(traitBook.faceShapes), fallback: "oval" },
       { group: "Face", key: "headScaleX", label: "Head Width", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
       { group: "Face", key: "headScaleY", label: "Head Height", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
       { group: "Face", key: "neckWidth", label: "Neck Width", min: 0.72, max: 1.38, step: 0.01, fallback: 1 },
-      { group: "Face", key: "neckLength", label: "Neck Length", min: -8, max: 16, step: 0.5, fallback: 0 },
+      { group: "Face", key: "neckTaper", label: "Neck Taper", min: -1, max: 1, step: 0.05, fallback: 0 },
+      { group: "Face", key: "neckLength", label: "Neckline Height", min: -8, max: 16, step: 0.5, fallback: 0 },
+      { group: "Face", key: "neckOutline", label: "Neck Outline", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
+      { group: "Face", key: "neckOutlineWidth", label: "Neck Outline Width", min: 0.5, max: 3, step: 0.05, fallback: 1 },
+      { group: "Face", key: "neckTerminationY", label: "Neck Join Depth", min: -6, max: 12, step: 0.5, fallback: 0 },
+      { group: "Face Lines", key: "adamAppleStyle", label: "Adam's Apple", type: "select", options: () => [["off", "Off"], ["soft", "Soft"], ["line", "Line"], ["notch", "Notch"]], fallback: "off" },
+      { group: "Face Lines", key: "adamAppleScale", label: "Adam's Apple Size", min: 0.5, max: 1.8, step: 0.05, fallback: 1 },
+      { group: "Face Lines", key: "adamAppleOpacity", label: "Adam's Apple Opacity", min: 0, max: 1, step: 0.05, fallback: 0 },
+      { group: "Face Lines", key: "adamAppleY", label: "Adam's Apple Y", min: -10, max: 10, step: 0.5, fallback: 0 },
       { group: "Face", key: "headTilt", label: "Head Tilt", min: -12, max: 12, step: 0.5, fallback: 0 },
       { group: "Face", key: "headY", label: "Head Position", min: -10, max: 10, step: 1, fallback: 0 },
       { group: "Face", key: "eyeGap", label: "Eye Gap", min: 40, max: 62, step: 1, fallback: 47 },
@@ -167,16 +199,6 @@
       { group: "Accessory", key: "accessoryScale", label: "Accessory Size", min: 0.68, max: 1.36, step: 0.02, fallback: 1 },
       { group: "Accessory", key: "accessoryRot", label: "Accessory Rotate", min: -45, max: 45, step: 1, fallback: 0 },
       { group: "Accessory", key: "accessoryLayer", label: "Accessory Layer", type: "select", options: () => [["auto", "Auto"], ["beforeHead", "Behind Head"], ["behindHair", "Behind Hair"], ["beforeMouth", "Before Mouth"], ["afterMouth", "Front"]], fallback: "auto" },
-      { group: "Jewellery", key: "jewellery", label: "Jewellery", type: "select", options: () => selectOptions(traitBook.jewellery || ["none"]), fallback: "none" },
-      { group: "Jewellery", key: "jewellerySide", label: "Side", type: "select", options: () => [["both", "Both"], ["left", "Left"], ["right", "Right"]], fallback: "both" },
-      { group: "Jewellery", key: "jewelleryColor", label: "Colour", type: "color", fallback: "" },
-      { group: "Jewellery", key: "jewelleryColor2", label: "Second Colour", type: "color", fallback: "" },
-      { group: "Jewellery", key: "jewelleryMetal", label: "Metal", type: "select", options: () => [["", "Auto"], ["silver", "Silver"], ["gold", "Gold"], ["black", "Black"], ["roseGold", "Rose Gold"]], fallback: "" },
-      { group: "Jewellery", key: "jewelleryX", label: "Jewellery X", min: -24, max: 24, step: 1, fallback: 0 },
-      { group: "Jewellery", key: "jewelleryY", label: "Jewellery Y", min: -24, max: 24, step: 1, fallback: 0 },
-      { group: "Jewellery", key: "jewelleryScale", label: "Jewellery Size", min: 0.5, max: 1.8, step: 0.02, fallback: 1 },
-      { group: "Jewellery", key: "jewelleryRot", label: "Jewellery Rotate", min: -45, max: 45, step: 1, fallback: 0 },
-      { group: "Jewellery", key: "jewelleryLayer", label: "Jewellery Layer", type: "select", options: () => [["beforeHead", "Behind Head"], ["behindHair", "Behind Hair"], ["beforeMouth", "Before Mouth"], ["afterMouth", "Front"]], fallback: "behindHair" },
       { group: "Beard", key: "beardLength", label: "Beard Length", min: 0, max: 1, step: 0.02, fallback: 0.35 },
       { group: "Beard", key: "beardX", label: "Beard X", min: -18, max: 18, step: 1, fallback: 0 },
       { group: "Beard", key: "beardY", label: "Beard Y", min: -18, max: 22, step: 1, fallback: 0 },
@@ -210,6 +232,7 @@
     groupOrder,
     groupTitleMap,
     normalizeTattooList,
+    normalizeJewelleryList,
     fieldsForFaceStudio
   };
 })();

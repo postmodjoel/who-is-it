@@ -1,0 +1,12 @@
+{
+  "name": "who-is-that-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve:test": "node tools/static-server.mjs",
+    "test:ui": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0"
+  }
+}

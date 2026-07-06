@@ -26,14 +26,20 @@ function startOpponentSim() {
 function renderOpponentPanel() {
   const el = els.opponentPanel;
   if (!el) return;
-  const otherIdx = state.currentPlayer === 0 ? 1 : 0;
-  const log = (state.opponentLog || []).filter((e) => e.seat === otherIdx);
+  const mine = state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer;
+  const otherIdx = mine === 0 ? 1 : 0;
+  const solo = typeof rosterSoloMode === "function" && rosterSoloMode();
+  const otherSeats = solo
+    ? (state.players || []).map((_, i) => i).filter((i) => i !== mine)
+    : [otherIdx];
+  const log = (state.opponentLog || []).filter((e) => otherSeats.includes(e.seat));
   const mode = state.global.mystery;
-  const seatLabel = (typeof teamLabel === "function") ? teamLabel(otherIdx) : `Seat ${String.fromCharCode(65 + otherIdx)}`;
+  const seatLabel = solo ? "Other players" : ((typeof teamLabel === "function") ? teamLabel(otherIdx) : `Seat ${String.fromCharCode(65 + otherIdx)}`);
   const cards = log.slice(0, 8).map((e, i) => {
     const c = characterById(e.id);
     if (!c) return "";
-    return `<div class="opp-card${i === 0 ? " is-new" : ""}"><img src="${c.image}" alt=""><span>${escapeHtml(c.name)}</span></div>`;
+    const who = solo && typeof teamLabel === "function" ? `<small>${escapeHtml(teamLabel(e.seat))}</small>` : "";
+    return `<div class="opp-card${i === 0 ? " is-new" : ""}"><img src="${c.image}" alt=""><span>${escapeHtml(c.name)}${who}</span></div>`;
   }).join("");
   el.innerHTML = `
     <p class="label">${escapeHtml(seatLabel)} crossing off <span class="opp-live">● live</span></p>

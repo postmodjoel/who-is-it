@@ -694,6 +694,7 @@ function render() {
   renderBoard();
   renderMystery();
   renderOpponentPanel();
+  if (state.isObserver) renderObserverHeader(); else document.getElementById("observerBar")?.remove();
   maybeShowOnboarding();   // one-time first-play nudges (no-op after the first dismissal)
 }
 
@@ -970,6 +971,8 @@ function renderRoom() {
 }
 
 function renderSecret() {
+  // Observer / TV display has no secret to reveal - it just shows the board neutrally.
+  if (state.isObserver) { if (els.secretCard) els.secretCard.innerHTML = ""; return; }
   const player = currentPlayer();
   const secret = characterById(player.secretId);
   if (!player.secretVisible) {
@@ -1065,6 +1068,7 @@ function renderMystery() {
 }
 
 function toggleEliminated(id) {
+  if (state.isObserver) return;   // TV display is read-only - a click must not cross off a real seat
   const player = currentPlayer();
   // Clicking a downed tile flips it back up, so the toggle is its own undo.
   if (player.eliminated.has(id)) {
@@ -1176,7 +1180,7 @@ function createCharacterCard(character, player) {
   card.type = "button";
   card.id = `card-${character.id}`;
   card.className = `character-card ${character.variant || ""} ${mystery.cardClass || ""}`.trim();
-  card.classList.toggle("is-down", player.eliminated.has(character.id));
+  card.classList.toggle("is-down", !state.isObserver && player.eliminated.has(character.id));
   card.dataset.id = character.id;
   if (mystery.effectName) card.dataset.mysteryEffect = mystery.effectName;
   if (mystery.style) card.setAttribute("style", mystery.style);
@@ -2483,6 +2487,7 @@ function showTitleScreen() {
         ${boardSizeMarkup()}
         <button type="button" class="button primary ts-host">🎪 HOST A ROOM</button>
         <button type="button" class="button secondary ts-showjoin">🔑 JOIN A ROOM</button>
+        <button type="button" class="button ghost ts-observe">📺 DISPLAY ON A TV</button>
         <button type="button" class="button ghost ts-back">← Back</button>
         ${soundTogglesMarkup()}
       </div>
@@ -2608,18 +2613,26 @@ function showTitleScreen() {
     close();
     startOnlineGame(nm);
   });
+  let observeMode = false;
   ov.querySelector(".ts-showjoin").addEventListener("click", () => {
     if (!requireName()) return;
+    observeMode = false;
     show("join");
     setTimeout(() => ov.querySelector(".ts-join-input").focus(), 50);
   });
-  ov.querySelectorAll(".ts-back").forEach((b) => b.addEventListener("click", () => show("main")));
+  // Observer (TV): no name needed - straight to the room code.
+  ov.querySelector(".ts-observe").addEventListener("click", () => {
+    observeMode = true;
+    show("join");
+    setTimeout(() => ov.querySelector(".ts-join-input").focus(), 50);
+  });
+  ov.querySelectorAll(".ts-back").forEach((b) => b.addEventListener("click", () => { observeMode = false; show("main"); }));
   const joinInput = ov.querySelector(".ts-join-input");
   const doJoin = () => {
-    const nm = requireName();
-    if (!nm) { show("online"); return; }
+    const nm = observeMode ? "TV" : requireName();
+    if (!observeMode && !nm) { show("online"); return; }
     const code = (joinInput.value || "").trim();
-    if (/^\d{3,4}$/.test(code)) { close(); joinRoom(code, nm); }
+    if (/^\d{3,4}$/.test(code)) { close(); joinRoom(code, nm, { observe: observeMode }); }
     else markInvalid(joinInput);
   };
   ov.querySelector(".ts-join-go").addEventListener("click", doJoin);
@@ -2681,18 +2694,58 @@ function startOnlineGame(name) {
   saveGameState();   // the lobby itself is resumable - an accidental refresh rejoins this room
 }
 // ONLINE guest: connect to the host's room and wait for the host's roster broadcast + START.
-function joinRoom(code, name) {
-  state.gameMode = "online"; state.isHost = false; state.mySeat = 1; state.inLobby = true;
+// opts.observe = a TV/display client: joins the room but takes no seat and just mirrors the board.
+function joinRoom(code, name, opts = {}) {
+  state.isObserver = !!(opts && opts.observe);
+  state.gameMode = "online"; state.isHost = false; state.mySeat = 0; state.inLobby = true;
   ensureClientId();
   state.playMode = "team";
-  state.pname = cleanPlayerName(name) || "Player 2";
+  state.pname = state.isObserver ? "TV" : (cleanPlayerName(name) || "Player 2");
   state.roomCode = code;
   state.roster = [];               // populated from the host's "lobby" broadcast
   state.myRosterIndex = -1;
   state.seenPeers = new Set();
+  document.body.classList.toggle("observer", state.isObserver);
   netConnect();
-  showLobby();
+  if (state.isObserver) showObserverWait(); else showLobby();
   saveGameState();   // the lobby itself is resumable - an accidental refresh rejoins this room
+}
+// The TV's holding screen until the host deals a round. Shares .lobby-screen so the round-apply
+// handler auto-removes it, then the observer board renders underneath.
+function showObserverWait() {
+  document.querySelector(".lobby-screen")?.remove();
+  const ov = document.createElement("div");
+  ov.className = "lobby-screen title-screen observer-wait";
+  ov.innerHTML = `
+    <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">IS IT?</span></div>
+    <p class="lobby-code">📺 DISPLAY · ROOM <b>#${escapeHtml(state.roomCode)}</b></p>
+    <p class="obw-hint">Waiting for the host to deal the first round…</p>
+    <button type="button" class="button ghost lobby-leave">← Leave</button>`;
+  document.body.appendChild(ov);
+  ov.querySelector(".lobby-leave").addEventListener("click", () => {
+    state.isObserver = false; state.inLobby = false;
+    document.body.classList.remove("observer");
+    netSend("bye", {}); try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }
+    try { net && net.close(); } catch (e) { /* fine */ }
+    ov.remove(); showTitleScreen();
+  });
+}
+// Observer HUD: a slim top banner with the room, the active mode and the player count. The location
+// + board come from the normal render underneath (the side panel is hidden by body.observer CSS).
+function renderObserverHeader() {
+  let bar = document.getElementById("observerBar");
+  if (!bar) { bar = document.createElement("div"); bar.id = "observerBar"; document.body.appendChild(bar); }
+  const modeName = state.global.mystery ? state.global.mystery.name : "GUESS WHO";
+  const loc = state.location ? state.location.name : "";
+  const count = Array.isArray(state.roster) ? state.roster.length : 0;
+  bar.innerHTML = `
+    <span class="ob-brand"><b class="ob-who">WHO?</b> <b class="ob-isit">IS IT?</b></span>
+    <span class="ob-meta">
+      ${loc ? `<span class="ob-chip ob-loc">📍 ${escapeHtml(loc)}</span>` : ""}
+      <span class="ob-chip ob-mode">${escapeHtml(modeName)}</span>
+      ${count ? `<span class="ob-chip">${count} player${count === 1 ? "" : "s"}</span>` : ""}
+      <span class="ob-chip ob-room">📺 #${escapeHtml(state.roomCode || "")}</span>
+    </span>`;
 }
 // Refresh mid-lobby: reconnect to the same room as the same clientId. The host restores its
 // authoritative roster and re-broadcasts; a guest re-announces itself (same persistent clientId,
@@ -2779,7 +2832,7 @@ function broadcastLobby() {
 }
 function updateLobby() {
   const ov = document.querySelector(".lobby-screen");
-  if (!ov) return;
+  if (!ov || state.isObserver) return;   // the observer's wait screen has no player list to fill
   const roster = state.roster || [];
   const slots = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, roster.length + (roster.length < MAX_PLAYERS ? 1 : 0)));
   const modeToggle = ov.querySelector(".lobby-team-mode");
@@ -2837,8 +2890,12 @@ mergeGaybiesIntoPool();                // and the persistent GAYBYs
 wirePainScaleDrag();                   // drag the disease pain scale to change emotions
 if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
 if (els.almanacButton) els.almanacButton.addEventListener("click", showAlmanac);
-// A scanned receipt QR (#summary=...) opens the summary screen; otherwise the title as usual.
-if (!maybeShowSummaryPage()) showTitleScreen();
+// A scanned receipt QR (#summary=...) opens the summary screen; ?observe=CODE turns this tab straight
+// into a TV display for that room; otherwise the title as usual.
+const observeParam = (() => { try { return new URLSearchParams(location.search).get("observe"); } catch (e) { return null; } })();
+if (maybeShowSummaryPage()) { /* summary page shown */ }
+else if (observeParam && /^\d{3,4}$/.test(observeParam.trim())) { joinRoom(observeParam.trim(), "TV", { observe: true }); }
+else showTitleScreen();
 wireCueCardClick();
 wireFloatingSecret();
 if (els.sortSelect) {

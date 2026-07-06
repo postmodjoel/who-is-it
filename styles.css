@@ -7055,3 +7055,41 @@ body.low-power *::after {
 /* Editor: debug-only controls (e.g. Export character JSON) hidden unless the debug picker is unlocked. */
 .ed-debug-only { display: none; }
 body.debug-mode .ed-debug-only { display: inline-flex; }
+
+/* ===================== Observer / TV display mode ===================== */
+/* A spectator client (put on a TV): the player rail is gone; the board + location fill the screen
+   under a slim banner that names the room, the active mode and the location. */
+body.observer .game-side,
+body.observer .stage-top .topbar-actions,
+body.observer .stage-top .location-band { display: none; }
+body.observer #app { max-width: none; padding: 0; }
+body.observer .game-layout { display: block; gap: 0; }
+body.observer .game-layout::before,
+body.observer .game-layout::after { display: none; }
+body.observer .game-stage { min-height: calc(100vh - 60px); }
+body.observer .game-stage .board-wrap { padding: 18px; }
+body.observer .character-board { margin: 0 auto; max-width: 1600px; border-radius: 16px; }
+/* Bigger, TV-legible avatar cards. */
+body.observer .character-board { --card-min: 150px; gap: 14px; }
+body.observer .character-card h3 { font-size: 1rem; }
+
+#observerBar {
+  position: sticky; top: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 12px 22px;
+  background: #10121a; border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+}
+body:not(.observer) #observerBar { display: none; }
+.ob-brand { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.5rem; letter-spacing: -0.01em; }
+.ob-who { color: #ffbe0b; text-shadow: 0.03em 0.04em 0 #1533cc; }
+.ob-isit { color: #fffdf7; text-shadow: 0.03em 0.04em 0 #e01b1b; }
+.ob-meta { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ob-chip {
+  padding: 7px 15px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #eef0f4; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.82rem;
+}
+.ob-chip.ob-mode { background: #ffbe0b; color: #1a1a1a; border-color: #ffbe0b; }
+.ob-chip.ob-loc { background: rgba(58, 134, 255, 0.22); border-color: rgba(122, 170, 255, 0.5); }
+.observer-wait .obw-hint { margin-top: 10px; font-size: 1.05rem; font-weight: 700; color: rgba(255, 255, 255, 0.72); }

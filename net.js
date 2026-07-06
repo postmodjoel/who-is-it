@@ -114,7 +114,9 @@ function scheduleReconnect(room) {
 }
 function netSend(type, data) {
   if (!net) return;
-  try { net.post({ type, seat: state.mySeat || 0, clientId: state.clientId || "", ...data }); } catch (e) { /* channel closed */ }
+  // `observe` rides every message so the host's hello handler can tell a TV/observer client from a
+  // real player and NOT seat it in the roster.
+  try { net.post({ type, seat: state.mySeat || 0, clientId: state.clientId || "", observe: !!state.isObserver, ...data }); } catch (e) { /* channel closed */ }
 }
 function markPeerOnline() {
   if (!state.onlinePeer) {
@@ -159,6 +161,12 @@ function handleNetMsg(msg) {
       return;
     }
     const cleanName = typeof cleanPlayerName === "function" ? cleanPlayerName(msg.pname) : String(msg.pname || "").trim();
+    // Observers (TV displays) never take a seat: they only receive the broadcast to render the board.
+    if (msg.observe) {
+      if (state.inLobby) { broadcastLobby(); }
+      else if (typeof buildGameSave === "function") netSend("snapshot", { save: buildGameSave() });
+      return;
+    }
     if (msg.clientId && !state.roster.some((r) => r.clientId === msg.clientId)) {
       // A new client: register them in the next open slot (up to the cap).
       if (state.roster.length < MAX_PLAYERS) {

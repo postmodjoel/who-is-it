@@ -18,6 +18,10 @@ habbo_audit_mapping_ready/
 Example/
 *.webarchive
 
+# Raw furni dump — gameplay only ever selects from the curated HabboRoomCatalogue
+# (habbo-assets.js). These are the un-curated leftovers, kept locally but off GitHub.
+assets/habbo/furni-unused/
+
 # Backups / scratch artifacts
 *.BACKUP*
 *.bak

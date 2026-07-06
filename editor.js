@@ -682,9 +682,9 @@ function syncEditorButtons() {
   const add = editorDialog.querySelector("#edAdd");
   const hint = editorDialog.querySelector("#edHint");
   if (editorState.boardId) {
-    if (save) save.textContent = "💾 Save to board";
+    if (save) save.textContent = "💾 Save & keep";
     if (add) add.style.display = "none";
-    if (hint) hint.textContent = `Editing ${editorState.name} on the board — Save syncs to both players.`;
+    if (hint) hint.textContent = `Editing ${editorState.name} — Save syncs to the board AND keeps it in your saved characters.`;
   } else {
     if (save) save.textContent = "Save";
     if (add) add.style.display = "";
@@ -810,7 +810,12 @@ function buildEditorDialog() {
     renderEditorSaved(); syncEditorButtons();
     return data;
   };
-  d.querySelector("#edSave").addEventListener("click", () => { if (editorState.boardId) applyBoardEdit(); else persist(); });
+  d.querySelector("#edSave").addEventListener("click", () => {
+    // Editing a board character: sync it live AND keep it in the saved collection (so an inspired
+    // GAYBY/restyle isn't lost the moment the round ends). A fresh face just persists.
+    if (editorState.boardId) { applyBoardEdit(); persist(); }
+    else persist();
+  });
   d.querySelector("#edAdd").addEventListener("click", () => {
     const data = persist();
     const ch = buildCustomCharacter(data);
@@ -832,6 +837,10 @@ function buildEditorDialog() {
     };
     const json = JSON.stringify(payload, null, 2);
     const slug = String(editorState.name || "character").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "character";
+    // Copy to the clipboard FIRST (so it can be pasted straight into a chat to bake into the game),
+    // then also download a .json backup.
+    let copied = false;
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(json); copied = true; } } catch (e) { /* fall through */ }
     try {
       const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -839,11 +848,8 @@ function buildEditorDialog() {
       a.href = url; a.download = `${slug}.json`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      if (typeof flashToast === "function") flashToast(`⤓ Exported ${editorState.name}`);
-    } catch (e) {
-      try { navigator.clipboard.writeText(json); if (typeof flashToast === "function") flashToast("Copied character JSON to clipboard"); }
-      catch (e2) { /* nothing more to do */ }
-    }
+    } catch (e) { /* download blocked - clipboard still has it */ }
+    if (typeof flashToast === "function") flashToast(copied ? `⤓ ${editorState.name} JSON copied + downloaded` : `⤓ Exported ${editorState.name}`);
   });
   return d;
 }

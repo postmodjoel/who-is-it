@@ -3731,9 +3731,10 @@ body.mode-pixall .secret-card img {
     align-items: center;
     gap: 10px;
     padding: 6px 12px;
-    background: var(--secret-bg, var(--panel, #16181f));
-    border-bottom: 2px solid var(--line);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    /* Dark chrome to match the desktop rail - not the character's portrait colour. */
+    background: #12141c;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
     animation: fsDrop 0.22s ease-out;
   }
   .floating-secret.is-stuck img {
@@ -3741,13 +3742,13 @@ body.mode-pixall .secret-card img {
     height: 40px;
     border-radius: 8px;
     object-fit: cover;
-    border: 2px solid rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     flex: 0 0 auto;
   }
   .floating-secret.is-stuck .fs-name {
     font-weight: 800;
     font-size: 1rem;
-    color: #14110d;
+    color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3757,7 +3758,7 @@ body.mode-pixall .secret-card img {
     font-size: 0.56rem;
     font-weight: 800;
     letter-spacing: 0.08em;
-    color: rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.55);
     flex: 0 0 auto;
   }
 }
@@ -5300,6 +5301,19 @@ img.pol-mascot {
 }
 .side-panel .side-you { margin-top: 4px; }
 .side-panel .seat-roster { margin-top: 10px; }
+/* Local seat hand-off: the "you" column slides across in the direction of travel. */
+.side-you.seat-slide-fwd { animation: seatSlideFwd 0.34s cubic-bezier(0.22, 0.61, 0.36, 1); }
+.side-you.seat-slide-back { animation: seatSlideBack 0.34s cubic-bezier(0.22, 0.61, 0.36, 1); }
+@keyframes seatSlideFwd {
+  0% { opacity: 0; transform: translateX(38px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes seatSlideBack {
+  0% { opacity: 0; transform: translateX(-38px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+body.low-power .side-you.seat-slide-fwd,
+body.low-power .side-you.seat-slide-back { animation: none; }
 /* The brand slides in like the title screen (WHO? from the left, IS IT? from the right). */
 .side-head h1 { overflow: hidden; line-height: 0.95; }
 .side-head h1 span { display: block; }
@@ -5321,8 +5335,11 @@ img.pol-mascot {
 }
 .side-panel .secret-card.character-card:hover { transform: none; box-shadow: none; }
 .side-panel .secret-card .portrait-wrap { aspect-ratio: 1; }
-/* Phones: collapse to a compact face + name strip (stats stay on the main board). */
-@media (max-width: 640px) {
+/* Phones + tablets (everything below the 861px desktop rail): collapse to a compact face + name
+   strip. Above 640 the single-column layout used to render the secret card at full width, ballooning
+   the portrait into a giant square - this keeps the whole sub-rail range on the same compact strip so
+   it reads as one coherent mobile layout, not an awkward in-between. */
+@media (max-width: 860px) {
   /* :not(.ygo) - the Yu-Gi-Oh secret is a 59/86 trading card; forcing it into this face+name ROW
      stretches its gold frame across the screen with the portrait crushed into a sliver. */
   .side-panel .secret-card.character-card:not(.ygo) { display: flex; flex-direction: row; align-items: stretch; }
@@ -5406,8 +5423,10 @@ img.pol-mascot {
   border: 1.5px dashed color-mix(in srgb, var(--line) 60%, transparent);
   background: rgba(58, 134, 255, 0.08);
 }
-.or-label { margin: 0 0 2px; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #8fb4ff; }
-.or-code { display: flex; align-items: center; justify-content: center; gap: 8px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.9rem; letter-spacing: 0.04em; color: var(--ink); }
+/* "ROOM #1234" reads as one unit - same size, label muted, number accent. */
+.or-code { display: inline-flex; align-items: baseline; justify-content: center; gap: 8px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.15rem; letter-spacing: 0.04em; color: var(--ink); }
+.or-code .or-word { color: #8fb4ff; text-transform: uppercase; letter-spacing: 0.1em; }
+.or-code .or-num { color: var(--accent-4, #ffd400); }
 .or-copy { border: none; background: none; cursor: pointer; font-size: 1rem; padding: 2px 4px; border-radius: 6px; }
 .or-copy:hover { background: rgba(255,255,255,0.1); }
 .or-status { margin: 4px 0 0; font-size: 0.68rem; font-weight: 600; color: var(--muted, #9aa3b2); }
@@ -5516,18 +5535,18 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .tr-teams { display: flex; align-items: flex-start; justify-content: center; gap: clamp(16px, 5vw, 48px); animation: ts-fade 0.75s 0.45s both; }
 .tr-solo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; width: min(760px, 92vw); animation: ts-fade 0.75s 0.45s both; }
 .solo-chip { min-width: 0; }
-.tr-face { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.72); }
-.tr-team { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: clamp(120px, 26vw, 220px); }
-.tr-head { font-family: "Archivo", sans-serif; font-weight: 900; font-size: clamp(1.2rem, 4vw, 2rem); letter-spacing: 0.04em; text-transform: uppercase; }
+.tr-face { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.72); }
+.tr-team { display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: clamp(140px, 28vw, 240px); }
+.tr-head { font-family: "Archivo", sans-serif; font-weight: 900; font-size: clamp(1.6rem, 5vw, 2.7rem); letter-spacing: 0.04em; text-transform: uppercase; }
 .tr-a .tr-head { color: #ffbe0b; }
 .tr-b .tr-head { color: #7aa8ff; }
-.tr-members { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-.tr-chip { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); }
-.tr-ini { display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 auto; border-radius: 50%; font-weight: 900; font-size: 0.85rem; color: #120c1e; background: #fffdf7; }
+.tr-members { display: flex; flex-direction: column; gap: 9px; width: 100%; }
+.tr-chip { display: flex; align-items: center; gap: 12px; padding: 9px 15px; border-radius: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); }
+.tr-ini { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 auto; border-radius: 50%; font-weight: 900; font-size: 1rem; color: #120c1e; background: #fffdf7; }
 .tr-a .tr-chip .tr-ini { background: #ffbe0b; }
 .tr-b .tr-chip .tr-ini { background: #7aa8ff; }
-.tr-nm { font-weight: 800; color: #fffdf7; font-size: 0.95rem; }
-.tr-as { display: block; margin-top: 2px; font-size: 0.62rem; font-style: normal; color: rgba(255, 255, 255, 0.62); line-height: 1.2; }
+.tr-nm { font-weight: 800; color: #fffdf7; font-size: 1.15rem; }
+.tr-as { display: block; margin-top: 2px; font-size: 0.72rem; font-style: normal; color: rgba(255, 255, 255, 0.62); line-height: 1.2; }
 .tr-tap { color: rgba(255, 255, 255, 0.55); font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; animation: ts-fade 0.8s 1.25s both; }
 @media (max-width: 560px) { .tr-teams { gap: 12px; } .tr-nm { font-size: 0.82rem; } }
 
@@ -5886,16 +5905,33 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   }
   .side-panel .seat-half .seat-sub { display: none; }
   .side-panel .seat-roster.online-room {
-    padding: 5px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    padding: 7px 14px;
     border: 1px solid #2b2b36;
-    border-radius: 8px;
+    border-radius: 10px;
     background: rgba(20, 20, 26, 0.7);
     text-align: right;
   }
   .side-panel .seat-roster.online-room .or-label { display: none; }
-  .side-panel .seat-roster.online-room .or-code { font-size: 0.8rem; }
-  .side-panel .seat-roster.online-room .or-team,
-  .side-panel .seat-roster.online-room .or-status { font-size: 0.62rem; margin: 1px 0 0; }
+  .side-panel .seat-roster.online-room .or-code { font-size: 0.95rem; }
+  /* Team line: a proper amber pill so it reads as "your team", not squashed grey text. */
+  .side-panel .seat-roster.online-room .or-team {
+    margin: 0;
+    max-width: 260px;
+    font-size: 0.74rem;
+    line-height: 1.3;
+    text-align: right;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(255, 190, 11, 0.14);
+    border: 1px solid rgba(255, 190, 11, 0.34);
+    color: #ffd873;
+  }
+  .side-panel .seat-roster.online-room .or-status { font-size: 0.68rem; margin: 1px 0 0; color: #9aa3b2; }
   /* Opponent feed (online): its own full-width row under the rail content. */
   .side-panel .opponent-panel {
     grid-column: 1 / -1;
@@ -5965,6 +6001,18 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
     padding: 10px 16px 44px;
   }
   .side-panel .side-head { display: none; }              /* logo trimmed on the in-game rail */
+  /* Scroll-collapse: once you're into the board the rail sheds its question row and drops to a single
+     lean strip — character, END-ROUND, seats + the pinned toolbar. Smooth so it reads as a fold. */
+  .side-panel { transition: padding 0.22s ease; }
+  .side-panel .cue-card { transition: opacity 0.18s ease, max-height 0.22s ease; overflow: hidden; }
+  body.hud-collapsed .side-panel {
+    grid-template-areas: "you actions seats";
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+    padding-top: 6px;
+  }
+  body.hud-collapsed .side-panel .cue-card { display: none; }
+  body.low-power .side-panel,
+  body.low-power .side-panel .cue-card { transition: none; }
   /* Relocated toolbar: bottom strip of the rail, right-aligned; chips match the seat / end-round chips.
      NB the base .topbar-actions is position:absolute; top:0 — must override top or it pins to the top. */
   .side-panel .topbar-actions.in-rail {
@@ -6071,8 +6119,17 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   color: #fffdf7; font-weight: 700; font-size: 1rem; text-align: center;
 }
 .ts-name-input::placeholder { color: rgba(255,255,255,0.4); font-weight: 500; }
-.lobby-code { font-size: 1.1rem; font-weight: 700; color: #fffdf7; letter-spacing: 0.04em; margin: 6px 0 2px; }
-.lobby-code b { color: #ffbe0b; font-size: 1.5rem; }
+/* ROOM + number one size, wrapped in a soft pill so it reads as a shareable code. */
+.lobby-code {
+  display: inline-flex; align-items: baseline; gap: 8px; margin: 8px 0 2px;
+  padding: 8px 18px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06); border: 1.5px solid rgba(255, 255, 255, 0.14);
+  font-size: 1.35rem; font-weight: 900; letter-spacing: 0.06em; color: #fffdf7; text-transform: uppercase;
+}
+.lobby-code b { color: #ffbe0b; font-size: inherit; letter-spacing: 0.02em; }
+/* Lobby host controls sit at the same modest width as Team Mode / Board size (PG was full-bleed). */
+.lobby-screen .ts-pg { width: min(320px, 82vw); margin: 6px auto 0; }
+.lobby-screen .ts-set-row { margin: 6px auto 0; }
 .lobby-players { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; min-width: min(300px, 78vw); }
 .lobby-player { padding: 12px 16px; border-radius: 12px; font-weight: 800; text-align: center; font-size: 0.95rem; }
 .lobby-player.here { background: rgba(62, 196, 106, 0.16); color: #7fe0a0; border: 1px solid rgba(62,196,106,0.4); }

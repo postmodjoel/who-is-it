@@ -4,28 +4,32 @@
   --paper: #101117;
   --panel: #1b1d26;
   --panel-2: #232634;
+  --panel-soft: #171922;
   --line: #343847;
   --blue: #5a8bf0;
   --yellow: #f4c84e;
   --green: #4aa36f;
   --rose: #dd6b7b;
   --shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  --font: "Archivo", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-y: auto;
   color: var(--ink);
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(180deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     var(--paper);
   background-size: 24px 24px;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font);
 }
 
 button,
@@ -200,7 +204,8 @@ textarea {
   top: 12px;
   align-self: start;
   max-height: calc(100vh - 24px);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: visible;
 }
 
 .editor-panel {
@@ -596,6 +601,9 @@ textarea {
 .selected-meta h2 {
   font-size: clamp(2.3rem, 3.3vw, 3.8rem);
   line-height: 0.9;
+  font-family: var(--font);
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .trait-list,
@@ -613,6 +621,9 @@ textarea {
   background: #fff2b9;
   font-size: 0.68rem;
   font-weight: 900;
+  color: #16141b;
+  font-family: var(--font);
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 

@@ -308,9 +308,26 @@ function renderEditorControls() {
       ${slide(`__jewel:${i}:arcStart`, "Arc Start", -180, 180, 1, item.arcStart ?? 0)}
       ${slide(`__jewel:${i}:arcVisible`, "Arc Visible", 0.08, 1, 0.02, item.arcVisible ?? 1)}
     </div>`).join("");
+  const shadowRows = castShadowList(t).map((item, i) => `
+    <div class="ed-lockrow ed-tatrow">
+      <div class="ed-lockhead"><b>Shadow ${i + 1}</b><span class="ed-rowtools"><button type="button" class="ed-rowbtn" data-shadowup="${i}" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="ed-rowbtn" data-shadowdown="${i}" ${i === castShadowList(t).length - 1 ? "disabled" : ""}>↓</button><button type="button" class="ed-tatdel" data-shadowdel="${i}">✕</button></span></div>
+      ${field("Preset", `<select data-key="__shadow:${i}:preset">${(T.castShadowPresets || ["capBrim"]).filter((value) => value !== "off").map((value) => `<option value="${escapeHtml(value)}" ${value === (item.preset || "capBrim") ? "selected" : ""}>${escapeHtml(titleCaseText(value))}</option>`).join("")}</select>`)}
+      ${field("Surface", `<select data-key="__shadow:${i}:surface"><option value="face" ${(item.surface || "face") === "face" ? "selected" : ""}>Face</option><option value="neck" ${(item.surface || "face") === "neck" ? "selected" : ""}>Neck</option><option value="both" ${(item.surface || "face") === "both" ? "selected" : ""}>Face + Neck</option></select>`)}
+      ${field("Sides", `<select data-key="__shadow:${i}:sides"><option value="one" ${(item.sides || "one") === "one" ? "selected" : ""}>One Side</option><option value="both" ${(item.sides || "one") === "both" ? "selected" : ""}>Both Sides</option></select>`)}
+      ${field("Tint", `<select data-key="__shadow:${i}:tint"><option value="neutral" ${(item.tint || "neutral") === "neutral" ? "selected" : ""}>Neutral</option><option value="warm" ${(item.tint || "neutral") === "warm" ? "selected" : ""}>Warm</option><option value="cool" ${(item.tint || "neutral") === "cool" ? "selected" : ""}>Cool</option><option value="hairLinked" ${(item.tint || "neutral") === "hairLinked" ? "selected" : ""}>Hair-Linked</option></select>`)}
+      ${slide(`__shadow:${i}:x`, "X", -120, 120, 1, item.x ?? 0)}
+      ${slide(`__shadow:${i}:y`, "Y", -120, 120, 1, item.y ?? 0)}
+      ${slide(`__shadow:${i}:spread`, "Spread", 0, 80, 1, item.spread ?? 0)}
+      ${slide(`__shadow:${i}:darkness`, "Darkness", -1.5, 3, 0.05, item.darkness ?? 0)}
+      ${slide(`__shadow:${i}:scaleX`, "Width", 0.4, 2.6, 0.02, item.scaleX ?? 1)}
+      ${slide(`__shadow:${i}:scaleY`, "Height", 0.4, 2.6, 0.02, item.scaleY ?? 1)}
+      ${slide(`__shadow:${i}:rot`, "Rotate", -180, 180, 1, item.rot ?? 0)}
+      ${slide(`__shadow:${i}:opacity`, "Opacity", 0.05, 1, 0.05, item.opacity ?? 0.35)}
+      ${slide(`__shadow:${i}:softness`, "Softness", 0.6, 2.2, 0.05, item.softness ?? 1)}
+    </div>`).join("");
   const sharedFields = sharedEditorFieldList(T).filter((item) => {
     if (!item || !item.key) return false;
-    if (item.group === "Tattoo" || item.group === "Jewellery") return false; // use the richer list editors below
+    if (item.group === "Tattoo" || item.group === "Jewellery" || item.group === "Lighting") return false; // use the richer list editors below
     if (typeof item.when === "function" && !item.when(t)) return false;
     return true;
   });
@@ -341,6 +358,11 @@ function renderEditorControls() {
       sections.push(jewelleryRows || `<p class="ed-note">No jewellery items yet.</p>`);
       sections.push(`<div class="ed-inlinebuttons"><button type="button" class="button ghost ed-jeweladd">＋ Add jewellery</button>${jewelleryRows ? `<button type="button" class="button ghost ed-jewelclear">Clear jewellery</button>` : ""}</div>`);
     }
+    if (groupName === "Lighting") {
+      sections.push(group("Cast shadows"));
+      sections.push(shadowRows || `<p class="ed-note">No cast shadows yet.</p>`);
+      sections.push(`<div class="ed-inlinebuttons"><button type="button" class="button ghost ed-shadowadd">＋ Add shadow</button>${shadowRows ? `<button type="button" class="button ghost ed-shadowclear">Clear shadows</button>` : ""}</div>`);
+    }
   });
   sections.push(group(sharedGroupTitle("Tattoo")));
   sections.push(tattooRows || `<p class="ed-note">No extra tattoos placed.</p>`);
@@ -351,6 +373,7 @@ function renderEditorControls() {
   wireEditorBeardButtons();
   wireEditorTattooButtons();
   wireEditorJewelleryButtons();
+  wireEditorShadowButtons();
   wireEditorHotspots();
 }
 // Keep the three faces of each colour control (picker / hex / swatches) in lockstep.
@@ -494,11 +517,22 @@ function jewelleryList(t) {
   if (shared && shared.normalizeJewelleryList) return shared.normalizeJewelleryList(t);
   return Array.isArray(t.jewelleryItems) ? t.jewelleryItems.map((item) => ({ ...item })) : [];
 }
+function castShadowList(t) {
+  const shared = window.WhoEditorShared;
+  if (shared && shared.normalizeCastShadowList) return shared.normalizeCastShadowList(t);
+  return Array.isArray(t.castShadowItems) ? t.castShadowItems.map((item) => ({ ...item })) : [];
+}
 function ensureJewelleryList() {
   if (!Array.isArray(editorState.traits.jewelleryItems)) {
     editorState.traits.jewelleryItems = jewelleryList(editorState.traits).map((item) => ({ ...item }));
   }
   return editorState.traits.jewelleryItems;
+}
+function ensureCastShadowList() {
+  if (!Array.isArray(editorState.traits.castShadowItems)) {
+    editorState.traits.castShadowItems = castShadowList(editorState.traits).map((item) => ({ ...item }));
+  }
+  return editorState.traits.castShadowItems;
 }
 function beardBlobList(t) {
   return Array.isArray(t.beardBlobs) ? t.beardBlobs : [];
@@ -576,6 +610,33 @@ function wireEditorJewelleryButtons() {
     renderEditorControls(); renderEditorPreview();
   }));
 }
+function wireEditorShadowButtons() {
+  const root = editorDialog.querySelector(".editor-controls");
+  root.querySelector(".ed-shadowadd")?.addEventListener("click", () => {
+    ensureCastShadowList().push({ preset: "capBrim", surface: "face", sides: "one", x: 0, y: 0, spread: 0, darkness: 0, tint: "neutral", scaleX: 1, scaleY: 1, rot: 0, opacity: 0.35, softness: 1 });
+    renderEditorControls(); renderEditorPreview();
+  });
+  root.querySelector(".ed-shadowclear")?.addEventListener("click", () => {
+    ensureCastShadowList().splice(0);
+    renderEditorControls(); renderEditorPreview();
+  });
+  root.querySelectorAll("[data-shadowdel]").forEach((b) => b.addEventListener("click", () => {
+    ensureCastShadowList().splice(Number(b.dataset.shadowdel), 1);
+    renderEditorControls(); renderEditorPreview();
+  }));
+  root.querySelectorAll("[data-shadowup]").forEach((b) => b.addEventListener("click", () => {
+    const i = Number(b.dataset.shadowup);
+    const list = ensureCastShadowList();
+    if (i > 0) [list[i - 1], list[i]] = [list[i], list[i - 1]];
+    renderEditorControls(); renderEditorPreview();
+  }));
+  root.querySelectorAll("[data-shadowdown]").forEach((b) => b.addEventListener("click", () => {
+    const i = Number(b.dataset.shadowdown);
+    const list = ensureCastShadowList();
+    if (i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
+    renderEditorControls(); renderEditorPreview();
+  }));
+}
 // Route an editor value onto the trait model. Lock colours are LINKED: painting the fill re-derives
 // dark/shine/line at their standard relative shades UNLESS that channel was manually overridden
 // (a direct edit sets a _m<Channel> flag on the lock and it goes independent from then on).
@@ -640,6 +701,13 @@ function applyEditorValue(key, val, isNum) {
     inst[prop] = val;
     return;
   }
+  if (key.startsWith("__shadow:")) {
+    const [, iStr, prop] = key.split(":");
+    const inst = ensureCastShadowList()[Number(iStr)];
+    if (!inst) return;
+    inst[prop] = isNum ? Number(val) : val;
+    return;
+  }
   if (key.startsWith("__beard:")) {
     const [, iStr, prop] = key.split(":");
     const inst = ensureBeardBlobList()[Number(iStr)];
@@ -682,9 +750,9 @@ function syncEditorButtons() {
   const add = editorDialog.querySelector("#edAdd");
   const hint = editorDialog.querySelector("#edHint");
   if (editorState.boardId) {
-    if (save) save.textContent = "💾 Save to board";
+    if (save) save.textContent = "💾 Save & keep";
     if (add) add.style.display = "none";
-    if (hint) hint.textContent = `Editing ${editorState.name} on the board — Save syncs to both players.`;
+    if (hint) hint.textContent = `Editing ${editorState.name} — Save syncs to the board AND keeps it in your saved characters.`;
   } else {
     if (save) save.textContent = "Save";
     if (add) add.style.display = "";
@@ -810,7 +878,12 @@ function buildEditorDialog() {
     renderEditorSaved(); syncEditorButtons();
     return data;
   };
-  d.querySelector("#edSave").addEventListener("click", () => { if (editorState.boardId) applyBoardEdit(); else persist(); });
+  d.querySelector("#edSave").addEventListener("click", () => {
+    // Editing a board character: sync it live AND keep it in the saved collection (so an inspired
+    // GAYBY/restyle isn't lost the moment the round ends). A fresh face just persists.
+    if (editorState.boardId) { applyBoardEdit(); persist(); }
+    else persist();
+  });
   d.querySelector("#edAdd").addEventListener("click", () => {
     const data = persist();
     const ch = buildCustomCharacter(data);
@@ -832,6 +905,10 @@ function buildEditorDialog() {
     };
     const json = JSON.stringify(payload, null, 2);
     const slug = String(editorState.name || "character").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "character";
+    // Copy to the clipboard FIRST (so it can be pasted straight into a chat to bake into the game),
+    // then also download a .json backup.
+    let copied = false;
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(json); copied = true; } } catch (e) { /* fall through */ }
     try {
       const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -839,11 +916,8 @@ function buildEditorDialog() {
       a.href = url; a.download = `${slug}.json`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      if (typeof flashToast === "function") flashToast(`⤓ Exported ${editorState.name}`);
-    } catch (e) {
-      try { navigator.clipboard.writeText(json); if (typeof flashToast === "function") flashToast("Copied character JSON to clipboard"); }
-      catch (e2) { /* nothing more to do */ }
-    }
+    } catch (e) { /* download blocked - clipboard still has it */ }
+    if (typeof flashToast === "function") flashToast(copied ? `⤓ ${editorState.name} JSON copied + downloaded` : `⤓ Exported ${editorState.name}`);
   });
   return d;
 }

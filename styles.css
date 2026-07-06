@@ -7135,3 +7135,19 @@ body:not(.observer) #observerBar { display: none; }
   body.mode-neighbourhood .question-prompt,
   body.mode-nw .question-prompt { color: #fff; }
 }
+
+/* Setup dialog: reminder that changes apply from the next deal (revealed when a setting is touched). */
+.setup-apply-hint {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-4, #ffd400) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-4, #ffd400) 12%, transparent);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  animation: setup-hint-in 0.24s ease;
+}
+.setup-apply-hint[hidden] { display: none; }
+@keyframes setup-hint-in { from { opacity: 0; transform: translateY(-4px); } }

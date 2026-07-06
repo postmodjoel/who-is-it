@@ -1487,8 +1487,14 @@ if (els.debugEffectPicker) {
 }
 document.addEventListener("keydown", handleTestTextTrigger);
 
+const setupApplyHint = document.querySelector("#setupApplyHint");
+function flagSettingsChanged() { if (setupApplyHint) setupApplyHint.hidden = false; }
+// Settings only take effect on the next deal - reveal the reminder once anything is touched.
+els.setupDialog.addEventListener("change", (e) => { if (e.target.matches("input, select")) flagSettingsChanged(); });
+els.setupDialog.addEventListener("click", (e) => { if (e.target.closest(".tier-chip")) flagSettingsChanged(); });
 els.setupButton.addEventListener("click", () => {
   syncSettingsToForm();
+  if (setupApplyHint) setupApplyHint.hidden = true;   // fresh open, nothing changed yet
   els.setupDialog.showModal();
 });
 

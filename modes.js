@@ -500,8 +500,12 @@ function resetNwTicker() {
 // "who is holding the X" keep shifting mid-round. That's the panic.
 let propPanicTimer = null;
 function stopPropLoop() { if (propPanicTimer) { clearInterval(propPanicTimer); propPanicTimer = null; } }
+// Low power mode: skip the continuous animation/repaint loops so a warm phone can cool off. CSS
+// separately pauses the infinite keyframe animations + backdrop blur; this stops the JS-driven ones
+// (rAF repaints, canvas draws, DOM-churning tickers), which are the real battery/heat cost.
+function lowPowerMode() { return !!(state.settings && state.settings.lowPower); }
 function startPropLoop() {
-  if (propPanicTimer) return;
+  if (propPanicTimer || lowPowerMode()) return;
   propPanicTimer = setInterval(() => {
     if (state.global.mystery?.id !== "prop-panic") { stopPropLoop(); return; }
     const asg = state.global.mystery.assignments;
@@ -625,7 +629,8 @@ function renderHeadsOnlyBoard(player) {
       hd.el.style.transform = `translate(${hd.x.toFixed(1)}px, ${hd.y.toFixed(1)}px) translate(-50%, -50%)`;
       headsPos.set(hd.id, { x: hd.x, y: hd.y });
     });
-    headsAnimRaf = requestAnimationFrame(step);
+    // Low power: one layout pass, then stop rescheduling (heads sit static instead of morphing).
+    if (!lowPowerMode()) headsAnimRaf = requestAnimationFrame(step);
   };
   headsAnimRaf = requestAnimationFrame(step);
 }
@@ -686,7 +691,7 @@ function simsTick() {
     }
   });
 }
-function startSimsLoop() { if (!simBladderTimer) simBladderTimer = setInterval(simsTick, 480); }
+function startSimsLoop() { if (!simBladderTimer && !lowPowerMode()) simBladderTimer = setInterval(simsTick, 480); }
 
 function habboIso(col, row) {
   const originX = HABBO_GH * HABBO_TW / 2 + 24;
@@ -1321,7 +1326,7 @@ function renderHabboBoard(player) {
   if (habboSelected && !figEls.has(habboSelected)) habboSelected = null;
   if (habboSelected) habboCamera(habboSelected);
   renderHabboSelectionUI();
-  if (!habboWanderTimer) habboWanderTimer = setInterval(habboWander, 2600);   // idle strolling
+  if (!habboWanderTimer && !lowPowerMode()) habboWanderTimer = setInterval(habboWander, 2600);   // idle strolling
 }
 
 
@@ -1390,7 +1395,7 @@ let manorLoopTimer = null;
 function stopManorLoop() { if (manorLoopTimer) { clearInterval(manorLoopTimer); manorLoopTimer = null; } }
 function startManorLoop() {
   stopManorLoop();
-  if (state.gameMode === "online") return;      // avoid peers drifting out of sync
+  if (state.gameMode === "online" || lowPowerMode()) return;   // no peer drift; no board re-renders in low power
   manorLoopTimer = setInterval(() => {
     const mystery = state.global.mystery;
     if (!mystery || mystery.id !== "knockoff-manor" || !els.characterBoard?.querySelector(".manor-room-tile")) {
@@ -4157,6 +4162,7 @@ let pixallItems = [];
 function stopPixallLoop() { if (pixallTimer) { clearInterval(pixallTimer); pixallTimer = null; } pixallItems = []; }
 function startPixallLoop() {
   stopPixallLoop();
+  if (lowPowerMode()) return;   // canvas re-draw at ~7fps is a steady drain; skip it in low power
   const SIZE = 46, BASE = 256, CROP = [0.15, 0.02, 0.7, 0.7];
   const tmp = document.createElement("canvas");
   tmp.width = BASE; tmp.height = BASE;

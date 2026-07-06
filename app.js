@@ -239,6 +239,7 @@ const state = {
     roles: true,
     pg: true,           // "PG mode" - the wheel only lands on kid-safe modes, no breeding/woohoo
     tiers: null,        // host intensity gate: null/[] = every tier on; else the enabled tier numbers
+    lowPower: false,    // phones running warm: pause continuous animation loops + blur to cool down
     boardSize: 24
   },
   currentPlayer: 0,
@@ -298,6 +299,7 @@ const els = {
   settingRoles: document.querySelector("#settingRoles"),
   settingPG: document.querySelector("#settingPG"),
   settingTiers: document.querySelector("#settingTiers"),
+  settingLowPower: document.querySelector("#settingLowPower"),
   setupRoomCode: document.querySelector("#setupRoomCode"),
 };
 
@@ -357,6 +359,30 @@ function applyTheme(theme) {
   }
   syncThemeButton();
 }
+
+// Low power mode: a body flag CSS keys off (halts infinite animations + backdrop blur) and the mode
+// loops check via lowPowerMode(). Re-deal after a change so the JS loop guards take effect.
+function applyLowPower() {
+  document.body.classList.toggle("low-power", !!(state.settings && state.settings.lowPower));
+}
+
+// Desktop (>=861px) puts the board toolbar (sort/settings/etc.) INTO the sticky rail so it stays
+// reachable when scrolled; mobile keeps it above the board. One DOM move, re-checked on breakpoint
+// change. Grid placement is by grid-area, so append order in either parent doesn't matter.
+const desktopRailMq = typeof window.matchMedia === "function" ? window.matchMedia("(min-width: 861px)") : null;
+function placeDesktopToolbar() {
+  const toolbar = document.querySelector(".topbar-actions");
+  const panel = document.querySelector(".side-panel");
+  const stageTop = document.querySelector(".stage-top");
+  if (!toolbar || !panel || !stageTop) return;
+  if (desktopRailMq && desktopRailMq.matches) {
+    if (toolbar.parentElement !== panel) { panel.appendChild(toolbar); toolbar.classList.add("in-rail"); }
+  } else if (toolbar.parentElement !== stageTop) {
+    stageTop.appendChild(toolbar);   // back after the location band
+    toolbar.classList.remove("in-rail");
+  }
+}
+if (desktopRailMq) desktopRailMq.addEventListener?.("change", placeDesktopToolbar);
 
 function syncThemeButton() {
   if (!els.themeButton) return;
@@ -1468,6 +1494,7 @@ els.saveSetupButton.addEventListener("click", () => {
   state.settings.locations = els.settingLocations.checked;
   state.settings.roles = els.settingRoles.checked;
   if (els.settingPG) state.settings.pg = els.settingPG.checked;
+  if (els.settingLowPower) { state.settings.lowPower = els.settingLowPower.checked; savePrefs({ lowPower: state.settings.lowPower }); applyLowPower(); }
   readTierToggles();
   // A pasted seed code replays that exact round (board, location, wheel outcome, secrets).
   const code = els.settingSeed ? els.settingSeed.value.trim() : "";
@@ -1580,6 +1607,7 @@ function syncSettingsToForm() {
   els.settingLocations.checked = state.settings.locations;
   els.settingRoles.checked = state.settings.roles;
   if (els.settingPG) els.settingPG.checked = state.settings.pg;
+  if (els.settingLowPower) els.settingLowPower.checked = !!state.settings.lowPower;
   buildTierToggles();
   if (els.settingSeed) els.settingSeed.value = state.gameSalt ? currentSeedCode() : "";
   if (els.setupRoomCode) els.setupRoomCode.textContent = state.roomCode ? `#${state.roomCode}` : "No room yet";
@@ -2758,6 +2786,9 @@ installStaticIcons();
 {
   const prefs = loadPrefs();
   if ([18, 24, 30].includes(prefs.boardSize)) state.settings.boardSize = prefs.boardSize;
+  if (prefs.lowPower === true) state.settings.lowPower = true;   // device pref, persists across sessions
+  applyLowPower();
+  placeDesktopToolbar();   // desktop: fold the board toolbar into the sticky rail
   if (window.Sound) {
     if (prefs.sound === false) Sound.setEnabled(false);
     if (typeof prefs.track === "number") Sound.setTrack(prefs.track);

@@ -384,6 +384,22 @@ function placeDesktopToolbar() {
 }
 if (desktopRailMq) desktopRailMq.addEventListener?.("change", placeDesktopToolbar);
 
+// Desktop: once you scroll into the board, the sticky rail sheds its question row and shrinks to a
+// skinny strip (character + toolbar + seats) so more board is in view. CSS reacts only >=861px.
+function initHudCollapse() {
+  let ticking = false;
+  const apply = () => {
+    ticking = false;
+    document.body.classList.toggle("hud-collapsed", (window.scrollY || window.pageYOffset || 0) > 80);
+  };
+  window.addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(apply);
+  }, { passive: true });
+  apply();
+}
+
 function syncThemeButton() {
   if (!els.themeButton) return;
   const theme = currentTheme();
@@ -836,12 +852,14 @@ function rebuildSortOptions() {
   if (!sel) return;
   sel.style.display = "";
   const openingRound = state.roundAge === 0;
+  // Default = "Sort by…" (empty key) which leaves the board in its dealt/random order. The named
+  // sorts follow.
   const opts = openingRound
-    ? [...BASE_SORTS]
-    : [...BASE_SORTS, ...MysteryModes.modeSorts(state.global.mystery?.id)];
+    ? [["", "Sort by…"], ...BASE_SORTS]
+    : [["", "Sort by…"], ...BASE_SORTS, ...MysteryModes.modeSorts(state.global.mystery?.id)];
   // Hidden host-only sort: only surfaces once the debug picker is unlocked.
   if (document.body.classList.contains("debug-mode")) opts.push(["nameappropriateness", "Name Appropriateness"]);
-  if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = opts[0]?.[0] || "";
+  if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = "";   // fall back to board order, not the first named sort
   sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
   sel.value = state.sortKey;
 }
@@ -936,8 +954,7 @@ function renderRoom() {
       : "";
     const connected = Math.max(0, (state.roster || []).length - 1);
     els.seatRoster.innerHTML = `
-      <p class="or-label">Your room</p>
-      <div class="or-code">#${escapeHtml(state.roomCode)} <button type="button" class="or-copy" title="Copy room number">📋</button></div>
+      <div class="or-code"><span class="or-word">Room</span> <span class="or-num">#${escapeHtml(state.roomCode)}</span> <button type="button" class="or-copy" title="Copy room number">📋</button></div>
       ${teamLine}
       <p class="or-status">${connected ? `🟢 ${connected} friend${connected === 1 ? "" : "s"} connected` : "⏳ waiting for friends to join…"}</p>`;
     const copyBtn = els.seatRoster.querySelector(".or-copy");
@@ -965,9 +982,26 @@ function renderRoom() {
       </button>`;
   }).join("") + `<button type="button" class="seat-swap" data-seat="${(state.currentPlayer + 1) % count}" aria-label="${teamMode ? "Swap team" : "Swap turn"}">⇄</button>`;
   els.seatRoster.querySelectorAll(".seat-half, .seat-swap").forEach((b) => b.addEventListener("click", () => {
-    state.currentPlayer = clampSeatIndex(b.dataset.seat);
+    const prev = state.currentPlayer;
+    const next = clampSeatIndex(b.dataset.seat);
+    if (next === prev) return;
+    state.currentPlayer = next;
+    // Hand-off: the incoming player's face starts hidden so they tap to reveal in private,
+    // rather than the previous player's secret flashing to whoever grabs the device next.
+    if (state.players[next]) state.players[next].secretVisible = false;
     render();
+    // Slide the fresh side across in the direction of travel, so the swap reads as a hand-off.
+    slideSideHandoff(next > prev ? "fwd" : "back");
   }));
+}
+
+// Local hand-off: replay a quick lateral slide on the "you" column so switching seats feels physical.
+function slideSideHandoff(dir) {
+  const el = document.querySelector(".side-you");
+  if (!el) return;
+  el.classList.remove("seat-slide-fwd", "seat-slide-back");
+  void el.offsetWidth;                       // restart the animation even on rapid taps
+  el.classList.add(dir === "back" ? "seat-slide-back" : "seat-slide-fwd");
 }
 
 function renderSecret() {
@@ -1861,7 +1895,7 @@ function showTeamReveal(done) {
     if (done) done();
   };
   ov.addEventListener("click", finish);
-  setTimeout(finish, 4400);
+  setTimeout(finish, 6200);   // hang long enough to actually read who's on which team
 }
 // Pre-round solo announcement (3+ players only). Everyone gets their own secret and their own board
 // state; the app just holds those secrets while the humans decide the social win condition.
@@ -2915,10 +2949,11 @@ installStaticIcons();
   if (prefs.lowPower === true) state.settings.lowPower = true;   // device pref, persists across sessions
   applyLowPower();
   placeDesktopToolbar();   // desktop: fold the board toolbar into the sticky rail
+  initHudCollapse();       // desktop: skinny rail once you scroll into the board
   if (window.Sound) {
     if (prefs.sound === false) Sound.setEnabled(false);
     if (typeof prefs.track === "number") Sound.setTrack(prefs.track);
-    if (prefs.music) Sound.setMusic(true);   // actual playback still waits for the first gesture
+    if (prefs.music !== false) Sound.setMusic(true);   // music ON by default (playback still waits for the first gesture)
   }
 }
 mergeCustomIntoPool();                 // fold saved custom characters into the playable pool

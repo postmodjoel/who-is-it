@@ -38,6 +38,13 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   // Skin
   { group: "Skin", key: "skin", label: "Skin Tone", type: "select", options: () => selectOptions(traitBook.skinTones), fallback: "fair" },
   { group: "Skin", key: "background", label: "Background", type: "color", fallback: "" },
+  // Lighting
+  { group: "Lighting", key: "castShadowPreset", label: "Cast Shadow", type: "select", options: () => selectOptions(traitBook.castShadowPresets || ["off", "hairline", "sweptLeft", "sweptRight", "capBrim", "sideLeft", "sideRight", "beardJaw"]), fallback: "off" },
+  { group: "Lighting", key: "castShadowOpacity", label: "Shadow Opacity", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Lighting", key: "castShadowAngle", label: "Shadow Angle", min: -45, max: 45, step: 1, fallback: 0 },
+  { group: "Lighting", key: "castShadowSoftness", label: "Shadow Softness", min: 0.6, max: 2.2, step: 0.05, fallback: 1 },
+  { group: "Lighting", key: "castShadowX", label: "Shadow X", min: -20, max: 20, step: 1, fallback: 0 },
+  { group: "Lighting", key: "castShadowY", label: "Shadow Y", min: -20, max: 20, step: 1, fallback: 0 },
   // Hair
   { group: "Hair", key: "hair", label: "Hair Style", type: "select", options: () => selectOptions(traitBook.hairStyles), fallback: "messy" },
   { group: "Hair", key: "hairColor", label: "Hair Color", type: "select", options: () => selectOptions(traitBook.hairColors), fallback: "brown" },
@@ -244,7 +251,7 @@ function savePenLocks(list) { localStorage.setItem(PEN_LOCK_KEY, JSON.stringify(
 
 const editorGroups = (sharedGroupOrder || [...new Set(editorFields.map((field) => field.group))])
   .filter((group, index, all) => all.indexOf(group) === index)
-  .filter((group) => editorFields.some((field) => field.group === group) || ["Tattoo", "Jewellery"].includes(group));
+  .filter((group) => editorFields.some((field) => field.group === group) || ["Tattoo", "Jewellery", "Lighting"].includes(group));
 
 const els = {
   expressionFilter: document.querySelector("#expressionFilter"),
@@ -582,7 +589,7 @@ function renderEditor(character) {
 
   const editedGroups = new Set(
     Object.keys(correction)
-      .map((key) => editorFields.find((field) => field.key === key)?.group)
+      .map((key) => key === "castShadowItems" ? "Lighting" : editorFields.find((field) => field.key === key)?.group)
       .filter(Boolean)
   );
   const nav = `
@@ -599,6 +606,7 @@ function renderEditor(character) {
 
   const rows = editorFields
     .filter((field) => field.group === state.activeGroup)
+    .filter((field) => !(state.activeGroup === "Lighting" && field.group === "Lighting"))
     .filter((field) => !(state.activeGroup === "Jewellery" && field.group === "Jewellery"))
     .filter((field) => !field.when || field.when({ ...character.traits, ...correction }))
     .map((field) => {
@@ -655,11 +663,13 @@ function renderEditor(character) {
   });
   const designer = state.activeGroup === "Hair" ? lockDesignerMarkup(character)
     : state.activeGroup === "Beard" ? beardDesignerMarkup(character)
+    : state.activeGroup === "Lighting" ? castShadowDesignerMarkup(character)
     : state.activeGroup === "Tattoo" ? tattooDesignerMarkup(character)
     : state.activeGroup === "Jewellery" ? jewelleryDesignerMarkup(character) : "";
   els.editorControls.innerHTML = nav + `<div class="editor-active-group">${rows.join("")}${designer}</div>`;
   if (state.activeGroup === "Hair") wireLockDesigner(character);
   if (state.activeGroup === "Beard") wireBeardDesigner(character);
+  if (state.activeGroup === "Lighting") wireCastShadowDesigner(character);
   if (state.activeGroup === "Tattoo") wireTattooDesigner(character);
   if (state.activeGroup === "Jewellery") wireJewelleryDesigner(character);
   els.editorControls.querySelectorAll(".editor-tab").forEach((tab) => {
@@ -965,6 +975,15 @@ function jewelleryDefaults(character) {
   return [];
 }
 
+function castShadowDefaults(character) {
+  const t = { ...character.traits, ...correctionFor(character.id) };
+  if (window.WhoEditorShared && window.WhoEditorShared.normalizeCastShadowList) {
+    return window.WhoEditorShared.normalizeCastShadowList(t);
+  }
+  if (Array.isArray(t.castShadowItems) && t.castShadowItems.length) return t.castShadowItems.map((item) => ({ ...item }));
+  return [];
+}
+
 function setJewelleryList(character, items) {
   const keep = items.filter((item) => item.type && item.type !== "none");
   const next = { ...correctionFor(character.id) };
@@ -985,6 +1004,128 @@ function setJewelleryList(character, items) {
   setCorrection(character.id, next);
   refreshPortrait(character);
   renderCorrectionExport();
+}
+
+function setCastShadowList(character, items) {
+  const keep = items.filter((item) => item.preset && item.preset !== "off" && Number(item.opacity) > 0);
+  const next = { ...correctionFor(character.id) };
+  delete next.castShadowPreset;
+  delete next.castShadowOpacity;
+  delete next.castShadowAngle;
+  delete next.castShadowSoftness;
+  delete next.castShadowX;
+  delete next.castShadowY;
+  if (keep.length) next.castShadowItems = keep;
+  else delete next.castShadowItems;
+  setCorrection(character.id, next);
+  refreshPortrait(character);
+  renderCorrectionExport();
+}
+
+function castShadowDesignerMarkup(character) {
+  const items = castShadowDefaults(character);
+  const presetOptions = (traitBook.castShadowPresets || ["hairline", "sweptLeft", "sweptRight", "capBrim", "sideLeft", "sideRight", "beardJaw"]).filter((value) => value !== "off");
+  const surfaceOptions = [["face", "Face"], ["neck", "Neck"], ["both", "Face + Neck"]];
+  const sideOptions = [["one", "One Side"], ["both", "Both Sides"]];
+  const optionList = (options, selected) => options.map(([value, label]) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
+  const num = (idx, key, label, min, max, step, fallback) => {
+    const value = items[idx]?.[key] ?? fallback;
+    return `<label class="lock-num">${escapeHtml(label)}
+      <span class="lock-num-pair">
+        <input type="range" min="${min}" max="${max}" step="${step}" value="${escapeHtml(value)}" data-shadow-num="${idx}:${key}" data-pair="s:${idx}:${key}">
+        <input type="number" step="${step}" value="${escapeHtml(value)}" data-shadow-num="${idx}:${key}" data-pair="s:${idx}:${key}" aria-label="${escapeHtml(label)} value">
+      </span>
+      <span class="editor-value">${formatNumber(value)}</span>
+    </label>`;
+  };
+  const rows = items.map((item, idx) => `
+    <div class="lock-instance tattoo-instance" data-shadow-index="${idx}">
+      <div class="lock-head">
+        <strong>Shadow ${idx + 1}</strong>
+        <span>
+          <button type="button" class="mini-button" data-shadow-up="${idx}" ${idx === 0 ? "disabled" : ""}>Up</button>
+          <button type="button" class="mini-button" data-shadow-down="${idx}" ${idx === items.length - 1 ? "disabled" : ""}>Down</button>
+          <button type="button" class="mini-button" data-shadow-remove="${idx}">Remove</button>
+        </span>
+      </div>
+      <label class="editor-control-inline"><span>Preset</span><select data-shadow-select="${idx}:preset">${presetOptions.map((value) => `<option value="${escapeHtml(value)}" ${value === item.preset ? "selected" : ""}>${escapeHtml(titleCase(value))}</option>`).join("")}</select></label>
+      <label class="editor-control-inline"><span>Surface</span><select data-shadow-select="${idx}:surface">${optionList(surfaceOptions, item.surface || "face")}</select></label>
+      <label class="editor-control-inline"><span>Sides</span><select data-shadow-select="${idx}:sides">${optionList(sideOptions, item.sides || "one")}</select></label>
+      ${num(idx, "x", "X", -120, 120, 1, 0)}
+      ${num(idx, "y", "Y", -120, 120, 1, 0)}
+      ${num(idx, "spread", "Spread", 0, 80, 1, 0)}
+      ${num(idx, "darkness", "Darkness", -1.5, 3, 0.05, 0)}
+      ${num(idx, "scaleX", "Width", 0.4, 2.6, 0.02, 1)}
+      ${num(idx, "scaleY", "Height", 0.4, 2.6, 0.02, 1)}
+      ${num(idx, "rot", "Rotate", -180, 180, 1, 0)}
+      ${num(idx, "opacity", "Opacity", 0.05, 1, 0.05, 0.35)}
+      ${num(idx, "softness", "Softness", 0.6, 2.2, 0.05, 1)}
+    </div>
+  `).join("");
+  return `
+    <div class="lock-designer tattoo-designer">
+      <div class="lock-toolbar">
+        <button type="button" class="mini-button" data-shadow-add>Add shadow</button>
+        ${items.length ? `<button type="button" class="mini-button" data-shadow-clear>Clear shadows</button>` : ""}
+      </div>
+      ${rows || `<p class="editor-empty">No cast shadows yet.</p>`}
+    </div>`;
+}
+
+function wireCastShadowDesigner(character) {
+  const root = els.editorControls.querySelector(".tattoo-designer");
+  if (!root) return;
+  const withList = (fn) => {
+    const items = castShadowDefaults(character);
+    fn(items);
+    setCastShadowList(character, items);
+    renderEditor(character);
+  };
+  root.querySelector("[data-shadow-add]")?.addEventListener("click", () => withList((items) => {
+    items.push({ preset: "capBrim", surface: "face", sides: "one", x: 0, y: 0, spread: 0, darkness: 0, scaleX: 1, scaleY: 1, rot: 0, opacity: 0.35, softness: 1 });
+  }));
+  root.querySelector("[data-shadow-clear]")?.addEventListener("click", () => withList((items) => items.splice(0)));
+  root.querySelectorAll("[data-shadow-remove]").forEach((btn) => btn.addEventListener("click", () => withList((items) => items.splice(Number(btn.dataset.shadowRemove), 1))));
+  root.querySelectorAll("[data-shadow-up]").forEach((btn) => btn.addEventListener("click", () => withList((items) => {
+    const i = Number(btn.dataset.shadowUp);
+    if (i > 0) [items[i - 1], items[i]] = [items[i], items[i - 1]];
+  })));
+  root.querySelectorAll("[data-shadow-down]").forEach((btn) => btn.addEventListener("click", () => withList((items) => {
+    const i = Number(btn.dataset.shadowDown);
+    if (i < items.length - 1) [items[i + 1], items[i]] = [items[i], items[i + 1]];
+  })));
+  root.querySelectorAll("[data-shadow-select]").forEach((select) => select.addEventListener("change", () => {
+    const [idx, key] = select.dataset.shadowSelect.split(":");
+    const items = castShadowDefaults(character);
+    const item = items[Number(idx)];
+    if (!item) return;
+    item[key] = select.value;
+    setCastShadowList(character, items);
+  }));
+  root.querySelectorAll("[data-shadow-num]").forEach((input) => input.addEventListener("input", () => {
+    const [idx, key] = input.dataset.shadowNum.split(":");
+    const items = castShadowDefaults(character);
+    const item = items[Number(idx)];
+    if (!item) return;
+    item[key] = Number(input.value);
+    if (input.dataset.pair) {
+      root.querySelectorAll(`[data-pair="${cssEscape(input.dataset.pair)}"]`).forEach((peer) => {
+        if (peer === input) return;
+        if (peer.type === "range") {
+          const min = Number(peer.min);
+          const max = Number(peer.max);
+          const val = Number(input.value);
+          if (Number.isFinite(val) && val >= min && val <= max) peer.value = input.value;
+        } else {
+          peer.value = input.value;
+        }
+      });
+    }
+    const wrap = input.closest(".lock-num");
+    const valueLabel = wrap && wrap.querySelector(".editor-value");
+    if (valueLabel) valueLabel.textContent = formatNumber(input.value);
+    setCastShadowList(character, items);
+  }));
 }
 
 function jewelleryDesignerMarkup(character) {

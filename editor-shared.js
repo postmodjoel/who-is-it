@@ -10,7 +10,7 @@
     return (list || []).map((value) => [value, titleCase(value)]);
   }
 
-  const groupOrder = ["Face", "Skin", "Hair", "Brows", "Eyes", "Nose", "Face Lines", "Cheeks", "Ears", "Mouth", "Teeth", "Jaw", "Chin", "Clothing", "Accessory", "Jewellery", "Beard", "Animation", "Moustache", "Tattoo"];
+  const groupOrder = ["Face", "Skin", "Lighting", "Hair", "Brows", "Eyes", "Nose", "Face Lines", "Cheeks", "Ears", "Mouth", "Teeth", "Jaw", "Chin", "Clothing", "Accessory", "Jewellery", "Beard", "Animation", "Moustache", "Tattoo"];
   const groupTitleMap = {
     "Face Lines": "Skin detail",
     Clothing: "Body",
@@ -58,6 +58,32 @@
       layer: t.jewelleryLayer || "behindHair",
       arcStart: Number(t.jewelleryArcStart) || 0,
       arcVisible: t.jewelleryArcVisible == null ? 1 : Number(t.jewelleryArcVisible)
+    }];
+  }
+
+  function normalizeCastShadowList(traits) {
+    const t = traits || {};
+    if (Array.isArray(t.castShadowItems) && t.castShadowItems.length) {
+      return t.castShadowItems
+        .map((item) => ({ ...item }))
+        .filter((item) => item && item.preset && item.preset !== "off");
+    }
+    const preset = t.castShadowPreset || "off";
+    const opacity = t.castShadowOpacity == null ? 0 : Number(t.castShadowOpacity);
+    if (preset === "off" || opacity <= 0) return [];
+    return [{
+      preset,
+      surface: preset === "beardJaw" ? "both" : "face",
+      sides: "one",
+      x: Number(t.castShadowX) || 0,
+      y: Number(t.castShadowY) || 0,
+      spread: 0,
+      darkness: 0,
+      scaleX: 1,
+      scaleY: 1,
+      rot: Number(t.castShadowAngle) || 0,
+      opacity,
+      softness: t.castShadowSoftness == null ? 1 : Number(t.castShadowSoftness)
     }];
   }
 
@@ -233,6 +259,7 @@
     groupTitleMap,
     normalizeTattooList,
     normalizeJewelleryList,
+    normalizeCastShadowList,
     fieldsForFaceStudio
   };
 })();

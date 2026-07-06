@@ -2769,6 +2769,11 @@
     return `#${ch(16)}${ch(8)}${ch(0)}`;
   }
 
+  function clampNumber(value, min, max, fallback = 0) {
+    const n = Number(value);
+    return Math.max(min, Math.min(max, Number.isFinite(n) ? n : fallback));
+  }
+
   // Hair-strand tones, contrast-aware: on dark hair the texture reads as LIGHTER strands (jade/rosa
   // refs), but shadeColor can't lighten near-black, so blend toward a cool grey instead. On medium/
   // light hair a darker lowlight reads best (kevin/penny refs).
@@ -2796,6 +2801,11 @@
       traits.jewelleryItems = shared.normalizeJewelleryList(traits);
     } else if (!Array.isArray(traits.jewelleryItems)) {
       traits.jewelleryItems = [];
+    }
+    if (shared && shared.normalizeCastShadowList) {
+      traits.castShadowItems = shared.normalizeCastShadowList(traits);
+    } else if (!Array.isArray(traits.castShadowItems)) {
+      traits.castShadowItems = [];
     }
     if (traits.neckOutline == null || traits.neckOutline === "") traits.neckOutline = "on";
     return traits;
@@ -2839,6 +2849,7 @@
         ${traits.headOnly ? "" : `<rect width='256' height='256' fill='${traits.background}'/>`}
         ${animCSS(traits, seed)}
         ${traits.headOnly ? "" : renderNeckBase(traits, skin, "fill")}
+        ${traits.headOnly ? "" : renderNeckCastShadow(seed, skin, traits)}
         ${bodyTattooBeforeClothes}
         ${traits.headOnly ? "" : renderClothing(outfit, traits, seed)}
         ${bodyTattooAfterClothes}
@@ -2855,6 +2866,7 @@
           ${headShapeGroup(traits, `
             <path d='${faceShape}' fill='${skin}' stroke='${skinInk(skin)}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
             ${renderFaceShading(seed, skin, faceShape)}
+            ${renderCastShadow(seed, skin, faceShape, traits)}
             ${renderFaceModeling(seed, skin, traits)}
             ${renderFaceLines(seed, skin, traits)}
             ${renderMakeup(traits, skin)}
@@ -3715,7 +3727,7 @@
     return 189 + (Number(traits.neckLength) || 0) + neckAnchorOffset(traits);
   }
 
-  function renderNeckBase(traits, skin, mode = "all") {
+  function neckGeometry(traits) {
     const f = (value) => Number(value).toFixed(1);
     const top = 150 + neckAnchorOffset(traits);
     const y = necklineY(traits);
@@ -3731,6 +3743,51 @@
     const terminationOffset = Math.max(-6, Math.min(12, Number(traits.neckTerminationY) || 0));
     const garment = clothing[traits.clothing] || clothing.tee;
     const collarStyle = garment.collar || "crew";
+    const topLeft = 128 - topHalf;
+    const topRight = 128 + topHalf;
+    const joinLeft = 128 - neckJoinHalf;
+    const joinRight = 128 + neckJoinHalf;
+    const joinDepth = garment.bare ? 3 : (collarStyle === "crew" ? 2 : collarStyle === "vneck" ? 0 : -1);
+    const joinY = shoulderJoinY + joinDepth + terminationOffset;
+    const edgePull = garment.bare ? 0.42 : 0.32;
+    const neckShape = [
+      `M${f(topLeft)} ${f(top)}`,
+      `C${f(topLeft + 1)} ${f(top + 24)} ${f(joinLeft - 5)} ${f(joinY - 18)} ${f(joinLeft)} ${f(joinY)}`,
+      `C${f(joinLeft + (128 - joinLeft) * edgePull)} ${f(joinY + 7)} ${f(joinRight - (joinRight - 128) * edgePull)} ${f(joinY + 7)} ${f(joinRight)} ${f(joinY)}`,
+      `C${f(joinRight + 5)} ${f(joinY - 18)} ${f(topRight - 1)} ${f(top + 24)} ${f(topRight)} ${f(top)}`,
+      "Z"
+    ].join(" ");
+    const openCollar = new Set(["crew", "vneck"]);
+    return {
+      top,
+      y,
+      width,
+      topHalf,
+      neckJoinHalf,
+      terminationOffset,
+      garment,
+      collarStyle,
+      joinY,
+      neckShape,
+      collarOwnsJoin: !garment.bare && !openCollar.has(collarStyle)
+    };
+  }
+
+  function renderNeckBase(traits, skin, mode = "all") {
+    const f = (value) => Number(value).toFixed(1);
+    const {
+      top,
+      y,
+      width,
+      topHalf,
+      neckJoinHalf,
+      terminationOffset,
+      garment,
+      collarStyle,
+      joinY,
+      neckShape,
+      collarOwnsJoin
+    } = neckGeometry(traits);
     const neckOutlineOn = traits.neckOutline !== "off";
     const neckOutlineWidth = Math.max(0.5, Math.min(3, Number(traits.neckOutlineWidth) || 1));
     const debug = traits.neckDebug || "off";
@@ -3742,24 +3799,6 @@
     const hasNeckwear = neckwear.has(traits.accessory) || jewelleryItems.some((item) => neckwear.has(item.type));
     const faceLineMaster = (traits.faceLineOpacity != null && traits.faceLineOpacity !== "") ? Number(traits.faceLineOpacity) : 1;
 
-    const topLeft = 128 - topHalf;
-    const topRight = 128 + topHalf;
-    const joinLeft = 128 - neckJoinHalf;
-    const joinRight = 128 + neckJoinHalf;
-    const joinDepth = garment.bare ? 3 : (collarStyle === "crew" ? 2 : collarStyle === "vneck" ? 0 : -1);
-    const joinY = shoulderJoinY + joinDepth + terminationOffset;
-    const edgePull = garment.bare ? 0.42 : 0.32;
-
-    const neckShape = [
-      `M${f(topLeft)} ${f(top)}`,
-      `C${f(topLeft + 1)} ${f(top + 24)} ${f(joinLeft - 5)} ${f(joinY - 18)} ${f(joinLeft)} ${f(joinY)}`,
-      `C${f(joinLeft + (128 - joinLeft) * edgePull)} ${f(joinY + 7)} ${f(joinRight - (joinRight - 128) * edgePull)} ${f(joinY + 7)} ${f(joinRight)} ${f(joinY)}`,
-      `C${f(joinRight + 5)} ${f(joinY - 18)} ${f(topRight - 1)} ${f(top + 24)} ${f(topRight)} ${f(top)}`,
-      "Z"
-    ].join(" ");
-
-    const openCollar = new Set(["crew", "vneck"]);
-    const collarOwnsJoin = !garment.bare && !openCollar.has(collarStyle);
     const sideVisibleY = collarOwnsJoin ? Math.min(joinY, y - 16) : joinY;
     const sideVisibleHalf = collarOwnsJoin
       ? Math.max(13 * width, neckJoinHalf - 6)
@@ -4037,6 +4076,199 @@
       return `<g transform='translate(${x} ${y}) translate(${cx} 140) rotate(${rot * sx}) scale(${scale}) translate(${-cx} -140)'>${markup}</g>`;
     };
     return one("left", 64) + one("right", 192);
+  }
+
+  function castShadowItems(traits) {
+    const shared = typeof window !== "undefined" ? window.WhoEditorShared : null;
+    if (shared && shared.normalizeCastShadowList) return shared.normalizeCastShadowList(traits);
+    return Array.isArray(traits.castShadowItems) ? traits.castShadowItems.map((item) => ({ ...item })) : [];
+  }
+
+  function castShadowConfig(item) {
+    const preset = item && item.preset || "off";
+    const opacity = clampNumber(item && item.opacity, 0, 1, 0);
+    if (preset === "off" || opacity <= 0) return null;
+    return {
+      preset,
+      surface: item.surface || "face",
+      sides: item.sides === "both" ? "both" : "one",
+      opacity,
+      rot: clampNumber(item.rot, -180, 180, 0),
+      softness: clampNumber(item.softness, 0.6, 2.2, 1),
+      x: clampNumber(item.x, -120, 120, 0),
+      y: clampNumber(item.y, -120, 120, 0),
+      spread: clampNumber(item.spread, 0, 80, 0),
+      darkness: clampNumber(item.darkness, -1.5, 3, 0),
+      scaleX: clampNumber(item.scaleX, 0.4, 2.6, 1),
+      scaleY: clampNumber(item.scaleY, 0.4, 2.6, 1)
+    };
+  }
+
+  function castShadowColor(skin, darkness = 0) {
+    const clean = skin.replace("#", "");
+    const n = parseInt(clean, 16);
+    const lum = 0.299 * ((n >> 16) & 0xff) + 0.587 * ((n >> 8) & 0xff) + 0.114 * (n & 0xff);
+    const baseBlend = lum < 80 ? 0.16 : lum < 135 ? 0.22 : 0.3;
+    const amount = darkness >= 0
+      ? baseBlend + darkness * 0.24
+      : baseBlend + darkness * 0.12;
+    const blend = clampNumber(amount, 0.03, 0.82, baseBlend);
+    return mixColor(skin, ink, blend);
+  }
+
+  function castShadowBlur(softness) {
+    const amount = clampNumber(softness, 0.6, 2.2, 1);
+    return Math.max(0, (amount - 0.75) * 2.2);
+  }
+
+  function castShadowShape(preset, band, side, radial, width = 256) {
+    const mirror = (markup) => `<g transform='translate(${width} 0) scale(-1 1)'>${markup}</g>`;
+    const shapes = {
+      hairline: `<path d='M58 62C83 47 174 47 198 64L200 130C171 111 87 111 56 130Z' fill='${band}' data-cast-shadow='face-hairline'/>`,
+      capBrim: `<path d='M46 73C83 55 174 55 210 75L211 146C174 121 82 121 45 146Z' fill='${band}' data-cast-shadow='face-capBrim'/>`,
+      sweptLeft: `<path d='M47 58C77 54 111 69 139 98C118 124 104 156 98 196L45 204Z' fill='${side}' data-cast-shadow='face-sweptLeft'/>`,
+      sweptRight: mirror(`<path d='M47 58C77 54 111 69 139 98C118 124 104 156 98 196L45 204Z' fill='${side}' data-cast-shadow='face-sweptRight'/>`),
+      sideLeft: `<ellipse cx='66' cy='142' rx='52' ry='94' fill='${radial}' data-cast-shadow='face-sideLeft'/>`,
+      sideRight: mirror(`<ellipse cx='66' cy='142' rx='52' ry='94' fill='${radial}' data-cast-shadow='face-sideRight'/>`),
+      beardJaw: `<path d='M65 164C82 196 105 212 128 214C151 212 174 196 191 164L196 236H60Z' fill='${band}' data-cast-shadow='face-beardJaw'/>`
+    };
+    return shapes[preset] || "";
+  }
+
+  function shadowPresetSides(preset, sides) {
+    if (sides !== "both") return [preset];
+    const mirrored = {
+      sweptLeft: "sweptRight",
+      sweptRight: "sweptLeft",
+      sideLeft: "sideRight",
+      sideRight: "sideLeft"
+    };
+    return mirrored[preset] ? [preset, mirrored[preset]] : [preset];
+  }
+
+  function shadowSideOffset(preset, spread) {
+    if (!spread) return 0;
+    if (preset === "sweptLeft" || preset === "sideLeft") return -spread;
+    if (preset === "sweptRight" || preset === "sideRight") return spread;
+    return 0;
+  }
+
+  function shadowLocalRotation(preset, rot, sides) {
+    if (sides !== "both") return rot;
+    if (preset === "sweptLeft" || preset === "sideLeft") return -Math.abs(rot);
+    if (preset === "sweptRight" || preset === "sideRight") return Math.abs(rot);
+    return rot;
+  }
+
+  function renderCastShadow(seed, skin, faceShapePath, traits) {
+    const items = castShadowItems(traits);
+    if (!items.length) return "";
+    const clipId = `cast-face-${seed}`;
+    const defs = [`<clipPath id='${clipId}'><path d='${faceShapePath}'/></clipPath>`];
+    const layers = [];
+    items.forEach((item, idx) => {
+      const cfg = castShadowConfig(item);
+      if (!cfg || (cfg.surface !== "face" && cfg.surface !== "both")) return;
+      const shadow = castShadowColor(skin, cfg.darkness);
+      const gradId = `cast-face-grad-${seed}-${idx}`;
+      const sideId = `cast-face-side-${seed}-${idx}`;
+      const radialId = `cast-face-rad-${seed}-${idx}`;
+      const blurId = `cast-face-blur-${seed}-${idx}`;
+      const peak = Math.min(0.72, 0.2 + cfg.opacity * 0.58);
+      const mid = Math.min(0.82, 0.34 + cfg.softness * 0.18);
+      const fade = Math.min(0.96, 0.64 + cfg.softness * 0.14);
+      const blur = castShadowBlur(cfg.softness);
+      defs.push(`
+        <linearGradient id='${gradId}' x1='0' y1='0' x2='0' y2='1'>
+          <stop offset='0' stop-color='${shadow}' stop-opacity='${peak.toFixed(2)}'/>
+          <stop offset='${mid.toFixed(2)}' stop-color='${shadow}' stop-opacity='${(peak * 0.5).toFixed(2)}'/>
+          <stop offset='${fade.toFixed(2)}' stop-color='${shadow}' stop-opacity='0'/>
+          <stop offset='1' stop-color='${shadow}' stop-opacity='0'/>
+        </linearGradient>
+        <linearGradient id='${sideId}' x1='0' y1='0' x2='1' y2='0'>
+          <stop offset='0' stop-color='${shadow}' stop-opacity='${peak.toFixed(2)}'/>
+          <stop offset='${mid.toFixed(2)}' stop-color='${shadow}' stop-opacity='${(peak * 0.45).toFixed(2)}'/>
+          <stop offset='1' stop-color='${shadow}' stop-opacity='0'/>
+        </linearGradient>
+        <radialGradient id='${radialId}' cx='50%' cy='50%' r='50%'>
+          <stop offset='0' stop-color='${shadow}' stop-opacity='${peak.toFixed(2)}'/>
+          <stop offset='${mid.toFixed(2)}' stop-color='${shadow}' stop-opacity='${(peak * 0.42).toFixed(2)}'/>
+          <stop offset='1' stop-color='${shadow}' stop-opacity='0'/>
+        </radialGradient>
+        <filter id='${blurId}' x='-25%' y='-25%' width='150%' height='150%'>
+          <feGaussianBlur stdDeviation='${blur.toFixed(2)}'/>
+        </filter>
+      `);
+      const shapes = shadowPresetSides(cfg.preset, cfg.sides)
+        .map((preset) => {
+          const shape = castShadowShape(preset, `url(#${gradId})`, `url(#${sideId})`, `url(#${radialId})`);
+          if (!shape) return "";
+          const dx = shadowSideOffset(preset, cfg.sides === "both" ? cfg.spread : 0);
+          const localRot = shadowLocalRotation(preset, cfg.rot, cfg.sides);
+          const transforms = [];
+          if (dx) transforms.push(`translate(${dx.toFixed(1)} 0)`);
+          if (localRot) transforms.push(`rotate(${localRot.toFixed(1)} 128 138)`);
+          return transforms.length ? `<g transform='${transforms.join(" ")}'>${shape}</g>` : shape;
+        })
+        .filter(Boolean);
+      if (!shapes.length) return;
+      const groupRot = cfg.sides === "both" ? 0 : cfg.rot;
+      layers.push(`<g transform='translate(${cfg.x.toFixed(1)} ${cfg.y.toFixed(1)}) rotate(${groupRot.toFixed(1)} 128 138) scale(${cfg.scaleX.toFixed(2)} ${cfg.scaleY.toFixed(2)})' filter='url(#${blurId})' data-cast-shadow='face'>${shapes.join("")}</g>`);
+    });
+    if (!layers.length) return "";
+    return `<defs>${defs.join("")}</defs><g clip-path='url(#${clipId})'>${layers.join("")}</g>`;
+  }
+
+  function renderNeckCastShadow(seed, skin, traits) {
+    const items = castShadowItems(traits);
+    if (!items.length) return "";
+    const geom = neckGeometry(traits);
+    const clipId = `cast-neck-${seed}`;
+    const defs = [`<clipPath id='${clipId}'><path d='${geom.neckShape}'/></clipPath>`];
+    const layers = [];
+    items.forEach((item, idx) => {
+      const cfg = castShadowConfig(item);
+      if (!cfg || (cfg.surface !== "neck" && cfg.surface !== "both")) return;
+      const shadow = castShadowColor(skin, cfg.darkness);
+      const gradId = `cast-neck-grad-${seed}-${idx}`;
+      const radialId = `cast-neck-rad-${seed}-${idx}`;
+      const blurId = `cast-neck-blur-${seed}-${idx}`;
+      const peak = Math.min(0.58, 0.16 + cfg.opacity * 0.48);
+      const mid = Math.min(0.84, 0.34 + cfg.softness * 0.18);
+      const blur = castShadowBlur(cfg.softness);
+      defs.push(`
+        <linearGradient id='${gradId}' x1='0' y1='0' x2='0' y2='1'>
+          <stop offset='0' stop-color='${shadow}' stop-opacity='${peak.toFixed(2)}'/>
+          <stop offset='${mid.toFixed(2)}' stop-color='${shadow}' stop-opacity='${(peak * 0.45).toFixed(2)}'/>
+          <stop offset='1' stop-color='${shadow}' stop-opacity='0'/>
+        </linearGradient>
+        <radialGradient id='${radialId}' cx='50%' cy='50%' r='50%'>
+          <stop offset='0' stop-color='${shadow}' stop-opacity='${peak.toFixed(2)}'/>
+          <stop offset='${mid.toFixed(2)}' stop-color='${shadow}' stop-opacity='${(peak * 0.42).toFixed(2)}'/>
+          <stop offset='1' stop-color='${shadow}' stop-opacity='0'/>
+        </radialGradient>
+        <filter id='${blurId}' x='-25%' y='-25%' width='150%' height='150%'>
+          <feGaussianBlur stdDeviation='${blur.toFixed(2)}'/>
+        </filter>
+      `);
+      const shadowPresets = shadowPresetSides(cfg.preset, cfg.sides);
+      const shapes = shadowPresets.map((preset) => {
+        const sideX = preset === "sideRight" || preset === "sweptRight" ? 128 + geom.neckJoinHalf * 0.55 : 128 - geom.neckJoinHalf * 0.55;
+        const sideShape = `<ellipse cx='${sideX.toFixed(1)}' cy='${(geom.top + 42).toFixed(1)}' rx='${(geom.neckJoinHalf * 0.65).toFixed(1)}' ry='54' fill='url(#${radialId})' data-cast-shadow='neck-side'/>`;
+        const jawShape = `<path d='M${(128 - geom.neckJoinHalf - 6).toFixed(1)} ${(geom.top + 10).toFixed(1)}C${(128 - geom.neckJoinHalf * 0.6).toFixed(1)} ${(geom.top + 34).toFixed(1)} ${(128 + geom.neckJoinHalf * 0.6).toFixed(1)} ${(geom.top + 34).toFixed(1)} ${(128 + geom.neckJoinHalf + 6).toFixed(1)} ${(geom.top + 10).toFixed(1)}L${(128 + geom.neckJoinHalf + 4).toFixed(1)} ${(geom.joinY + 14).toFixed(1)}C${(128 + geom.neckJoinHalf * 0.45).toFixed(1)} ${(geom.joinY + 1).toFixed(1)} ${(128 - geom.neckJoinHalf * 0.45).toFixed(1)} ${(geom.joinY + 1).toFixed(1)} ${(128 - geom.neckJoinHalf - 4).toFixed(1)} ${(geom.joinY + 14).toFixed(1)}Z' fill='url(#${gradId})' data-cast-shadow='neck-beardJaw'/>`;
+        const shape = preset === "beardJaw" || preset === "hairline" || preset === "capBrim" ? jawShape : sideShape;
+        const dx = shadowSideOffset(preset, cfg.sides === "both" ? cfg.spread : 0);
+        const localRot = shadowLocalRotation(preset, cfg.rot, cfg.sides);
+        const transforms = [];
+        if (dx) transforms.push(`translate(${dx.toFixed(1)} 0)`);
+        if (localRot) transforms.push(`rotate(${localRot.toFixed(1)} 128 ${geom.top.toFixed(1)})`);
+        return transforms.length ? `<g transform='${transforms.join(" ")}'>${shape}</g>` : shape;
+      }).filter(Boolean);
+      const groupRot = cfg.sides === "both" ? 0 : cfg.rot;
+      layers.push(`<g transform='translate(${cfg.x.toFixed(1)} ${cfg.y.toFixed(1)}) rotate(${groupRot.toFixed(1)} 128 ${geom.top.toFixed(1)}) scale(${cfg.scaleX.toFixed(2)} ${cfg.scaleY.toFixed(2)})' filter='url(#${blurId})' data-cast-shadow='neck'>${shapes.join("")}</g>`);
+    });
+    if (!layers.length) return "";
+    return `<defs>${defs.join("")}</defs><g clip-path='url(#${clipId})'>${layers.join("")}</g>`;
   }
 
   // Soft shadows CLIPPED to the face shape so they sit inside the face (never spill onto hair/bg) -
@@ -5435,6 +5667,7 @@
       lipUppers: ["soft", "cupid", "flat", "peaked", "heavy"],
       lipLowers: ["round", "pillow", "wide", "flat"],
       chinShapes: ["none", "round", "square", "dimple", "pointed"],
+      castShadowPresets: ["off", "hairline", "sweptLeft", "sweptRight", "capBrim", "sideLeft", "sideRight", "beardJaw"],
       animModes: ["still", "calm", "curious", "serious", "shifty", "alert", "smug", "sleepy", "googly", "sideeye", "crosseyed", "nervous", "nod", "bobble", "dreamy", "lean", "squint"],
       tattooFonts: Object.keys(tattooFonts),
       tattooPlaces: ["body", "face"],

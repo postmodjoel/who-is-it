@@ -1492,6 +1492,7 @@ function flagSettingsChanged() { if (setupApplyHint) setupApplyHint.hidden = fal
 // Settings only take effect on the next deal - reveal the reminder once anything is touched.
 els.setupDialog.addEventListener("change", (e) => { if (e.target.matches("input, select")) flagSettingsChanged(); });
 els.setupDialog.addEventListener("click", (e) => { if (e.target.closest(".tier-chip")) flagSettingsChanged(); });
+let setupOpenedSeed = "";   // the seed code the field was prefilled with (set in syncSettingsToForm)
 els.setupButton.addEventListener("click", () => {
   syncSettingsToForm();
   if (setupApplyHint) setupApplyHint.hidden = true;   // fresh open, nothing changed yet
@@ -1519,9 +1520,10 @@ els.saveSetupButton.addEventListener("click", () => {
   if (els.settingPG) state.settings.pg = els.settingPG.checked;
   if (els.settingLowPower) { state.settings.lowPower = els.settingLowPower.checked; savePrefs({ lowPower: state.settings.lowPower }); applyLowPower(); }
   readTierToggles();
-  // A pasted seed code replays that exact round (board, location, wheel outcome, secrets).
+  // A pasted seed code replays that exact round (board, location, wheel outcome, secrets). Compare
+  // against the value the field opened with, NOT the live seed (settings just changed shift it).
   const code = els.settingSeed ? els.settingSeed.value.trim() : "";
-  const parsed = code && code !== currentSeedCode() ? parseSeedCode(code) : null;
+  const parsed = code && code !== setupOpenedSeed.trim() ? parseSeedCode(code) : null;
   if (parsed) {
     state.settings = { ...state.settings, ...(parsed.g || {}) };
     newGame(parsed.s);
@@ -1633,6 +1635,10 @@ function syncSettingsToForm() {
   if (els.settingLowPower) els.settingLowPower.checked = !!state.settings.lowPower;
   buildTierToggles();
   if (els.settingSeed) els.settingSeed.value = state.gameSalt ? currentSeedCode() : "";
+  // Remember the seed the field was PREFILLED with. Only a seed the user actually changed counts as a
+  // paste - otherwise applying settings shifts currentSeedCode() and we'd wrongly "replay" the old
+  // round, undoing the very setting they just changed (e.g. intensity tiers).
+  setupOpenedSeed = els.settingSeed ? els.settingSeed.value : "";
   if (els.setupRoomCode) els.setupRoomCode.textContent = state.roomCode ? `#${state.roomCode}` : "No room yet";
 }
 

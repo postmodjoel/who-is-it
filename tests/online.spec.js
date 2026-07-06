@@ -13,6 +13,11 @@ test.describe("online rooms", () => {
 
   async function openTitle(page) {
     await page.goto("/");
+    // These tabs share ONE BrowserContext (so BroadcastChannel works), which also shares localStorage.
+    // A refresh now auto-resumes any saved game - so a guest tab would inherit the host's save. Real
+    // players are on separate devices; here we clear the leaked save to get a clean title.
+    await page.evaluate(() => { try { localStorage.removeItem("whoisit_game_v1"); } catch (e) { /* fine */ } });
+    await page.reload();
     await expect(page.locator(".ts-local")).toBeVisible();
   }
   async function hostRoom(page, name) {

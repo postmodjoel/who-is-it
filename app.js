@@ -1492,6 +1492,19 @@ els.setupButton.addEventListener("click", () => {
   els.setupDialog.showModal();
 });
 
+// Quit to the main menu: refresh auto-resumes a game now, so this is the deliberate way out. Drop the
+// saved game, leave any online room, and show the title.
+const quitToMenuButton = document.querySelector("#quitToMenuButton");
+if (quitToMenuButton) quitToMenuButton.addEventListener("click", () => {
+  try { els.setupDialog.close(); } catch (e) { /* fine */ }
+  try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }
+  if (state.gameMode === "online") { try { netSend("bye", {}); } catch (e) { /* fine */ } try { net && net.close(); } catch (e) { /* fine */ } }
+  state.inLobby = false; state.isObserver = false;
+  document.body.classList.remove("observer");
+  document.getElementById("observerBar")?.remove();
+  showTitleScreen();
+});
+
 els.saveSetupButton.addEventListener("click", () => {
   state.settings.prompts = els.settingPrompts.checked;
   state.settings.mystery = els.settingMystery.checked;
@@ -1633,6 +1646,7 @@ function buildGameSave() {
     gameMode: state.gameMode || "local",
     playMode: state.playMode === "solo" ? "solo" : "team",
     inLobby: !!state.inLobby,   // a refresh mid-lobby rejoins the lobby, not a half-dealt round
+    isObserver: !!state.isObserver,   // a TV/display refresh rejoins as a display, not a player
     pname: state.pname || "",
     mySeat: state.mySeat || 0,
     roomCode: state.roomCode,   // online: the channel isn't re-derivable for a joiner, so persist it
@@ -1719,6 +1733,11 @@ function maybeShowOnboarding() {
   setTimeout(dismiss, 9000);   // fallback so it never lingers
 }
 function resumeGame(saved) {
+  // A TV/display refresh rejoins the room as a display (never as a seated player).
+  if (saved.isObserver && (saved.gameMode || "") === "online" && saved.roomCode) {
+    joinRoom(saved.roomCode, "TV", { observe: true });
+    return;
+  }
   // A refresh mid-LOBBY (online, nothing dealt yet): rejoin the room as the same person instead of
   // trying to resume a round that never existed.
   if (saved.inLobby && (saved.gameMode || "") === "online") { resumeOnlineLobby(saved); return; }
@@ -2898,8 +2917,12 @@ if (els.almanacButton) els.almanacButton.addEventListener("click", showAlmanac);
 // A scanned receipt QR (#summary=...) opens the summary screen; ?observe=CODE turns this tab straight
 // into a TV display for that room; otherwise the title as usual.
 const observeParam = (() => { try { return new URLSearchParams(location.search).get("observe"); } catch (e) { return null; } })();
+// A refresh while you were in a game/room drops you straight back into it (a round, a lobby, or a TV
+// display) - going to the main menu isn't what you'd expect. The title only shows with no game to resume.
+const resumableSave = loadGameSave();
 if (maybeShowSummaryPage()) { /* summary page shown */ }
 else if (observeParam && /^\d{3,4}$/.test(observeParam.trim())) { joinRoom(observeParam.trim(), "TV", { observe: true }); }
+else if (resumableSave) { try { resumeGame(resumableSave); } catch (e) { showTitleScreen(); } }
 else showTitleScreen();
 wireCueCardClick();
 wireFloatingSecret();

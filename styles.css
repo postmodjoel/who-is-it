@@ -1948,6 +1948,9 @@ button:disabled {
   gap: 8px;
   margin-top: 10px;
 }
+/* NB: --surface/--ink are BOTH light in the default (dark) theme (they're for text inputs), so the
+   chip must not lean on them, or an "on" chip is light-on-light. OFF uses the dark panel tone; ON is a
+   solid accent fill with white text - readable in both themes. */
 .tier-chip {
   flex: 1 1 72px;
   min-width: 64px;
@@ -1958,7 +1961,7 @@ button:disabled {
   padding: 8px 6px;
   border: 2px solid var(--line);
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--panel-soft);
   color: var(--muted);
   cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
@@ -1968,11 +1971,13 @@ button:disabled {
 .tier-chip:hover { transform: translateY(-1px); }
 .tier-chip.is-on {
   border-color: var(--accent-2);
-  background: color-mix(in srgb, var(--accent-2) 18%, var(--surface));
-  color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--accent-2);
+  background: var(--accent-2);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
-.tier-chip:not(.is-on) { opacity: 0.62; }
+.tier-chip.is-on b,
+.tier-chip.is-on span { color: #fff; }
+.tier-chip:not(.is-on) { opacity: 0.72; }
 
 .select-row select {
   min-width: 140px;
@@ -4821,15 +4826,16 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .sp-fx:active { transform: translateY(1px); }
 
 /* ===================== Title PG toggle + adults-only riddle ===================== */
-/* .button.ts-pg (0,2,0) to override .button.secondary's width:100% and match the step buttons. */
+/* .button.ts-pg (0,2,0) to override .button.secondary's width:100% and match the step buttons.
+   Lives inside the local/host setup steps now (display:none until shown), so NO entrance delay -
+   an animation-delay here would leave it invisible for a beat after the step opens. */
 .button.ts-pg {
-  width: min(320px, 82vw); min-width: 240px; box-sizing: border-box;
+  width: 100%; box-sizing: border-box;
   display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
   /* Dark glass utility chip (was a naff light-blue secondary) - reads clean on the dark title. */
   background: rgba(255, 255, 255, 0.07); border: 1.5px solid rgba(255, 255, 255, 0.2);
   color: #fffdf7; font: 900 0.86rem "Archivo", sans-serif; letter-spacing: 0.04em;
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32);
-  animation: ts-fade 0.5s 1.05s both;
 }
 .button.ts-pg:hover { background: rgba(255, 255, 255, 0.13); }
 .button.ts-gear {
@@ -5522,7 +5528,26 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .ts-count-btn:hover { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.6); }
 .ts-count-val { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.6rem; min-width: 1.4ch; text-align: center; color: #fffdf7; }
 .ts-names-label { font-weight: 800; color: #fffdf7; margin-bottom: 8px; }
-.ts-names-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; width: min(320px, 80vw); }
+.ts-names-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; width: min(320px, 80vw); }
+.ts-name-row { display: flex; align-items: stretch; gap: 6px; }
+.ts-name-row .ts-name-slot { flex: 1 1 auto; min-width: 0; }
+.ts-name-remove {
+  flex: 0 0 40px; width: 40px; border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7); font-size: 1.2rem; font-weight: 900; line-height: 1; cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+.ts-name-remove:hover { background: rgba(255, 90, 90, 0.22); border-color: #ff6a6a; color: #fff; }
+.ts-name-remove:disabled { opacity: 0.28; cursor: default; }
+/* "＋ Add player": a dashed ghost row that reads as "there could be more here". */
+.ts-add-player {
+  width: min(320px, 80vw); margin-bottom: 12px; padding: 9px 14px; border-radius: 10px;
+  border: 2px dashed rgba(255, 255, 255, 0.3); background: transparent;
+  color: rgba(255, 255, 255, 0.82); font-family: "Archivo", sans-serif; font-weight: 800;
+  letter-spacing: 0.03em; cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
+}
+.ts-add-player:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.5); }
+.ts-add-player:disabled { opacity: 0.35; cursor: default; }
 .ts-name-slot {
   padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.06); color: #fffdf7; font-size: 1rem; font-weight: 600;
@@ -6730,11 +6755,11 @@ body.mode-nw .cue-card {
 }
 
 /* ===================== Title-screen settings (gear next to PG) ===================== */
-.ts-bottom-row { display: flex; gap: 10px; align-items: stretch; justify-content: center; width: min(320px, 82vw); margin: 0 auto; animation: ts-fade 0.5s 1.05s both; }
-.ts-bottom-row .ts-pg { animation: none; flex: 1 1 auto; min-width: 0; }
-.ts-bottom-row .ts-gear { flex: 0 0 46px; width: 46px; min-width: 46px; font-size: 1.05rem; padding: 0; display: flex; align-items: center; justify-content: center; }
+.ts-bottom-row { display: flex; align-items: stretch; justify-content: center; width: min(320px, 82vw); margin: 0 auto; animation: ts-fade 0.5s 1.05s both; }
+.ts-bottom-row .ts-gear { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 900; letter-spacing: 0.06em; }
+.ts-bottom-row .ts-gear .ts-gear-ico { font-size: 1.05rem; }
 .ts-settings-panel {
-  position: fixed; inset: 0; z-index: 360;
+  position: fixed; inset: 0; z-index: 2100;
   display: flex; align-items: center; justify-content: center;
   background: rgba(10, 10, 16, 0.7);
   animation: loreIn 0.25s ease;

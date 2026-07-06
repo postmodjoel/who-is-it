@@ -14,12 +14,14 @@ async function startNamedLocalGame(page, count = 3, solo = true) {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  for (let i = 2; i < count; i += 1) {
-    await page.locator(".ts-count-up").click();
-  }
+  // Local setup lives in the names step now: enter it, then add player rows to reach `count`.
   await page.locator(".ts-local").click();
+  await page.locator(".ts-name-row").first().waitFor();
+  for (let i = 2; i < count; i += 1) {
+    await page.locator(".ts-add-player").click();
+  }
   if (count > 2 && solo) {
-    await page.locator(".ts-team-mode-input").uncheck();
+    await page.locator(".ts-step-names .ts-team-mode-input").uncheck();
   }
   const inputs = page.locator(".ts-name-slot");
   for (let i = 0; i < count; i += 1) {
@@ -73,10 +75,11 @@ test("mandatory names and solo mode create one seat per player", async ({ page }
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.locator(".ts-count-up").click();
   await page.locator(".ts-local").click();
-  await expect(page.locator(".ts-team-mode")).toBeVisible();
-  await page.locator(".ts-team-mode-input").uncheck();
+  await page.locator(".ts-name-row").first().waitFor();
+  await page.locator(".ts-add-player").click();          // 2 -> 3 players
+  await expect(page.locator(".ts-step-names .ts-team-mode")).toBeVisible();
+  await page.locator(".ts-step-names .ts-team-mode-input").uncheck();
   await page.locator(".ts-names-go").click();
   await expect(page.locator(".ts-name-slot").first()).toHaveClass(/shake/);
   const inputs = page.locator(".ts-name-slot");

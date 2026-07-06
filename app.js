@@ -507,7 +507,7 @@ function makePlayer(index, taken) {
 // secret + board state. Solo mode turns every human into their own seat with their own secret and
 // crossed-off board state. A two-player game is always effectively solo/classic even if playMode is
 // still "team" in saved state.
-const SIDE_COUNT = 2, MIN_PLAYERS = 2, MAX_PLAYERS = 8;
+const SIDE_COUNT = 2, MIN_PLAYERS = 2, MAX_PLAYERS = 12;
 const RESERVED_PLAYER_NAMES = new Set(["guest", "host"]);
 
 function cleanPlayerName(value) {
@@ -2395,6 +2395,11 @@ function showTitleSettings() {
   panel.querySelector(".tsp-music").addEventListener("change", (e) => { if (S) { S.resume(); S.setMusic(e.target.checked); } savePrefs({ music: e.target.checked }); });
   panel.querySelector(".tsp-track").addEventListener("change", (e) => { if (S) { S.setTrack(Number(e.target.value)); } savePrefs({ track: Number(e.target.value) }); });
 }
+// PG toggle now lives INSIDE the local/host setup steps (not the main menu), so it's chosen in
+// context right before a game. Same control markup in both places; a single handler keeps them synced.
+function pgToggleMarkup() {
+  return `<button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE 🧒</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>`;
+}
 function showTitleScreen() {
   const saved = loadGameSave();
   const ov = document.createElement("div");
@@ -2406,12 +2411,6 @@ function showTitleScreen() {
     </div>
     <div class="ts-actions">
       <div class="ts-step ts-step-main">
-        <div class="ts-count" role="group" aria-label="Number of players">
-          <span class="ts-count-label">PLAYERS</span>
-          <button type="button" class="ts-count-btn ts-count-dn" aria-label="Fewer players">−</button>
-          <b class="ts-count-val">2</b>
-          <button type="button" class="ts-count-btn ts-count-up" aria-label="More players">+</button>
-        </div>
         <button type="button" class="button primary ts-local">🛋 LOCAL GAME</button>
         <button type="button" class="button secondary ts-online">🌐 ONLINE GAME</button>
         ${saved ? `<button type="button" class="button ghost ts-resume">${saved.gameMode === "online"
@@ -2420,31 +2419,33 @@ function showTitleScreen() {
       </div>
       <div class="ts-step ts-step-names" hidden>
         <p class="ts-names-label">Name your players</p>
+        <div class="ts-names-list"></div>
+        <button type="button" class="ts-add-player">＋ Add player</button>
         <label class="ts-team-mode" hidden>
           <span>Team Mode</span>
           <input class="ts-team-mode-input" type="checkbox" checked>
           <b>ON</b>
         </label>
-        <div class="ts-names-list"></div>
+        ${pgToggleMarkup()}
         <button type="button" class="button primary ts-names-go">LINE 'EM UP →</button>
-        <button type="button" class="button ghost ts-back">← back</button>
+        <button type="button" class="button ghost ts-back">← Back</button>
       </div>
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
+        ${pgToggleMarkup()}
         <button type="button" class="button primary ts-host">🎪 HOST A ROOM</button>
         <button type="button" class="button secondary ts-showjoin">🔑 JOIN A ROOM</button>
-        <button type="button" class="button ghost ts-back">← back</button>
+        <button type="button" class="button ghost ts-back">← Back</button>
       </div>
       <div class="ts-step ts-step-join" hidden>
         <p class="ts-join-label">Enter your friend's room number</p>
         <input class="ts-join-input" type="text" inputmode="numeric" maxlength="4" placeholder="1234" aria-label="Room code to join">
         <button type="button" class="button primary ts-join-go">JOIN ROOM →</button>
-        <button type="button" class="button ghost ts-back">← back</button>
+        <button type="button" class="button ghost ts-back">← Back</button>
       </div>
     </div>
     <div class="ts-bottom-row">
-      <button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>
-      <button type="button" class="button secondary ts-gear" aria-label="Settings" title="Settings">⚙</button>
+      <button type="button" class="button secondary ts-gear" aria-label="Settings" title="Settings"><span class="ts-gear-ico">⚙</span> SETTINGS</button>
     </div>`;
   document.body.appendChild(ov);
   const close = () => { if (window.Sound) Sound.titleLoop(false); ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
@@ -2452,13 +2453,17 @@ function showTitleScreen() {
   ov.addEventListener("pointerdown", () => { if (window.Sound) { Sound.resume(); Sound.titleLoop(true); } }, { once: true });
   // Every menu tap clicks (PG/gear play their own richer sounds).
   ov.querySelectorAll("button:not(.ts-pg):not(.ts-gear)").forEach((b) => b.addEventListener("click", () => sfx("click")));
-  // PG toggle: turning it ON is free; turning it OFF is gated behind an adults-only riddle.
-  const pgBtn = ov.querySelector(".ts-pg");
-  const paintPg = () => { pgBtn.classList.toggle("on", state.settings.pg); pgBtn.querySelector("b").textContent = state.settings.pg ? "ON" : "OFF"; pgBtn.setAttribute("aria-pressed", String(state.settings.pg)); };
-  pgBtn.addEventListener("click", () => {
+  // PG toggle(s): the same control appears in the local + host setup steps; one handler keeps every
+  // instance in sync. Turning PG ON is free; turning it OFF is gated behind an adults-only riddle.
+  const paintPg = () => ov.querySelectorAll(".ts-pg").forEach((b) => {
+    b.classList.toggle("on", state.settings.pg);
+    b.querySelector("b").textContent = state.settings.pg ? "ON" : "OFF";
+    b.setAttribute("aria-pressed", String(state.settings.pg));
+  });
+  ov.querySelectorAll(".ts-pg").forEach((pgBtn) => pgBtn.addEventListener("click", () => {
     if (!state.settings.pg) { setPgMode(true); paintPg(); sfx("blip"); return; }
     askAdultGate((ok) => { if (ok) { setPgMode(false); paintPg(); sfx("coin"); } else { setPgMode(true); paintPg(); sfx("buzzer"); } });
-  });
+  }));
   ov.querySelector(".ts-gear").addEventListener("click", () => { sfx("click"); showTitleSettings(); });
   const steps = {
     main: ov.querySelector(".ts-step-main"),
@@ -2473,38 +2478,57 @@ function showTitleScreen() {
     setTimeout(() => el.classList.remove("shake"), 400);
     el.focus();
   };
-  // Player-count stepper (drives LOCAL games).
-  let localCount = MIN_PLAYERS;
+  // LOCAL games: no up-front stepper. The names step starts at 2 slots and the host adds/removes
+  // players there (2..MAX_PLAYERS). Team Mode appears once there are 3+.
   let localPlayMode = "team";
-  const countVal = ov.querySelector(".ts-count-val");
-  const setCount = (c) => { localCount = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, c)); countVal.textContent = localCount; };
-  ov.querySelector(".ts-count-dn").addEventListener("click", () => { setCount(localCount - 1); sfx("blip"); });
-  ov.querySelector(".ts-count-up").addEventListener("click", () => { setCount(localCount + 1); sfx("blip"); });
-  ov.querySelector(".ts-local").addEventListener("click", () => {
-    // All local games collect real names now. For 3+ games, Team Mode controls shared teams vs solo.
-    const list = ov.querySelector(".ts-names-list");
-    list.innerHTML = Array.from({ length: localCount }, (_, i) =>
-      `<input class="ts-name-slot" type="text" maxlength="16" placeholder="Player ${i + 1}" aria-label="Player ${i + 1} name">`
-    ).join("");
-    const teamToggle = ov.querySelector(".ts-team-mode");
-    const teamInput = ov.querySelector(".ts-team-mode-input");
-    teamToggle.hidden = localCount <= 2;
-    teamInput.checked = localPlayMode !== "solo";
+  const namesList = ov.querySelector(".ts-names-list");
+  const addBtn = ov.querySelector(".ts-add-player");
+  const teamToggle = ov.querySelector(".ts-step-names .ts-team-mode");
+  const teamInput = ov.querySelector(".ts-team-mode-input");
+  const slotCount = () => namesList.querySelectorAll(".ts-name-slot").length;
+  const refreshNamesUi = () => {
+    const n = slotCount();
+    teamToggle.hidden = n <= 2;
     teamToggle.querySelector("b").textContent = teamInput.checked ? "ON" : "OFF";
-    show("names");
-    setTimeout(() => list.querySelector("input")?.focus(), 50);
+    addBtn.disabled = n >= MAX_PLAYERS;
+    namesList.querySelectorAll(".ts-name-remove").forEach((b) => { b.disabled = n <= MIN_PLAYERS; });
+  };
+  const addSlot = (focus) => {
+    if (slotCount() >= MAX_PLAYERS) return;
+    const i = slotCount();
+    const row = document.createElement("div");
+    row.className = "ts-name-row";
+    row.innerHTML = `<input class="ts-name-slot" type="text" maxlength="16" placeholder="Player ${i + 1}" aria-label="Player ${i + 1} name"><button type="button" class="ts-name-remove" aria-label="Remove player">×</button>`;
+    namesList.appendChild(row);
+    refreshNamesUi();
+    if (focus) row.querySelector("input").focus();
+  };
+  const resetSlots = (n) => { namesList.innerHTML = ""; for (let k = 0; k < n; k += 1) addSlot(false); teamInput.checked = localPlayMode !== "solo"; refreshNamesUi(); };
+  namesList.addEventListener("click", (e) => {
+    const rm = e.target.closest(".ts-name-remove");
+    if (!rm || slotCount() <= MIN_PLAYERS) return;
+    rm.closest(".ts-name-row").remove();
+    namesList.querySelectorAll(".ts-name-slot").forEach((inp, idx) => { if (!inp.value) inp.placeholder = `Player ${idx + 1}`; });
+    refreshNamesUi();
   });
-  ov.querySelector(".ts-team-mode-input").addEventListener("change", (e) => {
+  addBtn.addEventListener("click", () => { addSlot(true); });
+  ov.querySelector(".ts-local").addEventListener("click", () => {
+    resetSlots(MIN_PLAYERS);
+    show("names");
+    setTimeout(() => namesList.querySelector("input")?.focus(), 50);
+  });
+  teamInput.addEventListener("change", (e) => {
     localPlayMode = e.target.checked ? "team" : "solo";
-    ov.querySelector(".ts-team-mode b").textContent = e.target.checked ? "ON" : "OFF";
+    teamToggle.querySelector("b").textContent = e.target.checked ? "ON" : "OFF";
   });
   ov.querySelector(".ts-names-go").addEventListener("click", () => {
-    const inputs = [...ov.querySelectorAll(".ts-name-slot")];
+    const inputs = [...namesList.querySelectorAll(".ts-name-slot")];
     const bad = inputs.find((el) => !isValidPlayerName(el.value));
     if (bad) { markInvalid(bad); return; }
     const names = inputs.map((el) => cleanPlayerName(el.value));
+    const count = inputs.length;
     close();
-    startLocalGame(localCount, names, localCount > 2 ? localPlayMode : "team");
+    startLocalGame(count, names, count > 2 ? localPlayMode : "team");
   });
   ov.querySelector(".ts-online").addEventListener("click", () => show("online"));
   const nameInput = ov.querySelector(".ts-name-input");
@@ -2646,7 +2670,7 @@ function showLobby() {
     <p class="lobby-status"></p>
     <div class="lobby-actions">
       ${host ? `<button type="button" class="button primary lobby-start" disabled>START</button>` : ""}
-      <button type="button" class="button ghost lobby-leave">← leave</button>
+      <button type="button" class="button ghost lobby-leave">← Leave</button>
     </div>`;
   document.body.appendChild(ov);
   ov.querySelector(".lobby-leave").addEventListener("click", () => {

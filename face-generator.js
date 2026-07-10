@@ -963,8 +963,8 @@
       "hairLocks": [
         {
           "lock": "longSideLock",
-          "x": 56,
-          "y": 26,
+          "x": 68,
+          "y": 23,
           "scale": 0.4,
           "rot": -111,
           "lines": false
@@ -972,10 +972,10 @@
         {
           "lock": "spikyFringe",
           "x": 41,
-          "y": 41,
+          "y": 40,
           "scale": 0.72,
           "rot": -20,
-          "lines": false
+          "lines": true
         },
         {
           "lock": "sideSwoop",
@@ -997,38 +997,42 @@
         {
           "lock": "longSideLock",
           "x": 69,
-          "y": 47,
+          "y": 46,
           "scale": 0.56,
           "rot": -14,
-          "lines": true
+          "lines": true,
+          "outline": "#61177c"
         },
         {
           "lock": "curtainBangs",
           "x": 54,
-          "y": 41,
+          "y": 42,
           "scale": 0.52,
           "rot": -7,
           "lines": false,
-          "outline": "none"
+          "outline": "#9a244f"
         }
       ],
-      "frontHairY": -8,
+      "frontHairY": 1,
       "browY": 1,
       "browScaleX": 0.84,
       "pupilY": -2.5,
       "eyeOpen": 0.96,
       "eyelashThickness": 1.1,
+      "eyelashCoverage": "full",
+      "eyelashCurl": 0.7,
       "eyeshadowOpacity": 0.65,
       "eyeshadowColor": "#4dd2ff",
       "upperEyelidWidth": 2.7,
       "lowerEyelidWidth": 1.5,
+      "hairOutlineWidth": 0.9,
       "lockBlend": "separate",
-      "neckTerminationY": 2,
-      "neckOutlineWidth": 1.1,
-      "neckTaper": 0.75,
-      "neckWidth": 0.9,
-      "accessoryScale": 0.74,
-      "accessoryY": 16,
+      "neckTerminationY": -0.5,
+      "neckOutlineWidth": 1.15,
+      "neckTaper": 0.8,
+      "neckWidth": 0.94,
+      "accessoryScale": 0.8,
+      "accessoryY": 15,
       "accessoryColor": "#b0b0b0",
       "jewelleryItems": [
         {
@@ -1050,8 +1054,8 @@
       "eyeScale": 1.06,
       "irisScale": 0.78,
       "eyeColor": "#317aaa",
-      "lashes": 0.15,
-      "eyelashDensity": 0.8,
+      "lashes": 0.45,
+      "eyelashDensity": 1.1,
       "undershadowOpacity": 0.45,
       "undershadowY": 0,
       "tattooScale": 0.9,
@@ -3152,15 +3156,16 @@
         .join("");
     }
 
-    const outline = mergedLockOutlineFor(traits);
     const outlineScale = hairOutlineScale(traits);
     const layer = behind ? "behind" : "front";
-    // rim = a single outline of the whole lock mass (outer silhouette + spiral concavities), which is
-    // what makes curl/horn shapes read. fill = solid colour. We deliberately DON'T draw the old
-    // per-lock seam strokes: they outlined every lock individually and ghosted through overlaps.
-    const rim = renderHairLockRim(items, seed, hair, outline, layer, (behind ? 2.1 : 2.7) * outlineScale, outlineScale);
-    const fill = renderHairLockPartGroup(items, seed, hair, outline, "fill", null, outlineScale);
-    return `${rim}${fill}`;
+    // rim = the standard merged outer silhouette. Separately, selected locks can draw their own
+    // masked internal lines on top while the outside contour stays a single merged shape.
+    const rim = visibleStroke(hairOutlineFor(traits))
+      ? renderHairLockRim(items, seed, hair, hairOutlineFor(traits), layer, (behind ? 2.1 : 2.7) * outlineScale, outlineScale)
+      : "";
+    const fill = renderHairLockPartGroup(items, seed, hair, resolvedHairOutlineColor(traits), "fill", null, outlineScale);
+    const forced = renderHairLockInteriorLines(forcedLockInteriorGroups(items, traits), items, seed, hair, layer, outlineScale);
+    return `${rim}${fill}${forced}`;
   }
 
   function renderHairLockPartGroup(items, seed, hair, outline, mode, extraCtx, outlineScale = 1) {
@@ -4995,13 +5000,56 @@
     return resolvedHairOutlineColor(traits);
   }
 
-  function mergedLockOutlineFor(traits) {
-    const force = traits.lockBlend !== "separate" && traits.mergedLockOutlineMode === "force";
-    return hairOutlineFor(traits, force ? { force: true } : null);
-  }
-
   function visibleStroke(value) {
     return !!value && value !== "none" && value !== "transparent" && value !== "rgba(0,0,0,0)";
+  }
+
+  function lockOutlineEnabled(inst) {
+    return !!inst && inst.outline !== "none";
+  }
+
+  function forcedLockInteriorGroups(items, traits) {
+    const grouped = new Map();
+    items.forEach((item) => {
+      const inst = item && item.inst;
+      if (!lockOutlineEnabled(inst) || !inst.outlineForce) return;
+      const outline = visibleStroke(inst.outline) ? inst.outline : resolvedHairOutlineColor(traits);
+      if (!visibleStroke(outline)) return;
+      if (!grouped.has(outline)) grouped.set(outline, []);
+      grouped.get(outline).push(item);
+    });
+    return Array.from(grouped, ([outline, groupItems]) => ({ outline, items: groupItems }));
+  }
+
+  function renderHairLockInteriorLines(groups, allItems, seed, hair, layer, outlineScale = 1) {
+    if (!groups.length) return "";
+    const mass = renderHairLockPartGroup(allItems, seed, hair, "#fff", "mass", { massFill: "#fff" }, outlineScale);
+    if (!mass) return "";
+    const id = `hairlock-inner-${String(seed).replace(/[^a-zA-Z0-9_-]/g, "_")}-${layer}`;
+    const filterId = `${id}-erode`;
+    const content = groups
+      .map((group) => renderHairLockPartGroup(group.items, seed, hair, group.outline, "seam", {
+        seam: group.outline,
+        seamWidth: 2.35,
+        seamOpacity: 1
+      }, outlineScale))
+      .join("");
+    if (!content) return "";
+    const erode = Math.max(1.8, 2.6 * outlineScale);
+    return `
+      <defs>
+        <filter id='${filterId}' x='-128' y='-128' width='512' height='512' filterUnits='userSpaceOnUse'>
+          <feMorphology in='SourceAlpha' operator='erode' radius='${erode.toFixed(2)}' result='inner'/>
+          <feFlood flood-color='#ffffff' result='white'/>
+          <feComposite in='white' in2='inner' operator='in'/>
+        </filter>
+        <mask id='${id}' x='-128' y='-128' width='512' height='512' maskUnits='userSpaceOnUse'>
+          <rect x='-128' y='-128' width='512' height='512' fill='black'/>
+          <g filter='url(#${filterId})'>${mass}</g>
+        </mask>
+      </defs>
+      <g mask='url(#${id})'>${content}</g>
+    `;
   }
 
   function hairOutlineScale(traits) {
@@ -5279,6 +5327,7 @@
     // closed path (top arc, then the bottom arc's curves without its leading M) for fill + clip
     const lens = `${topArc}${bottomArc.slice(bottomArc.indexOf('C'))}Z`;
     const clipId = `eye-${Math.round(cx * 10)}-${Math.round(y * 10)}`;
+    const lashMaskId = `lashmask-${Math.round(cx * 10)}-${Math.round(y * 10)}`;
     // iris dead centre horizontally, sitting low so the upper lid covers its top edge - that lid
     // overlap is what makes the reference eyes read as real almond eyes. Capped well inside the lens
     // half-width so the whites (sclera) clearly read on either side of the iris.
@@ -5302,6 +5351,7 @@
     // the .fa-eye group so blink/wink transforms keep them attached to the eye.
     const lashLen = Number(traits.lashes) || 0;   // 0 = none; ~1 normal; up to ~1.6 dramatic
     let lashes = "";
+    let lashMaskDef = "";
     if (lashLen > 0) {
       const tc = cx < 128 ? -1 : 1;               // direction toward the temple
       const L = 6.8 * lashLen;
@@ -5328,7 +5378,7 @@
         const mag = Math.hypot(dx, dy) || 1;
         const nx = dy / mag;
         const ny = -dx / mag;
-        const lift = Math.min(0.8, 0.14 + lashWidth * 0.08);
+        const lift = Math.min(1.1, 0.3 + lashWidth * 0.11);
         return { x: px + nx * lift, y: py + ny * lift, nx, ny };
       };
       const lash = (t, len, phase) => {
@@ -5349,14 +5399,21 @@
         const len = L * (0.6 + t * 0.72);
         marks.push(lash(t, len, i + (cx < 128 ? 0.3 : 0.8)));
       }
-      lashes = `<g class='fa-lashes'>${marks.join("")}</g>`;
+      const lashHide = Math.max(1.8, lashWidth * 1.45);
+      lashMaskDef = `
+        <mask id='${lashMaskId}'>
+          <rect x='0' y='0' width='256' height='256' fill='#fff'/>
+          <path d='${lens}' fill='#000' stroke='#000' stroke-width='${lashHide.toFixed(2)}' stroke-linejoin='round' stroke-linecap='round'/>
+        </mask>
+      `;
+      lashes = `<g class='fa-lashes' mask='url(#${lashMaskId})'>${marks.join("")}</g>`;
     }
     // The iris/pupil/highlight sit in a `.fa-iris` group (eye-darts translate it within the clipped
     // lens). The whole eye is wrapped in `.fa-eye`/`.fa-eye-{side}` (blink scales it); the right eye
     // gets an extra `.fa-wink` group so a wink can close just that eye. Animations are opt-in via the
     // <style> from animCSS(); with no animation these groups are inert.
     const eye = `
-      <defs><clipPath id='${clipId}'><path d='${lens}'/></clipPath></defs>
+      <defs><clipPath id='${clipId}'><path d='${lens}'/></clipPath>${lashMaskDef}</defs>
       <path d='${lens}' fill='#fcf8f0' stroke='none'/>
       <g clip-path='url(#${clipId})'>
         <g class='fa-iris'>
@@ -5379,9 +5436,9 @@
         </g>` : ""}
       </g>
       <path d='${bottomArc}' fill='none' stroke='${lowerLid}' stroke-width='${lowerLidWidth.toFixed(2)}' stroke-linecap='round'/>
+      ${lashes}
       <path d='${topArc}' fill='none' stroke='${ink}' stroke-width='${upperLidWidth.toFixed(2)}' stroke-linecap='round' stroke-linejoin='round'/>
       <path d='${crease}' fill='none' stroke='${softInk}' stroke-width='1.4' stroke-linecap='round'/>
-      ${lashes}
     `;
     return `<g class='fa-eye fa-eye-${side || "l"}'>${eye}</g>`;
   }

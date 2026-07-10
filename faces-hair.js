@@ -309,6 +309,9 @@
       // reading as line artefacts. The outer shape is carried by the rim; texture by the base hair
       // silhouette. (The studio's single-lock "full" preview still shows the shading.)
       (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${fill}' stroke='none'/>`; });
+    } else if (partMode === "outline") {
+      if (!outlined) return "";
+      (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${outline}' stroke-width='${(5.8 * strokeScale).toFixed(2)}' stroke-linejoin='round' stroke-linecap='round'/>`; });
     } else if (partMode === "seam") {
       if (!outlined) return "";
       const seamWidth = ((ctx && ctx.seamWidth) || 2.4) * strokeScale;
@@ -342,6 +345,10 @@
     let body = "";
     if (partMode === "mass") body = `<path d='${inst.d}' fill='${massFill}' stroke='none'/>`;
     if (partMode === "fill") body = `<path d='${inst.d}' fill='${fill}' stroke='none'/>`;
+    if (partMode === "outline" && inst.outline !== "none") {
+      const outline = hasPaint(inst.outline) ? inst.outline : ((ctx && ctx.ink) || "#1f2330");
+      body = `<path d='${inst.d}' fill='none' stroke='${outline}' stroke-width='${(2.4 * lockStrokeScale(inst, ctx)).toFixed(2)}' stroke-linejoin='round' stroke-linecap='round'/>`;
+    }
     if (partMode === "seam" && inst.outline !== "none") {
       body = `<path d='${inst.d}' fill='none' stroke='${lineC}' stroke-width='1.5' stroke-linejoin='round' stroke-linecap='round' opacity='0.22'/>`;
     }

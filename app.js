@@ -326,7 +326,17 @@ function iconSvg(name) {
     clear: "<path d='M5 5l14 14'/><path d='M19 5L5 19'/>",
     hash: "<path d='M8 3L6 21'/><path d='M18 3l-2 18'/><path d='M3 8h18'/><path d='M2 16h18'/>",
     copy: "<rect x='9' y='9' width='11' height='11' rx='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/>",
-    check: "<path d='M20 6L9 17l-5-5'/>"
+    check: "<path d='M20 6L9 17l-5-5'/>",
+    // Toolbar
+    book: "<path d='M4 4.5A1.5 1.5 0 0 1 5.5 3H19a1 1 0 0 1 1 1v13H6a2 2 0 0 0-2 2Z'/><path d='M4 19a2 2 0 0 1 2-2h14'/><path d='M9 7h7'/>",
+    palette: "<path d='M12 3a9 9 0 1 0 0 18 1.6 1.6 0 0 0 1.6-1.6c0-.42-.17-.8-.43-1.08a1.55 1.55 0 0 1-.4-1.02A1.6 1.6 0 0 1 14.4 15H16a5 5 0 0 0 5-5c0-3.87-4-7-9-7Z'/><circle cx='7.6' cy='11.6' r='1.05' fill='currentColor' stroke='none'/><circle cx='9.8' cy='7.6' r='1.05' fill='currentColor' stroke='none'/><circle cx='14.3' cy='7.6' r='1.05' fill='currentColor' stroke='none'/>",
+    speaker: "<path d='M4 9.5h3.3L12 6v12l-4.7-3.5H4z'/><path d='M15.5 9.2a4 4 0 0 1 0 5.6'/><path d='M18 6.9a7.5 7.5 0 0 1 0 10.2'/>",
+    // Sort-mode glyphs (the compact sort control shows the active one)
+    sortlines: "<path d='M4 7h11M4 12h8M4 17h5'/><path d='M17.5 8v9'/><path d='M14.5 14l3 3 3-3'/>",
+    ear: "<path d='M8 9a4 4 0 0 1 8 0c0 2.2-1.6 3.3-2.7 4.2-.85.7-1.2 1.35-1.3 2.3A2.3 2.3 0 0 1 7.4 16'/><path d='M9.6 9.4A2.4 2.4 0 0 1 14 10.7'/>",
+    skin: "<circle cx='12' cy='12' r='8.5'/><path d='M12 3.5a8.5 8.5 0 0 1 0 17Z' fill='currentColor' stroke='none'/>",
+    hair: "<path d='M5 13a7 7 0 0 1 14 0'/><path d='M6.6 11.4C7 9 8 6.6 8.9 5.6M12 10.6c0-2 .3-4.2.9-5.7M17.2 11.3c-.2-2-.7-3.9-1.4-5'/><path d='M5 13v3.4A2.6 2.6 0 0 0 7.6 19h8.8a2.6 2.6 0 0 0 2.6-2.6V13'/>",
+    az: "<path d='M4 8l2.5-4L9 8M4.7 6.7h3.6'/><path d='M4 20h5l-5-6h5'/><path d='M14 6h6l-6 6h6'/>"
   };
   return `<span class="control-icon"><svg ${common}>${paths[name] || ""}</svg></span>`;
 }
@@ -345,6 +355,11 @@ function setButtonIcon(button, icon, label) {
 function installStaticIcons() {
   syncThemeButton();
   setButtonIcon(els.setupButton, "settings", "Setup");
+  setButtonIcon(els.almanacButton, "book", "The Almanac");
+  setButtonIcon(els.editorButton, "palette", "Character editor");
+  setButtonIcon(els.soundButton, "speaker", "Sound & music");
+  [els.almanacButton, els.editorButton, els.soundButton].forEach((b) => b && b.classList.add("icon-only"));
+  updateSortGlyph();
   if (els.swapSeatButton) { setButtonIcon(els.swapSeatButton, "swap", "End round"); els.swapSeatButton.classList.add("end-round-btn"); els.swapSeatButton.querySelector(".ib-label")?.remove(); els.swapSeatButton.insertAdjacentHTML("beforeend", "<span class=\"er-txt\">END ROUND</span>"); }
 }
 
@@ -870,6 +885,15 @@ function rebuildSortOptions() {
   if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = "";   // fall back to board order, not the first named sort
   sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
   sel.value = state.sortKey;
+  updateSortGlyph();
+}
+// The compact sort control shows a glyph for the ACTIVE sort (an ear when sorted by ear size, etc.),
+// falling back to the generic sort-lines icon for board order or any mode sort without its own glyph.
+const SORT_GLYPH_ICON = { eye: "eye", skin: "skin", ear: "ear", hairamount: "hair", appeal: "star", name: "az", nameappropriateness: "az" };
+function updateSortGlyph() {
+  const holder = document.querySelector(".sort-glyph");
+  if (!holder) return;
+  holder.innerHTML = iconSvg(SORT_GLYPH_ICON[state.sortKey] || "sortlines");
 }
 
 function sortedBoard() {
@@ -3102,5 +3126,5 @@ else showTitleScreen();
 wireCueCardClick();
 wireFloatingSecret();
 if (els.sortSelect) {
-  els.sortSelect.addEventListener("change", () => { state.sortKey = els.sortSelect.value; renderBoard({ animateReorder: true }); });
+  els.sortSelect.addEventListener("change", () => { state.sortKey = els.sortSelect.value; updateSortGlyph(); renderBoard({ animateReorder: true }); });
 }

@@ -117,7 +117,6 @@
       { group: "Hair", key: "backHairY", label: "Back Hair Y", min: -14, max: 14, step: 1, fallback: 0,
         when: (t) => ["longWaves", "bun", "hijab"].includes(t.hair) || !(window.facesHair && window.facesHair.has(t.hair)) },
       { group: "Hair", key: "lockBlend", label: "Lock Blending", type: "select", options: () => [["merged", "Merged"], ["separate", "Separate"]], fallback: "merged" },
-      { group: "Hair", key: "mergedLockOutlineMode", label: "Merged Lock Outline", type: "select", options: () => [["auto", "Auto"], ["force", "Force On"]], fallback: "auto", when: (t) => (t.lockBlend || "merged") === "merged" },
       { group: "Brows", key: "browShape", label: "Brow Shape", type: "select", options: () => selectOptions(traitBook.browShapes), fallback: "soft" },
       { group: "Brows", key: "browY", label: "Brow Height", min: -6, max: 6, step: 0.5, fallback: 0 },
       { group: "Brows", key: "browScaleX", label: "Brow Width", min: 0.8, max: 1.25, step: 0.02, fallback: 1 },

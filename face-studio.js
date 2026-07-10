@@ -55,7 +55,6 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   { group: "Hair", key: "backHairY", label: "Back Hair Y", min: -14, max: 14, step: 1, fallback: 0,
     when: (t) => ["longWaves", "bun", "hijab"].includes(t.hair) || !(window.facesHair && window.facesHair.has(t.hair)) },
   { group: "Hair", key: "lockBlend", label: "Lock Blending", type: "select", options: () => [["merged", "Merged"], ["separate", "Separate"]], fallback: "merged" },
-  { group: "Hair", key: "mergedLockOutlineMode", label: "Merged Lock Outline", type: "select", options: () => [["auto", "Auto"], ["force", "Force On"]], fallback: "auto", when: (t) => (t.lockBlend || "merged") === "merged" },
   // Brows
   { group: "Brows", key: "browShape", label: "Brow Shape", type: "select", options: () => selectOptions(traitBook.browShapes), fallback: "soft" },
   { group: "Brows", key: "browY", label: "Brow Height", min: -6, max: 6, step: 0.5, fallback: 0 },
@@ -1397,7 +1396,8 @@ function formatNumber(value) {
 
 /* ===================== Hair Lock Designer ===================== *
  * Locks are stored per character as corrections[id].hairLocks - an ordered array (array order =
- * z-order, last = front). Each entry: { lock, x, y, scale, rot, lines, fill?, dark?, shine?, line? }
+ * z-order, last = front). Each entry: { lock, x, y, scale, rot, lines, outline?, outlineForce?,
+ * fill?, dark?, shine?, line? }
  * with x/y as 0-100 (% of the 256 portrait box) for the lock's centre. The generator reads this
  * trait and composites the locks on top of the hair, so edits persist + show in the export JSON. */
 const LOCK_CATALOG = (window.facesHair && window.facesHair.lockCatalog) || [];
@@ -1454,6 +1454,7 @@ function lockThumb(key) {
 function lockDesignerMarkup(character) {
   const locks = getLocks(character.id);
   const hairHex = hairHexFor(character);
+  const merged = (traitsFor(character, selectedExpressionFor(character)).lockBlend || "merged") === "merged";
   const palette = LOCK_CATALOG
     .map(({ key, label }) => `
       <button type="button" class="lock-chip" draggable="true" data-lock="${escapeHtml(key)}" title="Add ${escapeHtml(label)}">
@@ -1462,7 +1463,7 @@ function lockDesignerMarkup(character) {
       </button>`)
     .join("");
   const stack = locks.length
-    ? locks.map((inst, i) => lockRowMarkup(inst, i, locks.length, hairHex)).join("")
+    ? locks.map((inst, i) => lockRowMarkup(inst, i, locks.length, hairHex, merged)).join("")
     : `<p class="lock-empty">No locks yet — click a style above, or drag one onto the hair.</p>`;
   return `
     <div class="lock-designer">
@@ -1511,9 +1512,9 @@ function penDesignerMarkup() {
 }
 
 const LOCK_INK = "#1f2330";
-function lockRowMarkup(inst, i, n, hairHex) {
+function lockRowMarkup(inst, i, n, hairHex, merged) {
   // Drawn (pen-tool) locks have no catalog key/transform — show a slimmed row.
-  if (inst.d) return drawnRowMarkup(inst, i, hairHex);
+  if (inst.d) return drawnRowMarkup(inst, i, hairHex, merged);
   // defHex = the auto colour shown when this part isn't overridden. 'outline' is special: its auto is
   // the global ink, and it has an on/off state (outline === 'none').
   const colorField = (part, defHex, label) => {
@@ -1544,6 +1545,7 @@ function lockRowMarkup(inst, i, n, hairHex) {
         <label class="lock-toggle"><input type="checkbox" data-lock-lines ${inst.lines === false ? "" : "checked"}> Lines</label>
         <label class="lock-toggle"><input type="checkbox" data-lock-mirror ${inst.mirror ? "checked" : ""}> Mirror</label>
         <label class="lock-toggle"><input type="checkbox" data-lock-outline ${inst.outline === "none" ? "" : "checked"}> Outline</label>
+        ${merged ? `<label class="lock-toggle"><input type="checkbox" data-lock-outline-force ${inst.outlineForce ? "checked" : ""} ${inst.outline === "none" ? "disabled" : ""}> Internal line</label>` : ""}
         <label class="lock-toggle"><input type="checkbox" data-lock-behind ${inst.behind ? "checked" : ""}> Behind</label>
       </div>
       <div class="lock-row-colors">
@@ -1557,7 +1559,7 @@ function lockRowMarkup(inst, i, n, hairHex) {
 }
 
 // Slim editor row for a hand-drawn lock: reorder, delete, lines/outline toggles, and a fill swatch.
-function drawnRowMarkup(inst, i, hairHex) {
+function drawnRowMarkup(inst, i, hairHex, merged) {
   const fill = inst.fill || shadeHex(hairHex, 1);
   return `
     <div class="lock-row" data-index="${i}" data-lock-droprow>
@@ -1570,6 +1572,7 @@ function drawnRowMarkup(inst, i, hairHex) {
       <div class="lock-row-toggles">
         <label class="lock-toggle"><input type="checkbox" data-lock-lines ${inst.lines === false ? "" : "checked"}> Lines</label>
         <label class="lock-toggle"><input type="checkbox" data-lock-outline ${inst.outline === "none" ? "" : "checked"}> Outline</label>
+        ${merged ? `<label class="lock-toggle"><input type="checkbox" data-lock-outline-force ${inst.outlineForce ? "checked" : ""} ${inst.outline === "none" ? "disabled" : ""}> Internal line</label>` : ""}
       </div>
       <div class="lock-row-colors">
         <label class="lock-color is-set">
@@ -1607,7 +1610,13 @@ function wireLockDesigner(character) {
     const behind = row.querySelector("[data-lock-behind]");
     if (behind) behind.addEventListener("change", () => { setLockProp(character, idx, "behind", behind.checked || undefined); render(); });
     const outline = row.querySelector("[data-lock-outline]");
-    if (outline) outline.addEventListener("change", () => { setLockProp(character, idx, "outline", outline.checked ? undefined : "none"); render(); });
+    if (outline) outline.addEventListener("change", () => {
+      setLockProp(character, idx, "outline", outline.checked ? undefined : "none");
+      if (!outline.checked) setLockProp(character, idx, "outlineForce", undefined);
+      render();
+    });
+    const outlineForce = row.querySelector("[data-lock-outline-force]");
+    if (outlineForce) outlineForce.addEventListener("change", () => { setLockProp(character, idx, "outlineForce", outlineForce.checked || undefined); render(); });
     const swap = row.querySelector("[data-lock-swap]");
     if (swap) swap.addEventListener("change", () => { setLockProp(character, idx, "lock", swap.value); render(); });
     row.querySelectorAll("[data-lock-color]").forEach((inp) => {

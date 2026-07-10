@@ -5451,9 +5451,11 @@ body.low-power .side-you.seat-secret-back { animation: none; }
 }
 .sort-wrap .sort-glyph {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  display: grid; place-items: center;
   width: 24px; height: 24px; pointer-events: none; color: var(--ink);
   transition: opacity 0.16s ease;
 }
+.sort-wrap .sort-glyph .control-icon { width: 20px; height: 20px; }
 /* Expand: hover, keyboard focus, or the native dropdown being open (focus-within). */
 .sort-wrap:hover #sortSelect,
 .sort-wrap:focus-within #sortSelect {

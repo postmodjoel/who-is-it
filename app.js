@@ -557,6 +557,7 @@ function makePlayer(index, taken) {
 // crossed-off board state. A two-player game is always effectively solo/classic even if playMode is
 // still "team" in saved state.
 const SIDE_COUNT = 2, MIN_PLAYERS = 2, MAX_PLAYERS = 12;
+const BOARD_SIZES = [18, 24, 30, 36];   // playable board sizes offered in setup (capped to the generated pool)
 const RESERVED_PLAYER_NAMES = new Set(["guest", "host"]);
 
 function cleanPlayerName(value) {
@@ -2533,7 +2534,7 @@ function showTitleSettings() {
   const S = window.Sound;
   const panel = document.createElement("div");
   panel.className = "ts-settings-panel";
-  const sizeBtns = [18, 24, 30].map((n) =>
+  const sizeBtns = BOARD_SIZES.map((n) =>
     `<button type="button" class="tsp-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
   const trackOpts = (S ? S.trackNames() : []).map((t, i) =>
     `<option value="${i}" ${S && S.currentTrack() === i ? "selected" : ""}>${escapeHtml(t)}</option>`).join("");
@@ -2560,25 +2561,63 @@ function showTitleSettings() {
 }
 // PG toggle now lives INSIDE the local/host setup steps (not the main menu), so it's chosen in
 // context right before a game. Same control markup in both places; a single handler keeps them synced.
+// Bold, single-colour line icons for the whole title menu - no emoji, so every row reads as one
+// consistent set. Drawn on a 24-grid with currentColor, so they inherit each pill's ink (navy on
+// white/yellow) and match automatically. Wrapped in the .ts-ico slot (icon + hairline separator).
+const TS_ICONS = {
+  local: '<path d="M4 10.5V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2.5"/><path d="M3.5 10.5h17a1.5 1.5 0 0 1 1.5 1.5V17H2v-5a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M5 19v-2M19 19v-2"/>',
+  online: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+  host: '<path d="M4 11.5 12 5l8 6.5"/><path d="M6 10.5V19h12v-8.5"/><path d="M10 19v-4.5h4V19"/>',
+  join: '<circle cx="8.5" cy="12" r="3.5"/><path d="M11.8 11h8.7v3M17 11v2.5"/>',
+  tv: '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8 4l4 4 4-4"/>',
+  door: '<path d="M13.5 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h6.5"/><path d="M13.5 3 18.5 5v14l-5 2z"/><circle cx="15.4" cy="12" r="0.9" fill="currentColor" stroke="none"/>',
+  back: '<path d="M14.5 5 8 12l6.5 7"/>',
+  add: '<path d="M12 5.5v13M5.5 12h13"/>',
+  dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.4" fill="currentColor" stroke="none"/>',
+  resume: '<path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 8v4h4"/>',
+  pg: '<path d="M12 3.5 5 6.2v5c0 4.3 2.9 7.3 7 9.3 4.1-2 7-5 7-9.3v-5z"/><path d="M9.2 12.2l2 2 3.6-4"/>',
+  team: '<circle cx="8.5" cy="9" r="2.6"/><circle cx="16" cy="9.5" r="2.2"/><path d="M3.8 18c.4-2.8 2.3-4.4 4.7-4.4s4.3 1.6 4.7 4.4z"/><path d="M14.5 13.9c2 .2 3.5 1.7 3.8 4.1"/>',
+  board: '<rect x="4" y="4" width="16" height="16" rx="2.2"/><path d="M4 10h16M4 15h16M9.5 4v16M14.5 4v16"/>'
+};
+function tsIcon(name) {
+  const p = TS_ICONS[name] || "";
+  return `<span class="ts-ico"><svg class="ts-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg></span>`;
+}
+// Sound / music icons come as an on+off pair so the toggle CROSSFADES between the two glyphs.
+const TS_AUDIO_ICONS = {
+  sound: {
+    on: '<path d="M4 9.5h3.2L12 6v12l-4.8-3.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.8a7.2 7.2 0 0 1 0 10.4"/>',
+    off: '<path d="M4 9.5h3.2L12 6v12l-4.8-3.5H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>'
+  },
+  music: {
+    on: '<circle cx="7" cy="17.5" r="2.5"/><circle cx="17" cy="15.5" r="2.5"/><path d="M9.5 17.5V6l10-2v11.5M9.5 9l10-2"/>',
+    off: '<circle cx="7" cy="17.5" r="2.5"/><path d="M9.5 17.5V6l10-2v4"/><path d="M4 4l16 16"/>'
+  }
+};
+function tsAudioIconSlot(kind) {
+  const g = TS_AUDIO_ICONS[kind];
+  const svg = (cls, body) => `<svg class="ts-svg ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+  return `<span class="ts-ico ts-ico-audio">${svg("ico-on", g.on)}${svg("ico-off", g.off)}</span>`;
+}
 function pgToggleMarkup() {
-  return `<button type="button" class="button secondary ts-pg ${state.settings.pg ? "on" : ""}" aria-pressed="${state.settings.pg}"><span>PG MODE 🧒</span><b>${state.settings.pg ? "ON" : "OFF"}</b></button>`;
+  const on = state.settings.pg;
+  return `<button type="button" class="ts-opt ts-pg ${on ? "on" : ""}" aria-pressed="${on}">${tsIcon("pg")}<span class="ts-opt-label">PG Mode</span><b class="ts-chip">${on ? "ON" : "OFF"}</b></button>`;
 }
 // Board size lives inline in the setup step now (no nested settings panel).
 function boardSizeMarkup() {
-  const pills = [18, 24, 30].map((n) => `<button type="button" class="ts-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
-  return `<div class="ts-set-row"><span>Board size</span><span class="ts-size-pills">${pills}</span></div>`;
+  const pills = BOARD_SIZES.map((n) => `<button type="button" class="ts-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
+  return `<div class="ts-opt ts-opt-board">${tsIcon("board")}<span class="ts-opt-label">Board</span><span class="ts-size-pills">${pills}</span></div>`;
 }
-// One audio button (sound FX + music together) - the whole thing toggles on/off.
+// Two independent settings rows: game sounds (FX) and music, each with an animated on/off glyph.
 function audioToggleMarkup() {
-  // Two independent toggles: game sounds (FX) and music. Initial states come from device prefs so
-  // they survive reloads (Sound.isMusicOn() also checks the track, so it can't seed the button).
+  // Initial states come from device prefs so they survive reloads (Sound.isMusicOn() also checks the
+  // track, so it can't seed the button).
   const prefs = loadPrefs();
   const sfxOn = prefs.sound !== false;
   const musicOn = prefs.music !== false;
-  return `<div class="ts-audio-row">
-      <button type="button" class="ts-audio ts-sound ${sfxOn ? "on" : ""}" aria-pressed="${sfxOn}"><span class="ts-audio-ico">🔊</span><b>${sfxOn ? "ON" : "OFF"}</b></button>
-      <button type="button" class="ts-audio ts-music ${musicOn ? "on" : ""}" aria-pressed="${musicOn}"><span class="ts-audio-ico">🎵</span><b>${musicOn ? "ON" : "OFF"}</b></button>
-    </div>`;
+  const row = (cls, kind, label, on) =>
+    `<button type="button" class="ts-opt ts-audio ${cls} ${on ? "on" : ""}" aria-pressed="${on}">${tsAudioIconSlot(kind)}<span class="ts-opt-label">${label}</span><b class="ts-chip">${on ? "ON" : "OFF"}</b></button>`;
+  return row("ts-sound", "sound", "Sound", sfxOn) + row("ts-music", "music", "Music", musicOn);
 }
 function showTitleScreen() {
   const saved = loadGameSave();
@@ -2591,42 +2630,42 @@ function showTitleScreen() {
     </div>
     <div class="ts-actions">
       <div class="ts-step ts-step-main">
-        <button type="button" class="button primary ts-local"><span class="ts-ico">🛋</span><span class="ts-lbl">LOCAL GAME</span></button>
-        <button type="button" class="button secondary ts-online"><span class="ts-ico">🌐</span><span class="ts-lbl">ONLINE GAME</span></button>
+        <button type="button" class="button primary ts-local">${tsIcon("local")}<span class="ts-lbl">LOCAL GAME</span></button>
+        <button type="button" class="button secondary ts-online">${tsIcon("online")}<span class="ts-lbl">ONLINE GAME</span></button>
         ${saved ? `<button type="button" class="button ghost ts-resume">${saved.gameMode === "online"
-          ? `<span class="ts-ico">🌐</span><span class="ts-lbl">${saved.inLobby ? "REJOIN LOBBY" : "RESUME ONLINE"} · #${escapeHtml(saved.roomCode || "?")}</span>`
-          : `<span class="ts-ico">↩</span><span class="ts-lbl">RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</span>`}</button>` : ""}
+          ? `${tsIcon("online")}<span class="ts-lbl">${saved.inLobby ? "REJOIN LOBBY" : "RESUME ONLINE"} · #${escapeHtml(saved.roomCode || "?")}</span>`
+          : `${tsIcon("resume")}<span class="ts-lbl">RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</span>`}</button>` : ""}
       </div>
       <div class="ts-step ts-step-names" hidden>
         <p class="ts-names-label">Name your players</p>
         <div class="ts-names-list"></div>
-        <button type="button" class="ts-add-player"><span class="ts-ico">＋</span><span class="ts-lbl">ADD PLAYER</span></button>
-        <label class="ts-team-mode" hidden>
-          <span>Team Mode</span>
+        <button type="button" class="ts-add-player">${tsIcon("add")}<span class="ts-lbl">ADD PLAYER</span></button>
+        <label class="ts-opt ts-team-mode" hidden>
+          ${tsIcon("team")}<span class="ts-opt-label">Team Mode</span>
           <input class="ts-team-mode-input" type="checkbox" checked>
-          <b>ON</b>
+          <b class="ts-chip">ON</b>
         </label>
         ${pgToggleMarkup()}
         ${boardSizeMarkup()}
         <div class="ts-btn-row">
-          <button type="button" class="button ghost ts-back"><span class="ts-ico">←</span><span class="ts-lbl">BACK</span></button>
-          <button type="button" class="button primary ts-names-go"><span class="ts-ico">🎲</span><span class="ts-lbl">BEGIN</span></button>
+          <button type="button" class="button ghost ts-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
+          <button type="button" class="button primary ts-names-go">${tsIcon("dice")}<span class="ts-lbl">BEGIN</span></button>
         </div>
         ${audioToggleMarkup()}
       </div>
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
-        <button type="button" class="button primary ts-host"><span class="ts-ico">🏠</span><span class="ts-lbl">HOST A ROOM</span></button>
-        <button type="button" class="button secondary ts-showjoin"><span class="ts-ico">🔑</span><span class="ts-lbl">JOIN A ROOM</span></button>
-        <button type="button" class="button ghost ts-observe"><span class="ts-ico">📺</span><span class="ts-lbl">DISPLAY ON A TV</span></button>
-        <button type="button" class="button ghost ts-back"><span class="ts-ico">←</span><span class="ts-lbl">BACK</span></button>
+        <button type="button" class="button primary ts-host">${tsIcon("host")}<span class="ts-lbl">HOST A ROOM</span></button>
+        <button type="button" class="button secondary ts-showjoin">${tsIcon("join")}<span class="ts-lbl">JOIN A ROOM</span></button>
+        <button type="button" class="button ghost ts-observe">${tsIcon("tv")}<span class="ts-lbl">DISPLAY ON A TV</span></button>
+        <button type="button" class="button ghost ts-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
         ${audioToggleMarkup()}
       </div>
       <div class="ts-step ts-step-join" hidden>
         <p class="ts-join-label">Enter your friend's room number</p>
         <input class="ts-join-input" type="text" inputmode="numeric" maxlength="4" placeholder="1234" aria-label="Room code to join">
-        <button type="button" class="button primary ts-join-go"><span class="ts-ico">🚪</span><span class="ts-lbl">JOIN ROOM</span></button>
-        <button type="button" class="button ghost ts-back"><span class="ts-ico">←</span><span class="ts-lbl">BACK</span></button>
+        <button type="button" class="button primary ts-join-go">${tsIcon("door")}<span class="ts-lbl">JOIN ROOM</span></button>
+        <button type="button" class="button ghost ts-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -2676,7 +2715,11 @@ function showTitleScreen() {
     online: ov.querySelector(".ts-step-online"),
     join: ov.querySelector(".ts-step-join")
   };
-  const show = (name) => Object.entries(steps).forEach(([k, el]) => { el.hidden = k !== name; });
+  const show = (name) => Object.entries(steps).forEach(([k, el]) => {
+    const active = k === name;
+    el.hidden = !active;
+    if (active) { el.classList.remove("ts-step-enter"); void el.offsetWidth; el.classList.add("ts-step-enter"); }   // re-trigger the fade-in
+  });
   const markInvalid = (el) => {
     if (!el) return;
     el.classList.add("shake");
@@ -2694,6 +2737,7 @@ function showTitleScreen() {
   const refreshNamesUi = () => {
     const n = slotCount();
     teamToggle.hidden = n <= 2;
+    teamToggle.classList.toggle("on", teamInput.checked);
     teamToggle.querySelector("b").textContent = teamInput.checked ? "ON" : "OFF";
     addBtn.disabled = n >= MAX_PLAYERS;
     namesList.querySelectorAll(".ts-name-remove").forEach((b) => { b.disabled = n <= MIN_PLAYERS; });
@@ -2724,6 +2768,7 @@ function showTitleScreen() {
   });
   teamInput.addEventListener("change", (e) => {
     localPlayMode = e.target.checked ? "team" : "solo";
+    teamToggle.classList.toggle("on", e.target.checked);
     teamToggle.querySelector("b").textContent = e.target.checked ? "ON" : "OFF";
   });
   ov.querySelector(".ts-names-go").addEventListener("click", () => {
@@ -2914,10 +2959,10 @@ function showLobby() {
   ov.innerHTML = `
     <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">IS IT?</span></div>
     <p class="lobby-code">ROOM <b>#${escapeHtml(state.roomCode)}</b></p>
-    ${host ? `<label class="ts-team-mode lobby-team-mode">
-      <span>Team Mode</span>
+    ${host ? `<label class="ts-opt ts-team-mode lobby-team-mode ${state.playMode === "solo" ? "" : "on"}">
+      ${tsIcon("team")}<span class="ts-opt-label">Team Mode</span>
       <input class="lobby-team-mode-input" type="checkbox" ${state.playMode === "solo" ? "" : "checked"}>
-      <b>${state.playMode === "solo" ? "OFF" : "ON"}</b>
+      <b class="ts-chip">${state.playMode === "solo" ? "OFF" : "ON"}</b>
     </label>
     ${pgToggleMarkup()}
     ${boardSizeMarkup()}` : ""}
@@ -2991,6 +3036,7 @@ function updateLobby() {
     modeToggle.hidden = roster.length <= 2;
     const modeInput = modeToggle.querySelector("input");
     if (modeInput) modeInput.checked = state.playMode !== "solo";
+    modeToggle.classList.toggle("on", state.playMode !== "solo");
     modeToggle.querySelector("b").textContent = state.playMode === "solo" ? "OFF" : "ON";
   }
   ov.querySelector(".lobby-players").innerHTML = Array.from({ length: slots }, (_, i) => {
@@ -3026,7 +3072,7 @@ installStaticIcons();
 // Device prefs (board size, sound/music) set from the title-screen settings panel.
 {
   const prefs = loadPrefs();
-  if ([18, 24, 30].includes(prefs.boardSize)) state.settings.boardSize = prefs.boardSize;
+  if (BOARD_SIZES.includes(prefs.boardSize)) state.settings.boardSize = prefs.boardSize;
   if (prefs.lowPower === true) state.settings.lowPower = true;   // device pref, persists across sessions
   applyLowPower();
   placeDesktopToolbar();   // desktop: fold the board toolbar into the sticky rail

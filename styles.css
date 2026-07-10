@@ -5481,45 +5481,90 @@ body.low-power .side-you.seat-secret-back { animation: none; }
 .manor-token:active { cursor: grabbing; }
 
 /* ===================== Title screen: local / online / host / join ===================== */
-.ts-step { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(340px, 86vw); }
+.ts-step { display: flex; flex-direction: column; align-items: stretch; gap: 11px; width: min(340px, 86vw); }
 .ts-step[hidden] { display: none; }
-/* ===== Game-show menu pills: white rounded card, icon slot + separator + navy uppercase label.
-   The step's primary action is yellow at rest; everything else goes yellow on hover/focus.
-   Scoped to the title steps so in-game .button styles are untouched. ===== */
+/* Fade/slide-in whenever a step becomes visible (re-triggered from show()). */
+.ts-step-enter { animation: ts-step-in 0.34s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+@keyframes ts-step-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+body.low-power .ts-step-enter { animation: none; }
+
+/* ===== ONE menu system. Two pill families, identical geometry (full width, 54px, radius 14):
+   · ACTION pills  (.ts-step .button)  = solid white / yellow-primary, navy ink - the nav choices.
+   · OPTION pills  (.ts-opt)           = translucent dark card with an ON/OFF chip - the settings.
+   Every pill carries the same left icon slot (.ts-ico) with a hairline separator. ===== */
+.title-screen .ts-step .button,
+.title-screen .ts-opt,
+.title-screen .ts-add-player {
+  box-sizing: border-box; width: 100%; min-height: 54px; margin: 0;
+  display: flex; align-items: center; gap: 0; padding: 0 16px; border-radius: 14px;
+  font-family: "Archivo", sans-serif; font-weight: 900; font-size: 0.96rem;
+  letter-spacing: 0.03em; text-transform: uppercase; text-align: left; cursor: pointer;
+  transition: transform 100ms ease, background 140ms ease, color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+/* --- Action pills (white / yellow) --- */
 .title-screen .ts-step .button {
-  display: flex; align-items: center; width: 100%; min-height: 54px;
-  padding: 0 18px; border-radius: 14px;
-  border: 2px solid rgba(12, 24, 68, 0.16);
-  background: #fffdf7; color: #1d3fa8;
-  font-family: "Archivo", sans-serif; font-weight: 900; font-size: 0.98rem;
-  letter-spacing: 0.03em; text-transform: uppercase; text-align: left;
+  border: 2px solid rgba(12, 24, 68, 0.16); background: #fffdf7; color: #1d3fa8;
   box-shadow: 0 3px 0 rgba(6, 10, 30, 0.45);
-  transition: transform 100ms ease, background 120ms ease, color 120ms ease, border-color 120ms ease;
-  cursor: pointer;
 }
 .title-screen .ts-step .button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(6, 10, 30, 0.45); }
-.title-screen .ts-step .ts-ico {
-  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
-  min-width: 32px; height: 26px; margin-right: 12px; padding-right: 12px;
-  border-right: 1.5px solid rgba(29, 63, 168, 0.3);
-  font-size: 1.1rem; font-weight: 900;
-}
-.title-screen .ts-step .ts-lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .title-screen .ts-step .button.primary { background: #ffbe0b; border-color: rgba(120, 84, 0, 0.4); color: #14235c; }
 .title-screen .ts-step .button:hover,
 .title-screen .ts-step .button:focus-visible { background: #ffbe0b; border-color: rgba(120, 84, 0, 0.4); color: #14235c; outline: none; }
+/* --- Option pills (translucent, ON/OFF chip) --- */
+.title-screen .ts-opt {
+  border: 2px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.07); color: #fffdf7;
+}
+.title-screen .ts-opt:hover { background: rgba(255, 255, 255, 0.12); }
+.title-screen .ts-opt .ts-team-mode-input,
+.title-screen .ts-team-mode input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.title-screen .ts-chip {
+  flex: 0 0 auto; margin-left: auto; padding: 3px 11px; border-radius: 999px;
+  background: #b3261e; color: #fffdf7; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.06em;
+  transition: background 140ms ease;
+}
+.title-screen .ts-opt.on .ts-chip { background: #178a47; }
+/* --- Shared icon slot + label --- */
+.title-screen .ts-ico {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 26px; margin-right: 12px; padding-right: 12px;
+  border-right: 1.5px solid currentColor;
+}
+.title-screen .ts-ico { color: inherit; }
+.title-screen .ts-ico::after { display: none; }              /* separator is the border-right */
+.title-screen .ts-opt .ts-ico { border-right-color: rgba(255, 255, 255, 0.28); }
+.title-screen .ts-step .button .ts-ico { border-right-color: rgba(29, 63, 168, 0.32); }
 .title-screen .ts-step .button.primary .ts-ico,
 .title-screen .ts-step .button:hover .ts-ico,
 .title-screen .ts-step .button:focus-visible .ts-ico { border-right-color: rgba(20, 35, 92, 0.35); }
-/* The name input joins the same pill language. */
-.title-screen .ts-name-input {
-  width: 100%; min-height: 54px; padding: 0 18px; border-radius: 14px;
-  border: 2px solid rgba(12, 24, 68, 0.16); background: #fffdf7;
-  color: #14235c; font-family: "Archivo", sans-serif; font-weight: 800; font-size: 1rem; text-align: left;
-  box-shadow: 0 3px 0 rgba(6, 10, 30, 0.45);
+.ts-svg { width: 21px; height: 21px; display: block; }
+.title-screen .ts-lbl,
+.title-screen .ts-opt-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Sound/music: crossfade between the on + off glyphs as the row toggles. */
+.ts-ico-audio { position: relative; }
+.ts-ico-audio .ts-svg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); opacity: 0; transition: opacity 180ms ease, transform 180ms ease; }
+.ts-audio .ico-off { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.ts-audio.on .ico-off { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+.ts-audio.on .ico-on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+body.low-power .ts-ico-audio .ts-svg { transition: none; }
+
+/* --- Name inputs: same pill; TRANSLUCENT until you type, then solid white like the action pills. --- */
+.title-screen .ts-name-input,
+.title-screen .ts-name-slot {
+  box-sizing: border-box; width: 100%; min-height: 54px; padding: 0 16px; border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.08);
+  color: #fffdf7; font-family: "Archivo", sans-serif; font-weight: 800; font-size: 1rem; text-align: left;
+  letter-spacing: 0.02em; text-transform: none;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
-.title-screen .ts-name-input::placeholder { color: rgba(29, 63, 168, 0.45); font-weight: 700; }
-.title-screen .ts-name-input:focus { outline: none; border-color: #ffbe0b; background: #fffdf7; }
+.title-screen .ts-name-input::placeholder,
+.title-screen .ts-name-slot::placeholder { color: rgba(255, 255, 255, 0.5); font-weight: 700; }
+.title-screen .ts-name-input:not(:placeholder-shown),
+.title-screen .ts-name-slot:not(:placeholder-shown) {
+  background: #fffdf7; color: #14235c; border-color: rgba(12, 24, 68, 0.16);
+  box-shadow: 0 3px 0 rgba(6, 10, 30, 0.4);
+}
+.title-screen .ts-name-input:focus,
+.title-screen .ts-name-slot:focus { outline: none; border-color: #ffbe0b; }
 .ts-join-label { margin: 0 0 2px; font-size: 0.82rem; font-weight: 700; color: rgba(255,255,255,0.75); text-align: center; }
 .ts-join-input {
   width: 100%; padding: 14px 16px; border-radius: 14px;
@@ -5735,116 +5780,42 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 }
 .ts-count-btn:hover { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.6); }
 .ts-count-val { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.6rem; min-width: 1.4ch; text-align: center; color: #fffdf7; }
-.ts-names-label { font-weight: 800; color: #fffdf7; margin-bottom: 8px; }
+.ts-names-label { font-weight: 800; color: #fffdf7; margin-bottom: 8px; text-align: center; }
 .ts-names-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; width: min(320px, 80vw); }
-.ts-name-row { display: flex; align-items: stretch; gap: 6px; }
+/* Name rows: the input pill + a matching square remove button. */
+.ts-name-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
 .ts-name-row .ts-name-slot { flex: 1 1 auto; min-width: 0; }
 .ts-name-remove {
-  flex: 0 0 40px; width: 40px; border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.7); font-size: 1.2rem; font-weight: 900; line-height: 1; cursor: pointer;
+  flex: 0 0 54px; width: 54px; border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.65); font-size: 1.25rem; font-weight: 900; line-height: 1; cursor: pointer;
   transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
 }
 .ts-name-remove:hover { background: rgba(255, 90, 90, 0.22); border-color: #ff6a6a; color: #fff; }
 .ts-name-remove:disabled { opacity: 0.28; cursor: default; }
-/* "＋ Add player": a dashed ghost row that reads as "there could be more here". */
-.ts-add-player {
-  display: flex; align-items: center; width: 100%; min-height: 46px;
-  margin-bottom: 12px; padding: 0 18px; border-radius: 14px;
-  border: 2px dashed rgba(255, 255, 255, 0.3); background: transparent;
-  color: rgba(255, 255, 255, 0.82); font-family: "Archivo", sans-serif; font-weight: 900;
-  font-size: 0.9rem; letter-spacing: 0.03em; text-transform: uppercase; text-align: left;
-  cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
+/* Add player: same pill footprint, but a dashed ghost so it reads as "add another". */
+.title-screen .ts-add-player {
+  border: 2px dashed rgba(255, 255, 255, 0.32); background: transparent; color: rgba(255, 255, 255, 0.82);
 }
-.ts-add-player .ts-ico {
-  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
-  min-width: 32px; height: 24px; margin-right: 12px; padding-right: 12px;
-  border-right: 1.5px solid rgba(255, 255, 255, 0.3); font-size: 1.05rem;
-}
-.ts-add-player:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.5); }
+.title-screen .ts-add-player .ts-ico { border-right-color: rgba(255, 255, 255, 0.28); }
+.ts-add-player:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.55); }
 .ts-add-player:disabled { opacity: 0.35; cursor: default; }
-.ts-name-slot {
-  padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.06); color: #fffdf7; font-size: 1rem; font-weight: 600;
-}
-.ts-name-slot::placeholder { color: rgba(255, 255, 255, 0.4); font-weight: 500; }
-.ts-name-slot:focus,
-.ts-name-input:focus { outline: none; border-color: #ffbe0b; background: rgba(255, 255, 255, 0.12); }
 .ts-name-slot.shake,
 .ts-name-input.shake { animation: ts-shake 0.4s; border-color: #ff5a5a; }
-.ts-team-mode {
-  width: min(320px, 80vw);
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 7px 12px;
-  border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.07);
-  color: #fffdf7;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
 .ts-team-mode[hidden] { display: none; }
-.ts-team-mode input {
-  width: 42px;
-  height: 24px;
-  accent-color: #18a589;
-}
-.ts-team-mode b {
-  min-width: 34px;
-  text-align: right;
-  color: #ffbe0b;
-}
-/* Inline setup settings: board size row, Back|Begin split, sound/music toggles at the bottom. */
-.ts-set-row {
-  width: min(320px, 82vw);
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 7px 12px; border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06);
-  color: #fffdf7; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.82rem;
-}
-.ts-size-pills { display: inline-flex; gap: 6px; }
+/* Board-size pills live on the right of the board OPTION row. */
+.ts-size-pills { display: inline-flex; gap: 6px; margin-left: auto; }
 .ts-size {
-  min-width: 38px; padding: 5px 9px; border-radius: 8px;
+  min-width: 34px; padding: 5px 8px; border-radius: 9px;
   border: 2px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.7); font-family: "Archivo", sans-serif; font-weight: 900; cursor: pointer;
+  color: rgba(255, 255, 255, 0.72); font-family: "Archivo", sans-serif; font-weight: 900; font-size: 0.82rem; cursor: pointer;
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
-.ts-size:hover { background: rgba(255, 255, 255, 0.1); }
-.ts-size.on { background: #ffbe0b; border-color: #ffbe0b; color: #1a1a1a; }
-/* Back | Begin, back-to-back, each half-width. */
-.ts-btn-row { display: flex; gap: 10px; width: min(320px, 82vw); }
-.ts-btn-row .button { flex: 1 1 0; width: auto; min-width: 0; }
-/* Sound / music toggles pinned to the bottom of the step. */
-.ts-toggles { display: flex; gap: 10px; width: min(320px, 82vw); margin-top: 2px; }
-.ts-toggle {
-  flex: 1 1 0; min-width: 0;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 8px 12px; border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05);
-  color: #fffdf7; font-weight: 800; letter-spacing: 0.03em; font-size: 0.78rem; cursor: pointer;
-}
-.ts-toggle input { width: 40px; height: 22px; accent-color: #ffbe0b; }
-/* Single audio button: sound + music together, the whole thing toggles on/off. */
-/* Sound FX + music: two independent compact toggles sharing one row. */
-.ts-audio-row { width: 100%; box-sizing: border-box; margin-top: 2px; display: flex; gap: 10px; }
-.ts-audio {
-  flex: 1 1 0; box-sizing: border-box;
-  display: inline-flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 10px 14px; border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06); border: 2px solid rgba(255, 255, 255, 0.2);
-  color: #fffdf7; font: 900 0.86rem "Archivo", sans-serif; letter-spacing: 0.04em; cursor: pointer;
-  transition: background 120ms ease, opacity 120ms ease;
-}
-.ts-audio:hover { background: rgba(255, 255, 255, 0.12); }
-.ts-audio:not(.on) { opacity: 0.72; }
-.ts-audio-ico { font-size: 1.05rem; }
-.ts-audio b { padding: 2px 9px; border-radius: 6px; background: #b3261e; color: #fffdf7; font-size: 0.74rem; }
-.ts-audio.on b { background: #178a47; }
+.ts-size:hover { background: rgba(255, 255, 255, 0.12); }
+.ts-size.on { background: #ffbe0b; border-color: #ffbe0b; color: #14235c; }
+/* Back | Begin: the one intentional 2-up action pair. */
+.ts-btn-row { display: flex; gap: 10px; width: 100%; }
+.ts-btn-row .button { flex: 1 1 0; min-width: 0; }
 .setup-room-code {
   display: inline-flex;
   align-items: center;
@@ -6320,8 +6291,9 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 }
 .lobby-code b { color: #ffbe0b; font-size: inherit; letter-spacing: 0.02em; }
 /* Lobby host controls sit at the same modest width as Team Mode / Board size (PG was full-bleed). */
-.lobby-screen .ts-pg { width: min(320px, 82vw); margin: 6px auto 0; }
-.lobby-screen .ts-set-row { margin: 6px auto 0; }
+/* The lobby lays its option pills out directly (no .ts-step wrapper) - constrain them to the same
+   width as the title steps so they don't stretch full-viewport. */
+.lobby-screen .ts-opt { width: min(340px, 86vw); margin: 0 auto; }
 /* The lobby is a waiting room, not the hero screen - a trimmed logo keeps START above the fold. */
 .lobby-screen .ts-who, .lobby-screen .ts-isit { font-size: clamp(2.6rem, 9vw, 5rem); }
 .lobby-screen { gap: 20px; }

@@ -269,7 +269,7 @@
     const raw = Number(inst && inst.scale);
     const local = Number.isFinite(raw) ? raw : 1;
     const global = Number(ctx && ctx.outlineScale) || 1;
-    return clamp(Math.pow(local, 0.38) * global, 0.62, 1);
+    return clamp(Math.pow(local, 0.38) * global, 0.55, 1.65);
   }
   function lockTransform(inst) {
     const kNum = LOCK_BASE_K * (Number(inst.scale) || 1);
@@ -454,7 +454,7 @@
   function render(key, fill, ink, opts) {
     const paths = HAIR[key];
     if (!paths) return "";
-    const outlineScale = clamp(Number(opts && opts.outlineScale) || 1, 0.74, 1.08);
+    const outlineScale = clamp(Number(opts && opts.outlineScale) || 1, 0.55, 1.75);
     const outlined = hasPaint(ink);
     const body = paths.map((p) => {
       if (p.m === "fs") return `<path d='${p.d}' fill='${fill}' stroke='${outlined ? ink : "none"}' stroke-width='${(STROKE * outlineScale).toFixed(2)}' stroke-linejoin='round'/>`;

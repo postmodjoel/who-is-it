@@ -664,8 +664,9 @@ body.low-power .secret-card.secret-hide .secret-hidden-tile,
 body.low-power .secret-card.secret-hide .secret-hidden-tile::before,
 body.low-power .secret-card.secret-hide .sht-q { animation: none; }
 @keyframes secretFaceReveal {
-  from { opacity: 0; transform: scale(0.92); filter: saturate(0.6) brightness(0.8); }
-  to { opacity: 1; transform: scale(1); filter: none; }
+  /* opacity + transform only - animating a filter on the full portrait was the reveal jank. */
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
 }
 @keyframes secretTextReveal {
   from { opacity: 0; transform: translateX(-8px); }
@@ -5428,6 +5429,12 @@ body.low-power .side-you.seat-secret-back { animation: none; }
   .side-panel .secret-card:not(.ygo) .card-plate { align-items: flex-start; justify-content: center; text-align: left; padding: 8px 14px; }
   .side-panel .secret-card:not(.ygo) .portrait-wrap { width: 84px; flex: 0 0 auto; aspect-ratio: 1; }
   .side-panel .secret-card:not(.ygo) .card-plate { flex: 1; justify-content: center; }
+  /* Hidden secret (compact row only): centre FACE HIDDEN + TAP TO REVEAL as one stack and enlarge
+     the heading. Safe for the footprint test - the 84px portrait sets the row height, so plate
+     font size doesn't change the card's outer size. The desktop rail is untouched. */
+  .side-panel .secret-card.is-hidden:not(.ygo) .card-plate { align-items: center; justify-content: center; text-align: center; gap: 3px; }
+  .side-panel .secret-card.is-hidden:not(.ygo) .card-plate h3 { font-size: 1.2rem; letter-spacing: 0.03em; }
+  .side-panel .secret-card.is-hidden:not(.ygo) .card-hint { font-size: 0.72rem; }
   .side-panel .secret-card .card-meta,
   .side-panel .secret-card .card-pronouns,
   .side-panel .secret-card .card-role { display: none; }   /* face + name only on phones */

@@ -3152,7 +3152,7 @@
         .join("");
     }
 
-    const outline = hairOutlineFor(traits);
+    const outline = mergedLockOutlineFor(traits);
     const outlineScale = hairOutlineScale(traits);
     const layer = behind ? "behind" : "front";
     // rim = a single outline of the whole lock mass (outer silhouette + spiral concavities), which is
@@ -4983,11 +4983,21 @@
     return `#${ch(16)}${ch(8)}${ch(0)}`;
   }
 
-  function hairOutlineFor(traits) {
-    if (traits.hairOutlineMode === "off" || traits.hairOutline === "none") return "transparent";
-    if (traits.hairOutline) return traits.hairOutline;
+  function resolvedHairOutlineColor(traits) {
+    if (visibleStroke(traits.hairOutline)) return traits.hairOutline;
     const hex = (traits.hairHex || hairColors[traits.hairColor]);
     return hex ? shadeColor(hex, 0.52) : ink;
+  }
+
+  function hairOutlineFor(traits, opts) {
+    const force = !!(opts && opts.force);
+    if (!force && (traits.hairOutlineMode === "off" || traits.hairOutline === "none")) return "transparent";
+    return resolvedHairOutlineColor(traits);
+  }
+
+  function mergedLockOutlineFor(traits) {
+    const force = traits.lockBlend !== "separate" && traits.mergedLockOutlineMode === "force";
+    return hairOutlineFor(traits, force ? { force: true } : null);
   }
 
   function visibleStroke(value) {
@@ -4998,7 +5008,9 @@
     const sx = Number(traits.headScaleX) || 1;
     const sy = Number(traits.headScaleY) || 1;
     const avg = (sx + sy) / 2;
-    return Math.max(0.74, Math.min(1.08, 0.9 + (avg - 1) * 0.55));
+    const width = Number(traits.hairOutlineWidth);
+    const outlineWidth = Number.isFinite(width) ? width : 1;
+    return Math.max(0.55, Math.min(1.75, (0.9 + (avg - 1) * 0.55) * outlineWidth));
   }
 
   function renderBackHair(style, hair, traits) {
@@ -5300,19 +5312,36 @@
       const lashColor = traits.eyelashColor || ink;
       const lashWidth = Math.max(0.7, Number(traits.eyelashThickness) || 2);
       const curl = Math.max(0, Math.min(1.5, Number(traits.eyelashCurl) || 0.75));
+      const lidRoot = (t) => {
+        const u = tc > 0 ? t : 1 - t;
+        const mt = 1 - u;
+        const p0x = cx - w * 0.86;
+        const p0y = y - up * 0.42;
+        const p1x = cx;
+        const p1y = y - up * 1.02;
+        const p2x = cx + w * 0.86;
+        const p2y = y - up * 0.42;
+        const px = mt * mt * p0x + 2 * mt * u * p1x + u * u * p2x;
+        const py = mt * mt * p0y + 2 * mt * u * p1y + u * u * p2y;
+        const dx = 2 * mt * (p1x - p0x) + 2 * u * (p2x - p1x);
+        const dy = 2 * mt * (p1y - p0y) + 2 * u * (p2y - p1y);
+        const mag = Math.hypot(dx, dy) || 1;
+        const nx = dy / mag;
+        const ny = -dx / mag;
+        const lift = Math.min(0.8, 0.14 + lashWidth * 0.08);
+        return { x: px + nx * lift, y: py + ny * lift, nx, ny };
+      };
       const lash = (t, len, phase) => {
-        // t runs inner corner -> outer corner; tc flips the geometry for the left/right eye.
-        const bx = cx + (-tc * w * 0.88) + (tc * w * 1.76 * t);
-        const by = y - up * Math.sin(t * Math.PI) * 0.98 - 0.15;
-        const fan = 0.2 + t * 0.48;
-        const swing = tc * len * fan;
-        const lift = len * (0.72 + t * 0.24);
-        const wobble = Math.sin(phase * 1.73) * len * 0.05;
-        const ex = bx + swing + tc * curl * len * 0.18;
-        const ey2 = by - lift - curl * len * 0.12;
-        const qx = bx + swing * 0.44 + tc * curl * len * 0.28;
-        const qy = by - lift * (0.45 + curl * 0.08) + wobble;
-        return `<path d='M${f(bx)} ${f(by)}Q${f(qx)} ${f(qy)} ${f(ex)} ${f(ey2)}' fill='none' stroke='${lashColor}' stroke-width='${lashWidth.toFixed(2)}' stroke-linecap='round'/>`;
+        const root = lidRoot(t);
+        const fan = 0.08 + t * 0.24;
+        const arc = 0.42 + curl * 0.12;
+        const outer = 0.12 + t * 0.3 + curl * 0.08;
+        const wobble = Math.sin(phase * 1.73) * len * 0.02;
+        const qx = root.x + root.nx * len * arc + tc * len * (fan + curl * 0.03);
+        const qy = root.y + root.ny * len * arc + wobble;
+        const ex = root.x + root.nx * len * (0.86 + curl * 0.2) + tc * len * outer;
+        const ey2 = root.y + root.ny * len * (0.86 + curl * 0.2) - len * (0.03 + curl * 0.04);
+        return `<path d='M${f(root.x)} ${f(root.y)}Q${f(qx)} ${f(qy)} ${f(ex)} ${f(ey2)}' fill='none' stroke='${lashColor}' stroke-width='${lashWidth.toFixed(2)}' stroke-linecap='round'/>`;
       };
       const marks = [];
       for (let i = 0; i < count; i += 1) {

@@ -588,6 +588,24 @@ textarea {
   gap: 5px;
 }
 
+.export-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.export-actions .mini-button {
+  min-height: 28px;
+}
+
 .export-box textarea {
   width: 100%;
   min-height: 118px;
@@ -900,6 +918,9 @@ textarea {
   align-items: center;
   margin-bottom: 6px;
 }
+.lock-row-subcontrols { margin-bottom: 6px; }
+.lock-row-subcontrols .lock-num { width: 100%; }
+.lock-row-subcontrols .lock-num input[type="range"] { flex: 1; min-width: 0; }
 .lock-num { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: var(--muted); }
 .lock-num-pair { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .lock-num input[type="range"] { flex: 1; min-width: 0; }
@@ -913,8 +934,8 @@ textarea {
 }
 .lock-num .editor-value { min-width: 30px; text-align: right; }
 .lock-toggle { display: flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--muted); }
-.lock-row-colors { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-.lock-row-toggles { display: flex; gap: 12px; margin-bottom: 6px; }
+.lock-row-colors { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 5px; }
+.lock-row-toggles { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 6px; }
 .lock-grip { cursor: grab; font-size: 14px; color: var(--muted); padding: 0 2px; user-select: none; }
 .lock-grip:active { cursor: grabbing; }
 .lock-row.is-dragging { opacity: 0.4; }
@@ -948,6 +969,19 @@ textarea {
   background: var(--panel); color: var(--ink);
   font-size: 10px; line-height: 1; cursor: pointer;
 }
+.lock-merged-panel { margin-top: 10px; }
+.lock-merged-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 10px;
+}
+.lock-merged-grid .lock-num {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.lock-merged-grid .lock-num-pair { min-width: 0; }
 
 .beard-marker { background: var(--green); color: #fff; }
 

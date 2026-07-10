@@ -299,6 +299,7 @@
     const shineC = inst.shine || lockShade(hair, 1.3);
     const lineC = inst.line || (ctx && ctx.seam) || lockShade(hair, 0.62);
     const strokeScale = lockStrokeScale(inst, ctx);
+    const seamBaseCutoff = clamp(Number(ctx && ctx.seamBaseCutoff) || 0, 0, 0.8);
     let body = "";
 
     if (partMode === "mass") {
@@ -313,9 +314,9 @@
       if (!outlined) return "";
       (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${outline}' stroke-width='${(5.8 * strokeScale).toFixed(2)}' stroke-linejoin='round' stroke-linecap='round'/>`; });
     } else if (partMode === "seam") {
-      if (!outlined) return "";
+      if (!hasPaint(lineC)) return "";
       const seamWidth = ((ctx && ctx.seamWidth) || 2.4) * strokeScale;
-      const seamOpacity = (ctx && ctx.seamOpacity) || 0.22;
+      const seamOpacity = (ctx && ctx.seamOpacity) == null ? 0.22 : ctx.seamOpacity;
       (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='${seamWidth}' stroke-linejoin='round' stroke-linecap='round' opacity='${seamOpacity}'/>`; });
     } else {
       (lock.hair || []).forEach((d) => { body += `<path d='${d}' fill='${fill}' stroke='${outlined ? outline : "none"}' stroke-width='${(5.8 * strokeScale).toFixed(2)}' stroke-linejoin='round'/>`; });
@@ -324,7 +325,13 @@
       if (inst.lines !== false) (lock.lines || []).forEach((d) => { body += `<path d='${d}' fill='none' stroke='${lineC}' stroke-width='${(4.4 * strokeScale).toFixed(2)}' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'/>`; });
     }
 
-    return body ? `<g transform='${lockTransform(inst)}'>${body}</g>` : "";
+    if (!body) return "";
+    if (partMode === "seam" && seamBaseCutoff > 0) {
+      const clipId = `lock-seam-cut-${String((ctx && ctx.seed) || "0").replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+      const height = 576 - seamBaseCutoff * 512;
+      body = `<clipPath id='${clipId}'><rect x='-96' y='-96' width='704' height='${height.toFixed(1)}'/></clipPath><g clip-path='url(#${clipId})'>${body}</g>`;
+    }
+    return `<g transform='${lockTransform(inst)}'>${body}</g>`;
   }
 
   function renderLock(inst, ctx) {
@@ -340,6 +347,8 @@
     const fill = inst.fill || (ctx && ctx.fill) || hair;
     const massFill = (ctx && ctx.massFill) || "#000";
     const lineC = inst.line || (ctx && ctx.seam) || lockShade(hair, 0.62);
+    const seamWidth = ((ctx && ctx.seamWidth) || 1.5) * lockStrokeScale(inst, ctx);
+    const seamOpacity = (ctx && ctx.seamOpacity) == null ? 0.22 : ctx.seamOpacity;
     const dx = Number(inst.dx) || 0;
     const dy = Number(inst.dy) || 0;
     let body = "";
@@ -349,8 +358,8 @@
       const outline = hasPaint(inst.outline) ? inst.outline : ((ctx && ctx.ink) || "#1f2330");
       body = `<path d='${inst.d}' fill='none' stroke='${outline}' stroke-width='${(2.4 * lockStrokeScale(inst, ctx)).toFixed(2)}' stroke-linejoin='round' stroke-linecap='round'/>`;
     }
-    if (partMode === "seam" && inst.outline !== "none") {
-      body = `<path d='${inst.d}' fill='none' stroke='${lineC}' stroke-width='1.5' stroke-linejoin='round' stroke-linecap='round' opacity='0.22'/>`;
+    if (partMode === "seam" && hasPaint(lineC)) {
+      body = `<path d='${inst.d}' fill='none' stroke='${lineC}' stroke-width='${seamWidth.toFixed(2)}' stroke-linejoin='round' stroke-linecap='round' opacity='${seamOpacity}'/>`;
     }
     if (!body) return "";
     return dx || dy ? `<g transform='translate(${dx} ${dy})'>${body}</g>` : body;

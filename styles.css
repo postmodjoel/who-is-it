@@ -5235,7 +5235,12 @@ img.pol-mascot {
 /* ===================== Title screen ===================== */
 .title-screen {
   position: fixed; inset: 0; z-index: 2000;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px;
+  /* flex-start + fixed top padding (not center): centering re-flowed the logo whenever the visible
+     menu step changed height, so WHO? IS IT? bounced between screens. Now the logo is pinned and
+     the menu grows downward into a fixed-height frame. */
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 30px;
+  padding-top: clamp(24px, 9vh, 96px);
+  overflow-y: auto;
   /* De Stijl primaries: a slow-drifting BLUE ↔ RED gradient over dark anchors (yellow is supplied by
      the WHO text, so it stays out of the backdrop). Reads clearly under the 3D title. */
   background: linear-gradient(125deg, #0a1740 0%, #1741c0 22%, #0b1428 46%, #b21f27 68%, #470d11 86%, #0a1740 100%);
@@ -5245,7 +5250,9 @@ img.pol-mascot {
 }
 @keyframes ts-bg-drift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 .title-screen.ts-out { opacity: 0; pointer-events: none; }
-.ts-words { display: flex; flex-direction: column; align-items: center; line-height: 0.92; overflow: hidden; }
+/* flex: none - on tall screens (the lobby especially) the column overflows and flexbox would
+   shrink this overflow:hidden block, clipping IS IT? in half; it must keep its natural height. */
+.ts-words { display: flex; flex: 0 0 auto; flex-direction: column; align-items: center; line-height: 0.92; overflow: hidden; }
 .ts-who, .ts-isit {
   font-family: "Archivo", sans-serif; font-weight: 900; letter-spacing: -0.02em;
   font-size: clamp(4rem, 16vw, 9.5rem); color: #fffdf7;
@@ -5261,7 +5268,10 @@ img.pol-mascot {
 @keyframes ts-slide-l { from { transform: translateX(-120vw) skewX(12deg); } to { transform: translateX(0) skewX(0); } }
 @keyframes ts-slide-r { from { transform: translateX(120vw) skewX(-12deg); } to { transform: translateX(0) skewX(0); } }
 .ts-actions {
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 12px;
+  /* Reserve the tallest step's height so shorter steps leave space below instead of re-centering. */
+  min-height: min(430px, 58vh);
+  padding-bottom: 24px;
   animation: ts-fade 0.5s 0.95s both;
 }
 .ts-actions .button { min-width: 240px; font-size: 1rem; font-weight: 800; }
@@ -5471,18 +5481,55 @@ body.low-power .side-you.seat-secret-back { animation: none; }
 .manor-token:active { cursor: grabbing; }
 
 /* ===================== Title screen: local / online / host / join ===================== */
-.ts-step { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(320px, 82vw); }
+.ts-step { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(340px, 86vw); }
 .ts-step[hidden] { display: none; }
-.ts-step .button { width: 100%; }
+/* ===== Game-show menu pills: white rounded card, icon slot + separator + navy uppercase label.
+   The step's primary action is yellow at rest; everything else goes yellow on hover/focus.
+   Scoped to the title steps so in-game .button styles are untouched. ===== */
+.title-screen .ts-step .button {
+  display: flex; align-items: center; width: 100%; min-height: 54px;
+  padding: 0 18px; border-radius: 14px;
+  border: 2px solid rgba(12, 24, 68, 0.16);
+  background: #fffdf7; color: #1d3fa8;
+  font-family: "Archivo", sans-serif; font-weight: 900; font-size: 0.98rem;
+  letter-spacing: 0.03em; text-transform: uppercase; text-align: left;
+  box-shadow: 0 3px 0 rgba(6, 10, 30, 0.45);
+  transition: transform 100ms ease, background 120ms ease, color 120ms ease, border-color 120ms ease;
+  cursor: pointer;
+}
+.title-screen .ts-step .button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(6, 10, 30, 0.45); }
+.title-screen .ts-step .ts-ico {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 26px; margin-right: 12px; padding-right: 12px;
+  border-right: 1.5px solid rgba(29, 63, 168, 0.3);
+  font-size: 1.1rem; font-weight: 900;
+}
+.title-screen .ts-step .ts-lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title-screen .ts-step .button.primary { background: #ffbe0b; border-color: rgba(120, 84, 0, 0.4); color: #14235c; }
+.title-screen .ts-step .button:hover,
+.title-screen .ts-step .button:focus-visible { background: #ffbe0b; border-color: rgba(120, 84, 0, 0.4); color: #14235c; outline: none; }
+.title-screen .ts-step .button.primary .ts-ico,
+.title-screen .ts-step .button:hover .ts-ico,
+.title-screen .ts-step .button:focus-visible .ts-ico { border-right-color: rgba(20, 35, 92, 0.35); }
+/* The name input joins the same pill language. */
+.title-screen .ts-name-input {
+  width: 100%; min-height: 54px; padding: 0 18px; border-radius: 14px;
+  border: 2px solid rgba(12, 24, 68, 0.16); background: #fffdf7;
+  color: #14235c; font-family: "Archivo", sans-serif; font-weight: 800; font-size: 1rem; text-align: left;
+  box-shadow: 0 3px 0 rgba(6, 10, 30, 0.45);
+}
+.title-screen .ts-name-input::placeholder { color: rgba(29, 63, 168, 0.45); font-weight: 700; }
+.title-screen .ts-name-input:focus { outline: none; border-color: #ffbe0b; background: #fffdf7; }
 .ts-join-label { margin: 0 0 2px; font-size: 0.82rem; font-weight: 700; color: rgba(255,255,255,0.75); text-align: center; }
 .ts-join-input {
-  width: 100%; padding: 18px 16px; border-radius: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.08);
-  color: #fffdf7; font-family: "Archivo", sans-serif; font-weight: 900;
+  width: 100%; padding: 14px 16px; border-radius: 14px;
+  border: 2px solid rgba(12, 24, 68, 0.16); background: #fffdf7;
+  color: #14235c; font-family: "Archivo", sans-serif; font-weight: 900;
   font-size: 2.4rem; text-align: center; letter-spacing: 0.22em; text-indent: 0.22em;
+  box-shadow: 0 3px 0 rgba(6, 10, 30, 0.45);
 }
-.ts-join-input:focus { outline: none; border-color: #ffbe0b; background: rgba(255, 255, 255, 0.12); }
-.ts-join-input::placeholder { color: rgba(255, 255, 255, 0.28); }
+.ts-join-input:focus { outline: none; border-color: #ffbe0b; }
+.ts-join-input::placeholder { color: rgba(29, 63, 168, 0.3); }
 .ts-join-input.shake { animation: ts-shake 0.4s; border-color: #ff5a5a; }
 @keyframes ts-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
 .ts-hint { max-width: min(360px, 86vw); text-align: center; font-size: 0.72rem; color: rgba(255,255,255,0.5); margin: 4px 0 0; line-height: 1.5; }
@@ -5702,10 +5749,17 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .ts-name-remove:disabled { opacity: 0.28; cursor: default; }
 /* "＋ Add player": a dashed ghost row that reads as "there could be more here". */
 .ts-add-player {
-  width: min(320px, 80vw); margin-bottom: 12px; padding: 9px 14px; border-radius: 10px;
+  display: flex; align-items: center; width: 100%; min-height: 46px;
+  margin-bottom: 12px; padding: 0 18px; border-radius: 14px;
   border: 2px dashed rgba(255, 255, 255, 0.3); background: transparent;
-  color: rgba(255, 255, 255, 0.82); font-family: "Archivo", sans-serif; font-weight: 800;
-  letter-spacing: 0.03em; cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
+  color: rgba(255, 255, 255, 0.82); font-family: "Archivo", sans-serif; font-weight: 900;
+  font-size: 0.9rem; letter-spacing: 0.03em; text-transform: uppercase; text-align: left;
+  cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
+}
+.ts-add-player .ts-ico {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 24px; margin-right: 12px; padding-right: 12px;
+  border-right: 1.5px solid rgba(255, 255, 255, 0.3); font-size: 1.05rem;
 }
 .ts-add-player:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.5); }
 .ts-add-player:disabled { opacity: 0.35; cursor: default; }
@@ -5776,17 +5830,19 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 }
 .ts-toggle input { width: 40px; height: 22px; accent-color: #ffbe0b; }
 /* Single audio button: sound + music together, the whole thing toggles on/off. */
+/* Sound FX + music: two independent compact toggles sharing one row. */
+.ts-audio-row { width: 100%; box-sizing: border-box; margin-top: 2px; display: flex; gap: 10px; }
 .ts-audio {
-  width: min(320px, 82vw); box-sizing: border-box; margin-top: 2px;
-  display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
-  padding: 10px 16px; border-radius: 10px;
+  flex: 1 1 0; box-sizing: border-box;
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px; border-radius: 12px;
   background: rgba(255, 255, 255, 0.06); border: 2px solid rgba(255, 255, 255, 0.2);
   color: #fffdf7; font: 900 0.86rem "Archivo", sans-serif; letter-spacing: 0.04em; cursor: pointer;
   transition: background 120ms ease, opacity 120ms ease;
 }
 .ts-audio:hover { background: rgba(255, 255, 255, 0.12); }
 .ts-audio:not(.on) { opacity: 0.72; }
-.ts-audio-ico { font-size: 1.05rem; letter-spacing: 0.12em; }
+.ts-audio-ico { font-size: 1.05rem; }
 .ts-audio b { padding: 2px 9px; border-radius: 6px; background: #b3261e; color: #fffdf7; font-size: 0.74rem; }
 .ts-audio.on b { background: #178a47; }
 .setup-room-code {
@@ -6266,6 +6322,9 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 /* Lobby host controls sit at the same modest width as Team Mode / Board size (PG was full-bleed). */
 .lobby-screen .ts-pg { width: min(320px, 82vw); margin: 6px auto 0; }
 .lobby-screen .ts-set-row { margin: 6px auto 0; }
+/* The lobby is a waiting room, not the hero screen - a trimmed logo keeps START above the fold. */
+.lobby-screen .ts-who, .lobby-screen .ts-isit { font-size: clamp(2.6rem, 9vw, 5rem); }
+.lobby-screen { gap: 20px; }
 .lobby-players { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; min-width: min(300px, 78vw); }
 .lobby-player { padding: 12px 16px; border-radius: 12px; font-weight: 800; text-align: center; font-size: 0.95rem; }
 .lobby-player.here { background: rgba(62, 196, 106, 0.16); color: #7fe0a0; border: 1px solid rgba(62,196,106,0.4); }

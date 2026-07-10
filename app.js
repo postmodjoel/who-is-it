@@ -1661,14 +1661,14 @@ function toggleSoundPanel() {
   const trackOpts = S.trackNames().map((n, i) => `<option value="${i}" ${i === S.currentTrack() ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
   panel.innerHTML = `
     <div class="sp-head"><b>🔊 Sound</b><button type="button" class="sp-x" aria-label="close">✕</button></div>
-    <label class="sp-row"><span>Sound on</span><input type="checkbox" class="sp-master" ${S.isEnabled() ? "checked" : ""}></label>
+    <label class="sp-row"><span>Sound FX</span><input type="checkbox" class="sp-master" ${S.isEnabled() ? "checked" : ""}></label>
     <label class="sp-row"><span>Music${host ? "" : " (host controls)"}</span><input type="checkbox" class="sp-music" ${S.isMusicOn() ? "checked" : ""} ${host ? "" : "disabled"}></label>
     <label class="sp-row"><span>Track</span><select class="sp-track" ${host ? "" : "disabled"}>${trackOpts}</select></label>
     <div class="sp-board-label">Soundboard — both players hear it</div>
     <div class="sp-board">${S.sfxNames().map((n) => `<button type="button" class="sp-fx" data-fx="${n}">${escapeHtml(n)}</button>`).join("")}</div>`;
   document.querySelector(".game-stage")?.appendChild(panel) || document.body.appendChild(panel);
   panel.querySelector(".sp-x").addEventListener("click", () => panel.remove());
-  panel.querySelector(".sp-master").addEventListener("change", (e) => { S.setEnabled(e.target.checked); if (e.target.checked) sfx("blip"); });
+  panel.querySelector(".sp-master").addEventListener("change", (e) => { S.setEnabled(e.target.checked); savePrefs({ sound: e.target.checked }); if (e.target.checked) sfx("blip"); });
   const musicBox = panel.querySelector(".sp-music");
   const trackSel = panel.querySelector(".sp-track");
   const pushMusic = () => { S.setMusic(musicBox.checked); S.setTrack(Number(trackSel.value)); if (state.gameMode === "online") netSend("music", { on: musicBox.checked, track: Number(trackSel.value) }); };
@@ -2570,9 +2570,15 @@ function boardSizeMarkup() {
 }
 // One audio button (sound FX + music together) - the whole thing toggles on/off.
 function audioToggleMarkup() {
-  const S = window.Sound;
-  const on = S ? S.isEnabled() : true;
-  return `<button type="button" class="ts-audio ${on ? "on" : ""}" aria-pressed="${on}"><span class="ts-audio-ico">🔊 🎵</span><b>${on ? "ON" : "OFF"}</b></button>`;
+  // Two independent toggles: game sounds (FX) and music. Initial states come from device prefs so
+  // they survive reloads (Sound.isMusicOn() also checks the track, so it can't seed the button).
+  const prefs = loadPrefs();
+  const sfxOn = prefs.sound !== false;
+  const musicOn = prefs.music !== false;
+  return `<div class="ts-audio-row">
+      <button type="button" class="ts-audio ts-sound ${sfxOn ? "on" : ""}" aria-pressed="${sfxOn}"><span class="ts-audio-ico">🔊</span><b>${sfxOn ? "ON" : "OFF"}</b></button>
+      <button type="button" class="ts-audio ts-music ${musicOn ? "on" : ""}" aria-pressed="${musicOn}"><span class="ts-audio-ico">🎵</span><b>${musicOn ? "ON" : "OFF"}</b></button>
+    </div>`;
 }
 function showTitleScreen() {
   const saved = loadGameSave();
@@ -2585,16 +2591,16 @@ function showTitleScreen() {
     </div>
     <div class="ts-actions">
       <div class="ts-step ts-step-main">
-        <button type="button" class="button primary ts-local">🛋 LOCAL GAME</button>
-        <button type="button" class="button secondary ts-online">🌐 ONLINE GAME</button>
+        <button type="button" class="button primary ts-local"><span class="ts-ico">🛋</span><span class="ts-lbl">LOCAL GAME</span></button>
+        <button type="button" class="button secondary ts-online"><span class="ts-ico">🌐</span><span class="ts-lbl">ONLINE GAME</span></button>
         ${saved ? `<button type="button" class="button ghost ts-resume">${saved.gameMode === "online"
-          ? `🌐 ${saved.inLobby ? "REJOIN LOBBY" : "RESUME ONLINE"} · #${escapeHtml(saved.roomCode || "?")}`
-          : `↩ RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}`}</button>` : ""}
+          ? `<span class="ts-ico">🌐</span><span class="ts-lbl">${saved.inLobby ? "REJOIN LOBBY" : "RESUME ONLINE"} · #${escapeHtml(saved.roomCode || "?")}</span>`
+          : `<span class="ts-ico">↩</span><span class="ts-lbl">RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</span>`}</button>` : ""}
       </div>
       <div class="ts-step ts-step-names" hidden>
         <p class="ts-names-label">Name your players</p>
         <div class="ts-names-list"></div>
-        <button type="button" class="ts-add-player">＋ Add player</button>
+        <button type="button" class="ts-add-player"><span class="ts-ico">＋</span><span class="ts-lbl">ADD PLAYER</span></button>
         <label class="ts-team-mode" hidden>
           <span>Team Mode</span>
           <input class="ts-team-mode-input" type="checkbox" checked>
@@ -2603,24 +2609,24 @@ function showTitleScreen() {
         ${pgToggleMarkup()}
         ${boardSizeMarkup()}
         <div class="ts-btn-row">
-          <button type="button" class="button ghost ts-back">← Back</button>
-          <button type="button" class="button primary ts-names-go">BEGIN</button>
+          <button type="button" class="button ghost ts-back"><span class="ts-ico">←</span><span class="ts-lbl">BACK</span></button>
+          <button type="button" class="button primary ts-names-go"><span class="ts-ico">🎲</span><span class="ts-lbl">BEGIN</span></button>
         </div>
         ${audioToggleMarkup()}
       </div>
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
-        <button type="button" class="button primary ts-host">🏠 HOST A ROOM</button>
-        <button type="button" class="button secondary ts-showjoin">🔑 JOIN A ROOM</button>
-        <button type="button" class="button ghost ts-observe">📺 DISPLAY ON A TV</button>
-        <button type="button" class="button ghost ts-back">← Back</button>
+        <button type="button" class="button primary ts-host"><span class="ts-ico">🏠</span><span class="ts-lbl">HOST A ROOM</span></button>
+        <button type="button" class="button secondary ts-showjoin"><span class="ts-ico">🔑</span><span class="ts-lbl">JOIN A ROOM</span></button>
+        <button type="button" class="button ghost ts-observe"><span class="ts-ico">📺</span><span class="ts-lbl">DISPLAY ON A TV</span></button>
+        <button type="button" class="button ghost ts-back"><span class="ts-ico">←</span><span class="ts-lbl">BACK</span></button>
         ${audioToggleMarkup()}
       </div>
       <div class="ts-step ts-step-join" hidden>
         <p class="ts-join-label">Enter your friend's room number</p>
         <input class="ts-join-input" type="text" inputmode="numeric" maxlength="4" placeholder="1234" aria-label="Room code to join">
-        <button type="button" class="button primary ts-join-go">JOIN ROOM →</button>
-        <button type="button" class="button ghost ts-back">← Back</button>
+        <button type="button" class="button primary ts-join-go"><span class="ts-ico">🚪</span><span class="ts-lbl">JOIN ROOM</span></button>
+        <button type="button" class="button ghost ts-back"><span class="ts-ico">←</span><span class="ts-lbl">BACK</span></button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -2648,12 +2654,21 @@ function showTitleScreen() {
     ov.querySelectorAll(".ts-size").forEach((x) => x.classList.toggle("on", Number(x.dataset.n) === n));
     sfx("blip");
   }));
-  // One audio button toggles sound FX + music together; every instance stays in sync.
-  ov.querySelectorAll(".ts-audio").forEach((btn) => btn.addEventListener("click", () => {
+  // Sound FX and music toggle independently; each keeps its twin (names + online steps) in sync.
+  const paintAudio = (sel, on) => ov.querySelectorAll(sel).forEach((x) => {
+    x.classList.toggle("on", on); x.setAttribute("aria-pressed", String(on)); x.querySelector("b").textContent = on ? "ON" : "OFF";
+  });
+  ov.querySelectorAll(".ts-sound").forEach((btn) => btn.addEventListener("click", () => {
     const on = !btn.classList.contains("on");
-    if (window.Sound) { Sound.setEnabled(on); if (on) Sound.resume(); Sound.setMusic(on); }
-    savePrefs({ sound: on, music: on });
-    ov.querySelectorAll(".ts-audio").forEach((x) => { x.classList.toggle("on", on); x.setAttribute("aria-pressed", String(on)); x.querySelector("b").textContent = on ? "ON" : "OFF"; });
+    if (window.Sound) { Sound.setEnabled(on); if (on) Sound.resume(); }
+    savePrefs({ sound: on });
+    paintAudio(".ts-sound", on);
+  }));
+  ov.querySelectorAll(".ts-music").forEach((btn) => btn.addEventListener("click", () => {
+    const on = !btn.classList.contains("on");
+    if (window.Sound) { if (on) Sound.resume(); Sound.setMusic(on); if (on) Sound.titleLoop(true); }
+    savePrefs({ music: on });
+    paintAudio(".ts-music", on);
   }));
   const steps = {
     main: ov.querySelector(".ts-step-main"),

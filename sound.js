@@ -4,7 +4,7 @@
 // unlocks the AudioContext (browsers require it), which app.js wires on first click.
 (function () {
   let ctx = null, master = null, musicBus = null, sfxBus = null;
-  let enabled = true;              // master on/off (SFX + music)
+  let enabled = true;              // sound FX on/off (music is governed by musicOn alone)
   let musicOn = false;
   let track = 1;                   // index into TRACKS (0 = none)
   let musicTimer = null, step = 0;
@@ -23,10 +23,11 @@
   }
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
-  // One enveloped oscillator note.
+  // One enveloped oscillator note. Notes routed to an explicit bus (the music engine always passes
+  // bus: musicBus) bypass the SFX toggle - `enabled` silences effects only, never the music.
   function tone(freq, dur, o) {
     o = o || {};
-    const c = ac(); if (!c || !enabled) return;
+    const c = ac(); if (!c || (!enabled && !o.bus)) return;
     const osc = c.createOscillator(); osc.type = o.type || "square"; osc.frequency.value = freq;
     const g = c.createGain(); const t = c.currentTime; const vol = o.vol != null ? o.vol : 0.5;
     g.gain.setValueAtTime(0.0001, t);
@@ -38,7 +39,7 @@
   }
   function noise(dur, o) {
     o = o || {};
-    const c = ac(); if (!c || !enabled) return;
+    const c = ac(); if (!c || (!enabled && !o.bus)) return;
     const n = Math.floor(c.sampleRate * dur);
     const buf = c.createBuffer(1, n, c.sampleRate); const d = buf.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
@@ -99,7 +100,7 @@
   // wallpapered arpeggio. Melody notes are chord-degree indices (negative = octave down, +10 = up
   // an octave on degree n-10, null = rest).
   function kick(vol) {
-    const c = ac(); if (!c || !enabled) return;
+    const c = ac(); if (!c) return;   // music-only voice (always on musicBus) - not gated by the SFX toggle
     const o = c.createOscillator(); o.type = "sine";
     const g = c.createGain(); const t = c.currentTime;
     o.frequency.setValueAtTime(150, t);
@@ -160,7 +161,7 @@
   function stopMusic() { if (musicTimer) { clearInterval(musicTimer); musicTimer = null; } }
   function startMusic() {
     stopMusic();
-    const T = TRACKS[track]; if (!T || !T.prog || !enabled) return;
+    const T = TRACKS[track]; if (!T || !T.prog || !musicOn) return;
     ac();
     const sixteenth = 15000 / T.bpm;   // ms per 16th note
     step = 0;
@@ -171,7 +172,7 @@
       return chord[d % chord.length];
     };
     musicTimer = setInterval(() => {
-      if (!enabled || !musicOn) { stopMusic(); return; }
+      if (!musicOn) { stopMusic(); return; }
       const bar = Math.floor(step / 16) % T.prog.length;
       const chord = T.prog[bar];
       const s = step % 16;
@@ -217,7 +218,7 @@
   function stopCreditsLoop() { if (creditsTimer) { clearInterval(creditsTimer); creditsTimer = null; } }
   function startCreditsLoop() {
     stopCreditsLoop();
-    if (!enabled) return;
+    if (!musicOn) return;
     ac();
     const bpm = 86, sixteenth = 15000 / bpm;
     // C6 - A7 - Dm7 - G7 (the eternal island turnaround), 1 bar each.
@@ -227,7 +228,7 @@
     const shaker = [0.5, 0, 0.25, 0.35, 0.5, 0, 0.25, 0.35, 0.5, 0, 0.25, 0.35, 0.5, 0, 0.35, 0.25];
     creditsStep = 0;
     creditsTimer = setInterval(() => {
-      if (!enabled) { stopCreditsLoop(); return; }
+      if (!musicOn) { stopCreditsLoop(); return; }
       const bar = Math.floor(creditsStep / 16) % PROG.length;
       const chord = PROG[bar];
       const s = creditsStep % 16;
@@ -249,7 +250,7 @@
   function stopTitleLoop() { if (titleTimer) { clearInterval(titleTimer); titleTimer = null; } }
   function startTitleLoop() {
     stopTitleLoop();
-    if (!enabled) return;
+    if (!musicOn) return;
     ac();
     const bpm = 96, sixteenth = 15000 / bpm;
     const bassLine = [33, null, null, 33, null, null, 36, null, 33, null, null, 31, null, null, 28, null,
@@ -259,7 +260,7 @@
     const sPat = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0];
     titleStep = 0;
     titleTimer = setInterval(() => {
-      if (!enabled) { stopTitleLoop(); return; }
+      if (!musicOn) { stopTitleLoop(); return; }
       const s = titleStep % 16;
       if (k[s]) kick(0.5);
       if (sPat[s]) snare(0.12);
@@ -273,16 +274,17 @@
   window.Sound = {
     resume() { ac(); },
     isEnabled: () => enabled,
-    setEnabled(v) { enabled = !!v; if (!enabled) stopMusic(); else if (musicOn) startMusic(); },
+    setEnabled(v) { enabled = !!v; },   // SFX only - music runs on its own toggle
     play(name) { const f = SFX[name]; if (f) { try { f(); } catch (e) { /* audio blocked */ } } },
     sfxNames: () => Object.keys(SFX),
     trackNames: () => TRACKS.map((t) => t.name),
     currentTrack: () => track,
     isMusicOn: () => musicOn && track > 0,
     setTrack(i) { track = Math.max(0, Math.min(TRACKS.length - 1, i | 0)); if (musicOn && track > 0) startMusic(); else stopMusic(); },
-    setMusic(on) { musicOn = !!on; if (musicOn && track > 0) { stopTitleLoop(); startMusic(); } else stopMusic(); },
-    // The title-screen groove (bass + drums only). Suppressed while real music is playing.
-    titleLoop(on) { if (on && !(musicOn && track > 0)) startTitleLoop(); else stopTitleLoop(); },
+    setMusic(on) { musicOn = !!on; if (musicOn && track > 0) { stopTitleLoop(); startMusic(); } else { stopMusic(); if (!musicOn) { stopTitleLoop(); stopCreditsLoop(); } } },
+    // The title-screen groove (bass + drums only). Suppressed while real music is playing; silent
+    // entirely when the music toggle is off.
+    titleLoop(on) { if (on && musicOn && !(track > 0)) startTitleLoop(); else stopTitleLoop(); },
     // Tiki lounge under the end-of-session credits (pauses any other loop).
     creditsLoop(on) { stopTitleLoop(); if (on) { stopMusic(); startCreditsLoop(); } else { stopCreditsLoop(); if (musicOn && track > 0) startMusic(); } },
     printer(durationMs) { ac(); printerNoise(durationMs || 1500); },

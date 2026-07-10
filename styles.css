@@ -5434,8 +5434,28 @@ body.low-power .side-you.seat-secret-back { animation: none; }
   .side-panel .secret-card .portrait-wrap .prop-overlay,
   .side-panel .secret-card .portrait-wrap .wp-pixel { display: none; }
 }
-/* Sort select now lives in the gameplay topbar. */
-#sortSelect { max-width: 150px; }
+/* Sort select: COMPACT (an icon + down-arrow) at rest, EXPANDS to the labelled dropdown on
+   hover/focus. The select's own value text is hidden while compact; a themed glyph sits on top. */
+.sort-wrap { position: relative; display: inline-flex; align-items: center; }
+.sort-wrap #sortSelect {
+  width: 46px; min-width: 46px; max-width: 46px; padding: 0;
+  color: transparent;                       /* hide the selected label while compact */
+  transition: width 0.22s ease, min-width 0.22s ease, max-width 0.22s ease, padding 0.22s ease;
+}
+.sort-wrap .sort-glyph {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 24px; height: 24px; pointer-events: none; color: var(--ink);
+  transition: opacity 0.16s ease;
+}
+/* Expand: hover, keyboard focus, or the native dropdown being open (focus-within). */
+.sort-wrap:hover #sortSelect,
+.sort-wrap:focus-within #sortSelect {
+  width: 150px; min-width: 150px; max-width: 150px; padding: 0 14px 0 12px; color: inherit;
+}
+.sort-wrap:hover .sort-glyph,
+.sort-wrap:focus-within .sort-glyph { opacity: 0; }
+body.low-power .sort-wrap #sortSelect,
+body.low-power .sort-wrap .sort-glyph { transition: none; }
 
 /* ===================== MURDER! LIVE!: suspects with tells + drag between rooms ===================== */
 /* Demeanor is the suspect's OWN tell, not the room's. Shifty = darting side glances; nervous = a fast
@@ -5515,8 +5535,10 @@ body.low-power .ts-step-enter { animation: none; }
   border: 2px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.07); color: #fffdf7;
 }
 .title-screen .ts-opt:hover { background: rgba(255, 255, 255, 0.12); }
-.title-screen .ts-opt .ts-team-mode-input,
-.title-screen .ts-team-mode input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+/* The native checkbox is hidden but kept full-size + transparent over the pill, so the WHOLE row is
+   the toggle (and it stays actionable for keyboard/automation - a 0x0 box would not be). */
+.title-screen .ts-team-mode { position: relative; }
+.title-screen .ts-team-mode input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .title-screen .ts-chip {
   flex: 0 0 auto; margin-left: auto; padding: 3px 11px; border-radius: 999px;
   background: #b3261e; color: #fffdf7; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.06em;
@@ -6913,14 +6935,16 @@ body.mode-nw .cue-card {
 .dimension-warp {
   position: fixed; inset: 0; z-index: 3000; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  background: radial-gradient(circle at 50% 50%, #1c0b40 0%, #0a0618 62%, #000 100%);
+  /* Ellipse sized past the edges (130%/120%) + a dark-purple outer stop (not pure black), so the
+     colour fills the whole viewport on any aspect - no black bars top/bottom on tall phones. */
+  background: radial-gradient(ellipse 130% 120% at 50% 48%, #2a1163 0%, #150932 52%, #0a0618 100%);
   transition: opacity 0.7s ease, transform 0.7s ease;
 }
 .dimension-warp.dw-out { opacity: 0; transform: scale(1.35); pointer-events: none; }
 .dw-swirl {
   position: absolute; width: 230vmax; height: 230vmax; left: 50%; top: 50%;
   margin: -115vmax 0 0 -115vmax;
-  background: conic-gradient(from 0deg, transparent, rgba(124, 58, 237, 0.38), transparent, rgba(0, 200, 255, 0.32), transparent, rgba(255, 64, 129, 0.34), transparent);
+  background: conic-gradient(from 0deg, transparent, rgba(124, 58, 237, 0.5), transparent, rgba(0, 200, 255, 0.42), transparent, rgba(255, 64, 129, 0.46), transparent);
   animation: dw-spin 4.8s linear infinite, dw-zoom 4.2s cubic-bezier(0.4, 0, 0.6, 1) both;
 }
 .dw-vortex {

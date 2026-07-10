@@ -1002,6 +1002,7 @@ function renderRoom() {
     // Hand-off: the incoming player's face starts hidden so they tap to reveal in private,
     // rather than the previous player's secret flashing to whoever grabs the device next.
     if (state.players[next]) state.players[next].secretVisible = false;
+    drawPrompt();   // fresh question for the incoming player - the deck moves with the hand-off
     render();
     // Slide the fresh side across in the direction of travel, so the swap reads as a hand-off.
     slideSideHandoff(next > prev ? "fwd" : "back");

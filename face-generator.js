@@ -898,16 +898,234 @@
   // make its studio look the permanent default.
   const studioBakes = {
     "aaron": {
-      "hairOutlineMode": "off",
-      "hairOutline": "#ff0000",
-      "neckLength": 3,
-      "headY": -18,
-      "tattooY": -16,
-      "tattooX": 69,
-      "tattooScale": 0.85,
-      "headScaleX": 0.93,
-      "mouthY": 8,
-      "noseWidth": 0.87
+      "castShadowItems": [
+        {
+          "preset": "sweptLeft",
+          "surface": "both",
+          "sides": "both",
+          "x": 0,
+          "y": 0,
+          "spread": 29,
+          "scaleX": 1,
+          "scaleY": 1.2,
+          "rot": -29,
+          "opacity": 0.45,
+          "softness": 0.6,
+          "darkness": 0.35,
+          "tint": "warm"
+        },
+        {
+          "preset": "beardJaw",
+          "surface": "face",
+          "sides": "one",
+          "x": 11,
+          "y": -21,
+          "spread": 31,
+          "darkness": 1,
+          "tint": "warm",
+          "scaleX": 0.92,
+          "scaleY": 1.08,
+          "rot": 0,
+          "opacity": 0.4,
+          "softness": 0.6
+        },
+        {
+          "preset": "capBrim",
+          "surface": "face",
+          "sides": "one",
+          "x": -30,
+          "y": -1,
+          "spread": 0,
+          "darkness": 1.15,
+          "tint": "neutral",
+          "scaleX": 1,
+          "scaleY": 1,
+          "rot": 0,
+          "opacity": 1,
+          "softness": 0.75
+        },
+        {
+          "preset": "beardJaw",
+          "surface": "neck",
+          "sides": "both",
+          "x": -103,
+          "y": 67,
+          "spread": 44,
+          "darkness": 0.4,
+          "tint": "warm",
+          "scaleX": 1.8,
+          "scaleY": 1,
+          "rot": -180,
+          "opacity": 0.9,
+          "softness": 1.45
+        }
+      ],
+      "hairLocks": [
+        {
+          "lock": "longSideLock",
+          "x": 56,
+          "y": 26,
+          "scale": 0.4,
+          "rot": -111,
+          "lines": false
+        },
+        {
+          "lock": "spikyFringe",
+          "x": 41,
+          "y": 41,
+          "scale": 0.72,
+          "rot": -20,
+          "lines": false
+        },
+        {
+          "lock": "sideSwoop",
+          "x": 67,
+          "y": 32,
+          "scale": 0.42,
+          "rot": -52,
+          "lines": true
+        },
+        {
+          "lock": "curlyForelock",
+          "x": 65,
+          "y": 43,
+          "scale": 0.54,
+          "rot": 13,
+          "lines": true,
+          "line": "#160808"
+        },
+        {
+          "lock": "longSideLock",
+          "x": 69,
+          "y": 47,
+          "scale": 0.56,
+          "rot": -14,
+          "lines": true
+        },
+        {
+          "lock": "curtainBangs",
+          "x": 54,
+          "y": 41,
+          "scale": 0.52,
+          "rot": -7,
+          "lines": false,
+          "outline": "none"
+        }
+      ],
+      "frontHairY": -8,
+      "browY": 1,
+      "browScaleX": 0.84,
+      "pupilY": -2.5,
+      "eyeOpen": 0.96,
+      "eyelashThickness": 1.1,
+      "eyeshadowOpacity": 0.65,
+      "eyeshadowColor": "#4dd2ff",
+      "upperEyelidWidth": 2.7,
+      "lowerEyelidWidth": 1.5,
+      "lockBlend": "separate",
+      "neckTerminationY": 2,
+      "neckOutlineWidth": 1.1,
+      "neckTaper": 0.75,
+      "neckWidth": 0.9,
+      "accessoryScale": 0.74,
+      "accessoryY": 16,
+      "accessoryColor": "#b0b0b0",
+      "jewelleryItems": [
+        {
+          "type": "necklace",
+          "side": "left",
+          "color": "#473f29",
+          "color2": "#ff9bb0",
+          "metal": "",
+          "x": 0,
+          "y": 29,
+          "scale": 0.69,
+          "rot": 0,
+          "layer": "behindHair",
+          "arcStart": 27,
+          "arcVisible": 0.7
+        }
+      ],
+      "eyeY": 5,
+      "eyeScale": 1.06,
+      "irisScale": 0.78,
+      "eyeColor": "#317aaa",
+      "lashes": 0.15,
+      "eyelashDensity": 0.8,
+      "undershadowOpacity": 0.45,
+      "undershadowY": 0,
+      "tattooScale": 0.9,
+      "tattooY": -15,
+      "tattooX": 70,
+      "beardLength": 0.18
+    },
+    "tiana": {
+      "chinY": -3,
+      "headY": 1,
+      "headScaleX": 1,
+      "eyeLeftX": -2,
+      "browY": -3,
+      "eyeDart": 0.36,
+      "pupilY": -2.5,
+      "eyelashCoverage": "full",
+      "eyelashThickness": 0.7,
+      "eyelashDensity": 1.8,
+      "headTilt": 1,
+      "build": 60,
+      "bodyWidth": 0.99,
+      "bust": 0.3,
+      "neckLength": -7.5,
+      "neckTerminationY": -1,
+      "eyeGap": 46,
+      "eyeY": 1.5,
+      "upperEyelidWidth": 2.2,
+      "lowerEyelidWidth": 1.2,
+      "underEyeWidth": 0.85,
+      "eyeX": 1.5,
+      "neckOutlineWidth": 1.1,
+      "neckWidth": 0.5,
+      "neckTaper": 1,
+      "faceShape": "long",
+      "irisScale": 0.78,
+      "eyeColor": "#3a2418",
+      "eyeScale": 1.04,
+      "headScaleY": 1.07,
+      "eyeOpen": 1.12,
+      "lazyEye": 7.5,
+      "lipUpperSize": 0.8,
+      "lipLowerSize": 0.7,
+      "smileLowerLipCurve": -0.7,
+      "lipLineWidth": 0.45,
+      "mouthStyle": "wideSmile",
+      "teethScale": 0.68,
+      "teethStyle": "spaced",
+      "accessoryScale": 0.52,
+      "accessoryX": 1,
+      "accessoryY": 5
+    },
+    "maya": {
+      "neckWidth": 0.72,
+      "neckTerminationY": 5,
+      "neckLength": 22,
+      "castShadowItems": [
+        {
+          "preset": "sweptLeft",
+          "surface": "face",
+          "sides": "both",
+          "x": 0,
+          "y": 31,
+          "spread": 28,
+          "darkness": 2.45,
+          "tint": "neutral",
+          "scaleX": 1,
+          "scaleY": 1,
+          "rot": -28,
+          "opacity": 0.9,
+          "softness": 1
+        }
+      ],
+      "lashes": 0.15,
+      "eyelashThickness": 0.7
     },
     "javier": {
       "backHairY": -4,
@@ -2852,6 +3070,7 @@
         ${traits.headOnly ? "" : renderNeckCastShadow(seed, skin, traits)}
         ${bodyTattooBeforeClothes}
         ${traits.headOnly ? "" : renderClothing(outfit, traits, seed)}
+        ${traits.headOnly ? "" : renderBodyCastShadow(seed, skin, traits)}
         ${bodyTattooAfterClothes}
         ${traits.headOnly ? "" : renderNeckBase(traits, skin, "lines")}
         ${traits.headOnly ? "" : renderCollar(traits)}
@@ -2919,7 +3138,7 @@
     if (!window.facesHair.renderLockPart) {
       const outline = hairOutlineFor(traits);
       return items
-        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: outline, seed: `${seed}-l${i}` }))
+        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: outline, seed: `${seed}-l${i}`, outlineScale: hairOutlineScale(traits) }))
         .join("");
     }
 
@@ -2929,34 +3148,37 @@
     // cascades) read better with the locks individually articulated. Editor-facing toggle.
     if (traits.lockBlend === "separate") {
       return items
-        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: hairOutlineFor(traits), seed: `${seed}-l${i}` }))
+        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: hairOutlineFor(traits), seed: `${seed}-l${i}`, outlineScale: hairOutlineScale(traits) }))
         .join("");
     }
 
     const outline = hairOutlineFor(traits);
+    const outlineScale = hairOutlineScale(traits);
     const layer = behind ? "behind" : "front";
     // rim = a single outline of the whole lock mass (outer silhouette + spiral concavities), which is
     // what makes curl/horn shapes read. fill = solid colour. We deliberately DON'T draw the old
     // per-lock seam strokes: they outlined every lock individually and ghosted through overlaps.
-    const rim = renderHairLockRim(items, seed, hair, outline, layer, behind ? 3.4 : 4.2);
-    const fill = renderHairLockPartGroup(items, seed, hair, outline, "fill");
+    const rim = renderHairLockRim(items, seed, hair, outline, layer, (behind ? 2.1 : 2.7) * outlineScale, outlineScale);
+    const fill = renderHairLockPartGroup(items, seed, hair, outline, "fill", null, outlineScale);
     return `${rim}${fill}`;
   }
 
-  function renderHairLockPartGroup(items, seed, hair, outline, mode, extraCtx) {
+  function renderHairLockPartGroup(items, seed, hair, outline, mode, extraCtx, outlineScale = 1) {
     return items
       .map(({ inst, i }) => window.facesHair.renderLockPart(inst, {
         hair,
         fill: `url(#hair-${seed})`,
         ink: outline,
         seed: `${seed}-l${i}`,
+        outlineScale,
         ...(extraCtx || {})
       }, mode))
       .join("");
   }
 
-  function renderHairLockRim(items, seed, hair, outline, layer, radius) {
-    const mass = renderHairLockPartGroup(items, seed, hair, outline, "mass", { massFill: "#000" });
+  function renderHairLockRim(items, seed, hair, outline, layer, radius, outlineScale = 1) {
+    if (!visibleStroke(outline)) return "";
+    const mass = renderHairLockPartGroup(items, seed, hair, outline, "mass", { massFill: "#000" }, outlineScale);
     if (!mass) return "";
     const id = `hairlock-rim-${String(seed).replace(/[^a-zA-Z0-9_-]/g, "_")}-${layer}`;
     return `
@@ -2984,7 +3206,7 @@
     return locks
       .map((inst, i) => ({ inst, i }))
       .filter(({ inst }) => Boolean(inst.d))
-      .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: outline, seed: `${seed}-d${i}` }))
+      .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: outline, seed: `${seed}-d${i}`, outlineScale: hairOutlineScale(traits) }))
       .join("");
   }
 
@@ -3334,7 +3556,7 @@
   function customNeckOpening(traits, dip = 18, half = 23) {
     const skin = traits.skinHex || skinTones[traits.skin] || "#c89070";
     const shadow = shadeColor(skin, 0.82);
-    const y = necklineY(traits);
+    const y = clothingNecklineY(traits);
     const width = Math.max(0.72, Math.min(1.38, Number(traits.neckWidth) || 1));
     const neckHalf = half * width;
     const lip = y - 5;
@@ -3346,7 +3568,7 @@
   }
 
   function renderBaseCustomClothing(style, traits, seed, c, accent) {
-    const y = necklineY(traits);
+    const y = clothingNecklineY(traits);
     const lo = shadeColor(c, 0.76);
     const hi = shadeColor(c, 1.14);
     if (style === "rugby") {
@@ -3410,7 +3632,7 @@
   }
 
   function renderLayeredClothing(style, traits, seed, outer, under, accent) {
-    const y = necklineY(traits);
+    const y = clothingNecklineY(traits);
     const lo = shadeColor(outer, 0.76);
     const hi = shadeColor(outer, 1.12);
     const body = `
@@ -3433,7 +3655,7 @@
   }
 
   function renderLayerDetails(style, traits, c, under, accent, lo, hi) {
-    const y = necklineY(traits);
+    const y = clothingNecklineY(traits);
     const centreZip = `<path d='M128 ${y + 8}V256' stroke='${ink}' stroke-width='2.5' stroke-linecap='round'/>`;
     if (style === "flannel") {
       const lines = `
@@ -3539,7 +3761,7 @@
   }
 
   function renderLayerNeck(style, traits, c, under, accent, lo, hi) {
-    const y = necklineY(traits);
+    const y = clothingNecklineY(traits);
     const left = `M68 ${y + 8} C87 ${y - 4} 110 ${y - 2} 123 ${y + 8} L116 ${y + 22} C101 ${y + 12} 83 ${y + 13} 68 ${y + 24} Z`;
     const right = `M188 ${y + 8} C169 ${y - 4} 146 ${y - 2} 133 ${y + 8} L140 ${y + 22} C155 ${y + 12} 173 ${y + 13} 188 ${y + 24} Z`;
     if (style === "raincoat" || style === "bomber") {
@@ -3583,7 +3805,7 @@
     // faint Y never appears on a bare chest.
     if (bust < 0.15) return "";
     const f = (n) => n.toFixed(1);
-    const neckline = necklineY(traits);
+    const neckline = clothingNecklineY(traits);
     const minTop = neckline + (bareBody ? 18 : 22);
     const forkY = Math.max(minTop + 12, 246 - bust * 12);            // the fork (top of the cleavage)
     const spread = 18 + bust * 16;            // how far the branches reach out
@@ -3603,7 +3825,7 @@
   function renderSinglet(traits, c, sh) {
     const f = (n) => n.toFixed(1);
     const lo = shadeColor(c, 0.82);
-    const y = necklineY(traits);
+    const y = clothingNecklineY(traits);
     const stX = sh * 0.28;               // strap x-offset from centre
     const top = y - 2;
     const scoop = top + 26;              // depth of the scoop neckline
@@ -3675,9 +3897,11 @@
       ? 10 + terminationOffset * 0.75
       : collarStyle === "vneck"
         ? 8 + terminationOffset * 0.55
-        : collarStyle === "crew"
-          ? 5 + terminationOffset * 0.35
-          : 2 + Math.max(0, terminationOffset) * 0.2;
+        : collarStyle === "shirt"
+          ? 6.5 + terminationOffset * 0.45
+          : collarStyle === "crew"
+            ? 5 + terminationOffset * 0.35
+            : 2 + Math.max(0, terminationOffset) * 0.2;
     const topCurveY = Math.max(neckY + 1.5, neckY + chestDip);
     return `M${nl} ${neckY}`
       + ` C ${nl - 7} ${dropY} ${(tl + r).toFixed(1)} ${(tipY - r - 2).toFixed(1)} ${tl} ${tipY.toFixed(1)}`
@@ -3727,6 +3951,10 @@
     return 189 + (Number(traits.neckLength) || 0) + neckAnchorOffset(traits);
   }
 
+  function clothingNecklineY(traits) {
+    return 189 + neckAnchorOffset(traits);
+  }
+
   function neckGeometry(traits) {
     const f = (value) => Number(value).toFixed(1);
     const top = 150 + neckAnchorOffset(traits);
@@ -3747,7 +3975,15 @@
     const topRight = 128 + topHalf;
     const joinLeft = 128 - neckJoinHalf;
     const joinRight = 128 + neckJoinHalf;
-    const joinDepth = garment.bare ? 3 : (collarStyle === "crew" ? 2 : collarStyle === "vneck" ? 0 : -1);
+    const joinDepth = garment.bare
+      ? 3
+      : collarStyle === "crew"
+        ? 2
+        : collarStyle === "vneck"
+          ? 0
+          : collarStyle === "shirt"
+            ? 1
+            : -1;
     const joinY = shoulderJoinY + joinDepth + terminationOffset;
     const edgePull = garment.bare ? 0.42 : 0.32;
     const neckShape = [
@@ -3757,7 +3993,7 @@
       `C${f(joinRight + 5)} ${f(joinY - 18)} ${f(topRight - 1)} ${f(top + 24)} ${f(topRight)} ${f(top)}`,
       "Z"
     ].join(" ");
-    const openCollar = new Set(["crew", "vneck"]);
+    const openCollar = new Set(["crew", "vneck", "shirt"]);
     return {
       top,
       y,
@@ -3798,21 +4034,41 @@
     const jewelleryItems = Array.isArray(traits.jewelleryItems) ? traits.jewelleryItems : [];
     const hasNeckwear = neckwear.has(traits.accessory) || jewelleryItems.some((item) => neckwear.has(item.type));
     const faceLineMaster = (traits.faceLineOpacity != null && traits.faceLineOpacity !== "") ? Number(traits.faceLineOpacity) : 1;
+    const openOuterContour = collarStyle === "shirt" || traits.clothing === "rugby";
 
     const sideVisibleY = collarOwnsJoin ? Math.min(joinY, y - 16) : joinY;
     const sideVisibleHalf = collarOwnsJoin
       ? Math.max(13 * width, neckJoinHalf - 6)
-      : neckJoinHalf;
+      : openOuterContour
+        ? Math.max(topHalf * 1.02, neckJoinHalf + 4.8)
+        : neckJoinHalf;
     const contourTail = collarOwnsJoin
       ? 0
-      : Math.max(0, (garment.bare ? 7 : (collarStyle === "vneck" ? 5 : 4)) + terminationOffset * 0.45);
+      : openOuterContour
+        ? Math.max(0, 3.5 + terminationOffset * 0.32)
+        : Math.max(0, (garment.bare ? 7 : (collarStyle === "vneck" ? 5 : 4)) + terminationOffset * 0.45);
     const modelTail = collarOwnsJoin
       ? 0
-      : Math.max(0, (garment.bare ? 5 : 3)) + Math.max(0, terminationOffset) * 0.3;
+      : openOuterContour
+        ? Math.max(0, 2.2 + Math.max(0, terminationOffset) * 0.2)
+        : Math.max(0, (garment.bare ? 5 : 3)) + Math.max(0, terminationOffset) * 0.3;
     const visibleSidePath = (side) => {
       const sign = side === "left" ? -1 : 1;
-      const lowerHalf = Math.max(topHalf * 0.74, sideVisibleHalf - (garment.bare ? 1.6 : 0.8));
-      const controlHalf = Math.max(topHalf * 0.78, sideVisibleHalf - (garment.bare ? 0.9 : 0.4));
+      if (openOuterContour) {
+        const outerHalf = Math.max(topHalf * 1.02, neckJoinHalf + 4.2);
+        const shoulderHalf = Math.max(outerHalf + 1.0, neckJoinHalf + 6.1);
+        const tailHalf = Math.max(outerHalf + 2.1, neckJoinHalf + 8.2);
+        const tailY = sideVisibleY + contourTail;
+        return `M${f(128 + sign * topHalf)} ${f(top + 3)}`
+          + ` C${f(128 + sign * topHalf)} ${f(top + 21)} ${f(128 + sign * shoulderHalf)} ${f(sideVisibleY - 13)} ${f(128 + sign * outerHalf)} ${f(sideVisibleY)}`
+          + ` L${f(128 + sign * tailHalf)} ${f(tailY)}`;
+      }
+      const lowerHalf = openOuterContour
+        ? Math.max(topHalf * 1.06, sideVisibleHalf + 2.8)
+        : Math.max(topHalf * 0.74, sideVisibleHalf - (garment.bare ? 1.6 : 0.8));
+      const controlHalf = openOuterContour
+        ? Math.max(topHalf * 1.02, sideVisibleHalf + 1.4)
+        : Math.max(topHalf * 0.78, sideVisibleHalf - (garment.bare ? 0.9 : 0.4));
       return `M${f(128 + sign * topHalf)} ${f(top + 3)} C${f(128 + sign * topHalf)} ${f(top + 22)} ${f(128 + sign * (sideVisibleHalf + 4))} ${f(sideVisibleY - 15)} ${f(128 + sign * sideVisibleHalf)} ${f(sideVisibleY)}`
         + (contourTail > 0
           ? ` Q${f(128 + sign * controlHalf)} ${f(sideVisibleY + contourTail * 0.48)} ${f(128 + sign * lowerHalf)} ${f(sideVisibleY + contourTail)}`
@@ -3820,8 +4076,21 @@
     };
     const modelSidePath = (side) => {
       const sign = side === "left" ? -1 : 1;
-      const lowerHalf = Math.max(topHalf * 0.8, neckJoinHalf - (garment.bare ? 0.9 : 0.35));
-      const controlHalf = Math.max(topHalf * 0.84, neckJoinHalf - (garment.bare ? 0.45 : 0.15));
+      if (openOuterContour) {
+        const outerHalf = Math.max(topHalf * 0.995, neckJoinHalf + 2.8);
+        const shoulderHalf = Math.max(outerHalf + 0.7, neckJoinHalf + 4.9);
+        const tailHalf = Math.max(outerHalf + 1.3, neckJoinHalf + 6.1);
+        const tailY = joinY + modelTail;
+        return `M${f(128 + sign * topHalf)} ${f(top + 3)}`
+          + ` C${f(128 + sign * topHalf)} ${f(top + 23)} ${f(128 + sign * shoulderHalf)} ${f(joinY - 14)} ${f(128 + sign * outerHalf)} ${f(joinY)}`
+          + ` L${f(128 + sign * tailHalf)} ${f(tailY)}`;
+      }
+      const lowerHalf = openOuterContour
+        ? Math.max(topHalf * 1.04, neckJoinHalf + 3.2)
+        : Math.max(topHalf * 0.8, neckJoinHalf - (garment.bare ? 0.9 : 0.35));
+      const controlHalf = openOuterContour
+        ? Math.max(topHalf * 1.0, neckJoinHalf + 2.1)
+        : Math.max(topHalf * 0.84, neckJoinHalf - (garment.bare ? 0.45 : 0.15));
       return `M${f(128 + sign * topHalf)} ${f(top + 3)} C${f(128 + sign * topHalf)} ${f(top + 24)} ${f(128 + sign * (neckJoinHalf + 5))} ${f(joinY - 18)} ${f(128 + sign * neckJoinHalf)} ${f(joinY)}`
         + (modelTail > 0
           ? ` Q${f(128 + sign * controlHalf)} ${f(joinY + modelTail * 0.5)} ${f(128 + sign * lowerHalf)} ${f(joinY + modelTail)}`
@@ -3914,7 +4183,7 @@
     const hi = shadeColor(c, 1.14);
     const rib = shadeColor(c, 0.66);
     const dk = shadeColor(c, 0.6);
-    const y = necklineY(traits);
+    const y = clothingNecklineY(traits);
     const cy = y + 7; // centre of the neckline dip
     const style = traits.clothing;
     const SC = stroke.contour, SF = stroke.feature, SD = stroke.detail;
@@ -4127,6 +4396,24 @@
     return Math.max(0, (amount - 0.75) * 2.2);
   }
 
+  function bodyShadowGeometry(traits) {
+    const sh = Number(traits.build) || 82;
+    const left = 128 - sh * 0.98;
+    const right = 128 + sh * 0.98;
+    const top = necklineY(traits) + 4;
+    const upper = top + 42;
+    const mid = top + 90;
+    return {
+      clip: shoulderPath(traits),
+      left,
+      right,
+      top,
+      upper,
+      mid,
+      center: 128
+    };
+  }
+
   function castShadowShape(preset, band, side, radial, width = 256) {
     const mirror = (markup) => `<g transform='translate(${width} 0) scale(-1 1)'>${markup}</g>`;
     const shapes = {
@@ -4174,7 +4461,7 @@
     const layers = [];
     items.forEach((item, idx) => {
       const cfg = castShadowConfig(item);
-      if (!cfg || (cfg.surface !== "face" && cfg.surface !== "both")) return;
+      if (!cfg || !["face", "both", "all"].includes(cfg.surface)) return;
       const shadow = castShadowColor(skin, cfg.darkness, cfg.tint, traits);
       const gradId = `cast-face-grad-${seed}-${idx}`;
       const sideId = `cast-face-side-${seed}-${idx}`;
@@ -4234,7 +4521,7 @@
     const layers = [];
     items.forEach((item, idx) => {
       const cfg = castShadowConfig(item);
-      if (!cfg || (cfg.surface !== "neck" && cfg.surface !== "both")) return;
+      if (!cfg || !["neck", "both", "all"].includes(cfg.surface)) return;
       const shadow = castShadowColor(skin, cfg.darkness, cfg.tint, traits);
       const gradId = `cast-neck-grad-${seed}-${idx}`;
       const radialId = `cast-neck-rad-${seed}-${idx}`;
@@ -4272,6 +4559,72 @@
       }).filter(Boolean);
       const groupRot = cfg.sides === "both" ? 0 : cfg.rot;
       layers.push(`<g transform='translate(${cfg.x.toFixed(1)} ${cfg.y.toFixed(1)}) rotate(${groupRot.toFixed(1)} 128 ${geom.top.toFixed(1)}) scale(${cfg.scaleX.toFixed(2)} ${cfg.scaleY.toFixed(2)})' filter='url(#${blurId})' data-cast-shadow='neck'>${shapes.join("")}</g>`);
+    });
+    if (!layers.length) return "";
+    return `<defs>${defs.join("")}</defs><g clip-path='url(#${clipId})'>${layers.join("")}</g>`;
+  }
+
+  function renderBodyCastShadow(seed, skin, traits) {
+    const items = castShadowItems(traits);
+    if (!items.length) return "";
+    const geom = bodyShadowGeometry(traits);
+    const clipId = `cast-body-${seed}`;
+    const defs = [`<clipPath id='${clipId}'><path d='${geom.clip}'/></clipPath>`];
+    const layers = [];
+    items.forEach((item, idx) => {
+      const cfg = castShadowConfig(item);
+      if (!cfg || !["body", "all"].includes(cfg.surface)) return;
+      const shadow = castShadowColor(skin, cfg.darkness, cfg.tint, traits);
+      const gradId = `cast-body-grad-${seed}-${idx}`;
+      const sideId = `cast-body-side-${seed}-${idx}`;
+      const radialId = `cast-body-rad-${seed}-${idx}`;
+      const blurId = `cast-body-blur-${seed}-${idx}`;
+      const peak = Math.min(0.52, 0.14 + cfg.opacity * 0.44);
+      const mid = Math.min(0.88, 0.42 + cfg.softness * 0.16);
+      const blur = castShadowBlur(cfg.softness);
+      defs.push(`
+        <linearGradient id='${gradId}' x1='0' y1='0' x2='0' y2='1'>
+          <stop offset='0' stop-color='${shadow}' stop-opacity='${peak.toFixed(2)}'/>
+          <stop offset='${mid.toFixed(2)}' stop-color='${shadow}' stop-opacity='${(peak * 0.42).toFixed(2)}'/>
+          <stop offset='1' stop-color='${shadow}' stop-opacity='0'/>
+        </linearGradient>
+        <linearGradient id='${sideId}' x1='0' y1='0' x2='1' y2='0'>
+          <stop offset='0' stop-color='${shadow}' stop-opacity='${peak.toFixed(2)}'/>
+          <stop offset='${mid.toFixed(2)}' stop-color='${shadow}' stop-opacity='${(peak * 0.38).toFixed(2)}'/>
+          <stop offset='1' stop-color='${shadow}' stop-opacity='0'/>
+        </linearGradient>
+        <radialGradient id='${radialId}' cx='50%' cy='50%' r='50%'>
+          <stop offset='0' stop-color='${shadow}' stop-opacity='${peak.toFixed(2)}'/>
+          <stop offset='${mid.toFixed(2)}' stop-color='${shadow}' stop-opacity='${(peak * 0.4).toFixed(2)}'/>
+          <stop offset='1' stop-color='${shadow}' stop-opacity='0'/>
+        </radialGradient>
+        <filter id='${blurId}' x='-25%' y='-25%' width='150%' height='150%'>
+          <feGaussianBlur stdDeviation='${blur.toFixed(2)}'/>
+        </filter>
+      `);
+      const bodyPreset = (preset) => {
+        if (preset === "sideLeft") return `<ellipse cx='${(geom.left + 32).toFixed(1)}' cy='${geom.mid.toFixed(1)}' rx='46' ry='78' fill='url(#${radialId})' data-cast-shadow='body-sideLeft'/>`;
+        if (preset === "sideRight") return `<ellipse cx='${(geom.right - 32).toFixed(1)}' cy='${geom.mid.toFixed(1)}' rx='46' ry='78' fill='url(#${radialId})' data-cast-shadow='body-sideRight'/>`;
+        if (preset === "sweptLeft") return `<path d='M${geom.left.toFixed(1)} ${geom.top.toFixed(1)}C${(geom.left + 34).toFixed(1)} ${(geom.upper - 8).toFixed(1)} ${(geom.center - 8).toFixed(1)} ${(geom.mid - 18).toFixed(1)} ${(geom.center - 10).toFixed(1)} 256L${geom.left.toFixed(1)} 256Z' fill='url(#${sideId})' data-cast-shadow='body-sweptLeft'/>`;
+        if (preset === "sweptRight") return `<path d='M${geom.right.toFixed(1)} ${geom.top.toFixed(1)}C${(geom.right - 34).toFixed(1)} ${(geom.upper - 8).toFixed(1)} ${(geom.center + 8).toFixed(1)} ${(geom.mid - 18).toFixed(1)} ${(geom.center + 10).toFixed(1)} 256L${geom.right.toFixed(1)} 256Z' fill='url(#${sideId})' data-cast-shadow='body-sweptRight'/>`;
+        if (preset === "beardJaw" || preset === "hairline" || preset === "capBrim") return `<path d='M${(geom.left + 18).toFixed(1)} ${geom.top.toFixed(1)}C${(geom.left + 54).toFixed(1)} ${(geom.upper + 10).toFixed(1)} ${(geom.right - 54).toFixed(1)} ${(geom.upper + 10).toFixed(1)} ${(geom.right - 18).toFixed(1)} ${geom.top.toFixed(1)}L${(geom.right - 8).toFixed(1)} ${(geom.upper + 18).toFixed(1)}C${(geom.right - 62).toFixed(1)} ${(geom.upper + 38).toFixed(1)} ${(geom.left + 62).toFixed(1)} ${(geom.upper + 38).toFixed(1)} ${(geom.left + 8).toFixed(1)} ${(geom.upper + 18).toFixed(1)}Z' fill='url(#${gradId})' data-cast-shadow='body-upperBand'/>`;
+        return "";
+      };
+      const shapes = shadowPresetSides(cfg.preset, cfg.sides)
+        .map((preset) => {
+          const shape = bodyPreset(preset);
+          if (!shape) return "";
+          const dx = shadowSideOffset(preset, cfg.sides === "both" ? cfg.spread : 0);
+          const localRot = shadowLocalRotation(preset, cfg.rot, cfg.sides);
+          const transforms = [];
+          if (dx) transforms.push(`translate(${dx.toFixed(1)} 0)`);
+          if (localRot) transforms.push(`rotate(${localRot.toFixed(1)} 128 ${geom.upper.toFixed(1)})`);
+          return transforms.length ? `<g transform='${transforms.join(" ")}'>${shape}</g>` : shape;
+        })
+        .filter(Boolean);
+      if (!shapes.length) return;
+      const groupRot = cfg.sides === "both" ? 0 : cfg.rot;
+      layers.push(`<g transform='translate(${cfg.x.toFixed(1)} ${cfg.y.toFixed(1)}) rotate(${groupRot.toFixed(1)} 128 ${geom.upper.toFixed(1)}) scale(${cfg.scaleX.toFixed(2)} ${cfg.scaleY.toFixed(2)})' filter='url(#${blurId})' data-cast-shadow='body'>${shapes.join("")}</g>`);
     });
     if (!layers.length) return "";
     return `<defs>${defs.join("")}</defs><g clip-path='url(#${clipId})'>${layers.join("")}</g>`;
@@ -4637,6 +4990,10 @@
     return hex ? shadeColor(hex, 0.52) : ink;
   }
 
+  function visibleStroke(value) {
+    return !!value && value !== "none" && value !== "transparent" && value !== "rgba(0,0,0,0)";
+  }
+
   function hairOutlineScale(traits) {
     const sx = Number(traits.headScaleX) || 1;
     const sy = Number(traits.headScaleY) || 1;
@@ -4929,34 +5286,41 @@
     const lowerLid = shadeColor(skin, 0.52);
     const upperLidWidth = Math.max(0.6, Number(traits.upperEyelidWidth) || stroke.feature);
     const lowerLidWidth = Math.max(0.5, Number(traits.lowerEyelidWidth) || 1.9);
-    // Dramatic lashes (opt-in): flicks fanning UP-and-OUT along the upper lash line. They're INSIDE
-    // the .fa-eye group so they scale/close naturally with the blink & wink. The outer flick is
-    // longest (the winged 'whore lash' look). tc points toward the temple (outer side).
+    // Eyelashes (opt-in): separate curved strokes rooted along the upper lid. They are INSIDE
+    // the .fa-eye group so blink/wink transforms keep them attached to the eye.
     const lashLen = Number(traits.lashes) || 0;   // 0 = none; ~1 normal; up to ~1.6 dramatic
     let lashes = "";
     if (lashLen > 0) {
-      const tc = cx < 128 ? -1 : 1;               // outer direction
-      const L = 7 * lashLen;
+      const tc = cx < 128 ? -1 : 1;               // direction toward the temple
+      const L = 6.8 * lashLen;
       const coverage = traits.eyelashCoverage || "quarter";
-      const start = coverage === "full" ? 0 : coverage === "half" ? 0.28 : 0.58;
-      const density = Math.max(0.35, Math.min(2.2, Number(traits.eyelashDensity) || 1));
-      const count = Math.max(2, Math.min(8, Math.round((coverage === "full" ? 5 : coverage === "half" ? 4 : 3) * density)));
+      const start = coverage === "full" ? 0.06 : coverage === "half" ? 0.34 : 0.62;
+      const density = Math.max(0.35, Math.min(3, Number(traits.eyelashDensity) || 1));
+      const count = Math.max(4, Math.min(18, Math.round((coverage === "full" ? 6 : coverage === "half" ? 5 : 4) * density)));
       const lashColor = traits.eyelashColor || ink;
       const lashWidth = Math.max(0.7, Number(traits.eyelashThickness) || 2);
-      const tip = (t, len, curl) => {
-        const bx = cx + tc * (w * (0.35 + t * 0.55));
-        const by = y - up * (0.9 - t * 0.15);
-        const ex = bx + tc * len * 0.5;
-        const ey2 = by - len;
-        return `M${f(bx)} ${f(by)}Q${f(bx + tc * len * 0.3)} ${f(by - len * 0.7)} ${f(ex)} ${f(ey2 - curl)}`;
+      const curl = Math.max(0, Math.min(1.5, Number(traits.eyelashCurl) || 0.75));
+      const lash = (t, len, phase) => {
+        // t runs inner corner -> outer corner; tc flips the geometry for the left/right eye.
+        const bx = cx + (-tc * w * 0.88) + (tc * w * 1.76 * t);
+        const by = y - up * Math.sin(t * Math.PI) * 0.98 - 0.15;
+        const fan = 0.2 + t * 0.48;
+        const swing = tc * len * fan;
+        const lift = len * (0.72 + t * 0.24);
+        const wobble = Math.sin(phase * 1.73) * len * 0.05;
+        const ex = bx + swing + tc * curl * len * 0.18;
+        const ey2 = by - lift - curl * len * 0.12;
+        const qx = bx + swing * 0.44 + tc * curl * len * 0.28;
+        const qy = by - lift * (0.45 + curl * 0.08) + wobble;
+        return `<path d='M${f(bx)} ${f(by)}Q${f(qx)} ${f(qy)} ${f(ex)} ${f(ey2)}' fill='none' stroke='${lashColor}' stroke-width='${lashWidth.toFixed(2)}' stroke-linecap='round'/>`;
       };
-      let lashPath = "";
+      const marks = [];
       for (let i = 0; i < count; i += 1) {
         const t = count === 1 ? 1 : start + ((1 - start) * i) / (count - 1);
-        const len = L * (0.72 + t * 0.58);
-        lashPath += tip(t, len, i * 0.6);
+        const len = L * (0.6 + t * 0.72);
+        marks.push(lash(t, len, i + (cx < 128 ? 0.3 : 0.8)));
       }
-      lashes = `<path d='${lashPath}' fill='none' stroke='${lashColor}' stroke-width='${lashWidth}' stroke-linecap='round'/>`;
+      lashes = `<g class='fa-lashes'>${marks.join("")}</g>`;
     }
     // The iris/pupil/highlight sit in a `.fa-iris` group (eye-darts translate it within the clipped
     // lens). The whole eye is wrapped in `.fa-eye`/`.fa-eye-{side}` (blink scales it); the right eye

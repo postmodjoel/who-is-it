@@ -1025,7 +1025,7 @@ function setCastShadowList(character, items) {
 function castShadowDesignerMarkup(character) {
   const items = castShadowDefaults(character);
   const presetOptions = (traitBook.castShadowPresets || ["hairline", "sweptLeft", "sweptRight", "capBrim", "sideLeft", "sideRight", "beardJaw"]).filter((value) => value !== "off");
-  const surfaceOptions = [["face", "Face"], ["neck", "Neck"], ["both", "Face + Neck"]];
+  const surfaceOptions = [["face", "Face"], ["neck", "Neck"], ["body", "Body / Clothes"], ["both", "Face + Neck"], ["all", "Face + Neck + Body"]];
   const sideOptions = [["one", "One Side"], ["both", "Both Sides"]];
   const tintOptions = [["neutral", "Neutral"], ["warm", "Warm"], ["cool", "Cool"], ["hairLinked", "Hair-Linked"]];
   const optionList = (options, selected) => options.map(([value, label]) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");

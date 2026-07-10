@@ -324,7 +324,9 @@ function iconSvg(name) {
     prompt: "<path d='M4 5.5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H11l-5 4v-4H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z'/><path d='M9 10h.01M12 10h.01M15 10h.01'/>",
     undo: "<path d='M9 7H5v4'/><path d='M5 11a7 7 0 1 1 2 5'/>",
     clear: "<path d='M5 5l14 14'/><path d='M19 5L5 19'/>",
-    hash: "<path d='M8 3L6 21'/><path d='M18 3l-2 18'/><path d='M3 8h18'/><path d='M2 16h18'/>"
+    hash: "<path d='M8 3L6 21'/><path d='M18 3l-2 18'/><path d='M3 8h18'/><path d='M2 16h18'/>",
+    copy: "<rect x='9' y='9' width='11' height='11' rx='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/>",
+    check: "<path d='M20 6L9 17l-5-5'/>"
   };
   return `<span class="control-icon"><svg ${common}>${paths[name] || ""}</svg></span>`;
 }
@@ -364,6 +366,11 @@ function applyTheme(theme) {
 // loops check via lowPowerMode(). Re-deal after a change so the JS loop guards take effect.
 function applyLowPower() {
   document.body.classList.toggle("low-power", !!(state.settings && state.settings.lowPower));
+}
+
+function motionAllowed() {
+  const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return !document.body.classList.contains("low-power") && !reduced;
 }
 
 // Desktop (>=861px) puts the board toolbar (sort/settings/etc.) INTO the sticky rail so it stays
@@ -953,14 +960,19 @@ function renderRoom() {
         ? `<p class="or-team">Solo — ${escapeHtml(teamLabel(state.mySeat || 0))}</p>`
       : "";
     const connected = Math.max(0, (state.roster || []).length - 1);
+    const statusText = connected
+      ? `${connected} friend${connected === 1 ? "" : "s"} connected`
+      : "Waiting for friends to join";
     els.seatRoster.innerHTML = `
-      <div class="or-code"><span class="or-word">Room</span> <span class="or-num">#${escapeHtml(state.roomCode)}</span> <button type="button" class="or-copy" title="Copy room number">📋</button></div>
+      <div class="or-code"><span class="or-word">Room</span> <span class="or-num">#${escapeHtml(state.roomCode)}</span> <button type="button" class="or-copy" title="Copy room number" aria-label="Copy room number">${iconSvg("copy")}</button></div>
       ${teamLine}
-      <p class="or-status">${connected ? `🟢 ${connected} friend${connected === 1 ? "" : "s"} connected` : "⏳ waiting for friends to join…"}</p>`;
+      <p class="or-status ${connected ? "is-connected" : "is-waiting"}"><span class="or-dot" aria-hidden="true"></span><span>${escapeHtml(statusText)}</span></p>`;
     const copyBtn = els.seatRoster.querySelector(".or-copy");
     if (copyBtn) copyBtn.addEventListener("click", () => {
       if (navigator.clipboard) navigator.clipboard.writeText(state.roomCode).catch(() => {});
-      copyBtn.textContent = "✓"; setTimeout(() => { copyBtn.textContent = "📋"; }, 900);
+      copyBtn.innerHTML = iconSvg("check");
+      copyBtn.classList.add("is-copied");
+      setTimeout(() => { copyBtn.innerHTML = iconSvg("copy"); copyBtn.classList.remove("is-copied"); }, 900);
     });
     return;
   }
@@ -995,23 +1007,34 @@ function renderRoom() {
   }));
 }
 
-// Local hand-off: replay a quick lateral slide on the "you" column so switching seats feels physical.
+// Local hand-off: replay the motion on the seat control first, with a small supporting secret-card slide.
 function slideSideHandoff(dir) {
-  const el = document.querySelector(".side-you");
-  if (!el) return;
-  el.classList.remove("seat-slide-fwd", "seat-slide-back");
-  void el.offsetWidth;                       // restart the animation even on rapid taps
-  el.classList.add(dir === "back" ? "seat-slide-back" : "seat-slide-fwd");
+  if (!motionAllowed()) return;
+  const seat = document.querySelector(".seat-roster.seat-pill");
+  const secret = document.querySelector(".side-you");
+  const seatClass = dir === "back" ? "seat-swap-back" : "seat-swap-fwd";
+  const secretClass = dir === "back" ? "seat-secret-back" : "seat-secret-fwd";
+  if (seat) {
+    seat.classList.remove("seat-swap-fwd", "seat-swap-back");
+    void seat.offsetWidth;                    // restart the animation even on rapid taps
+    seat.classList.add(seatClass);
+  }
+  if (secret) {
+    secret.classList.remove("seat-secret-fwd", "seat-secret-back");
+    void secret.offsetWidth;
+    secret.classList.add(secretClass);
+  }
 }
 
-function renderSecret() {
+function renderSecret(opts = {}) {
   // Observer / TV display has no secret to reveal - it just shows the board neutrally.
   if (state.isObserver) { if (els.secretCard) els.secretCard.innerHTML = ""; return; }
   const player = currentPlayer();
   const secret = characterById(player.secretId);
+  const motionClass = motionAllowed() && opts.motion ? ` secret-${opts.motion}` : "";
   if (!player.secretVisible) {
     // Keep the full card footprint (same size as the revealed profile) - just a censored tile.
-    els.secretCard.className = "secret-card character-card is-hidden";
+    els.secretCard.className = `secret-card character-card is-hidden${motionClass}`;
     els.secretCard.removeAttribute("style");
     els.secretCard.title = "Tap to reveal your face";
     els.secretCard.innerHTML = `
@@ -1024,7 +1047,7 @@ function renderSecret() {
   // Your own card is the SAME as a board card - full mode dossier (orgy stats, Yu-Gi-Oh info, disease
   // sheet, badges, corner art, portrait swaps). A media query compacts it to face+name on phones.
   const m = state.global.mystery ? getMysteryCardData(secret) : {};
-  els.secretCard.className = `secret-card character-card ${secret.variant || ""} ${m.cardClass || ""}`.trim();
+  els.secretCard.className = `secret-card character-card ${secret.variant || ""} ${m.cardClass || ""}${motionClass}`.trim();
   const bg = secret.traits?.background || "#cdd6e0";
   els.secretCard.setAttribute("style", `--secret-bg:${bg};${m.style || ""}`);
   const portraitSrc = m.image || portraitForCharacter(secret);
@@ -1074,19 +1097,61 @@ function wireFloatingSecret() {
   obs.observe(anchor);
 }
 
-function renderBoard() {
+function collectBoardCardRects() {
+  const rects = new Map();
+  if (!els.characterBoard) return rects;
+  els.characterBoard.querySelectorAll("[data-id]").forEach((card) => {
+    rects.set(card.dataset.id, card.getBoundingClientRect());
+  });
+  return rects;
+}
+
+function animateBoardReorder(beforeRects) {
+  if (!beforeRects || !beforeRects.size || !motionAllowed()) return;
+  const cards = [...els.characterBoard.querySelectorAll("[data-id]")];
+  cards.forEach((card) => {
+    const before = beforeRects.get(card.dataset.id);
+    if (!before || typeof card.animate !== "function") return;
+    const after = card.getBoundingClientRect();
+    const dx = before.left - after.left;
+    const dy = before.top - after.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    card.classList.add("is-reordering");
+    try {
+      const anim = card.animate(
+        [
+          { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)` },
+          { transform: "translate(0, 0)" }
+        ],
+        { duration: 440, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)" }
+      );
+      const done = () => card.classList.remove("is-reordering");
+      anim.addEventListener("finish", done, { once: true });
+      anim.addEventListener("cancel", done, { once: true });
+    } catch (e) {
+      card.classList.remove("is-reordering");
+    }
+  });
+}
+
+function renderBoard(opts = {}) {
   const player = currentPlayer();
+  const beforeRects = opts.animateReorder ? collectBoardCardRects() : null;
   rebuildSortOptions();            // sort menu adapts to the active mode (and persists the choice)
   MysteryModes.beforeRenderBoard();
   els.characterBoard.innerHTML = "";
   els.characterBoard.className = "character-board";
   els.characterBoard.setAttribute("aria-label", "Character board");
   MysteryModes.applyBoardClasses(els.characterBoard);
-  if (MysteryModes.renderSpecialBoard(player)) return;
+  if (MysteryModes.renderSpecialBoard(player)) {
+    animateBoardReorder(beforeRects);
+    return;
+  }
   sortedBoard().forEach((character) => {
     els.characterBoard.appendChild(createCharacterCard(character, player));
   });
   MysteryModes.afterDefaultBoard(player);
+  animateBoardReorder(beforeRects);
 }
 function renderHints() {
   ensureSeatArrays(state.players.length || gameSeatCount());
@@ -1399,8 +1464,9 @@ const aliasNames = [
 
 // Tapping your own player card toggles it hidden/shown (replaces the old eye button).
 function toggleSecretVisible() {
-  currentPlayer().secretVisible = !currentPlayer().secretVisible;
-  renderSecret();
+  const player = currentPlayer();
+  player.secretVisible = !player.secretVisible;
+  renderSecret({ motion: player.secretVisible ? "reveal" : "hide" });
 }
 if (els.secretCard) els.secretCard.addEventListener("click", toggleSecretVisible);
 
@@ -2974,5 +3040,5 @@ else showTitleScreen();
 wireCueCardClick();
 wireFloatingSecret();
 if (els.sortSelect) {
-  els.sortSelect.addEventListener("change", () => { state.sortKey = els.sortSelect.value; renderBoard(); });
+  els.sortSelect.addEventListener("change", () => { state.sortKey = els.sortSelect.value; renderBoard({ animateReorder: true }); });
 }

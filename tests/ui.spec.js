@@ -10,10 +10,16 @@ const SPECIAL_EXPECTATIONS = {
   "family-tree-disaster": [".family-tree-board", ".family-cluster"]
 };
 
-async function startNamedLocalGame(page, count = 3, solo = true) {
+async function openCleanTitle(page) {
+  await page.addInitScript(() => {
+    try { localStorage.removeItem("whoisit_game_v1"); } catch (e) { /* storage may be blocked */ }
+  });
   await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
+  await expect(page.locator(".ts-local")).toBeVisible();
+}
+
+async function startNamedLocalGame(page, count = 3, solo = true) {
+  await openCleanTitle(page);
   // Local setup lives in the names step now: enter it, then add player rows to reach `count`.
   await page.locator(".ts-local").click();
   await page.locator(".ts-name-row").first().waitFor();
@@ -23,12 +29,19 @@ async function startNamedLocalGame(page, count = 3, solo = true) {
   if (count > 2 && solo) {
     await page.locator(".ts-step-names .ts-team-mode-input").uncheck();
   }
-  const inputs = page.locator(".ts-name-slot");
-  for (let i = 0; i < count; i += 1) {
-    await inputs.nth(i).fill(`Player ${i + 1}`);
-  }
+  const names = Array.from({ length: count }, (_, i) => `Player ${i + 1}`);
+  await page.locator(".ts-name-slot").evaluateAll((els, values) => {
+    els.forEach((el, i) => {
+      el.value = values[i] || "";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }, names);
+  await expect.poll(() => page.locator(".ts-name-slot").evaluateAll((els) => els.map((el) => el.value))).toEqual(names);
   await page.locator(".ts-names-go").click();
-  await page.locator(".round-reveal").click().catch(() => {});
+  const reveal = page.locator(".round-reveal").first();
+  if (await reveal.isVisible().catch(() => false)) await reveal.click();
+  await page.locator(".dimension-warp").evaluateAll((els) => els.forEach((el) => el.remove()));
   await expect(page.locator("#characterBoard")).toBeVisible();
   await expect(page.locator("#characterBoard [data-id]").first()).toBeVisible();
 }
@@ -72,9 +85,7 @@ async function assertBoardIsUsable(page, modeId) {
 }
 
 test("mandatory names and solo mode create one seat per player", async ({ page }) => {
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
+  await openCleanTitle(page);
   await page.locator(".ts-local").click();
   await page.locator(".ts-name-row").first().waitFor();
   await page.locator(".ts-add-player").click();          // 2 -> 3 players
@@ -87,9 +98,82 @@ test("mandatory names and solo mode create one seat per player", async ({ page }
   await inputs.nth(1).fill("Bea");
   await inputs.nth(2).fill("Cal");
   await page.locator(".ts-names-go").click();
-  await page.locator(".round-reveal").click().catch(() => {});
+  const reveal = page.locator(".round-reveal").first();
+  if (await reveal.isVisible().catch(() => false)) await reveal.click();
   await expect(page.locator("body")).toHaveClass(/mode-solo/);
   await expect(page.locator(".seat-half")).toHaveCount(3);
+});
+
+test("sorting reorders cards without losing the board", async ({ page }) => {
+  await startNamedLocalGame(page, 3, true);
+  const result = await page.evaluate(async () => {
+    const ids = () => [...document.querySelectorAll("#characterBoard [data-id]")].map((el) => el.dataset.id);
+    const select = document.querySelector("#sortSelect");
+    const start = ids();
+    for (const key of ["skin", "eye", "hairamount", "appeal"]) {
+      select.value = key;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 520));
+      const now = ids();
+      if (now.join("|") !== start.join("|")) return { key, start, now };
+    }
+    return { key: "", start, now: start };
+  });
+  expect(result.key).not.toBe("");
+  expect([...result.now].sort()).toEqual([...result.start].sort());
+  expect(new Set(result.now).size).toBe(result.start.length);
+  await assertBoardIsUsable(page, `sort ${result.key}`);
+});
+
+test("secret reveal and hide keep the card footprint stable", async ({ page }) => {
+  await startNamedLocalGame(page, 2, true);
+  const card = page.locator("#secretCard");
+  const revealed = await card.boundingBox();
+  expect(revealed).not.toBeNull();
+  await card.click();
+  await expect(card).toHaveClass(/is-hidden/);
+  await page.waitForTimeout(440);
+  const hidden = await card.boundingBox();
+  expect(hidden).not.toBeNull();
+  expect(Math.abs(hidden.width - revealed.width)).toBeLessThanOrEqual(6);
+  expect(Math.abs(hidden.height - revealed.height)).toBeLessThanOrEqual(6);
+  await card.click();
+  await expect(card).not.toHaveClass(/is-hidden/);
+  await page.waitForTimeout(380);
+  const rerevealed = await card.boundingBox();
+  expect(rerevealed).not.toBeNull();
+  expect(Math.abs(rerevealed.width - hidden.width)).toBeLessThanOrEqual(6);
+  expect(Math.abs(rerevealed.height - hidden.height)).toBeLessThanOrEqual(6);
+});
+
+test("online room chip is clean and aligned", async ({ page }) => {
+  await startNamedLocalGame(page, 2, true);
+  await page.evaluate(() => {
+    state.gameMode = "online";
+    state.roomCode = "4815";
+    state.playMode = "team";
+    state.mySeat = 0;
+    state.roster = [
+      { clientId: state.clientId, name: "Joel", side: 0 },
+      { clientId: "friend-client", name: "You", side: 1 }
+    ];
+    renderRoom();
+  });
+  const chip = page.locator(".seat-roster.online-room");
+  await expect(chip).toBeVisible();
+  const text = await chip.innerText();
+  expect(text).toMatch(/room/i);
+  expect(text).toContain("#4815");
+  expect(text).toContain("1 friend connected");
+  expect(text).not.toMatch(/[📋🟢⏳]/u);
+  await expect(chip.locator(".or-copy .control-icon")).toBeVisible();
+  await expect(chip.locator(".or-status.is-connected .or-dot")).toBeVisible();
+  const aligned = await chip.locator(".or-status").evaluate((el) => {
+    const dot = el.querySelector(".or-dot").getBoundingClientRect();
+    const status = el.getBoundingClientRect();
+    return Math.abs((dot.top + dot.height / 2) - (status.top + status.height / 2)) <= 2;
+  });
+  expect(aligned).toBe(true);
 });
 
 test("all playable mystery modes render without blank or overflowing boards", async ({ page }) => {

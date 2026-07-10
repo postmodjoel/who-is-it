@@ -203,13 +203,17 @@ textarea {
   position: sticky;
   top: 12px;
   align-self: start;
-  max-height: calc(100vh - 24px);
-  overflow-y: auto;
-  overflow-x: visible;
+  /* Grow to natural height and let the page scroll - the sticky top:12px keeps the portrait
+     in view as you scroll the controls, rather than the panel scrolling inside itself. */
+  max-height: none;
+  overflow: visible;
 }
 
 .editor-panel {
   padding: 12px;
+  position: sticky;
+  top: 12px;
+  align-self: start;
 }
 
 .portrait-stage {
@@ -295,6 +299,10 @@ textarea {
   display: grid;
   gap: 10px;
   align-content: start;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  overflow-x: visible;
+  padding-right: 6px;
 }
 
 .editor-head {
@@ -736,6 +744,17 @@ textarea {
 
   .workbench-layout {
     grid-template-columns: 1fr;
+  }
+
+  .editor-panel,
+  .inspect-panel {
+    position: static;
+  }
+
+  .correction-editor {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
   }
 }
 

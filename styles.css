@@ -630,18 +630,58 @@ button:disabled {
 .secret-card.is-hidden { color: var(--ink); background: var(--panel); }
 .secret-card.is-hidden .card-plate { background: transparent; }
 .secret-hidden-tile {
+  position: relative;
   width: 100%;
   height: 100%;
   min-height: 100%;
   display: grid;
   place-items: center;
+  overflow: hidden;
   background: radial-gradient(circle at 50% 34%, #2a2c3a, #131320 80%);
 }
+.secret-hidden-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 0 34%, rgba(255, 255, 255, 0.13) 45%, transparent 56% 100%);
+  transform: translateX(-120%);
+}
 .sht-q {
+  position: relative;
   font: 900 clamp(2.2rem, 8vw, 3.4rem) "Archivo", sans-serif;
   color: var(--accent-4, #ffd400);
   text-shadow: 0.05em 0.05em 0 rgba(0, 0, 0, 0.35);
   transform: rotate(-4deg);
+}
+.secret-card.secret-reveal .portrait-wrap img { animation: secretFaceReveal 0.34s cubic-bezier(0.2, 1.1, 0.32, 1) both; }
+.secret-card.secret-reveal .card-plate { animation: secretTextReveal 0.3s 0.04s ease-out both; }
+.secret-card.secret-hide .secret-hidden-tile { animation: secretCoverIn 0.36s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.secret-card.secret-hide .secret-hidden-tile::before { animation: secretCoverSheen 0.52s 0.05s ease-out both; }
+.secret-card.secret-hide .sht-q { animation: secretQuestionIn 0.42s 0.04s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+body.low-power .secret-card.secret-reveal .portrait-wrap img,
+body.low-power .secret-card.secret-reveal .card-plate,
+body.low-power .secret-card.secret-hide .secret-hidden-tile,
+body.low-power .secret-card.secret-hide .secret-hidden-tile::before,
+body.low-power .secret-card.secret-hide .sht-q { animation: none; }
+@keyframes secretFaceReveal {
+  from { opacity: 0; transform: scale(0.92); filter: saturate(0.6) brightness(0.8); }
+  to { opacity: 1; transform: scale(1); filter: none; }
+}
+@keyframes secretTextReveal {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes secretCoverIn {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes secretCoverSheen {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+@keyframes secretQuestionIn {
+  from { opacity: 0; transform: translateY(-10px) rotate(-12deg) scale(0.86); }
+  to { opacity: 1; transform: translateY(0) rotate(-4deg) scale(1); }
 }
 .secret-card.is-hidden .card-plate h3 { text-transform: uppercase; font-weight: 800; }
 .secret-card.is-hidden .card-hint { margin: 2px 0 0; font-size: 0.72rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -766,6 +806,11 @@ button:disabled {
   transform: translateY(-2px);
   box-shadow: 0 7px 16px rgba(0, 0, 0, 0.38);
   z-index: 2;
+}
+
+.character-card.is-reordering {
+  z-index: 4;
+  pointer-events: none;
 }
 
 /* Eliminated: dim and tint the tile mostly dark (face-down), no stamp */
@@ -5301,19 +5346,45 @@ img.pol-mascot {
 }
 .side-panel .side-you { margin-top: 4px; }
 .side-panel .seat-roster { margin-top: 10px; }
-/* Local seat hand-off: the "you" column slides across in the direction of travel. */
-.side-you.seat-slide-fwd { animation: seatSlideFwd 0.34s cubic-bezier(0.22, 0.61, 0.36, 1); }
-.side-you.seat-slide-back { animation: seatSlideBack 0.34s cubic-bezier(0.22, 0.61, 0.36, 1); }
-@keyframes seatSlideFwd {
-  0% { opacity: 0; transform: translateX(38px); }
+/* Local seat hand-off: the active segment moves first; the secret card gives a smaller echo. */
+.seat-roster.seat-pill.seat-swap-fwd .seat-half.active,
+.seat-roster.seat-pill.seat-swap-back .seat-half.active {
+  position: relative;
+  z-index: 1;
+  animation: seatThumbSettle 0.34s cubic-bezier(0.18, 1.18, 0.32, 1) both;
+}
+.seat-roster.seat-pill.seat-swap-back .seat-half.active { --seat-nudge: 18px; }
+.side-you.seat-secret-fwd { animation: seatSecretFwd 0.28s ease-out; }
+.side-you.seat-secret-back { animation: seatSecretBack 0.28s ease-out; }
+@keyframes seatThumbSettle {
+  from { opacity: 0.72; transform: translateX(var(--seat-nudge, -18px)) scale(0.98); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes seatSecretFwd {
+  0% { opacity: 0.5; transform: translateX(18px); }
   100% { opacity: 1; transform: translateX(0); }
 }
-@keyframes seatSlideBack {
-  0% { opacity: 0; transform: translateX(-38px); }
+@keyframes seatSecretBack {
+  0% { opacity: 0.5; transform: translateX(-18px); }
   100% { opacity: 1; transform: translateX(0); }
 }
-body.low-power .side-you.seat-slide-fwd,
-body.low-power .side-you.seat-slide-back { animation: none; }
+body.low-power .seat-roster.seat-pill.seat-swap-fwd .seat-half.active,
+body.low-power .seat-roster.seat-pill.seat-swap-back .seat-half.active,
+body.low-power .side-you.seat-secret-fwd,
+body.low-power .side-you.seat-secret-back { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .secret-card.secret-reveal .portrait-wrap img,
+  .secret-card.secret-reveal .card-plate,
+  .secret-card.secret-hide .secret-hidden-tile,
+  .secret-card.secret-hide .secret-hidden-tile::before,
+  .secret-card.secret-hide .sht-q,
+  .seat-roster.seat-pill.seat-swap-fwd .seat-half.active,
+  .seat-roster.seat-pill.seat-swap-back .seat-half.active,
+  .side-you.seat-secret-fwd,
+  .side-you.seat-secret-back {
+    animation: none;
+  }
+}
 /* The brand slides in like the title screen (WHO? from the left, IS IT? from the right). */
 .side-head h1 { overflow: hidden; line-height: 0.95; }
 .side-head h1 span { display: block; }
@@ -5418,18 +5489,75 @@ body.low-power .side-you.seat-slide-back { animation: none; }
 
 /* ===================== Online room panel (replaces the YOU/B chips) ===================== */
 .seat-roster.online-room {
-  display: block; text-align: center;
-  padding: 10px 12px; border-radius: 12px;
-  border: 1.5px dashed color-mix(in srgb, var(--line) 60%, transparent);
-  background: rgba(58, 134, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 64%, transparent);
+  background: linear-gradient(180deg, rgba(58, 134, 255, 0.12), rgba(20, 20, 26, 0.16));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 /* "ROOM #1234" reads as one unit - same size, label muted, number accent. */
-.or-code { display: inline-flex; align-items: baseline; justify-content: center; gap: 8px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.15rem; letter-spacing: 0.04em; color: var(--ink); }
-.or-code .or-word { color: #8fb4ff; text-transform: uppercase; letter-spacing: 0.1em; }
+.or-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  font-family: "Archivo", sans-serif;
+  font-weight: 900;
+  font-size: 1.08rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.or-code .or-word { color: #8fb4ff; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.68em; }
 .or-code .or-num { color: var(--accent-4, #ffd400); }
-.or-copy { border: none; background: none; cursor: pointer; font-size: 1rem; padding: 2px 4px; border-radius: 6px; }
-.or-copy:hover { background: rgba(255,255,255,0.1); }
-.or-status { margin: 4px 0 0; font-size: 0.68rem; font-weight: 600; color: var(--muted, #9aa3b2); }
+.or-copy {
+  width: 27px;
+  height: 27px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--line) 62%, transparent);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+  border-radius: 7px;
+}
+.or-copy .control-icon { width: 14px; height: 14px; }
+.or-copy:hover { background: rgba(255, 255, 255, 0.12); }
+.or-copy.is-copied { color: #38d47a; }
+.or-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--muted, #9aa3b2);
+}
+.or-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #9aa3b2;
+  box-shadow: 0 0 0 3px rgba(154, 163, 178, 0.12);
+}
+.or-status.is-connected .or-dot {
+  background: #38d47a;
+  box-shadow: 0 0 0 3px rgba(56, 212, 122, 0.14);
+}
+.or-status.is-waiting .or-dot {
+  background: #ffbe0b;
+  box-shadow: 0 0 0 3px rgba(255, 190, 11, 0.16);
+}
 
 /* (the arrows button is END ROUND now - shown in both modes) */
 
@@ -5771,8 +5899,15 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
     color: #9a9aa5;
   }
   /* Your secret: a compact chip - 52px face + name. */
-  .side-panel .side-you { grid-area: you; margin: 0; min-width: 0; justify-self: start; }
+  .side-panel .side-you {
+    grid-area: you;
+    width: clamp(150px, 13vw, 190px);
+    margin: 0;
+    min-width: 0;
+    justify-self: start;
+  }
   .side-panel .secret-card.character-card {
+    width: 100%;
     min-height: 52px;
     display: grid;
     grid-template-columns: 52px minmax(0, 1fr);
@@ -5800,6 +5935,7 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
     color: #fff;
     letter-spacing: 0.06em;
   }
+  .side-panel .secret-card.is-hidden .card-hint { display: none; }
   .side-panel .secret-card .card-meta,
   .side-panel .secret-card .card-pronouns,
   .side-panel .secret-card .card-role { display: none; }
@@ -5909,7 +6045,7 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
     flex-direction: column;
     align-items: flex-end;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
     padding: 7px 14px;
     border: 1px solid #2b2b36;
     border-radius: 10px;
@@ -5917,7 +6053,7 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
     text-align: right;
   }
   .side-panel .seat-roster.online-room .or-label { display: none; }
-  .side-panel .seat-roster.online-room .or-code { font-size: 0.95rem; }
+  .side-panel .seat-roster.online-room .or-code { justify-content: flex-end; font-size: 0.95rem; }
   /* Team line: a proper amber pill so it reads as "your team", not squashed grey text. */
   .side-panel .seat-roster.online-room .or-team {
     margin: 0;
@@ -5931,7 +6067,7 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
     border: 1px solid rgba(255, 190, 11, 0.34);
     color: #ffd873;
   }
-  .side-panel .seat-roster.online-room .or-status { font-size: 0.68rem; margin: 1px 0 0; color: #9aa3b2; }
+  .side-panel .seat-roster.online-room .or-status { justify-content: flex-end; font-size: 0.68rem; margin: 0; color: #9aa3b2; }
   /* Opponent feed (online): its own full-width row under the rail content. */
   .side-panel .opponent-panel {
     grid-column: 1 / -1;

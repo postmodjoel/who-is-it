@@ -2647,19 +2647,19 @@ function showTitleScreen() {
         </label>
         ${pgToggleMarkup()}
         ${boardSizeMarkup()}
+        ${audioToggleMarkup()}
         <div class="ts-btn-row">
           <button type="button" class="button ghost ts-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
           <button type="button" class="button primary ts-names-go">${tsIcon("dice")}<span class="ts-lbl">BEGIN</span></button>
         </div>
-        ${audioToggleMarkup()}
       </div>
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
         <button type="button" class="button primary ts-host">${tsIcon("host")}<span class="ts-lbl">HOST A ROOM</span></button>
         <button type="button" class="button secondary ts-showjoin">${tsIcon("join")}<span class="ts-lbl">JOIN A ROOM</span></button>
         <button type="button" class="button ghost ts-observe">${tsIcon("tv")}<span class="ts-lbl">DISPLAY ON A TV</span></button>
-        <button type="button" class="button ghost ts-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
         ${audioToggleMarkup()}
+        <button type="button" class="button ghost ts-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
       </div>
       <div class="ts-step ts-step-join" hidden>
         <p class="ts-join-label">Enter your friend's room number</p>

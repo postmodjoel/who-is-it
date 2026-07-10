@@ -336,7 +336,20 @@ function iconSvg(name) {
     ear: "<path d='M8 9a4 4 0 0 1 8 0c0 2.2-1.6 3.3-2.7 4.2-.85.7-1.2 1.35-1.3 2.3A2.3 2.3 0 0 1 7.4 16'/><path d='M9.6 9.4A2.4 2.4 0 0 1 14 10.7'/>",
     skin: "<circle cx='12' cy='12' r='8.5'/><path d='M12 3.5a8.5 8.5 0 0 1 0 17Z' fill='currentColor' stroke='none'/>",
     hair: "<path d='M5 13a7 7 0 0 1 14 0'/><path d='M6.6 11.4C7 9 8 6.6 8.9 5.6M12 10.6c0-2 .3-4.2.9-5.7M17.2 11.3c-.2-2-.7-3.9-1.4-5'/><path d='M5 13v3.4A2.6 2.6 0 0 0 7.6 19h8.8a2.6 2.6 0 0 0 2.6-2.6V13'/>",
-    az: "<path d='M4 8l2.5-4L9 8M4.7 6.7h3.6'/><path d='M4 20h5l-5-6h5'/><path d='M14 6h6l-6 6h6'/>"
+    az: "<path d='M4 8l2.5-4L9 8M4.7 6.7h3.6'/><path d='M4 20h5l-5-6h5'/><path d='M14 6h6l-6 6h6'/>",
+    heart: "<path d='M12 20s-7-4.5-9.2-8.3C1.3 8.9 2.7 5.6 5.8 5.6c1.9 0 3.1 1 4.2 2.3 1.1-1.3 2.3-2.3 4.2-2.3 3.1 0 4.5 3.3 3 6.1C19 15.5 12 20 12 20Z'/>",
+    pin: "<path d='M12 21s6.5-6.2 6.5-11A6.5 6.5 0 1 0 5.5 10c0 4.8 6.5 11 6.5 11Z'/><circle cx='12' cy='10' r='2.4'/>",
+    coin: "<circle cx='12' cy='12' r='8.5'/><path d='M12 7v10M9.6 9.3c.4-.9 1.3-1.4 2.4-1.4 1.3 0 2.4.8 2.4 1.9s-1.1 1.7-2.4 1.7-2.4.8-2.4 2 1.1 1.9 2.4 1.9c1.1 0 2-.5 2.4-1.4'/>",
+    smile: "<circle cx='12' cy='12' r='8.5'/><path d='M8.4 14a4.6 4.6 0 0 0 7.2 0'/><path d='M9 9.5h.01M15 9.5h.01'/>",
+    syringe: "<path d='M13.5 4.5l6 6'/><path d='M16.8 7.2l-8.9 8.9a2 2 0 0 1-.9.5L3.5 18l1.9-3.5a2 2 0 0 1 .5-.7L14.8 5.2'/><path d='M10 9l3 3M8 11l3 3'/>",
+    skull: "<path d='M6 12.5a6 6 0 1 1 12 0V15a2 2 0 0 1-1.3 1.9l-.4.9a1.4 1.4 0 0 1-1.3.9H9a1.4 1.4 0 0 1-1.3-.9l-.4-.9A2 2 0 0 1 6 15Z'/><circle cx='9.3' cy='12' r='1.4' fill='currentColor' stroke='none'/><circle cx='14.7' cy='12' r='1.4' fill='currentColor' stroke='none'/><path d='M10.6 18.6v1.6M13.4 18.6v1.6'/>",
+    droplet: "<path d='M12 3.5s6 6.5 6 10.5a6 6 0 0 1-12 0c0-4 6-10.5 6-10.5Z'/>",
+    egg: "<path d='M12 3c3.3 0 6 4.9 6 9.1a6 6 0 0 1-12 0C6 7.9 8.7 3 12 3Z'/>",
+    flame: "<path d='M12 3s5 3.9 5 9a5 5 0 0 1-10 0c0-1.7.8-3.1 1.6-4 .2 1 .9 1.7 1.8 2 .3-2.8-.4-5.3 1.6-7Z'/>",
+    scales: "<path d='M12 4v15M6.5 19h11M12 5.5l-6 1M12 5.5l6 1M7 6l-3 5.5a3 3 0 0 0 6 0Zm10 0l-3 5.5a3 3 0 0 0 6 0Z'/>",
+    calendar: "<rect x='4' y='5' width='16' height='16' rx='2'/><path d='M4 9.5h16M8.5 3v4M15.5 3v4'/>",
+    stack: "<path d='M12 3.5l8.5 4.3-8.5 4.3-8.5-4.3L12 3.5Z'/><path d='M3.5 12.2 12 16.5l8.5-4.3M3.5 16.2 12 20.5l8.5-4.3'/>",
+    angel: "<ellipse cx='12' cy='5' rx='3.6' ry='1.2'/><circle cx='12' cy='10' r='3'/><path d='M6.4 19.5a5.6 5.6 0 0 1 11.2 0'/>"
   };
   return `<span class="control-icon"><svg ${common}>${paths[name] || ""}</svg></span>`;
 }
@@ -889,7 +902,15 @@ function rebuildSortOptions() {
 }
 // The compact sort control shows a glyph for the ACTIVE sort (an ear when sorted by ear size, etc.),
 // falling back to the generic sort-lines icon for board order or any mode sort without its own glyph.
-const SORT_GLYPH_ICON = { eye: "eye", skin: "skin", ear: "ear", hairamount: "hair", appeal: "star", name: "az", nameappropriateness: "az" };
+const SORT_GLYPH_ICON = {
+  // base appearance sorts
+  eye: "eye", skin: "skin", ear: "ear", hairamount: "hair", appeal: "star",
+  name: "az", nameappropriateness: "az",
+  // mode-specific sorts (every key any mode registers in its `sorts` array)
+  match: "heart", distance: "pin", cash: "coin", mood: "smile", habits: "syringe",
+  deathness: "skull", cum: "droplet", eggs: "egg", horniness: "flame", bodycount: "stack",
+  karma: "scales", happiness: "smile", days: "calendar", abortions: "angel"
+};
 function updateSortGlyph() {
   const holder = document.querySelector(".sort-glyph");
   if (!holder) return;

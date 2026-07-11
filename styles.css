@@ -4721,6 +4721,8 @@ body.mode-pixall .secret-card img {
 }
 .heads-form-btn:hover { border-color: #ffbe0b; }
 .heads-form-btn.on { background: #ffbe0b; color: #1a1508; border-color: #ffbe0b; }
+/* Fingers need more chip than mice do. */
+@media (pointer: coarse) { .heads-form-btn { min-height: 36px; min-width: 44px; } }
 
 /* ===================== Habbo: walk bob + original room decor ===================== */
 /* A little stepping bounce while an avatar walks the grid. */
@@ -5018,8 +5020,19 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   .hb-cam-screen { grid-area: screen; width: 56px; aspect-ratio: 1; }
   .hb-cam-name { grid-area: name; margin: 0; text-align: left; font-size: 0.55rem; }
   .hb-cam-ban { grid-area: ban; font-size: 0.55rem; padding: 8px 12px; }
+  /* Banned void: the tall left column clipped names off a phone screen and covered the room's left
+     tiles. Dock it as a horizontal strip along the TOP of the board instead. */
+  .habbo-void {
+    left: 4px; right: 4px; top: 4px; bottom: auto; max-width: none;
+    flex-direction: row; justify-content: flex-start; gap: 8px; padding: 6px 8px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.35) 75%, transparent);
+  }
+  .hb-void-row { flex-direction: row; overflow-x: auto; overflow-y: hidden; max-height: none; max-width: 100%; }
+  .hb-void-fig img { width: 38px; height: 38px; }
   .heads-toolbar { gap: 4px; }
-  .heads-form-btn { padding: 3px 7px; font-size: 0.56rem; }
+  /* Real thumb targets: the shrunken chips were ~19px tall - unusable on a phone. Keep the tiny
+     type but give the touch area proper height. */
+  .heads-form-btn { padding: 3px 9px; font-size: 0.56rem; min-height: 36px; min-width: 44px; }
   .character-board.heads-board { min-height: 60vh; }
 }
 

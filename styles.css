@@ -4930,7 +4930,9 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .ts-pg.on b { background: #178a47; }
 
 /* First-play onboarding nudges (one-time). Non-interactive layer; any tap dismisses them. */
-.onboard-tips { position: fixed; inset: 0; z-index: 2050; pointer-events: none; transition: opacity 0.3s ease; }
+/* Coach marks point at BOARD elements: above the in-game HUD (900) but below the round reveal
+   (1900), session end (1500) and warp (3000) - they used to float over the receipt screen. */
+.onboard-tips { position: fixed; inset: 0; z-index: 1200; pointer-events: none; transition: opacity 0.3s ease; }
 .onboard-tips.ob-out { opacity: 0; }
 .onboard-tip {
   position: absolute; max-width: 190px; padding: 9px 13px; border-radius: 12px;
@@ -6968,7 +6970,9 @@ body.mode-nw .cue-card {
 .round-reveal .rr-finish { margin-top: 10px; opacity: 0.9; }
 /* Its own world: a slow drifting dark gradient, no game board in sight. */
 .session-end {
-  position: fixed; inset: 0; z-index: 350;
+  /* Above the in-game HUD (the mobile YOU-ARE bar is fixed at z 900, and it was floating over the
+     receipt) but below the round-reveal (1900) and the end-confirm sheet (2600). */
+  position: fixed; inset: 0; z-index: 1500;
   display: flex; flex-direction: column; align-items: center;
   background: linear-gradient(135deg, #0a0a12, #1a1226 30%, #101018 55%, #241016 80%, #0a0a12);
   background-size: 300% 300%;

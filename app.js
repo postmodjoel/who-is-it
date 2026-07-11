@@ -746,7 +746,7 @@ function render() {
   renderBoard();
   renderMystery();
   renderOpponentPanel();
-  if (state.isObserver) renderObserverHeader(); else document.getElementById("observerBar")?.remove();
+  if (state.isObserver) { renderObserverHeader(); fitObserverBoard(); } else document.getElementById("observerBar")?.remove();
   maybeShowOnboarding();   // one-time first-play nudges (no-op after the first dismissal)
 }
 
@@ -2584,7 +2584,7 @@ function maskRiddleAnswer(answer) {
     /[a-z0-9]/i.test(ch) ? (i % 3 === 1 ? ch.toUpperCase() : "_") : ch
   ).join(" ").replace(/\s{2,}/g, "   ");   // widen the gaps that land on real spaces
 }
-function askAdultGate(cb, required = 3) {
+function askAdultGate(cb, required = 1) {   // one riddle is gate enough - three was a chore for the grown-ups too
   const needed = Math.max(1, Math.min(required, ADULT_RIDDLES.length));
   // Shuffle ALL riddles into a queue (not just `needed`): a hard one can be SKIPPED to a fresh one,
   // so `idx` (which riddle is showing) is tracked separately from `solved` (how many you've got).
@@ -2597,8 +2597,8 @@ function askAdultGate(cb, required = 3) {
   const ov = document.createElement("div");
   ov.className = "riddle-overlay";
   ov.innerHTML = `<div class="riddle-box">
-      <p class="riddle-eyebrow">🔞 Adults only — solve ${needed} to turn PG off</p>
-      <p class="riddle-progress"></p>
+      <p class="riddle-eyebrow">🔞 Adults only — ${needed === 1 ? "answer this to turn PG off" : `solve ${needed} to turn PG off`}</p>
+      <p class="riddle-progress" ${needed === 1 ? "hidden" : ""}></p>
       <p class="riddle-q"></p>
       <p class="riddle-hint" aria-label="answer hint"></p>
       <input class="riddle-input" type="text" placeholder="type your answer…" autocomplete="off" spellcheck="false">
@@ -3042,6 +3042,34 @@ function showObserverWait() {
 }
 // Observer HUD: a slim top banner with the room, the active mode and the player count. The location
 // + board come from the normal render underneath (the side panel is hidden by body.observer CSS).
+// TV display: size the grid so EVERY face fits on screen at once - no scrolling, no dead side
+// margins. Tries every column count and keeps whichever gives the biggest face. Custom-layout
+// boards (habbo room, floating heads, manor map, family tree) keep their own layouts.
+const TV_CUSTOM_BOARDS = ["habbo-board", "heads-board", "knockoff-manor-board", "family-tree-board"];
+function fitObserverBoard() {
+  const board = els.characterBoard;
+  if (!state.isObserver || !board) return;
+  const custom = TV_CUSTOM_BOARDS.some((c) => board.classList.contains(c));
+  document.body.classList.toggle("tv-fit", !custom);
+  if (custom) { board.style.removeProperty("--tv-cols"); board.style.removeProperty("--tv-board-h"); return; }
+  const n = board.querySelectorAll("[data-id]").length || (state.board || []).length;
+  if (!n) return;
+  const barH = document.getElementById("observerBar")?.getBoundingClientRect().height || 56;
+  const PAD = 20, GAP = 10, PLATE = 34;   // wrap padding, grid gap, name plate under each face
+  const W = Math.max(200, window.innerWidth - PAD);
+  const H = Math.max(200, window.innerHeight - barH - PAD);
+  let best = { cols: Math.ceil(Math.sqrt(n)), size: 0 };
+  for (let cols = 1; cols <= n; cols += 1) {
+    const rows = Math.ceil(n / cols);
+    const cw = (W - (cols - 1) * GAP) / cols;
+    const ch = (H - (rows - 1) * GAP) / rows;
+    const size = Math.min(cw, ch - PLATE);   // the square face this layout would allow
+    if (size > best.size) best = { cols, size };
+  }
+  board.style.setProperty("--tv-cols", String(best.cols));
+  board.style.setProperty("--tv-board-h", `${H}px`);
+}
+window.addEventListener("resize", () => { if (state.isObserver) fitObserverBoard(); });
 function renderObserverHeader() {
   let bar = document.getElementById("observerBar");
   if (!bar) { bar = document.createElement("div"); bar.id = "observerBar"; document.body.appendChild(bar); }

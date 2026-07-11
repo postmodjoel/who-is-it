@@ -893,10 +893,20 @@
     sunHat: "sun hat"
   };
 
+  function mergeStudioBakeMaps(base, overlay) {
+    const merged = { ...base };
+    Object.entries(overlay || {}).forEach(([id, traits]) => {
+      merged[id] = { ...(merged[id] || {}), ...traits };
+    });
+    return merged;
+  }
+
+  const studioBakeImport = (typeof window !== "undefined" && window.WhoStudioBakeImport) || {};
+
   // Per-character design overrides folded in from the studio (exported corrections). Keyed by the
   // base seed id (not the "gen-" portrait id). Drop an exported character's correction block here to
   // make its studio look the permanent default.
-  const studioBakes = {
+  const studioBakes = mergeStudioBakeMaps({
     "aaron": {
       "faceShape": "long",
       "skin": "porcelain",
@@ -4119,7 +4129,7 @@
       ],
       "hairHex": "#696de8"
     }
-  };
+  }, studioBakeImport);
   const characterOverrides = {
     aaron: {
       hair: "coily", faceShape: "long", clothing: "bare", accessory: "choker",
@@ -7055,11 +7065,16 @@
     const profile = getProfile(traits);
     const y = (profile.noseY || 0) + jawDrop(profile.jawLength, 155);
     const scale = profile.noseScale || 1;
+    const length = clampNumber(profile.noseLength == null ? 1 : profile.noseLength, 0.65, 1.5, 1);
+    const lengthPull = length - 1;
     const cx = 128;
     const f = (n) => n.toFixed(1);
     // faces.js keeps the nose to a soft underside curve close under the eyes rather than a long
-    // shaded bridge - the long bridge stretched the midface and made faces look gaunt.
-    const baseY = 155 + y;
+    // shaded bridge - the long bridge stretched the midface and made faces look gaunt. noseLength
+    // adds a controlled vertical stretch so the editor can make it longer/shorter without also
+    // widening the nose or just dragging the whole feature down the face.
+    const bridgeTopY = 139 + y - lengthPull * 2.8;
+    const baseY = 155 + y + lengthPull * 7.2;
     // noseWidth narrows/widens independently of the overall scale (a skinny vs broad nose).
     const w = 9 * scale * (profile.noseWidth || 1);
     // Tip shape: how curved/pointed the underside is. spread = how far the lower control points sit
@@ -7074,8 +7089,9 @@
       upturned: { spread: 0.3,  drop: -0.4 }  // tip lifts above the wings
     };
     const tc = tipCfg[traits.noseTip] || tipCfg.round;
-    const sp = tc.spread, dr = tc.drop;
-    const bridge = `M${cx} ${f(139 + y)}c-1.4 ${f(6 * scale)} -1.8 ${f(11 * scale)} -3.2 ${f(15 * scale)}`;
+    const sp = tc.spread;
+    const dr = tc.drop + lengthPull * 1.3;
+    const bridge = `M${cx} ${f(bridgeTopY)}c-1.4 ${f(6 * scale * (0.9 + length * 0.18))} -1.8 ${f(11 * scale * (0.88 + length * 0.22))} -3.2 ${f(15 * scale * (0.82 + length * 0.3))}`;
     // underside: from the left wing down to the centre tip, then mirrored up to the right wing
     const base =
       `M${f(cx - w)} ${f(baseY - 4)}` +
@@ -7530,6 +7546,7 @@
       browScaleX: 1,
       noseY: 0,
       noseScale: 1,
+      noseLength: 1,
       noseWidth: 1,
       mouthY: 0,
       cheekY: 0,
@@ -7545,7 +7562,7 @@
 
   const profileOverrideKeys = [
     "eyeScale", "eyeOpen", "irisScale", "eyeY", "browY", "browScaleX",
-    "noseY", "noseScale", "noseWidth", "cheekY", "cheekOpacity", "eyeSocketY", "jawShadowY", "jawLength",
+    "noseY", "noseScale", "noseLength", "noseWidth", "cheekY", "cheekOpacity", "eyeSocketY", "jawShadowY", "jawLength",
     "pupilX", "pupilY", "browThick"
   ];
 

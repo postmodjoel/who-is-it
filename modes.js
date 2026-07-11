@@ -3652,9 +3652,14 @@ function habboFaceSrc(a) {
 }
 function habboSpriteSrc(entry, facingRight, walking) {
   if (!entry) return null;
-  const dir = facingRight ? "3" : "5";
-  const set = walking && entry.walk ? entry.walk : (entry.directions || {});
-  const src = set[dir] || (entry.directions || {})["3"] || entry.body;
+  // These sheets are fetched one step off the classic compass: our d3 is the FRONT pose and d5 a
+  // full side profile. The isometric room wants the Habbo THREE-QUARTER views - d2 (facing right)
+  // and d4 (facing left) - for BOTH idle and walking, so a figure keeps the same silhouette when it
+  // starts moving instead of snapping from a front pose to a side profile ("different person" bug).
+  const dir = facingRight ? "2" : "4";
+  const idle = entry.directions || {};
+  const set = walking && entry.walk ? entry.walk : idle;
+  const src = set[dir] || idle[dir] || set["3"] || idle["3"] || entry.body;
   return src ? `${src}?v=${window.HabboAvatarVersion || 1}` : null;
 }
 // Re-point a figure's <img> at the sprite matching its current facing/walking state.

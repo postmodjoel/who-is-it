@@ -252,6 +252,28 @@ button:disabled {
   background: var(--surface);
 }
 
+/* ===================== Touch discipline =====================
+   The game is a board of images and labels, not a document: nothing should NATIVELY drag or
+   text-select under a finger. The deliberate gestures (tap to eliminate, scroll, long-press breed
+   drag) are implemented in JS and keep working - this just silences the browser's own behaviours
+   that fought them (image ghost-drags, blue text selections, iOS press-and-hold callouts). */
+img { -webkit-user-drag: none; }
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Anything genuinely typeable stays selectable. */
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* Interactive surfaces: no double-tap-zoom hesitation, no iOS save-image callout. */
+button, select, a, label,
+.character-card, .seat-half, .seat-swap, .habbo-fig, .float-head, .manor-token {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
 .control-icon {
   display: inline-flex;
   width: 18px;
@@ -4908,7 +4930,9 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .ts-pg.on b { background: #178a47; }
 
 /* First-play onboarding nudges (one-time). Non-interactive layer; any tap dismisses them. */
-.onboard-tips { position: fixed; inset: 0; z-index: 2050; pointer-events: none; transition: opacity 0.3s ease; }
+/* Coach marks point at BOARD elements: above the in-game HUD (900) but below the round reveal
+   (1900), session end (1500) and warp (3000) - they used to float over the receipt screen. */
+.onboard-tips { position: fixed; inset: 0; z-index: 1200; pointer-events: none; transition: opacity 0.3s ease; }
 .onboard-tips.ob-out { opacity: 0; }
 .onboard-tip {
   position: absolute; max-width: 190px; padding: 9px 13px; border-radius: 12px;
@@ -4977,8 +5001,23 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 @media (max-width: 640px) {
   .game-stage .character-board.habbo-board { min-height: 40vh; overflow: hidden; }
   .habbo-room { --hb-fit-scale: 0.6; min-height: 560px; transform-origin: top center; width: 167%; margin-left: -33.5%; margin-bottom: -224px; }
-  .hb-cam { width: 100px; right: 8px; top: 8px; }
-  .hb-cam-ban { font-size: 0.5rem; }
+  /* Phones: the overlay cam covered the room's right columns. Dock it BELOW the room instead as a
+     horizontal strip (it's appended after the board, so static = under it) - nothing is hidden and
+     the BAN button gets a proper thumb target. */
+  .hb-cam {
+    position: static;
+    width: auto;
+    margin: 8px 2px 0;
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    grid-template-areas: "top top top" "screen name ban";
+    align-items: center;
+    gap: 3px 10px;
+  }
+  .hb-cam-top { grid-area: top; }
+  .hb-cam-screen { grid-area: screen; width: 56px; aspect-ratio: 1; }
+  .hb-cam-name { grid-area: name; margin: 0; text-align: left; font-size: 0.55rem; }
+  .hb-cam-ban { grid-area: ban; font-size: 0.55rem; padding: 8px 12px; }
   .heads-toolbar { gap: 4px; }
   .heads-form-btn { padding: 3px 7px; font-size: 0.56rem; }
   .character-board.heads-board { min-height: 60vh; }
@@ -6931,7 +6970,9 @@ body.mode-nw .cue-card {
 .round-reveal .rr-finish { margin-top: 10px; opacity: 0.9; }
 /* Its own world: a slow drifting dark gradient, no game board in sight. */
 .session-end {
-  position: fixed; inset: 0; z-index: 350;
+  /* Above the in-game HUD (the mobile YOU-ARE bar is fixed at z 900, and it was floating over the
+     receipt) but below the round-reveal (1900) and the end-confirm sheet (2600). */
+  position: fixed; inset: 0; z-index: 1500;
   display: flex; flex-direction: column; align-items: center;
   background: linear-gradient(135deg, #0a0a12, #1a1226 30%, #101018 55%, #241016 80%, #0a0a12);
   background-size: 300% 300%;
@@ -7012,6 +7053,9 @@ body.mode-nw .cue-card {
 .rc-printarea { display: flex; flex-direction: column; align-items: center; }
 .rc-window { overflow: hidden; padding-bottom: 6px; margin-top: -4px; }
 .rc-window .receipt-paper { margin-top: 0; }
+/* On the session-end + summary screens the paper prints FULL LENGTH and the stage scrolls - the
+   base 68vh internal scroll hid the QR + save-link below a nested scrollbar nobody found on phones. */
+.session-end .receipt-paper { max-height: none; overflow-y: visible; }
 
 /* ===================== Per-mode title entrances ===================== */
 /* FLICKER: FLASH ON — dying-neon stutter — hold — gone. */
@@ -7268,6 +7312,41 @@ body.mode-nw .cue-card {
 .rc-qr-label { margin: 2px 0 0; text-align: center; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.12em; }
 .rc-qr-open { margin: 3px 0 0; text-align: center; font-size: 0.58rem; }
 .rc-qr-open a { color: #23211c; font-weight: 700; text-decoration: underline; }
+/* SAVE THIS GAME: the copyable ?g= link printed under the QR. Selectable on purpose. */
+.rc-save { margin: 3px 0 6px; text-align: center; font-size: 0.6rem; word-break: break-all; }
+.rc-save a { color: #23211c; font-weight: 700; text-decoration: underline; -webkit-user-select: text; user-select: text; }
+.rc-save-copy {
+  display: block; margin: 0 auto; padding: 7px 16px;
+  border: 1.5px dashed #23211c; border-radius: 3px; background: transparent;
+  font: 700 0.58rem "Space Grotesk", monospace; letter-spacing: 0.12em; color: #23211c; cursor: pointer;
+}
+.rc-save-copy:hover { background: rgba(0, 0, 0, 0.06); }
+/* Session-end CTAs: side by side, popping in once the receipt has fed out. */
+.se-actions {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+  margin: 14px 16px 28px;
+  animation: ts-fade 0.45s 1.75s both;
+}
+.se-actions .button { min-height: 48px; font-weight: 900; }
+/* Confirm sheet before ending the session. Sits above the round reveal (z 1900). */
+.end-confirm {
+  position: fixed; inset: 0; z-index: 2600;
+  display: grid; place-items: center; padding: 18px;
+  background: rgba(6, 6, 12, 0.72);
+  backdrop-filter: blur(4px);
+}
+.end-confirm-box {
+  width: min(400px, 92vw); padding: 20px 18px;
+  background: #16181f; border: 2px solid rgba(255, 255, 255, 0.16); border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); text-align: center;
+  animation: ts-fade 0.25s ease both;
+}
+.ec-title { margin: 0 0 6px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.3rem; color: #fffdf7; }
+.ec-sub { margin: 0 0 14px; font-size: 0.85rem; color: rgba(255, 253, 247, 0.75); }
+.ec-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.ec-actions .button { min-height: 46px; flex: 1 1 150px; }
+body.low-power .se-actions,
+body.low-power .end-confirm-box { animation: none; }
 /* Summary page shares the credits-screen shell; just no roll behind it. */
 .summary-page .se-stage { background: radial-gradient(60% 50% at 50% 42%, rgba(8, 8, 14, 0.85), rgba(8, 8, 14, 0.4) 70%, transparent); }
 .summary-page .su-again { margin-top: 18px; }

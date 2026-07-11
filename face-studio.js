@@ -95,6 +95,7 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   // Nose
   { group: "Nose", key: "noseY", label: "Nose Height", min: -8, max: 10, step: 0.5, fallback: 0 },
   { group: "Nose", key: "noseScale", label: "Nose Size", min: 0.6, max: 1.5, step: 0.02, fallback: 1 },
+  { group: "Nose", key: "noseLength", label: "Nose Length", min: 0.65, max: 1.5, step: 0.02, fallback: 1 },
   { group: "Nose", key: "noseWidth", label: "Nose Width (skinny ↔ broad)", min: 0.55, max: 1.5, step: 0.02, fallback: 1 },
   { group: "Nose", key: "noseTip", label: "Tip Shape", type: "select", options: () => selectOptions(traitBook.noseTips), fallback: "round" },
   // Face Lines (creases/wrinkles - each 0..1 opacity; faceLineOpacity scales them all)
@@ -240,6 +241,7 @@ const state = {
   selectedId: characters[0]?.id || "",
   selectedExpression: "assigned",
   activeGroup: "Face",
+  exportMode: "corrections",
   corrections: readCorrections(),
   // Pen tool (draw custom hair). pts: anchors {x,y,hx,hy} in 256-space; hx/hy = outgoing handle.
   pen: { mode: false, pts: [], dragging: -1, color: "", outline: true, lines: true, closed: false }
@@ -274,6 +276,10 @@ const els = {
   hotspotHint: document.querySelector("#hotspotHint"),
   editorControls: document.querySelector("#editorControls"),
   correctionExport: document.querySelector("#correctionExport"),
+  exportModeLabel: document.querySelector("#exportModeLabel"),
+  exportModeCorrections: document.querySelector("#exportModeCorrections"),
+  exportModeEdited: document.querySelector("#exportModeEdited"),
+  copyExportButton: document.querySelector("#copyExportButton"),
   resetCorrectionButton: document.querySelector("#resetCorrectionButton")
 };
 let portraitRefreshFrame = 0;
@@ -312,6 +318,9 @@ function init() {
   });
   els.resetButton.addEventListener("click", reset);
   els.resetCorrectionButton.addEventListener("click", clearSelectedCorrection);
+  els.exportModeCorrections?.addEventListener("click", () => setExportMode("corrections"));
+  els.exportModeEdited?.addEventListener("click", () => setExportMode("editedCharacters"));
+  els.copyExportButton?.addEventListener("click", copyCurrentExport);
 
   renderHotspots();
   wireLockStageOnce();
@@ -837,7 +846,7 @@ function colorAutoFor(character, field) {
   if (field.key === "accessoryColor") return character.traits.accessoryColor || character.traits.accent || "#171512";
   if (field.key === "eyelashColor") return character.traits.eyelashColor || "#1f2330";
   if (field.key === "eyeColor") return character.traits.eyeColor || "#5a3d28";
-  if (field.key === "hairOutline") return character.traits.hairOutline || "#1f2330";
+  if (field.key === "hairOutline") return hairOutlineHexFor(character);
   return "#000000";
 }
 
@@ -950,13 +959,83 @@ function saveCorrections() {
   localStorage.setItem(correctionStorageKey, JSON.stringify(state.corrections));
 }
 
-function renderCorrectionExport() {
+function setExportMode(mode) {
+  state.exportMode = mode === "editedCharacters" ? "editedCharacters" : "corrections";
+  renderCorrectionExport();
+}
+
+function baseCharacterId(id) {
+  return String(id || "").replace(/^gen-/, "");
+}
+
+function editedCharactersExport() {
+  const editedCharacters = {};
+  characters.forEach((character) => {
+    const correction = correctionFor(character.id);
+    if (!Object.keys(correction).length) return;
+    editedCharacters[baseCharacterId(character.id)] = {
+      name: character.name,
+      pronouns: character.pronouns,
+      secret: character.secret,
+      role: character.role,
+      seed: character.seed,
+      traits: JSON.parse(JSON.stringify({ ...character.traits, ...correction }))
+    };
+  });
+  return { editedCharacters };
+}
+
+function currentExportPayload() {
+  if (state.exportMode === "editedCharacters") {
+    return editedCharactersExport();
+  }
   const selected = state.selectedId ? { [state.selectedId]: correctionFor(state.selectedId) } : {};
-  const payload = {
+  return {
     selected,
     all: state.corrections
   };
+}
+
+function renderCorrectionExport() {
+  const payload = currentExportPayload();
   els.correctionExport.value = JSON.stringify(payload, null, 2);
+  if (els.exportModeLabel) {
+    els.exportModeLabel.textContent = state.exportMode === "editedCharacters" ? "Edited Characters" : "Corrections Export";
+  }
+  els.exportModeCorrections?.classList.toggle("is-active", state.exportMode === "corrections");
+  els.exportModeEdited?.classList.toggle("is-active", state.exportMode === "editedCharacters");
+}
+
+async function copyCurrentExport() {
+  const text = els.correctionExport?.value || "";
+  if (!text) return;
+  let copied = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    }
+  } catch {
+    copied = false;
+  }
+  if (!copied && els.correctionExport) {
+    els.correctionExport.focus();
+    els.correctionExport.select();
+    try {
+      copied = document.execCommand("copy");
+    } catch {
+      copied = false;
+    }
+    els.correctionExport.setSelectionRange(0, 0);
+    els.correctionExport.blur();
+  }
+  const button = els.copyExportButton;
+  if (!button) return;
+  const label = copied ? "Copied" : "Copy failed";
+  button.textContent = label;
+  window.setTimeout(() => {
+    if (els.copyExportButton === button) button.textContent = "Copy";
+  }, 1200);
 }
 
 function tattooDefaults(character) {
@@ -1396,8 +1475,8 @@ function formatNumber(value) {
 
 /* ===================== Hair Lock Designer ===================== *
  * Locks are stored per character as corrections[id].hairLocks - an ordered array (array order =
- * z-order, last = front). Each entry: { lock, x, y, scale, rot, lines, outline?, outlineForce?,
- * fill?, dark?, shine?, line? }
+ * z-order, last = front). Each entry: { lock, x, y, scale, rot, lines, outline?, internalLine?,
+ * internalLineWidth?, internalLineColor?, fill?, dark?, shine?, line? }
  * with x/y as 0-100 (% of the 256 portrait box) for the lock's centre. The generator reads this
  * trait and composites the locks on top of the hair, so edits persist + show in the export JSON. */
 const LOCK_CATALOG = (window.facesHair && window.facesHair.lockCatalog) || [];
@@ -1414,33 +1493,58 @@ function shadeHex(hex, factor) {
   return `#${hp(ch(16))}${hp(ch(8))}${hp(ch(0))}`;
 }
 
-function hairHexFor(character) {
+function hasPaint(value) {
+  return !!value && value !== "none" && value !== "transparent" && value !== "rgba(0,0,0,0)";
+}
+
+function namedHairHexFor(character) {
   const name = correctionFor(character.id).hairColor || character.traits.hairColor;
   return (traitBook.hairColorHex && traitBook.hairColorHex[name]) || "#6b4a2f";
+}
+
+function hairHexFor(character) {
+  return correctionFor(character.id).hairHex || character.traits.hairHex || namedHairHexFor(character);
+}
+
+function hairOutlineHexFor(character) {
+  const traits = { ...character.traits, ...correctionFor(character.id) };
+  if (hasPaint(traits.hairOutline)) return traits.hairOutline;
+  return shadeHex(hairHexFor(character), 0.52);
+}
+
+function normalizeLockInstance(inst) {
+  if (!inst || typeof inst !== "object") return inst;
+  const next = { ...inst };
+  if (next.internalLine == null && next.outlineForce) next.internalLine = true;
+  delete next.outlineForce;
+  return next;
 }
 
 // Read-only effective locks: a hairLocks correction wins, otherwise fall back to the character's
 // baked-in base locks (so a baked character like Aaron shows its locks in the designer).
 function getLocks(id) {
   const corr = correctionFor(id).hairLocks;
-  if (Array.isArray(corr)) return corr;
+  if (Array.isArray(corr)) return corr.map(normalizeLockInstance);
   const ch = characters.find((c) => c.id === id);
   const base = ch && ch.traits && ch.traits.hairLocks;
-  return Array.isArray(base) ? base : [];
+  return Array.isArray(base) ? base.map(normalizeLockInstance) : [];
 }
 
 // For in-place mutation: ensure there's a hairLocks correction (deep-copied from the base on first
 // touch) so editing a baked character never mutates the shared base array.
 function editableLocks(id) {
   if (!Array.isArray(correctionFor(id).hairLocks)) {
-    setLocks(id, getLocks(id).map((o) => ({ ...o })));
+    setLocks(id, getLocks(id));
+  } else if (correctionFor(id).hairLocks.some((inst) => inst && inst.outlineForce && inst.internalLine == null)) {
+    setLocks(id, correctionFor(id).hairLocks);
   }
   return correctionFor(id).hairLocks;
 }
 
 function setLocks(id, arr) {
   const next = { ...correctionFor(id) };
-  if (arr && arr.length) next.hairLocks = arr;
+  const normalized = Array.isArray(arr) ? arr.map(normalizeLockInstance) : [];
+  if (normalized.length) next.hairLocks = normalized;
   else delete next.hairLocks;
   setCorrection(id, next);
 }
@@ -1454,6 +1558,7 @@ function lockThumb(key) {
 function lockDesignerMarkup(character) {
   const locks = getLocks(character.id);
   const hairHex = hairHexFor(character);
+  const outlineHex = hairOutlineHexFor(character);
   const merged = (traitsFor(character, selectedExpressionFor(character)).lockBlend || "merged") === "merged";
   const palette = LOCK_CATALOG
     .map(({ key, label }) => `
@@ -1463,7 +1568,7 @@ function lockDesignerMarkup(character) {
       </button>`)
     .join("");
   const stack = locks.length
-    ? locks.map((inst, i) => lockRowMarkup(inst, i, locks.length, hairHex, merged)).join("")
+    ? locks.map((inst, i) => lockRowMarkup(character, inst, i, locks.length, hairHex, outlineHex, merged)).join("")
     : `<p class="lock-empty">No locks yet — click a style above, or drag one onto the hair.</p>`;
   return `
     <div class="lock-designer">
@@ -1471,10 +1576,57 @@ function lockDesignerMarkup(character) {
         <p class="meta-label">Lock Designer</p>
         ${locks.length ? `<button type="button" class="mini-button" data-lock-clear>Clear locks</button>` : ""}
       </div>
+      ${hairDyePanelMarkup(character)}
       <div class="lock-palette">${palette}</div>
       <div class="lock-stack">${stack}</div>
+      ${merged ? mergedHairPanelMarkup(character) : ""}
     </div>
     ${penDesignerMarkup()}`;
+}
+
+function hairDyePanelMarkup(character) {
+  const dyed = !!correctionFor(character.id).hairHex;
+  const value = hairHexFor(character);
+  return `
+    <div class="lock-row lock-dye-panel">
+      <div class="lock-row-head">
+        <span class="lock-drawn-tag">Dye Hair</span>
+        <button type="button" class="mini-button" data-hair-dye-clear ${dyed ? "" : "disabled"}>Reset dye</button>
+      </div>
+      <div class="lock-row-colors lock-dye-colors">
+        <label class="lock-color ${dyed ? "is-set" : ""}">
+          <span class="mini-colorrow"><input id="hair-dye-color" type="color" value="${escapeHtml(value)}" data-hair-dye-color>${miniSwatchButton("hair-dye-color")}</span>
+          <span>Dye</span>
+        </label>
+      </div>
+    </div>`;
+}
+
+function mergedHairPanelMarkup(character) {
+  const controls = MERGED_INTERNAL_LINE_FIELDS
+    .map((field) => mergedHairFieldMarkup(character, field))
+    .join("");
+  return `
+    <div class="lock-row lock-merged-panel">
+      <div class="lock-row-head">
+        <span class="lock-drawn-tag">Advanced Merged Hair</span>
+      </div>
+      <div class="lock-merged-grid">${controls}</div>
+    </div>`;
+}
+
+function mergedHairFieldMarkup(character, field) {
+  const value = mergedInternalLineValueFor(character, field.key);
+  const pair = `ml:${field.key}`;
+  return `
+    <label class="lock-num">
+      ${escapeHtml(field.label)}
+      <span class="lock-num-pair">
+        <input type="range" min="${field.min}" max="${field.max}" step="${field.step}" value="${escapeHtml(value)}" data-merged-line-num="${field.key}" data-pair="${pair}">
+        <input type="number" min="${field.min}" max="${field.max}" step="${field.step}" value="${escapeHtml(value)}" data-merged-line-num="${field.key}" data-pair="${pair}" aria-label="${escapeHtml(field.label)} value">
+      </span>
+      <span class="editor-value">${formatNumber(value)}</span>
+    </label>`;
 }
 
 // Pen-tool panel: toggle drawing mode, set the drawn-hair style, and re-apply saved custom shapes.
@@ -1511,10 +1663,49 @@ function penDesignerMarkup() {
     </div>`;
 }
 
-const LOCK_INK = "#1f2330";
-function lockRowMarkup(inst, i, n, hairHex, merged) {
+const DEFAULT_INTERNAL_LINE_WIDTH = 5.5;
+const MAX_INTERNAL_LINE_WIDTH = 20;
+const MERGED_INTERNAL_LINE_FIELDS = [
+  { key: "mergedInternalLineWidth", label: "Width", min: 0.6, max: MAX_INTERNAL_LINE_WIDTH, step: 0.05, fallback: 2.35 },
+  { key: "mergedInternalLineInset", label: "Inset", min: 0, max: 7, step: 0.05, fallback: 2.6 },
+  { key: "mergedInternalLineBaseCutoff", label: "Base Cut", min: 0, max: 0.6, step: 0.01, fallback: 0.18 },
+  { key: "mergedInternalLineSideExposure", label: "Side Exposure", min: 0, max: 5, step: 0.05, fallback: 1.6 },
+  { key: "mergedInternalLineOpacity", label: "Opacity", min: 0, max: 1, step: 0.02, fallback: 1 }
+];
+
+function mergedInternalLineSpec(key) {
+  return MERGED_INTERNAL_LINE_FIELDS.find((field) => field.key === key);
+}
+
+function mergedInternalLineValueFor(character, key) {
+  const spec = mergedInternalLineSpec(key);
+  if (!spec) return 0;
+  const traits = traitsFor(character, selectedExpressionFor(character));
+  const raw = traits[key];
+  return Number.isFinite(Number(raw)) ? Number(raw) : spec.fallback;
+}
+
+function setMergedInternalLineValue(character, key, value) {
+  const spec = mergedInternalLineSpec(key);
+  if (!spec) return;
+  const next = { ...correctionFor(character.id) };
+  const baseRaw = character.traits[key];
+  const baseValue = Number.isFinite(Number(baseRaw)) ? Number(baseRaw) : spec.fallback;
+  const numeric = Number(value);
+  const clamped = normalizeNumber(clamp(Number.isFinite(numeric) ? numeric : spec.fallback, spec.min, spec.max));
+  if (numbersEqual(clamped, baseValue)) delete next[key];
+  else next[key] = clamped;
+  setCorrection(character.id, next);
+  refreshPortrait(character);
+}
+
+function effectiveInternalLine(inst) {
+  return !!(inst && (inst.internalLine != null ? inst.internalLine : inst.outlineForce));
+}
+
+function lockRowMarkup(character, inst, i, n, hairHex, outlineHex, merged) {
   // Drawn (pen-tool) locks have no catalog key/transform — show a slimmed row.
-  if (inst.d) return drawnRowMarkup(inst, i, hairHex, merged);
+  if (inst.d) return drawnRowMarkup(character, inst, i, hairHex, outlineHex, merged);
   // defHex = the auto colour shown when this part isn't overridden. 'outline' is special: its auto is
   // the global ink, and it has an on/off state (outline === 'none').
   const colorField = (part, defHex, label) => {
@@ -1528,6 +1719,24 @@ function lockRowMarkup(inst, i, n, hairHex, merged) {
         ${set ? `<button type="button" class="lock-color-reset" data-lock-reset="${part}" title="Auto colour">×</button>` : ""}
       </label>`;
   };
+  const internalLineColorField = merged ? (() => {
+    const set = inst.internalLineColor != null && inst.internalLineColor !== "none";
+    const fallback = inst.outline === "none" ? outlineHex : (inst.outline || outlineHex);
+    const value = set ? inst.internalLineColor : fallback;
+    return `
+      <label class="lock-color ${set ? "is-set" : ""}">
+        <span class="mini-colorrow"><input id="lock-color-${i}-internalLineColor" type="color" value="${escapeHtml(value)}" data-lock-color="internalLineColor">${miniSwatchButton(`lock-color-${i}-internalLineColor`)}</span>
+        <span>Internal</span>
+        ${set ? `<button type="button" class="lock-color-reset" data-lock-reset="internalLineColor" title="Auto colour">×</button>` : ""}
+      </label>`;
+  })() : "";
+  const internalLineWidth = Number.isFinite(Number(inst.internalLineWidth))
+    ? Number(inst.internalLineWidth)
+    : DEFAULT_INTERNAL_LINE_WIDTH;
+  const internalLineWidthField = merged ? `
+      <div class="lock-row-subcontrols">
+        <label class="lock-num">Internal thickness <input type="range" min="0.6" max="${MAX_INTERNAL_LINE_WIDTH}" step="0.05" value="${internalLineWidth}" data-lock-num="internalLineWidth" ${effectiveInternalLine(inst) ? "" : "disabled"}><span class="editor-value">${formatNumber(internalLineWidth)}</span></label>
+      </div>` : "";
   const swap = `<select class="lock-swap" data-lock-swap>${LOCK_CATALOG.map((c) => `<option value="${escapeHtml(c.key)}" ${c.key === inst.lock ? "selected" : ""}>${escapeHtml(c.label)}</option>`).join("")}</select>`;
   return `
     <div class="lock-row" data-index="${i}" data-lock-droprow>
@@ -1535,6 +1744,7 @@ function lockRowMarkup(inst, i, n, hairHex, merged) {
         <span class="lock-grip" draggable="true" title="Drag to reorder">⠿</span>
         <span class="lock-row-num">${i + 1}</span>
         ${swap}
+        <button type="button" class="mini-button" data-lock-reset-all title="Reset all colours for this lock">Reset colours</button>
         <button type="button" class="mini-button lock-del" data-lock-act="remove" title="Delete">✕</button>
       </div>
       <div class="lock-row-controls">
@@ -1545,21 +1755,23 @@ function lockRowMarkup(inst, i, n, hairHex, merged) {
         <label class="lock-toggle"><input type="checkbox" data-lock-lines ${inst.lines === false ? "" : "checked"}> Lines</label>
         <label class="lock-toggle"><input type="checkbox" data-lock-mirror ${inst.mirror ? "checked" : ""}> Mirror</label>
         <label class="lock-toggle"><input type="checkbox" data-lock-outline ${inst.outline === "none" ? "" : "checked"}> Outline</label>
-        ${merged ? `<label class="lock-toggle"><input type="checkbox" data-lock-outline-force ${inst.outlineForce ? "checked" : ""} ${inst.outline === "none" ? "disabled" : ""}> Internal line</label>` : ""}
+        ${merged ? `<label class="lock-toggle"><input type="checkbox" data-lock-internal-line ${effectiveInternalLine(inst) ? "checked" : ""}> Internal line</label>` : ""}
         <label class="lock-toggle"><input type="checkbox" data-lock-behind ${inst.behind ? "checked" : ""}> Behind</label>
       </div>
+      ${internalLineWidthField}
       <div class="lock-row-colors">
         ${colorField("fill", shadeHex(hairHex, 1), "Hair")}
         ${colorField("dark", shadeHex(hairHex, 0.5), "Shadow")}
         ${colorField("shine", shadeHex(hairHex, 1.3), "Shine")}
         ${colorField("line", shadeHex(hairHex, 0.62), "Lines")}
-        ${colorField("outline", LOCK_INK, "Outline")}
+        ${colorField("outline", outlineHex, "Outline")}
+        ${internalLineColorField}
       </div>
     </div>`;
 }
 
 // Slim editor row for a hand-drawn lock: reorder, delete, lines/outline toggles, and a fill swatch.
-function drawnRowMarkup(inst, i, hairHex, merged) {
+function drawnRowMarkup(character, inst, i, hairHex, outlineHex, merged) {
   const fill = inst.fill || shadeHex(hairHex, 1);
   return `
     <div class="lock-row" data-index="${i}" data-lock-droprow>
@@ -1567,12 +1779,12 @@ function drawnRowMarkup(inst, i, hairHex, merged) {
         <span class="lock-grip" draggable="true" title="Drag to reorder">⠿</span>
         <span class="lock-row-num">${i + 1}</span>
         <span class="lock-drawn-tag">✏️ Drawn shape</span>
+        <button type="button" class="mini-button" data-lock-reset-all title="Reset all colours for this lock">Reset colours</button>
         <button type="button" class="mini-button lock-del" data-lock-act="remove" title="Delete">✕</button>
       </div>
       <div class="lock-row-toggles">
         <label class="lock-toggle"><input type="checkbox" data-lock-lines ${inst.lines === false ? "" : "checked"}> Lines</label>
         <label class="lock-toggle"><input type="checkbox" data-lock-outline ${inst.outline === "none" ? "" : "checked"}> Outline</label>
-        ${merged ? `<label class="lock-toggle"><input type="checkbox" data-lock-outline-force ${inst.outlineForce ? "checked" : ""} ${inst.outline === "none" ? "disabled" : ""}> Internal line</label>` : ""}
       </div>
       <div class="lock-row-colors">
         <label class="lock-color is-set">
@@ -1588,7 +1800,27 @@ function drawnRowMarkup(inst, i, hairHex, merged) {
 function wireLockDesigner(character) {
   const root = els.editorControls.querySelector(".lock-designer");
   if (!root) return;
+  const corrLocks = correctionFor(character.id).hairLocks;
+  if (Array.isArray(corrLocks) && corrLocks.some((inst) => inst && inst.outlineForce && inst.internalLine == null)) {
+    setLocks(character.id, corrLocks);
+  }
   wireInlineSwatchButtons(root);
+  const dye = root.querySelector("[data-hair-dye-color]");
+  if (dye) dye.addEventListener("input", () => setHairDye(character, dye.value));
+  const clearDye = root.querySelector("[data-hair-dye-clear]");
+  if (clearDye) clearDye.addEventListener("click", () => setHairDye(character, null));
+  root.querySelectorAll("[data-merged-line-num]").forEach((input) => {
+    input.addEventListener("input", () => {
+      root.querySelectorAll(`[data-pair="${cssEscape(input.dataset.pair)}"]`).forEach((peer) => {
+        if (peer !== input) peer.value = input.value;
+      });
+      const value = Number(input.value);
+      const wrap = input.closest(".lock-num");
+      const valueLabel = wrap && wrap.querySelector(".editor-value");
+      if (valueLabel) valueLabel.textContent = formatNumber(value);
+      setMergedInternalLineValue(character, input.dataset.mergedLineNum, value);
+    });
+  });
   root.querySelectorAll(".lock-chip").forEach((chip) => {
     chip.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/lock", chip.dataset.lock));
     chip.addEventListener("click", () => addLock(character, chip.dataset.lock));
@@ -1599,6 +1831,9 @@ function wireLockDesigner(character) {
     const idx = Number(row.dataset.index);
     row.querySelectorAll("[data-lock-act]").forEach((btn) => {
       btn.addEventListener("click", () => lockAction(character, idx, btn.dataset.lockAct));
+    });
+    row.querySelectorAll("[data-lock-reset-all]").forEach((btn) => {
+      btn.addEventListener("click", () => resetLockColors(character, idx));
     });
     row.querySelectorAll("[data-lock-num]").forEach((inp) => {
       inp.addEventListener("input", () => updateLockField(character, idx, inp.dataset.lockNum, Number(inp.value), inp));
@@ -1612,11 +1847,14 @@ function wireLockDesigner(character) {
     const outline = row.querySelector("[data-lock-outline]");
     if (outline) outline.addEventListener("change", () => {
       setLockProp(character, idx, "outline", outline.checked ? undefined : "none");
-      if (!outline.checked) setLockProp(character, idx, "outlineForce", undefined);
       render();
     });
-    const outlineForce = row.querySelector("[data-lock-outline-force]");
-    if (outlineForce) outlineForce.addEventListener("change", () => { setLockProp(character, idx, "outlineForce", outlineForce.checked || undefined); render(); });
+    const internalLine = row.querySelector("[data-lock-internal-line]");
+    if (internalLine) internalLine.addEventListener("change", () => {
+      setLockProp(character, idx, "internalLine", internalLine.checked || undefined);
+      setLockProp(character, idx, "outlineForce", undefined);
+      render();
+    });
     const swap = row.querySelector("[data-lock-swap]");
     if (swap) swap.addEventListener("change", () => { setLockProp(character, idx, "lock", swap.value); render(); });
     row.querySelectorAll("[data-lock-color]").forEach((inp) => {
@@ -1860,6 +2098,23 @@ function setLockColor(character, idx, part, value, isReset) {
   saveCorrections();
   if (isReset) render();
   else refreshPortrait(character);
+}
+
+function setHairDye(character, value) {
+  const next = { ...correctionFor(character.id) };
+  const undyed = character.traits.hairHex || namedHairHexFor(character);
+  if (!value || toHex(value) === toHex(undyed)) delete next.hairHex;
+  else next.hairHex = toHex(value);
+  setCorrection(character.id, next);
+  render();
+}
+
+function resetLockColors(character, idx) {
+  const locks = editableLocks(character.id);
+  if (!locks[idx]) return;
+  ["fill", "dark", "shine", "line", "outline", "internalLineColor"].forEach((key) => delete locks[idx][key]);
+  saveCorrections();
+  render();
 }
 
 // Lightweight: re-render only the selected portrait + lock markers + export (no grid/editor rebuild),

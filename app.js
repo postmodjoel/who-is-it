@@ -1696,6 +1696,13 @@ function sfx(name, opts) {
 let soundUnlocked = false;
 function unlockSound() { if (!soundUnlocked && window.Sound) { soundUnlocked = true; window.Sound.resume(); } }
 document.addEventListener("pointerdown", unlockSound, { once: false });
+// Images are decoration, not draggable payloads: without this, dragging a face ghosts the raw IMG
+// (or hijacks the card's own breed drag). Elements that opt into HTML5 drag (draggable=true, e.g.
+// breed-mode cards) keep working - the guard only swallows the strays.
+document.addEventListener("dragstart", (e) => {
+  const t = e.target;
+  if (t && t.tagName === "IMG" && !(t.closest && t.closest('[draggable="true"]'))) e.preventDefault();
+});
 function toggleSoundPanel() {
   let panel = document.getElementById("soundPanel");
   if (panel) { panel.remove(); return; }
@@ -2089,13 +2096,36 @@ function showRoundReveal(done) {
     setTimeout(() => { ov.remove(); if (done) done(); }, 560);
   };
   ov.querySelector(".rr-next").addEventListener("click", finish);
-  // FINISH SESSION: the night ends here - the receipt prints on the session-end screen.
+  // FINISH SESSION: confirmed first (a mis-tap here used to end the whole night), then the
+  // receipt prints on the session-end screen.
   ov.querySelector(".rr-finish").addEventListener("click", () => {
     if (finished) return;
-    finished = true;
-    ov.remove();
-    showSessionEnd();
+    confirmEndSession(() => {
+      if (finished) return;
+      finished = true;
+      ov.remove();
+      showSessionEnd();
+    });
   });
+}
+// A small confirm sheet before the night ends - cancel keeps the round reveal exactly as it was.
+function confirmEndSession(onConfirm) {
+  document.querySelector(".end-confirm")?.remove();
+  const ov = document.createElement("div");
+  ov.className = "end-confirm";
+  ov.innerHTML = `
+    <div class="end-confirm-box">
+      <p class="ec-title">END THE SESSION?</p>
+      <p class="ec-sub">The night wraps up and your receipt prints. You can keep playing afterwards.</p>
+      <div class="ec-actions">
+        <button type="button" class="button ghost ec-cancel">← KEEP PLAYING</button>
+        <button type="button" class="button primary ec-yes">PRINT THE RECEIPT</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector(".ec-cancel").addEventListener("click", () => { sfx("click"); ov.remove(); });
+  ov.querySelector(".ec-yes").addEventListener("click", () => { sfx("click"); ov.remove(); onConfirm(); });
+  ov.addEventListener("click", (e) => { if (e.target === ov) ov.remove(); });
 }
 function endRound() {
   netSend("endround", {});
@@ -2215,6 +2245,17 @@ function buildReceiptPaper(opts = {}) {
       <p class="rc-qr-label">SCAN FOR SUMMARY<br>PLAY THIS DECK AGAIN</p>
       <p class="rc-qr-open"><a href="${opts.qrUrl.replace(/"/g, "&quot;")}">OPEN SUMMARY ↗</a></p>`;
   }
+  // The save link: a plain copyable URL (not just a QR) that re-deals this exact deck - board,
+  // settings, wheel outcome. Phone players save/share it like any link.
+  let saveBlock = "";
+  if (opts.saveUrl) {
+    const shown = opts.saveUrl.replace(/^https?:\/\//, "");
+    const display = shown.length > 34 ? `${shown.slice(0, 31)}…` : shown;
+    saveBlock = `<div class="rc-rule"></div>
+      <p class="rc-head">SAVE THIS GAME:</p>
+      <p class="rc-save"><a class="rc-save-link" href="${opts.saveUrl.replace(/"/g, "&quot;")}">${escapeHtml(display)}</a></p>
+      <button type="button" class="rc-save-copy" data-url="${opts.saveUrl.replace(/"/g, "&quot;")}">COPY LINK</button>`;
+  }
   return `
     <div class="receipt-paper" role="document">
       <p class="rc-logo">WHO? IS IT?</p>
@@ -2237,8 +2278,17 @@ function buildReceiptPaper(opts = {}) {
       <div class="rc-barcode" aria-hidden="true"></div>
       <p class="rc-serial">#${escapeHtml(String(stableHash(serialSrc)).slice(0, 10))}</p>
       ${qrBlock}
+      ${saveBlock}
       <p class="rc-foot">*nothing was resolved</p>
     </div>`;
+}
+// The compact game link: salt + settings as a URL-safe seed code. Opening it deals the exact same
+// round (board, location, wheel outcome) - the shareable "my specific game" URL under the QR.
+function gameLinkUrl() {
+  const code = currentSeedCode().replace(/\+/g, "-").replace(/\//g, "_");
+  if (!code) return "";
+  const base = location.protocol === "file:" ? location.href.split("#")[0].split("?")[0] : location.origin + location.pathname;
+  return `${base}?g=${code}`;
 }
 
 // ===================== Session summary: what the receipt's QR opens =====================
@@ -2355,15 +2405,49 @@ function showSessionEnd() {
       </div>
       <div class="rc-printarea">
         <div class="rc-printer" aria-hidden="true"><i></i></div>
-        <div class="rc-window">${buildReceiptPaper({ qrUrl: summaryUrl() })}</div>
+        <div class="rc-window">${buildReceiptPaper({ qrUrl: summaryUrl(), saveUrl: gameLinkUrl() })}</div>
       </div>
-      <button type="button" class="button primary se-home">BACK TO TITLE</button>
+      <div class="se-actions">
+        <button type="button" class="button primary se-continue">▶ CONTINUE PLAYING</button>
+        <button type="button" class="button ghost se-home">BACK TO TITLE</button>
+      </div>
     </div>`;
   document.body.appendChild(ov);
   try {
     if (window.Sound) { Sound.resume(); Sound.printer(1800); Sound.creditsLoop(true); }
   } catch (e) { /* silence is acceptable at a funeral */ }
   if (complete) sfx("win");
+  // Follow the printout down as it feeds so the buttons are already in view when it lands
+  // (on phones the receipt is taller than the screen). Any user scroll/touch cancels the tour.
+  const stage = ov.querySelector(".se-stage");
+  if (stage) {
+    let cancelled = false;
+    const cancel = () => { cancelled = true; };
+    ["wheel", "touchstart", "pointerdown"].forEach((ev) => stage.addEventListener(ev, cancel, { passive: true, once: true }));
+    const t0 = performance.now();
+    const DURATION = 1900, DELAY = 420;   // start shortly after the feed begins, land as it finishes
+    const follow = (now) => {
+      if (cancelled) return;
+      const t = Math.min(1, Math.max(0, (now - t0 - DELAY) / DURATION));
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      stage.scrollTop = (stage.scrollHeight - stage.clientHeight) * ease;
+      if (t < 1) requestAnimationFrame(follow);
+    };
+    requestAnimationFrame(follow);
+  }
+  // COPY LINK on the receipt: copies the full ?g= game URL (the printed text is trimmed).
+  const copyBtn = ov.querySelector(".rc-save-copy");
+  if (copyBtn) copyBtn.addEventListener("click", () => {
+    if (navigator.clipboard) navigator.clipboard.writeText(copyBtn.dataset.url || "").catch(() => {});
+    copyBtn.textContent = "COPIED ✓";
+    setTimeout(() => { copyBtn.textContent = "COPY LINK"; }, 1200);
+  });
+  // CONTINUE PLAYING: the receipt was a checkpoint, not the end - keep the ledger and deal on.
+  ov.querySelector(".se-continue").addEventListener("click", () => {
+    try { if (window.Sound) Sound.creditsLoop(false); } catch (e) { /* fine */ }
+    ov.remove();
+    newGame();
+  });
   ov.querySelector(".se-home").addEventListener("click", () => {
     // The session is over: clear the round save + ledger so the next night starts fresh.
     try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }
@@ -3137,11 +3221,28 @@ if (els.almanacButton) els.almanacButton.addEventListener("click", showAlmanac);
 // A scanned receipt QR (#summary=...) opens the summary screen; ?observe=CODE turns this tab straight
 // into a TV display for that room; otherwise the title as usual.
 const observeParam = (() => { try { return new URLSearchParams(location.search).get("observe"); } catch (e) { return null; } })();
+// A saved ?g= game link (printed on the receipt) deals that exact deck straight away - the URL-safe
+// base64 is the seed code (salt + settings), so the link is self-contained.
+const gameLinkParam = (() => { try { return new URLSearchParams(location.search).get("g"); } catch (e) { return null; } })();
+function bootFromGameLink(raw) {
+  const parsed = parseSeedCode(String(raw).replace(/-/g, "+").replace(/_/g, "/"));
+  try { history.replaceState(null, "", location.pathname); } catch (e) { /* keep the URL as-is */ }
+  if (!parsed) return false;
+  if (parsed.g) state.settings = { ...state.settings, ...parsed.g };
+  state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; state.isHost = false;
+  state.playMode = "team";
+  state.roster = normalizeRoster(MIN_PLAYERS, ["Player 1", "Player 2"]);
+  state.playerCount = state.roster.length;
+  newGame(parsed.s, { first: true });
+  scheduleSave();
+  return true;
+}
 // A refresh while you were in a game/room drops you straight back into it (a round, a lobby, or a TV
 // display) - going to the main menu isn't what you'd expect. The title only shows with no game to resume.
 const resumableSave = loadGameSave();
 if (maybeShowSummaryPage()) { /* summary page shown */ }
 else if (observeParam && /^\d{3,4}$/.test(observeParam.trim())) { joinRoom(observeParam.trim(), "TV", { observe: true }); }
+else if (gameLinkParam && bootFromGameLink(gameLinkParam)) { /* saved game link dealt */ }
 else if (resumableSave) { try { resumeGame(resumableSave); } catch (e) { showTitleScreen(); } }
 else showTitleScreen();
 wireCueCardClick();

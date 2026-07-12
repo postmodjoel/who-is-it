@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Press+Start+2P&family=Cinzel:wght@500;600;700;800;900&family=MedievalSharp&family=Reem+Kufi:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="styles.css?v=236">
+    <link rel="stylesheet" href="styles.css?v=239">
   </head>
   <body>
     <div id="locationBackdrop" class="location-backdrop" aria-hidden="true"></div>
@@ -96,18 +96,10 @@
         <div class="settings-grid">
           <label class="toggle-row">
             <span>
-              <strong>Absurd prompts</strong>
-              <small>Darker social questions.</small>
+              <strong>Questions</strong>
+              <small>Show or hide the question card.</small>
             </span>
             <input id="settingPrompts" type="checkbox" checked>
-          </label>
-
-          <label class="toggle-row">
-            <span>
-              <strong>Mystery effects</strong>
-              <small>One random power per player.</small>
-            </span>
-            <input id="settingMystery" type="checkbox" checked>
           </label>
 
           <label class="toggle-row">
@@ -143,12 +135,21 @@
           </label>
         </div>
 
-        <div class="tier-section">
+        <label class="select-row setup-mode-row">
+          <span>
+            <strong>Game mode</strong>
+          </span>
+          <select id="settingStartMode"></select>
+        </label>
+
+        <div class="mode-section">
           <div class="tier-head">
-            <strong>Intensity tiers 🎚</strong>
-            <small>Host only. Switch off the tame early tiers to drop straight into the wild ones — the actual modes stay a surprise.</small>
+            <strong>Mode lineup</strong>
           </div>
-          <div id="settingTiers" class="tier-toggles"></div>
+          <div id="settingModePolicy" class="mode-policy-toggles"></div>
+          <div class="mode-picker-wrap">
+            <div id="settingModes" class="mode-picker"></div>
+          </div>
         </div>
 
         <label class="select-row seed-row">
@@ -173,7 +174,7 @@
         <p id="setupApplyHint" class="setup-apply-hint" hidden>💡 Your settings will take over next round.</p>
         <div class="dialog-actions">
           <button id="quitToMenuButton" class="button ghost" value="cancel" type="button">← Main menu</button>
-          <button id="saveSetupButton" class="button primary" value="default" type="submit">Deal new round</button>
+          <button id="saveSetupButton" class="button primary" value="default" type="submit">Save settings</button>
         </div>
       </form>
     </dialog>
@@ -183,7 +184,7 @@
     <script src="face-generator.js?v=236"></script>
     <script src="faces-hair.js?v=207"></script>
     <script src="sound.js?v=206"></script>
-    <script src="net.js?v=220"></script>
+    <script src="net.js?v=221"></script>
     <script src="breeding.js?v=205"></script>
     <script src="editor-shared.js?v=221"></script>
     <script src="editor.js?v=228"></script>
@@ -192,7 +193,7 @@
     <script src="habbo-assets.js?v=205"></script>
     <script src="habbo-avatars.js?v=205"></script>
     <script src="habbo-spares.js?v=218"></script>
-    <script src="modes.js?v=219"></script>
-    <script src="app.js?v=233"></script>
+    <script src="modes.js?v=220"></script>
+    <script src="app.js?v=235"></script>
   </body>
 </html>

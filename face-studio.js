@@ -357,12 +357,14 @@ function render() {
 
 function renderSummary(visible) {
   els.resultCount.textContent = `${visible.length} ${visible.length === 1 ? "face" : "faces"}`;
+  const editedCount = visible.filter((character) => Object.keys(correctionFor(character.id)).length).length;
   const counts = expressions.map((expression) => [
     expression,
     visible.filter((character) => character.traits.expression === expression).length
   ]);
   els.expressionSummary.innerHTML = counts
     .map(([expression, count]) => `<span class="summary-pill">${escapeHtml(expression)} ${count}</span>`)
+    .concat(editedCount ? [`<span class="summary-pill summary-pill-edited">${editedCount} edited</span>`] : [])
     .join("");
 }
 
@@ -371,10 +373,12 @@ function renderGrid(visible) {
   visible.forEach((character) => {
     const sourceIndex = characters.indexOf(character);
     const displayTraits = traitsFor(character, selectedExpressionFor(character));
+    const editCount = Object.keys(correctionFor(character.id)).length;
     const button = document.createElement("button");
     button.type = "button";
     button.className = `face-card ${state.matrix ? "matrix-card" : ""}`;
     button.classList.toggle("is-selected", character.id === state.selectedId);
+    button.classList.toggle("is-edited", editCount > 0);
     button.addEventListener("click", () => {
       state.selectedId = character.id;
       state.selectedExpression = state.expression;
@@ -385,6 +389,7 @@ function renderGrid(visible) {
 
     if (state.matrix) {
       button.innerHTML = `
+        ${editCount ? `<span class="face-card-edits">${editCount}</span>` : ""}
         ${expressions.map((expression) => `<img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)} ${escapeHtml(expression)}">`).join("")}
         <h3>${escapeHtml(character.name)}</h3>
         <p>${escapeHtml(character.feature)}</p>
@@ -392,6 +397,7 @@ function renderGrid(visible) {
     } else {
       const expression = state.expression === "assigned" ? character.traits.expression : state.expression;
       button.innerHTML = `
+        ${editCount ? `<span class="face-card-edits">${editCount}</span>` : ""}
         <img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)}">
         <h3>${escapeHtml(character.name)}</h3>
         <p>${escapeHtml(describeCard(displayTraits, expression))}</p>
@@ -409,6 +415,7 @@ function renderSelected() {
   const correction = correctionFor(character.id);
   const displayTraits = traitsFor(character, expression);
   const editCount = Object.keys(correction).length;
+  const groupCount = Object.keys(groupEditCounts(correction)).length;
   els.selectedPortrait.innerHTML = `<img src="${portraitFor(character, index, expression)}" alt="${escapeHtml(character.name)}">`;
   renderLockOverlay(character);
   els.selectedMeta.innerHTML = `
@@ -426,6 +433,7 @@ function renderSelected() {
       ${traitPill("clothing", displayTraits.clothing)}
       ${traitPill("accessory", displayTraits.accessory)}
       ${editCount ? traitPill("edits", editCount) : ""}
+      ${groupCount ? traitPill("groups", groupCount) : ""}
     </div>
   `;
   els.variantStrip.innerHTML = expressions
@@ -586,7 +594,7 @@ function colorWidget(key, shown, set) {
       <input type="text" class="studio-hex" data-hexfor="${escapeHtml(key)}" value="${escapeHtml(hex)}" maxlength="7" spellcheck="false" aria-label="${escapeHtml(key)} hex colour">
       <button type="button" class="studio-swatchbtn" data-swatchfor="${escapeHtml(key)}" title="Palette">◫</button>
     </span>
-    <span class="editor-value">${set ? `<button type="button" class="mini-button" data-color-reset="${escapeHtml(key)}" title="Auto colour">auto</button>` : "auto"}</span>
+    <span class="editor-value">${set ? "manual" : "auto"}</span>
   `;
 }
 
@@ -597,18 +605,25 @@ function miniSwatchButton(targetId) {
 function renderEditor(character) {
   const correction = correctionFor(character.id);
   if (!editorGroups.includes(state.activeGroup)) state.activeGroup = editorGroups[0];
-
-  const editedGroups = new Set(
-    Object.keys(correction)
-      .map((key) => key === "castShadowItems" ? "Lighting" : editorFields.find((field) => field.key === key)?.group)
-      .filter(Boolean)
-  );
+  const editedGroupCounts = groupEditCounts(correction);
+  const editedGroups = new Set(Object.keys(editedGroupCounts));
   const nav = `
+    <div class="editor-summary">
+      <div class="editor-summary-main">
+        <span class="meta-label">Active Group</span>
+        <strong>${escapeHtml(sharedGroupTitle(state.activeGroup))}</strong>
+      </div>
+      <div class="editor-summary-pills">
+        <span class="trait-pill">${Object.keys(correction).length || 0} ${Object.keys(correction).length === 1 ? "override" : "overrides"}</span>
+        <span class="trait-pill">${Object.keys(editedGroupCounts).length || 0} ${Object.keys(editedGroupCounts).length === 1 ? "group" : "groups"}</span>
+      </div>
+    </div>
     <div class="editor-tabs">
       ${editorGroups
         .map((group) => `
           <button type="button" class="editor-tab ${group === state.activeGroup ? "is-active" : ""} ${editedGroups.has(group) ? "is-edited" : ""}" data-group="${escapeHtml(group)}">
-            ${escapeHtml(sharedGroupTitle(group))}
+            <span>${escapeHtml(sharedGroupTitle(group))}</span>
+            ${editedGroupCounts[group] ? `<em class="editor-tab-count">${editedGroupCounts[group]}</em>` : ""}
           </button>
         `)
         .join("")}
@@ -621,14 +636,16 @@ function renderEditor(character) {
     .filter((field) => !(state.activeGroup === "Jewellery" && field.group === "Jewellery"))
     .filter((field) => !field.when || field.when({ ...character.traits, ...correction }))
     .map((field) => {
+    const edited = Object.hasOwn(correction, field.key);
     const base = baseValueFor(character, field);
     const value = correction[field.key] ?? base;
+    const status = edited ? "edited" : "base";
     const control = field.type === "select"
       ? `
         <select id="edit-${escapeHtml(field.key)}" data-key="${escapeHtml(field.key)}" data-kind="select">
           ${field.options().map(([optValue, optLabel]) => `<option value="${escapeHtml(optValue)}" ${optValue === value ? "selected" : ""}>${escapeHtml(optLabel)}</option>`).join("")}
         </select>
-        <span class="editor-value"></span>
+        <span class="editor-value">${status}</span>
       `
       : field.type === "color"
       ? (() => {
@@ -639,36 +656,39 @@ function renderEditor(character) {
       : field.type === "text"
       ? `
         <input id="edit-${escapeHtml(field.key)}" type="text" value="${escapeHtml(value || "")}" data-key="${escapeHtml(field.key)}" data-kind="text" placeholder="tattoo text" spellcheck="false">
-        <span class="editor-value"></span>
+        <span class="editor-value">${status}</span>
       `
       : `
-        <input
-          id="edit-${escapeHtml(field.key)}"
-          type="range"
-          min="${field.min}"
-          max="${field.max}"
-          step="${field.step}"
-          value="${escapeHtml(value)}"
-          data-key="${escapeHtml(field.key)}"
-          data-kind="range"
-          data-pair="${escapeHtml(field.key)}"
-        >
-        <input
-          class="editor-number"
-          type="number"
-          step="${field.step}"
-          value="${escapeHtml(value)}"
-          data-key="${escapeHtml(field.key)}"
-          data-kind="range"
-          data-pair="${escapeHtml(field.key)}"
-          aria-label="${escapeHtml(field.label)} value"
-        >
-        <span class="editor-value">${escapeHtml(formatNumber(value))}</span>
+        <span class="editor-range">
+          <input
+            id="edit-${escapeHtml(field.key)}"
+            type="range"
+            min="${field.min}"
+            max="${field.max}"
+            step="${field.step}"
+            value="${escapeHtml(value)}"
+            data-key="${escapeHtml(field.key)}"
+            data-kind="range"
+            data-pair="${escapeHtml(field.key)}"
+          >
+          <input
+            class="editor-number"
+            type="number"
+            step="${field.step}"
+            value="${escapeHtml(value)}"
+            data-key="${escapeHtml(field.key)}"
+            data-kind="range"
+            data-pair="${escapeHtml(field.key)}"
+            aria-label="${escapeHtml(field.label)} value"
+          >
+        </span>
+        <span class="editor-value">${status}</span>
       `;
     return `
-      <div class="editor-control" data-group="${escapeHtml(field.group)}" data-field="${escapeHtml(field.key)}">
+      <div class="editor-control ${edited ? "is-edited" : ""}" data-group="${escapeHtml(field.group)}" data-field="${escapeHtml(field.key)}">
         <label for="edit-${escapeHtml(field.key)}">${escapeHtml(field.label)}</label>
         ${control}
+        <button type="button" class="editor-reset ${edited ? "" : "is-hidden"}" data-field-reset="${escapeHtml(field.key)}" title="Reset this field to the base value">Reset</button>
       </div>
     `;
   });
@@ -705,9 +725,6 @@ function renderEditor(character) {
           }
         });
       }
-      const control = input.closest(".editor-control");
-      const valueLabel = control && control.querySelector(".editor-value");
-      if (valueLabel) valueLabel.textContent = formatNumber(Number(input.value));
       updateCorrection(character, input.dataset.key, Number(input.value));
     });
   });
@@ -803,10 +820,27 @@ function renderEditor(character) {
   els.editorControls.querySelectorAll("[data-kind='text']").forEach((input) => {
     input.addEventListener("input", () => updateColorCorrection(character, input.dataset.key, input.value));
   });
-  els.editorControls.querySelectorAll("[data-color-reset]").forEach((btn) => {
-    btn.addEventListener("click", () => updateColorCorrection(character, btn.dataset.colorReset, ""));
+  els.editorControls.querySelectorAll("[data-field-reset]").forEach((btn) => {
+    btn.addEventListener("click", () => clearFieldCorrection(character, btn.dataset.fieldReset));
   });
   renderCorrectionExport();
+}
+
+function groupEditCounts(correction) {
+  return Object.keys(correction).reduce((acc, key) => {
+    const specialGroups = {
+      hairLocks: "Hair",
+      hairHex: "Hair",
+      beardBlobs: "Beard",
+      tattoos: "Tattoo",
+      jewelleryItems: "Jewellery",
+      castShadowItems: "Lighting"
+    };
+    const group = specialGroups[key] || editorFields.find((field) => field.key === key)?.group;
+    if (!group) return acc;
+    acc[group] = (acc[group] || 0) + 1;
+    return acc;
+  }, {});
 }
 
 function wireInlineSwatchButtons(root) {
@@ -882,6 +916,13 @@ function updateEnumCorrection(character, key, value) {
   } else {
     next[key] = value;
   }
+  setCorrection(character.id, next);
+  render();
+}
+
+function clearFieldCorrection(character, key) {
+  const next = { ...correctionFor(character.id) };
+  delete next[key];
   setCorrection(character.id, next);
   render();
 }
@@ -1000,7 +1041,10 @@ function renderCorrectionExport() {
   const payload = currentExportPayload();
   els.correctionExport.value = JSON.stringify(payload, null, 2);
   if (els.exportModeLabel) {
-    els.exportModeLabel.textContent = state.exportMode === "editedCharacters" ? "Edited Characters" : "Corrections Export";
+    const editedCount = characters.filter((character) => Object.keys(correctionFor(character.id)).length).length;
+    els.exportModeLabel.textContent = state.exportMode === "editedCharacters"
+      ? `Edited Characters (${editedCount})`
+      : "Corrections Export";
   }
   els.exportModeCorrections?.classList.toggle("is-active", state.exportMode === "corrections");
   els.exportModeEdited?.classList.toggle("is-active", state.exportMode === "editedCharacters");

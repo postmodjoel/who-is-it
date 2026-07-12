@@ -346,14 +346,51 @@ textarea {
   gap: 10px;
 }
 
+.editor-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+}
+
+.editor-summary-main {
+  display: grid;
+  gap: 3px;
+}
+
+.editor-summary-main strong {
+  font-size: 0.96rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.editor-summary-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .editor-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 2px 0 6px;
+  background: linear-gradient(180deg, var(--panel) 72%, rgba(27, 29, 38, 0));
 }
 
 .editor-tab {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 5px 9px;
   border: 2px solid var(--line);
   border-radius: 999px;
@@ -362,6 +399,20 @@ textarea {
   font-size: 0.66rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.editor-tab-count {
+  min-width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: inherit;
+  font-size: 0.62rem;
+  font-style: normal;
+  line-height: 1;
 }
 
 .editor-tab.is-active {
@@ -403,9 +454,13 @@ textarea {
 
 .editor-control {
   display: grid;
-  grid-template-columns: minmax(78px, 1fr) minmax(112px, 1.25fr) 64px 38px;
+  grid-template-columns: minmax(92px, 1fr) minmax(124px, 1.35fr) 64px auto;
   align-items: center;
   gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .editor-control label,
@@ -423,6 +478,11 @@ textarea {
   accent-color: var(--blue);
 }
 
+.editor-control.is-edited {
+  border-color: rgba(244, 200, 78, 0.45);
+  background: linear-gradient(180deg, rgba(244, 200, 78, 0.08), rgba(255, 255, 255, 0.03));
+}
+
 .editor-control .editor-number {
   width: 100%;
   min-width: 0;
@@ -433,6 +493,13 @@ textarea {
   color: var(--ink);
   font: 800 0.72rem var(--font);
   text-align: right;
+}
+
+.editor-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 8px;
 }
 
 .studio-colorwrap {
@@ -583,6 +650,29 @@ textarea {
   text-align: right;
 }
 
+.editor-reset {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.editor-reset:hover {
+  color: var(--ink);
+  border-color: rgba(244, 200, 78, 0.55);
+}
+
+.editor-reset.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .export-box {
   display: grid;
   gap: 5px;
@@ -657,6 +747,11 @@ textarea {
   background: #e8f4ff;
 }
 
+.summary-pill-edited {
+  background: rgba(244, 200, 78, 0.18);
+  color: var(--ink);
+}
+
 .variant-strip {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -701,6 +796,7 @@ textarea {
 }
 
 .face-card {
+  position: relative;
   display: grid;
   gap: 7px;
   min-width: 0;
@@ -716,6 +812,29 @@ textarea {
 .face-card.is-selected {
   background: #eef5ff;
   outline: 3px solid var(--blue);
+}
+
+.face-card.is-edited {
+  border-color: rgba(244, 200, 78, 0.6);
+}
+
+.face-card-edits {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 999px;
+  background: rgba(244, 200, 78, 0.96);
+  color: #16141b;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  z-index: 1;
 }
 
 .face-card img {
@@ -806,6 +925,15 @@ textarea {
 
   .editor-value {
     text-align: left;
+  }
+
+  .editor-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .editor-summary-pills {
+    justify-content: flex-start;
   }
 
   .face-grid {
@@ -1097,6 +1225,8 @@ select { background: #0d0e13 !important; color: var(--ink); border-color: var(--
 .editor-tab { background: var(--panel-2) !important; }
 .editor-tab.is-active { background: var(--blue) !important; color: #fff; }
 .mini-button { background: var(--panel-2) !important; }
+.editor-summary { background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)); }
+.editor-reset { color: var(--muted); }
 input[type="range"] { accent-color: var(--blue); }
 input[type="color"] { background: var(--panel-2); border-color: var(--line); }
 .lock-row, .lock-stack, .lock-palette { background: var(--panel) !important; }

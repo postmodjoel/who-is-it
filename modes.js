@@ -306,7 +306,8 @@ const MODE_BODY_CLASSES = Array.from(new Set(mysteryEffects.flatMap((effect) => 
 // ---- wheel ----
 // What the Wheel of Fate WILL land on for the current salt (deterministic; includes "no effect").
 function wheelTarget() {
-  const playable = playableMysteryEffects().filter((e) => tierAllowed(e.tier - 1));
+  const chosen = selectedModeIds();
+  const playable = playableMysteryEffects().filter((e) => chosen.has(e.id) && tierAllowed(e.tier - 1));
   const pool = state.settings.pg ? playable.filter((e) => PG_SAFE_MODES.includes(e.id)) : playable;
   const n = pool.length + 1;   // +1 = the No Effect cell
   const idx = stableHash(`${state.gameSalt}:wheel`) % n;
@@ -324,10 +325,29 @@ function wheelBag() {
 // Escalating derangement: the registry derives TIERS from per-mode metadata, tame -> unhinged.
 // WOKE still needs every component mode experienced first (belt-and-braces beyond its tier).
 function wheelPgOk(id) { return !state.settings.pg || id === null || PG_SAFE_MODES.includes(id); }
+function wheelModePolicy() {
+  return ["progressive", "chaotic", "custom"].includes(state.settings?.modePolicy)
+    ? state.settings.modePolicy
+    : "progressive";
+}
+function selectedModeIds() {
+  const ids = playableMysteryEffects().map((effect) => effect.id);
+  if (wheelModePolicy() !== "custom") return new Set(ids);
+  const chosen = Array.isArray(state.settings?.allowedModeIds)
+    ? state.settings.allowedModeIds.filter((id) => ids.includes(id))
+    : [];
+  const picked = chosen.length ? chosen : ids;
+  if (state.settings?.pg) {
+    const safePicked = picked.filter((id) => PG_SAFE_MODES.includes(id));
+    return new Set(safePicked.length ? safePicked : PG_SAFE_MODES.filter((id) => ids.includes(id)));
+  }
+  return new Set(picked);
+}
 // Host intensity gate: the host can switch whole tiers off in setup (to skip the tame warm-up modes
 // and drop straight into the rowdier ones) WITHOUT ever seeing which modes live in a tier. Empty /
 // missing = every tier on. All-off would strand the wheel, so that degrades to "everything on".
 function tierAllowed(tierIdx) {
+  if (wheelModePolicy() !== "progressive") return true;
   const t = state.settings && state.settings.tiers;
   if (!Array.isArray(t) || !t.length) return true;
   return t.includes(tierIdx + 1);
@@ -335,10 +355,21 @@ function tierAllowed(tierIdx) {
 function wheelTargetFromBag() {
   const known = new Set(playableMysteryEffects().map((e) => e.id));
   const seen = wheelBag();
+  const chosen = selectedModeIds();
+  if (wheelModePolicy() !== "progressive") {
+    let pool = playableMysteryEffects()
+      .filter((effect) => chosen.has(effect.id) && !seen.includes(effect.id) && wheelPgOk(effect.id))
+      .map((effect) => effect.id);
+    if (!pool.length) {
+      try { localStorage.setItem(WHEEL_BAG_KEY, "[]"); } catch (e) { /* fine */ }
+      pool = playableMysteryEffects().filter((effect) => chosen.has(effect.id) && wheelPgOk(effect.id)).map((effect) => effect.id);
+    }
+    return pool.length ? pool[stableHash(`${state.gameSalt}:wheel`) % pool.length] : null;
+  }
   for (let ti = 0; ti < WHEEL_TIERS.length; ti += 1) {
     if (!tierAllowed(ti)) continue;
     const tier = WHEEL_TIERS[ti];
-    let pool = tier.filter((id) => (id === null || known.has(id)) && !seen.includes(id) && wheelPgOk(id));
+    let pool = tier.filter((id) => (id === null || known.has(id)) && (id === null || chosen.has(id)) && !seen.includes(id) && wheelPgOk(id));
     // Gate WOKE until its prerequisite modes have all been seen.
     pool = pool.filter((id) => id !== "woke" || WOKE_PREREQS.every((p) => seen.includes(p)));
     if (pool.length) return pool[stableHash(`${state.gameSalt}:wheel`) % pool.length];
@@ -354,7 +385,7 @@ function wheelTargetFromBag() {
   // Fresh lap: fall to the first ENABLED tier (not always tier 1 - the host may have gated it off).
   for (let ti = 0; ti < WHEEL_TIERS.length; ti += 1) {
     if (!tierAllowed(ti)) continue;
-    const first = WHEEL_TIERS[ti].filter((id) => (id === null || known.has(id)) && wheelPgOk(id));
+    const first = WHEEL_TIERS[ti].filter((id) => (id === null || known.has(id)) && (id === null || chosen.has(id)) && wheelPgOk(id));
     if (first.length) return first[stableHash(`${state.gameSalt}:wheel`) % first.length];
   }
   return null;
@@ -585,6 +616,8 @@ function renderHeadsOnlyBoard(player) {
   bar.querySelectorAll("[data-form]").forEach((b) => b.addEventListener("click", () => {
     state.headsForm = Number(b.dataset.form);
     bar.querySelectorAll(".heads-form-btn").forEach((x) => x.classList.toggle("on", x === b));
+    if (typeof scheduleSave === "function") scheduleSave();
+    if (state.gameMode === "online" && typeof netSend === "function") netSend("headsform", { form: state.headsForm });
   }));
   els.characterBoard.appendChild(bar);
   const layer = document.createElement("div");
@@ -1595,7 +1628,8 @@ function flashForCurrentMode() {
 }
 
 function randomMysteryEffect() {
-  const playable = playableMysteryEffects();
+  const chosen = selectedModeIds();
+  const playable = playableMysteryEffects().filter((effect) => chosen.has(effect.id));
   const pool = state.settings.pg ? playable.filter((effect) => effect.pgSafe) : playable;
   return pool[Math.floor(Math.random() * pool.length)] || null;
 }
@@ -2395,7 +2429,13 @@ function getMysteryCardData(character) {
     return {
       effectName: mystery.name,
       dataset: { emotionMeter: assignment.meter, emotionValue: String(assignment.value) },
-      html: `<span class="emotion-meter"><span>${escapeHtml(assignment.meter)}: ${assignment.value}%</span><i style="--meter:${assignment.value}%"></i></span>`
+      html: `<span class="emotion-meter">
+        <span class="emotion-meter-head">
+          <b>${escapeHtml(assignment.meter)}</b>
+          <strong>${assignment.value}%</strong>
+        </span>
+        <i style="--meter:${assignment.value}%"></i>
+      </span>`
     };
   }
   if (mystery.id === "vibe-labels") {
@@ -4757,9 +4797,21 @@ function applyGayFrogged(effect) {
   // Shuffle hairstyles between characters and re-render portraits
   if (window.faceGenerator) {
     const eligible = state.board.filter((c) => c.traits);
-    const hairPool = shuffle(eligible.map((c) => ({ hair: c.traits.hair, hairColor: c.traits.hairColor, hairProfile: c.traits.hairProfile, hairLocks: c.traits.hairLocks, frontHairY: c.traits.frontHairY })));
-    eligible.forEach((character, index) => {
-      const swappedHair = hairPool[index];
+    const sourceOrder = deterministicOrder(eligible, `${state.gameSalt}:${effect.id}:hair-source`);
+    const targetOrder = deterministicOrder(eligible, `${state.gameSalt}:${effect.id}:hair-target`);
+    const hairPool = sourceOrder.map((c) => ({
+      hair: c.traits.hair,
+      hairColor: c.traits.hairColor,
+      hairHex: c.traits.hairHex,
+      hairProfile: c.traits.hairProfile,
+      hairOutline: c.traits.hairOutline,
+      hairOutlineMode: c.traits.hairOutlineMode,
+      hairOutlineWidth: c.traits.hairOutlineWidth,
+      hairLocks: c.traits.hairLocks,
+      frontHairY: c.traits.frontHairY
+    }));
+    targetOrder.forEach((character, index) => {
+      const swappedHair = hairPool[index % hairPool.length];
       const image = window.faceGenerator.renderPortrait(character.seed, { ...character.traits, ...swappedHair });
       if (assignments[character.id]) {
         assignments[character.id].image = image;

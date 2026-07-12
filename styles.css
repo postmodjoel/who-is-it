@@ -1,23 +1,67 @@
 :root {
   color-scheme: dark;
-  --ink: #eef0f4;
-  --muted: #8a919d;
-  --paper: #0c0d11;
-  --panel: #15171d;
-  --panel-soft: #1c1f27;
-  --card-surface: #1f232c;
-  --card-surface-2: #262b35;
+  /* ===== Design tokens (single source of truth - no one-off greys/shadows/radii) ===== */
+  --bg-page: #0b1020;
+  --bg-shell: #111725;
+  --bg-panel: #171d2b;
+  --bg-panel-raised: #1d2332;
+  --bg-panel-soft: #22293a;
+
+  --border-subtle: rgba(255, 255, 255, 0.10);
+  --border-standard: rgba(255, 255, 255, 0.17);
+  --border-strong: rgba(255, 255, 255, 0.28);
+
+  --text-primary: #f5f6f8;
+  --text-secondary: #a4abba;
+  --text-muted: #747d8e;
+
+  --accent-yellow: #ffd400;
+  --accent-red: #ff4938;
+  --accent-blue: #2e6fff;
+  --accent-green: #20c7aa;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  --shadow-control: 0 2px 0 rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-modal: 0 18px 60px rgba(0, 0, 0, 0.50);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* ===== Legacy aliases: the older var names now RESOLVE to the tokens above ===== */
+  --ink: var(--text-primary);
+  --muted: var(--text-secondary);
+  --paper: var(--bg-page);
+  --panel: var(--bg-panel);
+  --panel-soft: var(--bg-panel-raised);
+  --card-surface: var(--bg-panel-raised);
+  --card-surface-2: var(--bg-panel-soft);
   --surface: #f6f7f9;
   --surface-soft: #e7e9ee;
   --surface-muted: #cdd1d9;
   --card-ink: #111319;
   --line: #11131a;
-  --accent: #e63327;
-  --accent-2: #18a589;
-  --accent-3: #1d57e0;
-  --accent-4: #ffd400;
-  --shadow: 0 18px 45px rgba(0, 0, 0, 0.52);
+  --accent: var(--accent-red);
+  --accent-2: var(--accent-green);
+  --accent-3: var(--accent-blue);
+  --accent-4: var(--accent-yellow);
+  --shadow: var(--shadow-panel);
   --grid-line: rgba(220, 228, 240, 0.05);
+
+  /* Control skin (flips for light theme) */
+  --control-bg: var(--bg-panel-raised);
+  --control-bg-hover: var(--bg-panel-soft);
+  --control-ink: var(--text-primary);
+  --control-border: var(--border-standard);
 }
 
 * {
@@ -45,6 +89,19 @@ body {
 
 body[data-theme="light"] {
   color-scheme: light;
+  --bg-page: #eef0f3;
+  --bg-shell: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-panel-raised: #f4f5f8;
+  --bg-panel-soft: #e9ebf0;
+  --border-subtle: rgba(17, 19, 26, 0.10);
+  --border-standard: rgba(17, 19, 26, 0.17);
+  --border-strong: rgba(17, 19, 26, 0.28);
+  --text-primary: #111319;
+  --text-secondary: #5b626d;
+  --text-muted: #747d8e;
+  --shadow-panel: 0 8px 24px rgba(17, 19, 26, 0.14);
+  --shadow-modal: 0 18px 60px rgba(17, 19, 26, 0.22);
   --ink: #111319;
   --muted: #5b626d;
   --paper: #eef0f3;
@@ -59,6 +116,10 @@ body[data-theme="light"] {
   --line: #11131a;
   --shadow: 0 16px 36px rgba(17, 19, 26, 0.16);
   --grid-line: rgba(17, 19, 26, 0.06);
+  --control-bg: #ffffff;
+  --control-bg-hover: #f1f3f6;
+  --control-ink: #111319;
+  --control-border: rgba(17, 19, 26, 0.2);
 }
 
 button,
@@ -5545,6 +5606,48 @@ img.pol-mascot {
   opacity: 1;
   transform: translate3d(0, 0, 0);
   transition: opacity 220ms ease, transform 220ms ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+/* Resume sits under LET'S PLAY on the splash: same footprint + icon slot, but a translucent
+   "secondary" skin so PLAY still reads as the primary call to action. */
+.title-screen.title-landing .ts-resume-splash {
+  width: min(420px, calc(100vw - 2.5rem));
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 46px;
+  align-items: center;
+  padding: 0 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #fffdf7;
+  box-shadow: 0 4px 0 rgba(7, 22, 70, 0.55);
+  font-family: "Archivo", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.title-screen.title-landing .ts-resume-splash .ts-ico {
+  width: 34px;
+  height: 26px;
+  margin: 0;
+  padding-right: 14px;
+  border-right-color: rgba(255, 255, 255, 0.34);
+}
+.title-screen.title-landing .ts-resume-splash .ts-lbl { justify-self: start; flex: initial; }
+.title-screen.title-landing .ts-resume-splash:hover,
+.title-screen.title-landing .ts-resume-splash:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+  outline: none;
+}
+.title-screen.title-landing .ts-resume-splash:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(7, 22, 70, 0.55);
 }
 .title-screen.title-landing .ts-letplay {
   width: min(420px, calc(100vw - 2.5rem));
@@ -5569,9 +5672,9 @@ img.pol-mascot {
   border-right-color: rgba(16, 36, 92, 0.34);
 }
 .title-screen.title-landing .ts-letplay .ts-lbl {
-  justify-self: center;
+  justify-self: start;
   flex: initial;
-  padding-right: 18px;
+  padding-right: 0;
 }
 .title-screen.title-landing .ts-letplay:hover,
 .title-screen.title-landing .ts-letplay:focus-visible {
@@ -5920,12 +6023,23 @@ body.low-power .ts-step-enter { animation: none; }
   border: 2px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.07); color: #fffdf7;
 }
 .title-screen .ts-opt:hover { background: rgba(255, 255, 255, 0.12); }
-.title-screen .ts-opt-select { gap: 12px; }
-.title-screen .ts-select-shell {
-  flex: 0 1 180px;
-  min-width: 0;
-  margin-left: auto;
+/* Game Mode row: at phone width a label + a select sharing one line means one of them clips
+   ("GA…" or "GUESS WH"), and mode names get long ("Witness Protection Filter"). So wrap the select
+   onto its own full-width line under the label - the value always shows in full, whatever the mode. */
+.title-screen .ts-opt-select {
+  flex-wrap: wrap;
+  gap: 9px 10px;
+  min-height: 54px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
+.title-screen .ts-opt-select .ts-opt-label { flex: 1 1 auto; }
+.title-screen .ts-select-shell {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin-left: 0;
+}
+.title-screen .ts-mode-select { min-height: 42px; }
 .title-screen .ts-mode-select {
   width: 100%;
   min-height: 38px;
@@ -5941,6 +6055,47 @@ body.low-power .ts-step-enter { animation: none; }
   text-transform: uppercase;
 }
 .title-screen .ts-mode-select:focus { outline: none; border-color: #ffbe0b; }
+/* Mode lineup on the title menu: the SAME .mode-* picker the setup gear uses, recoloured to the
+   title's translucent palette so it reads as one continuous control stack (not a pasted-in modal). */
+.title-screen .ts-mode-lineup {
+  width: 100%;
+  padding: 12px 12px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.title-screen .ts-lineup-head {
+  font-family: "Archivo", sans-serif;
+  font-weight: 900;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fffdf7;
+  opacity: 0.86;
+}
+.title-screen .ts-mode-lineup .mode-policy-toggles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.title-screen .ts-mode-lineup .mode-policy-chip {
+  min-height: 44px;
+  padding: 8px 6px;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fffdf7;
+}
+.title-screen .ts-mode-lineup .mode-policy-chip b { font-size: 0.8rem; }
+.title-screen .ts-mode-lineup .mode-policy-chip.is-on { border-color: #18a589; background: #18a589; color: #fff; }
+.title-screen .ts-mode-lineup .mode-policy-chip.is-on b { color: #fff; }
+.title-screen .ts-mode-lineup .mode-group {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+}
+.title-screen .ts-mode-lineup .mode-group-head strong { color: #fffdf7; }
+.title-screen .ts-mode-lineup .mode-group-head small { color: rgba(255, 253, 247, 0.6); }
+.title-screen .ts-mode-lineup .mode-check-row {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+.title-screen .ts-mode-lineup .mode-check-copy b { color: #fffdf7; }
+.title-screen .ts-mode-lineup .mode-check { accent-color: #18a589; }
 /* The native checkbox is hidden but kept full-size + transparent over the pill, so the WHOLE row is
    the toggle (and it stays actionable for keyboard/automation - a 0x0 box would not be). */
 .title-screen .ts-team-mode { position: relative; }
@@ -7866,3 +8021,510 @@ body:not(.observer) #observerBar { display: none; }
 }
 .setup-apply-hint[hidden] { display: none; }
 @keyframes setup-hint-in { from { opacity: 0; transform: translateY(-4px); } }
+
+/* ============================================================================================
+   DESIGN-SYSTEM CONSOLIDATION PASS
+   The gameplay board is the source of truth (deep navy, medium radii, restrained borders,
+   chunky display type, compact controls). Everything below folds the settings modal, HUD,
+   round-over, end-session dialog and receipt screen into that ONE system, driven entirely by
+   the :root tokens. Later-in-file = wins the cascade over the older per-screen one-offs.
+   ============================================================================================ */
+
+/* ---------- 1. Shared controls: Secondary (default), Primary, Tertiary(.ghost), Icon ---------- */
+.button,
+.segment,
+.icon-button {
+  min-height: 44px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  color: var(--control-ink);
+  background: var(--control-bg);
+  box-shadow: var(--shadow-control);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: transform 120ms ease-out, background 140ms ease, box-shadow 120ms ease, border-color 140ms ease;
+}
+.button:hover,
+.segment:hover,
+.icon-button:hover {
+  transform: translateY(-1px);
+  background: var(--control-bg-hover);
+  box-shadow: var(--shadow-control);
+}
+.button:active,
+.segment:active,
+.icon-button:active {
+  transform: translateY(1px);
+  box-shadow: none;
+  transition-duration: 80ms;
+}
+.button.primary {
+  background: var(--accent-yellow);
+  border-color: rgba(0, 0, 0, 0.35);
+  color: #141720;
+}
+.button.primary:hover { background: #ffdd33; }
+.button.secondary { background: var(--control-bg); color: var(--control-ink); }
+/* Tertiary: transparent, compact. */
+.button.ghost {
+  min-height: 40px;
+  background: transparent;
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+.button.ghost:hover { background: var(--control-bg-hover); color: var(--control-ink); }
+.button.compact { min-height: 36px; }
+/* Icon buttons: square, radius-sm, one size per breakpoint. */
+.icon-button,
+.button.icon-only,
+.button.compact.icon-only {
+  border-radius: var(--radius-sm);
+}
+.topbar-actions .button,
+.topbar-actions select {
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+}
+body:not([data-theme="light"]) .topbar-actions .button,
+body:not([data-theme="light"]) .topbar-actions select,
+body:not([data-theme="light"]) .game-bar-actions .button {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-standard);
+  box-shadow: var(--shadow-control);
+  color: var(--text-primary);
+}
+body:not([data-theme="light"]) .topbar-actions .button:hover,
+body:not([data-theme="light"]) .game-bar-actions .button:hover { background: var(--bg-panel-soft); }
+/* Focus: one restrained ring, only for keyboard focus (no blue glow on pointer clicks). */
+.button:focus:not(:focus-visible),
+.icon-button:focus:not(:focus-visible),
+.segment:focus:not(:focus-visible) { outline: none; }
+.button:focus-visible,
+.icon-button:focus-visible,
+.segment:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-blue) 70%, transparent);
+  outline-offset: 2px;
+}
+
+/* ---------- 2. Panels, backdrops, modal shell ---------- */
+.setup-dialog {
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-xl);
+  background: var(--bg-shell);
+  box-shadow: var(--shadow-modal);
+}
+.setup-dialog[open] { animation: modal-in 180ms ease-out; }
+@keyframes modal-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+.setup-dialog::backdrop,
+.end-confirm {
+  background: rgba(4, 7, 14, 0.72);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.setup-form { padding: var(--space-5); gap: var(--space-3); }
+@media (max-width: 640px) { .setup-form { padding: 18px; } }
+
+/* ---------- 3. Settings modal internals ---------- */
+.setup-form .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.settings-grid { gap: var(--space-3); }
+.toggle-row,
+.select-row {
+  min-height: 76px;
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-raised);
+}
+.toggle-row small,
+.select-row small { color: var(--text-secondary); font-weight: 600; }
+/* Check control: 30px square, radius-sm, accent-green when on. All controls share a right edge. */
+.toggle-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-soft);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.toggle-row input[type="checkbox"]:checked {
+  background: var(--accent-green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23092019' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.6 4.5L19 7'/%3E%3C/svg%3E") center / 16px no-repeat;
+  border-color: var(--accent-green);
+}
+/* Selects: dark custom field, never the browser-white default. */
+.setup-form select,
+.select-row select,
+.setup-mode-row select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 42px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a4abba' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") right 10px center / 16px no-repeat;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+/* Mode lineup: a proper section panel + equal-width 52px segments, green = selected. */
+.mode-section {
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-raised);
+}
+.mode-section .tier-head strong { font-size: 16px; font-weight: 800; }
+.mode-policy-chip {
+  min-height: 52px;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-soft);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+.mode-policy-chip:hover { transform: translateY(-1px); }
+.mode-policy-chip.is-on {
+  border-color: var(--accent-green);
+  background: var(--accent-green);
+  color: #092019;
+  box-shadow: none;
+}
+.mode-policy-chip.is-on b { color: #092019; }
+.mode-group { border-color: var(--border-subtle); background: var(--bg-panel-soft); border-radius: var(--radius-sm); }
+.mode-check-row { border-color: var(--border-subtle); border-radius: var(--radius-sm); }
+.mode-check-row input { accent-color: var(--accent-green); }
+/* Seed row: mono for the code only; standard icon button for the clipboard. */
+.seed-controls input {
+  min-height: 36px;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-soft);
+}
+.seed-controls .button {
+  min-height: 36px;
+  width: 36px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+}
+/* Room number: a compact status badge, not a button. */
+.setup-room-code {
+  min-height: 34px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent-yellow);
+  color: #141720;
+  box-shadow: none;
+}
+/* Footer: right-aligned inline on desktop, stacked full-width on phones. */
+.dialog-actions { justify-content: flex-end; gap: var(--space-3); }
+@media (max-width: 640px) {
+  .dialog-actions { flex-direction: column-reverse; align-items: stretch; }
+  .dialog-actions .button { width: 100%; min-height: 52px; }
+}
+
+/* ---------- 4. Round Over: one centred shell built from board language ---------- */
+.round-reveal:not(.team-reveal) {
+  background: rgba(6, 9, 20, 0.78);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  gap: 0;
+  overflow-y: auto;
+}
+.rr-shell {
+  width: min(520px, calc(100vw - 24px));
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-xl);
+  background: var(--bg-panel-raised);
+  box-shadow: var(--shadow-modal);
+  animation: modal-in 180ms ease-out;
+}
+.rr-solo .rr-shell { width: min(760px, calc(100vw - 24px)); }
+.rr-title {
+  font-size: clamp(2rem, 6vw, 2.6rem);
+  transform: none;
+  text-shadow: 0.05em 0.05em 0 var(--accent-red);
+  animation: modal-in 220ms ease-out;
+}
+/* The reveal card = the gameplay CharacterCard (image + fixed name strip, 1px border, radius-md). */
+.rr-cards { gap: clamp(10px, 3vw, 22px); }
+.rr-card { gap: 8px; max-width: 190px; }
+.rr-cardface {
+  display: flex;
+  flex-direction: column;
+  width: clamp(120px, 34vw, 170px);
+  overflow: hidden;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, var(--card-surface), var(--card-surface-2));
+  box-shadow: var(--shadow-panel);
+}
+.rr-card img,
+.rr-cardface img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  box-shadow: none;
+}
+.rr-name {
+  min-height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 2px 6px;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+}
+.rr-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; }
+.rr-epilogue { max-width: 180px; text-align: center; }
+/* VS / X marker: a small bordered token between the two cards. */
+.rr-vs {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-standard);
+  border-radius: 999px;
+  background: var(--bg-panel-soft);
+  color: var(--accent-red);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+/* Solo grids keep their compact card flow inside the shell. */
+.rr-solo .rr-cards { width: 100%; }
+.rr-solo .rr-cardface { width: 100%; }
+.rr-solo .rr-card img { border-radius: 0; }
+/* Actions: primary + secondary, stacked, equal width. */
+.rr-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 340px;
+}
+.round-reveal .rr-next,
+.round-reveal .rr-finish {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  margin: 0;
+  animation: none;
+}
+.round-reveal .rr-finish {
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  color: var(--control-ink);
+  box-shadow: var(--shadow-control);
+  font-size: 0.9rem;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 1;
+}
+.round-reveal .rr-finish:hover { background: var(--control-bg-hover); }
+
+/* ---------- 5. End-session confirm: the shared modal shell ---------- */
+.end-confirm-box {
+  width: min(480px, 92vw);
+  padding: var(--space-5);
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-xl);
+  background: var(--bg-shell);
+  box-shadow: var(--shadow-modal);
+  animation: modal-in 180ms ease-out;
+}
+.ec-title { font-size: 26px; }
+.ec-sub { max-width: 380px; margin-left: auto; margin-right: auto; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--text-secondary); }
+.ec-actions { gap: var(--space-3); }
+@media (max-width: 420px) {
+  .ec-actions { flex-direction: column-reverse; align-items: stretch; }
+  .ec-actions .button { width: 100%; }
+}
+
+/* ---------- 6. Session Ended / receipt: calmer hierarchy, standard controls ---------- */
+.session-end { background: var(--bg-page); }
+.se-credits { opacity: 0.16; filter: blur(2px); }
+.se-stage {
+  background: radial-gradient(80% 60% at 50% 30%, rgba(4, 7, 14, 0.55), rgba(4, 7, 14, 0.25) 70%, rgba(4, 7, 14, 0.45));
+}
+.se-head { margin: 20px 16px 4px; max-height: 200px; }
+.se-title {
+  margin-bottom: 10px;
+  font-size: clamp(2.1rem, 7vw, 2.9rem);
+  text-shadow: 0.05em 0.05em 0 var(--accent-red);
+}
+.se-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-panel-raised);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.rc-window .receipt-paper { box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45); }
+.se-actions {
+  gap: var(--space-3);
+  margin: var(--space-4) 16px calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+}
+.se-actions .button { min-height: 52px; flex: 1 1 220px; max-width: 300px; }
+.summary-page .se-home { margin: 0 0 48px; }
+.summary-page .su-again { min-height: 52px; }
+
+/* ---------- 7. Desktop HUD: aligned edges, chip breathing room, legible helper ---------- */
+.cue-card.is-clickable::after { color: var(--text-muted); opacity: 1; }
+@media (min-width: 861px) {
+  /* Same content edges for the rail and the board below it. */
+  .side-panel { padding: 12px 16px 46px; }
+  /* Active-player chip: 12px inner padding, avatar vertically centred. */
+  .side-panel .secret-card .card-plate { padding: 12px 14px 12px 12px; }
+  /* Sticky-collapsed: keep a one-line question instead of an empty strip (82-96px total). */
+  body.hud-collapsed .side-panel {
+    grid-template-areas: "you cue seats" "you cue actions";
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+    padding-top: 8px;
+  }
+  body.hud-collapsed .side-panel .cue-card { display: block; align-self: center; }
+  body.hud-collapsed .side-panel .cue-card .label,
+  body.hud-collapsed .side-panel .cue-card::after,
+  body.hud-collapsed .side-panel .mystery-result { display: none; }
+  body.hud-collapsed .side-panel .question-prompt {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95rem;
+  }
+  body.hud-collapsed .side-panel .side-actions { align-self: center; }
+}
+
+/* ---------- 8. Mobile gameplay (<=860px): ONE raised panel, dividers not nested boxes ---------- */
+@media (max-width: 860px) {
+  #app { padding: var(--space-3); }
+  .game-side { margin: 0; }
+  .side-panel {
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-raised);
+    box-shadow: var(--shadow-panel);
+    padding: 14px;
+    gap: var(--space-3);
+  }
+  /* Logo: same brand, quieter offsets so it doesn't outshout every other heading. */
+  .side-head { margin: 0; padding: 0 0 2px; }
+  .side-head h1 { font-size: 1.5rem; }
+  .side-head h1 .brand-who { text-shadow: 0.035em 0.04em 0 #1533cc; }
+  .side-head h1 .brand-isit { text-shadow: 0.035em 0.04em 0 #e01b1b; }
+  /* Face card: radius-md + standard border, sitting flush in the panel. */
+  .side-panel .secret-card.character-card {
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    box-shadow: none;
+  }
+  /* Sections divide with hairlines instead of stacking more dark boxes. */
+  .side-panel .cue-card {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: var(--space-3);
+  }
+  /* Player switch: one segmented control, 1px border, no drop-shadow chunk. */
+  .seat-roster.seat-pill {
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    box-shadow: none;
+  }
+  .seat-pill .seat-half + .seat-half { border-left: 1px solid var(--border-subtle); }
+  .seat-pill .seat-swap { border: 1px solid var(--border-standard); background: var(--bg-panel-soft); }
+  /* END ROUND: the standard secondary button, not a double-bordered slab. */
+  body:not([data-theme="light"]) .game-bar-actions .button {
+    border-radius: var(--radius-md);
+    min-height: 48px;
+  }
+  /* LocationCard: fixed frame, standard border, title inset bottom-left over a bottom-only fade. */
+  .location-band,
+  .stage-top .location-band {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+    max-height: 240px;
+    margin-bottom: 0;
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-panel);
+  }
+  .location-overlay { min-height: 0; height: 100%; padding: 14px; }
+  .location-scrim {
+    background: linear-gradient(180deg, rgba(8, 8, 12, 0) 45%, rgba(8, 8, 12, 0.72) 100%);
+  }
+  .location-copy .eyebrow,
+  .location-copy p,
+  .location-stamp { display: none; }
+  .location-copy h2 { margin: 0; font-size: clamp(1.5rem, 6vw, 2rem); }
+  /* Toolbar: directly below the location card, left-aligned, uniform 40px icon buttons. */
+  .stage-top { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; }
+  .topbar-actions {
+    position: static;
+    height: auto;
+    justify-content: flex-start;
+    gap: var(--space-2);
+    padding: 2px 0 0;
+  }
+  .topbar-actions .button,
+  .topbar-actions select {
+    min-height: 40px;
+    border-radius: var(--radius-sm);
+    font-size: 0.72rem;
+  }
+  .topbar-actions .button.icon-only { width: 40px; min-width: 40px; }
+  /* Board: standard card grid gaps + a readable fixed name strip. */
+  .board-wrap { gap: var(--space-3); }
+  .character-board {
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-lg);
+  }
+  .card-plate { min-height: 23px; justify-content: center; }
+  .game-layout { gap: var(--space-3); }
+}
+
+/* ---------- 9. Title menu: same pills, slightly lighter voice ---------- */
+.title-screen .ts-step .button,
+.title-screen .ts-opt,
+.title-screen .ts-add-player {
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- 10. Reduced motion stays honoured ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .setup-dialog[open],
+  .rr-shell,
+  .end-confirm-box { animation: none; }
+}

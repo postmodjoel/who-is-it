@@ -1670,6 +1670,9 @@ els.setupButton.addEventListener("click", () => {
   syncSettingsToForm();
   if (setupApplyHint) setupApplyHint.hidden = true;   // fresh open, nothing changed yet
   els.setupDialog.showModal();
+  // <dialog> autofocuses its first focusable (the close X), painting a focus ring on every open.
+  // Keyboard users regain the ring on their first Tab; pointer users never wanted it.
+  try { document.activeElement.blur(); } catch (e) { /* fine */ }
 });
 
 // Quit to the main menu: refresh auto-resumes a game now, so this is the deliberate way out. Drop the
@@ -2218,8 +2221,10 @@ function showRoundReveal(done) {
   recordRoundLore(secrets);
   // Mode-flavoured epilogue under each reveal ("Still going around with that MAJOR HYSTERIA.") -
   // the character's send-off in the voice of the round that just ended.
+  // Each reveal is the SAME card language as the gameplay board (image + name strip in one bordered
+  // tile), with the caption above and the mode epilogue below.
   const secretCardHtml = (sec, cls, label, epi) =>
-    `<span class="rr-label ${cls}">${label}</span><img src="${sec ? sec.image : ""}" alt=""><span class="rr-name">${escapeHtml(sec ? sec.name : "?")}</span>${epi ? `<span class="rr-epilogue">${escapeHtml(epi)}</span>` : ""}`;
+    `<span class="rr-label ${cls}">${label}</span><span class="rr-cardface"><img src="${sec ? sec.image : ""}" alt=""><span class="rr-name">${escapeHtml(sec ? sec.name : "?")}</span></span>${epi ? `<span class="rr-epilogue">${escapeHtml(epi)}</span>` : ""}`;
   let cardsHtml = "";
   if (soloMode && secrets.length > 2) {
     cardsHtml = secrets.map((sec, i) => {
@@ -2246,10 +2251,14 @@ function showRoundReveal(done) {
   const ov = document.createElement("div");
   ov.className = `round-reveal${soloMode ? " rr-solo" : ""}`;
   ov.innerHTML = `
-    <div class="rr-title">ROUND OVER</div>
-    <div class="rr-cards">${cardsHtml}</div>
-    <button type="button" class="button primary rr-next">NEXT ROUND →</button>
-    <button type="button" class="button ghost rr-finish"><svg class="rr-finish-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v18l2-1.4 2 1.4 2-1.4 2 1.4 2-1.4 2 1.4V3l-2 1.4L14 3l-2 1.4L10 3 8 4.4 6 3Z"/><path d="M9 8h6M9 12h6"/></svg>FINISH SESSION</button>`;
+    <div class="rr-shell">
+      <div class="rr-title">ROUND OVER</div>
+      <div class="rr-cards">${cardsHtml}</div>
+      <div class="rr-actions">
+        <button type="button" class="button primary rr-next">NEXT ROUND →</button>
+        <button type="button" class="button rr-finish"><svg class="rr-finish-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v18l2-1.4 2 1.4 2-1.4 2 1.4 2-1.4 2 1.4V3l-2 1.4L14 3l-2 1.4L10 3 8 4.4 6 3Z"/><path d="M9 8h6M9 12h6"/></svg>FINISH SESSION</button>
+      </div>
+    </div>`;
   document.body.appendChild(ov);
   // No auto-advance: players click NEXT ROUND when they're ready (time to pass the device / react).
   // Online: whoever clicks deals + broadcasts; a remote deal also clears any lingering reveal (newGame).
@@ -2283,7 +2292,7 @@ function confirmEndSession(onConfirm) {
       <p class="ec-title">END THE SESSION?</p>
       <p class="ec-sub">The night wraps up and your receipt prints. You can keep playing afterwards.</p>
       <div class="ec-actions">
-        <button type="button" class="button ghost ec-cancel">← KEEP PLAYING</button>
+        <button type="button" class="button ec-cancel">← KEEP PLAYING</button>
         <button type="button" class="button primary ec-yes">PRINT THE RECEIPT</button>
       </div>
     </div>`;
@@ -2514,7 +2523,7 @@ function showSummaryPage(p) {
       </div>
       <div class="rc-printarea"><div class="rc-window">${buildReceiptPaper({ data: p })}</div></div>
       <button type="button" class="button primary su-again">▶ PLAY THIS DECK AGAIN</button>
-      <button type="button" class="button ghost se-home">← TITLE</button>
+      <button type="button" class="button se-home">← TITLE</button>
     </div>`;
   document.body.appendChild(ov);
   const clearHash = () => { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { location.hash = ""; } };
@@ -2574,7 +2583,7 @@ function showSessionEnd() {
       </div>
       <div class="se-actions">
         <button type="button" class="button primary se-continue">▶ CONTINUE PLAYING</button>
-        <button type="button" class="button ghost se-home">BACK TO TITLE</button>
+        <button type="button" class="button se-home">BACK TO TITLE</button>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -2967,6 +2976,36 @@ function startModeMarkup(selectClass = "") {
   `).join("");
   return `<label class="ts-opt ts-opt-select">${tsIcon("dice")}<span class="ts-opt-label">Game Mode</span><span class="ts-select-shell"><select class="ts-mode-select ${escapeHtml(selectClass)}" aria-label="Game mode">${options}</select></span></label>`;
 }
+// The SAME mode picker the in-game setup dialog uses (Progressive / Chaotic / Custom + the tier grid),
+// so the title menu and the setup gear stay in lockstep. Reuses the .mode-* classes for shared styling;
+// the .ts-mode-lineup wrapper only recolours them to the title's translucent palette.
+function modeLineupMarkup() {
+  const policy = effectiveModePolicy();
+  const chips = [
+    ["progressive", "Progressive"],
+    ["chaotic", "Chaotic"],
+    ["custom", "Custom"]
+  ].map(([value, title]) =>
+    `<button type="button" class="mode-policy-chip ${policy === value ? "is-on" : ""}" data-policy="${value}" aria-pressed="${policy === value}"><b>${escapeHtml(title)}</b></button>`
+  ).join("");
+  const selected = new Set(normalizedAllowedModeIds());
+  const groups = mysteryModeGroups().map((group) => `
+    <section class="mode-group">
+      <div class="mode-group-head"><strong>${escapeHtml(group.label)}</strong><small>${group.items.length} modes</small></div>
+      <div class="mode-check-grid">
+        ${group.items.map((effect) => `
+          <label class="mode-check-row">
+            <input class="mode-check" type="checkbox" value="${escapeHtml(effect.id)}" ${selected.has(effect.id) ? "checked" : ""}>
+            <span class="mode-check-copy"><b>${escapeHtml(effect.name)}</b></span>
+          </label>`).join("")}
+      </div>
+    </section>`).join("");
+  return `<div class="ts-mode-lineup mode-section ${policy === "custom" ? "is-custom" : ""}">
+    <div class="ts-lineup-head">Mode lineup</div>
+    <div class="mode-policy-toggles">${chips}</div>
+    <div class="mode-picker-wrap"><div class="mode-picker">${groups}</div></div>
+  </div>`;
+}
 // Two independent settings rows: game sounds (FX) and music, each with an animated on/off glyph.
 function audioToggleMarkup() {
   // Initial states come from device prefs so they survive reloads (Sound.isMusicOn() also checks the
@@ -2994,6 +3033,9 @@ function showTitleScreen() {
           </div>
           <div class="ts-cta">
             <button type="button" class="button primary ts-letplay">${tsIcon("play")}<span class="ts-lbl">LET'S PLAY</span></button>
+            ${saved ? `<button type="button" class="button ghost ts-resume ts-resume-splash">${saved.gameMode === "online"
+              ? `${tsIcon("online")}<span class="ts-lbl">${saved.inLobby ? "REJOIN LOBBY" : "RESUME"} · #${escapeHtml(saved.roomCode || "?")}</span>`
+              : `${tsIcon("resume")}<span class="ts-lbl">RESUME LAST GAME</span>`}</button>` : ""}
           </div>
         </div>
       </div>
@@ -3001,9 +3043,6 @@ function showTitleScreen() {
         <div class="ts-step ts-step-main" hidden>
           <button type="button" class="button primary ts-local">${tsIcon("local")}<span class="ts-lbl">LOCAL GAME</span></button>
           <button type="button" class="button secondary ts-online">${tsIcon("online")}<span class="ts-lbl">ONLINE GAME</span></button>
-          ${saved ? `<button type="button" class="button ghost ts-resume">${saved.gameMode === "online"
-            ? `${tsIcon("online")}<span class="ts-lbl">${saved.inLobby ? "REJOIN LOBBY" : "RESUME ONLINE"} · #${escapeHtml(saved.roomCode || "?")}</span>`
-            : `${tsIcon("resume")}<span class="ts-lbl">RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</span>`}</button>` : ""}
           ${audioToggleMarkup()}
           <button type="button" class="button ghost ts-splash-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
       </div>
@@ -3016,6 +3055,7 @@ function showTitleScreen() {
           <b class="ts-chip">ON</b>
         </label>
         ${startModeMarkup("ts-mode-local")}
+        ${modeLineupMarkup()}
         ${pgToggleMarkup()}
         ${boardSizeMarkup()}
         ${audioToggleMarkup()}
@@ -3027,6 +3067,7 @@ function showTitleScreen() {
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
         ${startModeMarkup("ts-mode-online")}
+        ${modeLineupMarkup()}
         <button type="button" class="button primary ts-host">${tsIcon("host")}<span class="ts-lbl">HOST A ROOM</span></button>
         <button type="button" class="button secondary ts-showjoin">${tsIcon("join")}<span class="ts-lbl">JOIN A ROOM</span></button>
         <button type="button" class="button ghost ts-observe">${tsIcon("tv")}<span class="ts-lbl">DISPLAY ON A TV</span></button>
@@ -3044,8 +3085,9 @@ function showTitleScreen() {
   const close = () => { if (window.Sound) Sound.titleLoop(false); ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
   // The title groove (bass + drums) can only start after a user gesture unlocks the AudioContext.
   ov.addEventListener("pointerdown", () => { if (window.Sound) { Sound.resume(); Sound.titleLoop(true); } }, { once: true });
-  // Every menu tap clicks (PG plays its own richer sound).
-  ov.querySelectorAll("button:not(.ts-pg)").forEach((b) => b.addEventListener("click", () => sfx("click")));
+  // Every menu tap clicks (PG plays its own richer sound; mode-lineup chips get rebuilt so they play
+  // their own click via the delegated handler below).
+  ov.querySelectorAll("button:not(.ts-pg):not(.mode-policy-chip)").forEach((b) => b.addEventListener("click", () => sfx("click")));
   // PG toggle(s): the same control appears in the local + host setup steps; one handler keeps every
   // instance in sync. Turning PG ON is free; turning it OFF is gated behind an adults-only riddle.
   const paintPg = () => ov.querySelectorAll(".ts-pg").forEach((b) => {
@@ -3054,10 +3096,10 @@ function showTitleScreen() {
     b.setAttribute("aria-pressed", String(state.settings.pg));
   });
   ov.querySelectorAll(".ts-pg").forEach((pgBtn) => pgBtn.addEventListener("click", () => {
-    if (!state.settings.pg) { setPgMode(true); paintPg(); paintStartModes(); sfx("blip"); return; }
+    if (!state.settings.pg) { setPgMode(true); paintPg(); paintStartModes(); repaintLineups(); sfx("blip"); return; }
     askAdultGate((ok) => {
-      if (ok) { setPgMode(false); paintPg(); paintStartModes(); sfx("coin"); }
-      else { setPgMode(true); paintPg(); paintStartModes(); sfx("buzzer"); }
+      if (ok) { setPgMode(false); paintPg(); paintStartModes(); repaintLineups(); sfx("coin"); }
+      else { setPgMode(true); paintPg(); paintStartModes(); repaintLineups(); sfx("buzzer"); }
     });
   }));
   // Inline settings (board size + sound + music) live in the local/host steps, mirrored across both.
@@ -3098,6 +3140,29 @@ function showTitleScreen() {
     paintAudio(".ts-music", on);
   }));
   ov.querySelectorAll(".ts-mode-select").forEach((select) => select.addEventListener("change", () => setStartMode(select.value)));
+  // Mode lineup: same picker as the setup gear. There are two instances (local + online steps); rather
+  // than wire each, we delegate on the overlay and keep them in lockstep off state.settings.
+  const repaintLineups = () => ov.querySelectorAll(".ts-mode-lineup").forEach((node) => { node.outerHTML = modeLineupMarkup(); });
+  ov.addEventListener("click", (e) => {
+    const chip = e.target.closest(".ts-mode-lineup .mode-policy-chip");
+    if (!chip) return;
+    state.settings.modePolicy = chip.dataset.policy;
+    state.settings = normalizeGameSettings(state.settings);
+    repaintLineups();
+    sfx("blip");
+  });
+  ov.addEventListener("change", (e) => {
+    const box = e.target.closest(".ts-mode-lineup .mode-check");
+    if (!box) return;
+    const lineup = box.closest(".ts-mode-lineup");
+    const ids = [...lineup.querySelectorAll(".mode-check:checked")].map((b) => b.value);
+    state.settings.allowedModeIds = ids;   // raw picks; the empty->all fallback happens at game start
+    ov.querySelectorAll(".ts-mode-lineup").forEach((node) => {
+      if (node === lineup) return;
+      node.querySelectorAll(".mode-check").forEach((b) => { b.checked = ids.includes(b.value); });
+    });
+    sfx("blip");
+  });
   const openSplash = () => {
     observeMode = false;
     ov.classList.remove("ts-menu-open");

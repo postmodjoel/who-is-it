@@ -19,22 +19,22 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   ? sharedEditor.fieldsForFaceStudio(traitBook, accessoryChoices)
   : [
   // Face
-  { group: "Face", key: "faceShape", label: "Face Shape", type: "select", options: () => selectOptions(traitBook.faceShapes), fallback: "oval" },
-  { group: "Face", key: "headScaleX", label: "Head Width", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
-  { group: "Face", key: "headScaleY", label: "Head Height", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
-  { group: "Face", key: "neckWidth", label: "Neck Width", min: 0.72, max: 1.38, step: 0.01, fallback: 1 },
-  { group: "Face", key: "neckTaper", label: "Neck Taper", min: -1, max: 1, step: 0.05, fallback: 0 },
-  { group: "Face", key: "neckLength", label: "Neckline Height", min: -8, max: 16, step: 0.5, fallback: 0 },
-  { group: "Face", key: "neckOutline", label: "Neck Outline", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
-  { group: "Face", key: "neckOutlineWidth", label: "Neck Outline Width", min: 0.5, max: 3, step: 0.05, fallback: 1 },
-  { group: "Face", key: "neckTerminationY", label: "Neck Join Depth", min: -6, max: 12, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "faceShape", label: "Face Shape", type: "select", options: () => selectOptions(traitBook.faceShapes), fallback: "oval" },
+  { group: "Structure", key: "headScaleX", label: "Head Width", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
+  { group: "Structure", key: "headScaleY", label: "Head Height", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
+  { group: "Structure", key: "neckWidth", label: "Neck Width", min: 0.72, max: 1.38, step: 0.01, fallback: 1 },
+  { group: "Structure", key: "neckTaper", label: "Neck Taper", min: -1, max: 1, step: 0.05, fallback: 0 },
+  { group: "Structure", key: "neckLength", label: "Neckline Height", min: -8, max: 16, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "neckOutline", label: "Neck Outline", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
+  { group: "Structure", key: "neckOutlineWidth", label: "Neck Outline Width", min: 0.5, max: 3, step: 0.05, fallback: 1 },
+  { group: "Structure", key: "neckTerminationY", label: "Neck Join Depth", min: -6, max: 12, step: 0.5, fallback: 0 },
   { group: "Face Lines", key: "adamAppleStyle", label: "Adam's Apple", type: "select", options: () => [["off", "Off"], ["soft", "Soft"], ["line", "Line"], ["notch", "Notch"]], fallback: "off" },
   { group: "Face Lines", key: "adamAppleScale", label: "Adam's Apple Size", min: 0.5, max: 1.8, step: 0.05, fallback: 1 },
   { group: "Face Lines", key: "adamAppleOpacity", label: "Adam's Apple Opacity", min: 0, max: 1, step: 0.05, fallback: 0 },
   { group: "Face Lines", key: "adamAppleY", label: "Adam's Apple Y", min: -10, max: 10, step: 0.5, fallback: 0 },
-  { group: "Face", key: "headTilt", label: "Head Tilt", min: -12, max: 12, step: 0.5, fallback: 0 },
-  { group: "Face", key: "headY", label: "Head Position", min: -10, max: 10, step: 1, fallback: 0 },
-  { group: "Face", key: "eyeGap", label: "Eye Gap", min: 40, max: 62, step: 1, fallback: 47 },
+  { group: "Structure", key: "headTilt", label: "Head Tilt", min: -12, max: 12, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "headY", label: "Head Position", min: -10, max: 10, step: 1, fallback: 0 },
+  { group: "Structure", key: "eyeGap", label: "Eye Gap", min: 40, max: 62, step: 1, fallback: 47 },
   // Skin
   { group: "Skin", key: "skin", label: "Skin Tone", type: "select", options: () => selectOptions(traitBook.skinTones), fallback: "fair" },
   { group: "Skin", key: "background", label: "Background", type: "color", fallback: "" },
@@ -115,20 +115,20 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   { group: "Cheeks", key: "blushColor", label: "Blush Colour", type: "color", fallback: "" },
   { group: "Cheeks", key: "blushScale", label: "Blush Size", min: 0.4, max: 2, step: 0.05, fallback: 1 },
   { group: "Cheeks", key: "blushX", label: "Blush Spacing", min: -18, max: 18, step: 0.5, fallback: 0 },
-  { group: "Cheeks", key: "contourOpacity", label: "Cheek Contour", min: 0, max: 1, step: 0.05, fallback: 0 },
-  { group: "Cheeks", key: "contourY", label: "Contour Y", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Cheeks", key: "contourX", label: "Contour Spacing", min: -18, max: 18, step: 0.5, fallback: 0 },
-  { group: "Cheeks", key: "contourWidth", label: "Contour Width", min: 0.55, max: 1.8, step: 0.05, fallback: 1 },
+  { group: "Structure", key: "contourOpacity", label: "Cheek Contour", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Structure", key: "contourY", label: "Contour Y", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "contourX", label: "Contour Spacing", min: -18, max: 18, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "contourWidth", label: "Contour Width", min: 0.55, max: 1.8, step: 0.05, fallback: 1 },
   // Ears
-  { group: "Ears", key: "earVariant", label: "Ear Shape", type: "select", options: () => selectOptions(traitBook.earVariants), fallback: "round" },
-  { group: "Ears", key: "earScale", label: "Ear Size", min: 0.7, max: 1.3, step: 0.02, fallback: 1 },
-  { group: "Ears", key: "earY", label: "Ear Height", min: -10, max: 10, step: 1, fallback: 0 },
-  { group: "Ears", key: "earX", label: "Ear Group X", min: -12, max: 12, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earLeftX", label: "Left Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earRightX", label: "Right Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earLeftY", label: "Left Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earRightY", label: "Right Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earRot", label: "Ear Rotate", min: -20, max: 20, step: 1, fallback: 0 },
+  { group: "Structure", key: "earVariant", label: "Ear Shape", type: "select", options: () => selectOptions(traitBook.earVariants), fallback: "round" },
+  { group: "Structure", key: "earScale", label: "Ear Size", min: 0.7, max: 1.3, step: 0.02, fallback: 1 },
+  { group: "Structure", key: "earY", label: "Ear Height", min: -10, max: 10, step: 1, fallback: 0 },
+  { group: "Structure", key: "earX", label: "Ear Group X", min: -12, max: 12, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earLeftX", label: "Left Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earRightX", label: "Right Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earLeftY", label: "Left Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earRightY", label: "Right Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earRot", label: "Ear Rotate", min: -20, max: 20, step: 1, fallback: 0 },
   // Mouth
   { group: "Mouth", key: "mouthStyle", label: "Smile Style", type: "select", options: () => selectOptions(traitBook.mouthStyles), fallback: "warmSmile" },
   { group: "Mouth", key: "smileLips", label: "Smile Lips", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
@@ -153,14 +153,13 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   { group: "Teeth", key: "teethX", label: "Teeth X", min: -16, max: 16, step: 1, fallback: 0 },
   { group: "Teeth", key: "teethY", label: "Teeth Y", min: -14, max: 14, step: 1, fallback: 0 },
   { group: "Teeth", key: "teethScale", label: "Teeth Size", min: 0.62, max: 1.38, step: 0.02, fallback: 1 },
-  // Jaw
-  { group: "Jaw", key: "jawLength", label: "Jaw Length", min: -0.25, max: 0.4, step: 0.01, fallback: 0 },
-  { group: "Jaw", key: "jawShadowY", label: "Jaw Shadow", min: -6, max: 6, step: 0.5, fallback: 0 },
-  // Chin (per-character, opt-in)
-  { group: "Chin", key: "chinShape", label: "Chin Shape", type: "select", options: () => selectOptions(traitBook.chinShapes), fallback: "none" },
-  { group: "Chin", key: "chinY", label: "Chin Height", min: -16, max: 18, step: 1, fallback: 0 },
-  { group: "Chin", key: "chinWidth", label: "Chin Width", min: 0.6, max: 1.7, step: 0.02, fallback: 1 },
-  { group: "Chin", key: "chinScale", label: "Chin Size", min: 0.5, max: 2, step: 0.02, fallback: 1 },
+  // Jaw / chin structure
+  { group: "Structure", key: "jawLength", label: "Jaw Length", min: -0.25, max: 0.4, step: 0.01, fallback: 0 },
+  { group: "Structure", key: "jawShadowY", label: "Jaw Shadow", min: -6, max: 6, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "chinShape", label: "Chin Shape", type: "select", options: () => selectOptions(traitBook.chinShapes), fallback: "none" },
+  { group: "Structure", key: "chinY", label: "Chin Height", min: -16, max: 18, step: 1, fallback: 0 },
+  { group: "Structure", key: "chinWidth", label: "Chin Width", min: 0.6, max: 1.7, step: 0.02, fallback: 1 },
+  { group: "Structure", key: "chinScale", label: "Chin Size", min: 0.5, max: 2, step: 0.02, fallback: 1 },
   // Clothing
   { group: "Clothing", key: "clothing", label: "Outfit", type: "select", options: () => selectOptions(traitBook.clothing), fallback: "tee" },
   { group: "Clothing", key: "shirt", label: "Clothing Colour", type: "color", fallback: "" },
@@ -213,22 +212,22 @@ if (!editorFields.some((field) => field.key === "neckDebug")) {
   editorFields.splice(
     Math.max(0, editorFields.findIndex((field) => field.key === "headTilt")),
     0,
-    { group: "Face", key: "neckDebug", label: "Neck Debug", type: "select", options: () => [["off", "Off"], ["fill", "Fill"], ["outline", "Outline"], ["all", "All"]], fallback: "off" }
+    { group: "Structure", key: "neckDebug", label: "Neck Debug", type: "select", options: () => [["off", "Off"], ["fill", "Fill"], ["outline", "Outline"], ["all", "All"]], fallback: "off" }
   );
 }
 
 const hotspots = [
-  { label: "Face Shape", group: "Face", left: 2, top: 2, width: 18, height: 10 },
+  { label: "Structure", group: "Structure", left: 2, top: 2, width: 18, height: 10 },
   { label: "Hair", group: "Hair", left: 22, top: 2, width: 56, height: 24 },
-  { label: "Ear", group: "Ears", left: 4, top: 46, width: 14, height: 18 },
-  { label: "Ear", group: "Ears", left: 82, top: 46, width: 14, height: 18 },
+  { label: "Structure", group: "Structure", left: 4, top: 46, width: 14, height: 18 },
+  { label: "Structure", group: "Structure", left: 82, top: 46, width: 14, height: 18 },
   { label: "Brows", group: "Brows", left: 26, top: 36, width: 48, height: 10 },
   { label: "Eyes", group: "Eyes", left: 26, top: 44, width: 48, height: 12 },
   { label: "Nose", group: "Nose", left: 40, top: 52, width: 20, height: 16 },
   { label: "Cheeks", group: "Cheeks", left: 18, top: 54, width: 18, height: 14 },
   { label: "Cheeks", group: "Cheeks", left: 64, top: 54, width: 18, height: 14 },
   { label: "Mouth", group: "Mouth", left: 36, top: 64, width: 28, height: 10 },
-  { label: "Jaw / Beard", group: "Beard", left: 28, top: 72, width: 44, height: 18 },
+  { label: "Structure", group: "Structure", left: 28, top: 72, width: 44, height: 18 },
   { label: "Outfit", group: "Clothing", left: 20, top: 88, width: 60, height: 12 }
 ];
 
@@ -240,7 +239,7 @@ const state = {
   matrix: false,
   selectedId: characters[0]?.id || "",
   selectedExpression: "assigned",
-  activeGroup: "Face",
+  activeGroup: "Structure",
   exportMode: "corrections",
   corrections: readCorrections(),
   // Pen tool (draw custom hair). pts: anchors {x,y,hx,hy} in 256-space; hx/hy = outgoing handle.
@@ -276,10 +275,13 @@ const els = {
   hotspotHint: document.querySelector("#hotspotHint"),
   editorControls: document.querySelector("#editorControls"),
   correctionExport: document.querySelector("#correctionExport"),
+  combinedCorrectionExport: document.querySelector("#combinedCorrectionExport"),
   exportModeLabel: document.querySelector("#exportModeLabel"),
+  combinedExportLabel: document.querySelector("#combinedExportLabel"),
   exportModeCorrections: document.querySelector("#exportModeCorrections"),
   exportModeEdited: document.querySelector("#exportModeEdited"),
   copyExportButton: document.querySelector("#copyExportButton"),
+  copyCombinedExportButton: document.querySelector("#copyCombinedExportButton"),
   resetCorrectionButton: document.querySelector("#resetCorrectionButton")
 };
 let portraitRefreshFrame = 0;
@@ -321,6 +323,7 @@ function init() {
   els.exportModeCorrections?.addEventListener("click", () => setExportMode("corrections"));
   els.exportModeEdited?.addEventListener("click", () => setExportMode("editedCharacters"));
   els.copyExportButton?.addEventListener("click", copyCurrentExport);
+  els.copyCombinedExportButton?.addEventListener("click", copyCombinedExport);
 
   renderHotspots();
   wireLockStageOnce();
@@ -413,7 +416,6 @@ function renderSelected() {
   const index = characters.indexOf(character);
   const expression = selectedExpressionFor(character);
   const correction = correctionFor(character.id);
-  const displayTraits = traitsFor(character, expression);
   const editCount = Object.keys(correction).length;
   const groupCount = Object.keys(groupEditCounts(correction)).length;
   els.selectedPortrait.innerHTML = `<img src="${portraitFor(character, index, expression)}" alt="${escapeHtml(character.name)}">`;
@@ -423,18 +425,7 @@ function renderSelected() {
       <p class="meta-label">Selected</p>
       <h2>${escapeHtml(character.name)}</h2>
     </div>
-    <div class="trait-list">
-      ${traitPill("expression", expression)}
-      ${traitPill("mouth", displayTraits.mouthStyle)}
-      ${traitPill("hair", displayTraits.hair)}
-      ${traitPill("hair color", displayTraits.hairColor)}
-      ${traitPill("face", displayTraits.faceShape)}
-      ${traitPill("skin", displayTraits.skin)}
-      ${traitPill("clothing", displayTraits.clothing)}
-      ${traitPill("accessory", displayTraits.accessory)}
-      ${editCount ? traitPill("edits", editCount) : ""}
-      ${groupCount ? traitPill("groups", groupCount) : ""}
-    </div>
+    <p class="selected-meta-note">${editCount || 0} ${editCount === 1 ? "override" : "overrides"} across ${groupCount || 0} ${groupCount === 1 ? "group" : "groups"}</p>
   `;
   els.variantStrip.innerHTML = expressions
     .map((item) => {
@@ -1037,22 +1028,36 @@ function currentExportPayload() {
   };
 }
 
+function combinedEditorPastePayload() {
+  return {
+    all: Object.fromEntries(
+      characters.map((character) => [character.id, correctionFor(character.id)])
+    )
+  };
+}
+
 function renderCorrectionExport() {
   const payload = currentExportPayload();
   els.correctionExport.value = JSON.stringify(payload, null, 2);
+  if (els.combinedCorrectionExport) {
+    els.combinedCorrectionExport.value = JSON.stringify(combinedEditorPastePayload(), null, 2);
+  }
   if (els.exportModeLabel) {
     const editedCount = characters.filter((character) => Object.keys(correctionFor(character.id)).length).length;
     els.exportModeLabel.textContent = state.exportMode === "editedCharacters"
       ? `Edited Characters (${editedCount})`
       : "Corrections Export";
   }
+  if (els.combinedExportLabel) {
+    els.combinedExportLabel.textContent = `Combined Editor Paste (${characters.length})`;
+  }
   els.exportModeCorrections?.classList.toggle("is-active", state.exportMode === "corrections");
   els.exportModeEdited?.classList.toggle("is-active", state.exportMode === "editedCharacters");
 }
 
-async function copyCurrentExport() {
-  const text = els.correctionExport?.value || "";
-  if (!text) return;
+async function copyTextareaValue(textarea, button) {
+  const text = textarea?.value || "";
+  if (!text || !button) return;
   let copied = false;
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1062,24 +1067,29 @@ async function copyCurrentExport() {
   } catch {
     copied = false;
   }
-  if (!copied && els.correctionExport) {
-    els.correctionExport.focus();
-    els.correctionExport.select();
+  if (!copied && textarea) {
+    textarea.focus();
+    textarea.select();
     try {
       copied = document.execCommand("copy");
     } catch {
       copied = false;
     }
-    els.correctionExport.setSelectionRange(0, 0);
-    els.correctionExport.blur();
+    textarea.setSelectionRange(0, 0);
+    textarea.blur();
   }
-  const button = els.copyExportButton;
-  if (!button) return;
-  const label = copied ? "Copied" : "Copy failed";
-  button.textContent = label;
+  button.textContent = copied ? "Copied" : "Copy failed";
   window.setTimeout(() => {
-    if (els.copyExportButton === button) button.textContent = "Copy";
+    if (document.contains(button)) button.textContent = "Copy";
   }, 1200);
+}
+
+async function copyCurrentExport() {
+  await copyTextareaValue(els.correctionExport, els.copyExportButton);
+}
+
+async function copyCombinedExport() {
+  await copyTextareaValue(els.combinedCorrectionExport, els.copyCombinedExportButton);
 }
 
 function tattooDefaults(character) {

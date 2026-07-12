@@ -124,6 +124,7 @@ h2 {
 .controls-band,
 .inspect-panel,
 .gallery-wrap,
+.combined-export-wrap,
 .editor-panel {
   border: 2px solid var(--line);
   border-radius: 8px;
@@ -190,15 +191,15 @@ textarea {
 
 .workbench-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.16fr) minmax(300px, 0.84fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
+  gap: 12px;
   align-items: start;
 }
 
 .inspect-panel {
   display: grid;
-  gap: 12px;
-  padding: 12px;
+  gap: 9px;
+  padding: 10px;
   /* Pin the portrait so it stays visible while the editor controls scroll. */
   position: sticky;
   top: 12px;
@@ -210,7 +211,7 @@ textarea {
 }
 
 .editor-panel {
-  padding: 12px;
+  padding: 10px;
   position: sticky;
   top: 12px;
   align-self: start;
@@ -218,6 +219,8 @@ textarea {
 
 .portrait-stage {
   position: relative;
+  width: min(100%, 520px);
+  margin: 0 auto;
 }
 
 .selected-portrait {
@@ -297,19 +300,19 @@ textarea {
 
 .correction-editor {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   align-content: start;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   overflow-x: visible;
-  padding-right: 6px;
+  padding-right: 4px;
 }
 
 .editor-head {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .editor-head h2 {
@@ -350,8 +353,8 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
@@ -363,7 +366,7 @@ textarea {
 }
 
 .editor-summary-main strong {
-  font-size: 0.96rem;
+  font-size: 0.88rem;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -382,7 +385,7 @@ textarea {
   position: sticky;
   top: 0;
   z-index: 3;
-  padding: 2px 0 6px;
+  padding: 1px 0 4px;
   background: linear-gradient(180deg, var(--panel) 72%, rgba(27, 29, 38, 0));
 }
 
@@ -391,7 +394,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 9px;
+  padding: 4px 8px;
   border: 2px solid var(--line);
   border-radius: 999px;
   background: white;
@@ -435,8 +438,8 @@ textarea {
 
 .editor-active-group {
   display: grid;
-  gap: 8px;
-  padding-top: 4px;
+  gap: 6px;
+  padding-top: 2px;
 }
 
 .editor-group {
@@ -454,10 +457,10 @@ textarea {
 
 .editor-control {
   display: grid;
-  grid-template-columns: minmax(92px, 1fr) minmax(124px, 1.35fr) 64px auto;
+  grid-template-columns: minmax(82px, 0.94fr) minmax(124px, 1.45fr) 54px auto;
   align-items: center;
-  gap: 7px;
-  padding: 8px 10px;
+  gap: 6px;
+  padding: 7px 8px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.02);
@@ -466,7 +469,7 @@ textarea {
 .editor-control label,
 .export-box span {
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -486,7 +489,7 @@ textarea {
 .editor-control .editor-number {
   width: 100%;
   min-width: 0;
-  padding: 6px 7px;
+  padding: 5px 6px;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--panel-soft);
@@ -499,7 +502,7 @@ textarea {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 64px;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .studio-colorwrap {
@@ -645,7 +648,7 @@ textarea {
 .editor-value {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 900;
   text-align: right;
 }
@@ -709,17 +712,32 @@ textarea {
   line-height: 1.25;
 }
 
+.combined-export-box {
+  gap: 8px;
+}
+
+#combinedCorrectionExport {
+  min-height: 260px;
+}
+
 .selected-meta {
   display: grid;
-  gap: 10px;
+  gap: 6px;
 }
 
 .selected-meta h2 {
-  font-size: clamp(2.3rem, 3.3vw, 3.8rem);
+  font-size: clamp(2rem, 3vw, 3.2rem);
   line-height: 0.9;
   font-family: var(--font);
   font-weight: 900;
   letter-spacing: 0;
+}
+
+.selected-meta-note {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .trait-list,
@@ -752,10 +770,18 @@ textarea {
   color: var(--ink);
 }
 
+.editor-summary-pills .trait-pill {
+  padding: 4px 7px;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  font-size: 0.62rem;
+}
+
 .variant-strip {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+  gap: 5px;
 }
 
 .variant-button {
@@ -781,8 +807,13 @@ textarea {
 
 .gallery-wrap {
   display: grid;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
+}
+
+.combined-export-wrap {
+  display: grid;
+  padding: 10px;
 }
 
 .gallery-head {

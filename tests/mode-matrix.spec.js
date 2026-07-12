@@ -11,6 +11,9 @@ async function openCleanTitle(page) {
     try { localStorage.removeItem("whoisit_game_v1"); } catch (e) { /* storage may be blocked */ }
   });
   await page.goto("/");
+  // The landing poster fronts the menu now - LET'S PLAY reveals the local/online step.
+  const letplay = page.locator(".ts-letplay");
+  if (await letplay.isVisible().catch(() => false)) await letplay.click();
   await expect(page.locator(".ts-local")).toBeVisible();
 }
 

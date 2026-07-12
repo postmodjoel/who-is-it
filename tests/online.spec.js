@@ -18,6 +18,12 @@ test.describe("online rooms", () => {
     // players are on separate devices; here we clear the leaked save to get a clean title.
     await page.evaluate(() => { try { localStorage.removeItem("whoisit_game_v1"); } catch (e) { /* fine */ } });
     await page.reload();
+    await page.evaluate(() => {
+      document.querySelector(".title-screen")?.remove();
+      document.querySelector(".lobby-screen")?.remove();
+      showTitleScreen();
+    });
+    if (await page.locator(".ts-letplay").count()) await page.locator(".ts-letplay").click();
     await expect(page.locator(".ts-local")).toBeVisible();
   }
   async function hostRoom(page, name) {
@@ -76,6 +82,31 @@ test.describe("online rooms", () => {
     const split = hi.sides.filter((s) => s === 0).length;
     expect([1, 2]).toContain(split);                   // 2v1, either way around
 
+    // Mid-game settings edits should not redeal the board immediately; they sync as future-round state.
+    await host.locator("#setupButton").click();
+    await expect(host.locator("#setupDialog")).toBeVisible();
+    await host.locator('.mode-policy-chip[data-policy="custom"]').click();
+    const firstMode = host.locator('#settingModes .mode-check:not([disabled])').first();
+    await firstMode.uncheck();
+    await host.locator("#saveSetupButton").click();
+    await expect.poll(() => host.evaluate(() => state.gameSalt), { timeout: 8_000 }).toBe(hi.salt);
+    await expect.poll(() => g1.evaluate(() => state.settings.modePolicy), { timeout: 8_000 }).toBe("custom");
+    const [hostAllowed, guestAllowed] = await Promise.all([
+      host.evaluate(() => (state.settings.allowedModeIds || []).slice().sort()),
+      g1.evaluate(() => (state.settings.allowedModeIds || []).slice().sort())
+    ]);
+    expect(hostAllowed.length).toBeGreaterThan(0);
+    expect(guestAllowed).toEqual(hostAllowed);
+    await expect(host.locator(".or-status")).toContainText(/friend|waiting|connected/i);
+    await expect(host.locator(".or-status")).not.toContainText("🟢");
+    await expect(host.locator(".or-status")).not.toContainText("🟡");
+    await expect(host.locator(".or-status")).not.toContainText("🔴");
+    await g1.locator("#setupButton").click();
+    await expect(g1.locator("#setupDialog")).toBeVisible();
+    await expect(g1.locator(".setup-mode-row")).toBeHidden();
+    await expect(g1.locator(".mode-section")).toBeHidden();
+    await g1.locator("#setupDialog .icon-button").click();
+
     // Mid-game join: a fourth player joins by code and adopts the live round.
     const late = await context.newPage();
     await joinRoomByCode(late, "Dion", code);
@@ -105,7 +136,64 @@ test.describe("online rooms", () => {
     const oppOwn = await opp.evaluate((id) => state.players[state.mySeat || 0].eliminated.has(id), victim);
     expect(oppOwn).toBe(false);
 
+    // A newborn expands the shared board on both devices and keeps the added cast member aligned.
+    const babyInfo = await host.evaluate(() => {
+      const baby = makeBaby(state.board[0], state.board[1], false);
+      state.board.push(baby);
+      netAnnounceBaby(baby);
+      scheduleSave();
+      renderBoard();
+      return { id: baby.id, len: state.board.length };
+    });
+    await expect.poll(() => g1.evaluate(() => state.board.length), { timeout: 8_000 }).toBe(babyInfo.len);
+    await expect.poll(() => g1.evaluate(() => state.board[state.board.length - 1].id), { timeout: 8_000 }).toBe(babyInfo.id);
+
+    // Heads Only formation changes are shared, not local-only.
+    await host.evaluate(() => {
+      applyMysteryEffect("heads-only");
+      state.wheelPick = "heads-only";
+      netSend("mode", { id: "heads-only" });
+      render();
+    });
+    await expect.poll(() => g1.evaluate(() => state.global.mystery?.id), { timeout: 8_000 }).toBe("heads-only");
+    await host.evaluate(() => {
+      state.headsForm = 4;
+      netSend("headsform", { form: 4 });
+      renderBoard();
+    });
+    await expect.poll(() => g1.evaluate(() => state.headsForm), { timeout: 8_000 }).toBe(4);
+
     await Promise.all([host, g1, g2, late].map((p) => p.close()));
+  });
+
+  test("host-selected setup game mode starts the same mode for every online player", async ({ context }) => {
+    const host = await context.newPage();
+    await host.goto("/");
+    await host.evaluate(() => localStorage.clear());
+    await openTitle(host);
+    await host.locator(".ts-online").click();
+    await host.locator(".ts-name-input").fill("Hera");
+    const chosenMode = await host.locator(".ts-step-online .ts-mode-select").evaluate((select) => {
+      const picked = [...select.options].find((option) => option.value);
+      if (!picked) return "";
+      select.value = picked.value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      return picked.value;
+    });
+    expect(chosenMode).not.toBe("");
+    await host.locator(".ts-host").click();
+    await expect(host.locator(".lobby-screen")).toBeVisible();
+    const code = await host.evaluate(() => state.roomCode);
+
+    const guest = await context.newPage();
+    await joinRoomByCode(guest, "Ares", code);
+    await expect(host.locator(".lobby-player.here")).toHaveCount(2);
+    await host.locator(".lobby-start").click();
+    for (const page of [host, guest]) {
+      await expect.poll(() => page.evaluate(() => state.global.mystery?.id || ""), { timeout: 15_000 }).toBe(chosenMode);
+    }
+
+    await Promise.all([host, guest].map((p) => p.close()));
   });
 
   test("solo mode: toggle in lobby, own seats/secrets, mid-game join keeps existing secrets", async ({ context }) => {

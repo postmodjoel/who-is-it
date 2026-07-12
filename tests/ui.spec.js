@@ -104,6 +104,25 @@ test("mandatory names and solo mode create one seat per player", async ({ page }
   await expect(page.locator(".seat-half")).toHaveCount(3);
 });
 
+test("local setup game mode picker starts in the chosen mode", async ({ page }) => {
+  await openCleanTitle(page);
+  await page.locator(".ts-local").click();
+  await page.locator(".ts-name-row").first().waitFor();
+  const chosenMode = await page.locator(".ts-step-names .ts-mode-select").evaluate((select) => {
+    const picked = [...select.options].find((option) => option.value);
+    if (!picked) return "";
+    select.value = picked.value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    return picked.value;
+  });
+  expect(chosenMode).not.toBe("");
+  await page.locator(".ts-name-slot").nth(0).fill("Ada");
+  await page.locator(".ts-name-slot").nth(1).fill("Bea");
+  await page.locator(".ts-names-go").click();
+  await expect.poll(() => page.evaluate(() => state.global.mystery?.id || ""), { timeout: 15_000 }).toBe(chosenMode);
+  await expect(page.locator("#characterBoard [data-id]").first()).toBeVisible();
+});
+
 test("sorting reorders cards without losing the board", async ({ page }) => {
   await startNamedLocalGame(page, 3, true);
   const result = await page.evaluate(async () => {
@@ -174,6 +193,20 @@ test("online room chip is clean and aligned", async ({ page }) => {
     return Math.abs((dot.top + dot.height / 2) - (status.top + status.height / 2)) <= 2;
   });
   expect(aligned).toBe(true);
+});
+
+test("setup dialog hides unsafe mode names in PG custom mode", async ({ page }) => {
+  await startNamedLocalGame(page, 2, true);
+  await page.locator("#setupButton").click();
+  await expect(page.locator("#setupDialog")).toBeVisible();
+  await page.locator('.mode-policy-chip[data-policy="custom"]').click();
+  const result = await page.evaluate(() => {
+    const visible = [...document.querySelectorAll("#settingModes .mode-check-copy b")].map((el) => el.textContent.trim());
+    const unsafe = window.MysteryModes.all().filter((effect) => !effect.pgSafe).map((effect) => effect.name);
+    return { visible, leaked: unsafe.filter((name) => visible.includes(name)) };
+  });
+  expect(result.visible.length).toBeGreaterThan(0);
+  expect(result.leaked).toEqual([]);
 });
 
 test("all playable mystery modes render without blank or overflowing boards", async ({ page }) => {

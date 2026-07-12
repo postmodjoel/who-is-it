@@ -238,6 +238,9 @@ const state = {
     locations: true,
     roles: true,
     pg: true,           // "PG mode" - the wheel only lands on kid-safe modes, no breeding/woohoo
+    startModeId: "",    // blank = a plain Guess Who opener; otherwise start in the chosen mystery mode
+    modePolicy: "progressive",   // progressive = current ramp, chaotic = everything, custom = explicit mode picks
+    allowedModeIds: null,        // custom mode allowlist; null/empty falls back to the full registry
     tiers: null,        // host intensity gate: null/[] = every tier on; else the enabled tier numbers
     lowPower: false,    // phones running warm: pause continuous animation loops + blur to cool down
     boardSize: 24
@@ -266,7 +269,8 @@ const state = {
     hints: [[], []],
     roleMap: {},
     undo: [[], []]
-  }
+  },
+  headsForm: 0
 };
 
 const els = {
@@ -298,7 +302,9 @@ const els = {
   settingLocations: document.querySelector("#settingLocations"),
   settingRoles: document.querySelector("#settingRoles"),
   settingPG: document.querySelector("#settingPG"),
-  settingTiers: document.querySelector("#settingTiers"),
+  settingStartMode: document.querySelector("#settingStartMode"),
+  settingModePolicy: document.querySelector("#settingModePolicy"),
+  settingModes: document.querySelector("#settingModes"),
   settingLowPower: document.querySelector("#settingLowPower"),
   setupRoomCode: document.querySelector("#setupRoomCode"),
 };
@@ -460,6 +466,7 @@ function loadTheme() {
 // Fate outcome are all deterministic hashes of it. That's what makes online sync (both clients
 // derive the same round from one shared salt), refresh-resume, and shareable SEED codes possible.
 function newGame(seedSalt, opts = {}) {
+  state.settings = normalizeGameSettings(state.settings);
   clearMysteryEffectUI();
   // Clear a lingering round-over reveal (e.g. a remote peer dealt the next round before this client
   // clicked NEXT ROUND). The pre-round team reveal is created later and is excluded here.
@@ -471,6 +478,7 @@ function newGame(seedSalt, opts = {}) {
   const pool = generatedCharacters;
   const boardSize = Math.min(state.settings.boardSize, pool.length);
   state.gameSalt = seedSalt || `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  if (!opts.resume) state.headsForm = 0;
   state.board = buildBoard(pool, boardSize);
   state.location = state.settings.locations ? locations[stableHash(`${state.gameSalt}:loc`) % locations.length] : null;
   state.locationVariant = stableHash(`${state.gameSalt}:var`) % 2 ? "night" : "day";
@@ -745,6 +753,7 @@ function render() {
   MysteryModes.renderHouseMap();
   renderBoard();
   renderMystery();
+  renderPromptCard();
   renderOpponentPanel();
   if (state.isObserver) renderObserverHeader(); else document.getElementById("observerBar")?.remove();
   maybeShowOnboarding();   // one-time first-play nudges (no-op after the first dismissal)
@@ -1212,6 +1221,17 @@ function renderHints() {
 function renderMystery() {
   els.mysteryResult.textContent = "";
 }
+function renderPromptCard() {
+  const cueCard = document.querySelector(".cue-card");
+  if (!cueCard) return;
+  const show = !!state.settings.prompts;
+  cueCard.hidden = !show;
+  cueCard.setAttribute("aria-hidden", show ? "false" : "true");
+  if (!show) {
+    els.questionPrompt.textContent = "";
+    els.mysteryResult.textContent = "";
+  }
+}
 
 function toggleEliminated(id) {
   if (state.isObserver) return;   // TV display is read-only - a click must not cross off a real seat
@@ -1256,10 +1276,12 @@ function allowedHeats(age, pg) {
   return pg ? tiers.filter((h) => h !== "feral") : tiers;
 }
 function drawPrompt() {
+  if (!state.settings.prompts) {
+    els.questionPrompt.textContent = "";
+    return;
+  }
   const modeDeck = state.global.mystery ? modePrompts[state.global.mystery.id] : null;
-  let deck = modeDeck && modeDeck.length
-    ? modeDeck
-    : (state.settings.prompts ? absurdPrompts : classicPrompts);
+  let deck = modeDeck && modeDeck.length ? modeDeck : absurdPrompts;
   // Location-aware prompts: when a location is set, roughly 1-in-6 draws come from the shared
   // {location} deck instead - the banner scene leaks into the questions, whatever the mode.
   const locDeck = (window.GameData && window.GameData.locationPrompts) || [];
@@ -1295,6 +1317,7 @@ function wireCueCardClick() {
   cueCard.setAttribute("tabindex", "0");
   cueCard.title = "Click for a new question";
   const reroll = () => {
+    if (!state.settings.prompts) return;
     cueCard.classList.add("is-fading");
     setTimeout(() => {
       drawPrompt();
@@ -1588,10 +1611,13 @@ function applyDebugProfile(kind) {
 }
 function setPgMode(on) {
   state.settings.pg = !!on;
+  state.settings = normalizeGameSettings(state.settings);
   if (els.settingPG) els.settingPG.checked = state.settings.pg;
   const debugPg = document.querySelector("#debugPgToggle input");
   if (debugPg) debugPg.checked = state.settings.pg;
   rebuildDebugPicker();
+  renderSetupStartModeSelect();
+  buildModePicker();
 }
 if (els.debugEffectPicker) {
   rebuildDebugPicker();
@@ -1638,7 +1664,7 @@ const setupApplyHint = document.querySelector("#setupApplyHint");
 function flagSettingsChanged() { if (setupApplyHint) setupApplyHint.hidden = false; }
 // Settings only take effect on the next deal - reveal the reminder once anything is touched.
 els.setupDialog.addEventListener("change", (e) => { if (e.target.matches("input, select")) flagSettingsChanged(); });
-els.setupDialog.addEventListener("click", (e) => { if (e.target.closest(".tier-chip")) flagSettingsChanged(); });
+els.setupDialog.addEventListener("click", (e) => { if (e.target.closest(".mode-policy-chip, .mode-check")) flagSettingsChanged(); });
 let setupOpenedSeed = "";   // the seed code the field was prefilled with (set in syncSettingsToForm)
 els.setupButton.addEventListener("click", () => {
   syncSettingsToForm();
@@ -1661,28 +1687,36 @@ if (quitToMenuButton) quitToMenuButton.addEventListener("click", () => {
 
 els.saveSetupButton.addEventListener("click", () => {
   state.settings.prompts = els.settingPrompts.checked;
-  state.settings.mystery = els.settingMystery.checked;
+  state.settings.mystery = true;
   state.settings.locations = els.settingLocations.checked;
   state.settings.roles = els.settingRoles.checked;
   if (els.settingPG) state.settings.pg = els.settingPG.checked;
+  if (els.settingStartMode) state.settings.startModeId = els.settingStartMode.value || "";
   if (els.settingLowPower) { state.settings.lowPower = els.settingLowPower.checked; savePrefs({ lowPower: state.settings.lowPower }); applyLowPower(); }
-  readTierToggles();
+  readModeSettingsFromForm();
+  state.settings = normalizeGameSettings(state.settings);
   // A pasted seed code replays that exact round (board, location, wheel outcome, secrets). Compare
   // against the value the field opened with, NOT the live seed (settings just changed shift it).
   const code = els.settingSeed ? els.settingSeed.value.trim() : "";
   const parsed = code && code !== setupOpenedSeed.trim() ? parseSeedCode(code) : null;
   if (parsed) {
-    state.settings = { ...state.settings, ...(parsed.g || {}) };
+    state.settings = normalizeGameSettings({ ...state.settings, ...(parsed.g || {}) });
     newGame(parsed.s);
   } else {
-    newGame();
+    if (state.gameMode === "online") netSend("settings", { settings: state.settings });
+    scheduleSave();
+    if (setupApplyHint) setupApplyHint.hidden = true;
   }
 });
 // Unchecking PG in the setup dialog also needs the adults-only riddle (a kid can't just flip it off).
 if (els.settingPG) els.settingPG.addEventListener("change", () => {
-  if (els.settingPG.checked) return;                       // turning ON is free
+  if (els.settingPG.checked) { setPgMode(true); return; }  // turning ON is free
   els.settingPG.checked = true;                            // hold it on until the riddle is solved
-  askAdultGate((ok) => { setPgMode(!ok); });
+  askAdultGate((ok) => {
+    setPgMode(!ok);
+    renderSetupStartModeSelect();
+    buildModePicker();
+  });
 });
 
 // ===================== Sound & music controls =====================
@@ -1724,63 +1758,201 @@ function toggleSoundPanel() {
 }
 if (els.soundButton) els.soundButton.addEventListener("click", toggleSoundPanel);
 
-// Host intensity gate: one chip per wheel tier, labelled by vibe only (never by the modes inside).
+const MODE_POLICY_LABELS = {
+  progressive: "Progressive ramping",
+  chaotic: "Chaotic mode",
+  custom: "Custom"
+};
 const TIER_LABELS = ["Warm-up", "Spicy", "Rowdy", "Unhinged", "Feral", "Beyond"];
+function allMysteryModeDefs() {
+  try { return window.MysteryModes.all(); }
+  catch (e) { return []; }
+}
 function tierCount() {
   try { return (window.MysteryModes.wheelTiers() || []).length; }
   catch (e) { return 5; }
 }
-function enabledTierSet() {
-  const t = state.settings.tiers;
-  const n = tierCount();
-  const all = Array.from({ length: n }, (_, i) => i + 1);
-  if (!Array.isArray(t) || !t.length) return new Set(all);          // null/[] = all on
-  const on = new Set(t.filter((x) => x >= 1 && x <= n));
-  return on.size ? on : new Set(all);
+function effectiveModePolicy(settings = state.settings) {
+  return settings && ["progressive", "chaotic", "custom"].includes(settings.modePolicy)
+    ? settings.modePolicy
+    : "progressive";
 }
-function buildTierToggles() {
-  const host = els.settingTiers;
+function allMysteryModeIds() {
+  return allMysteryModeDefs().map((effect) => effect.id);
+}
+function pgSafeModeIds() {
+  try { return window.MysteryModes.pgSafeModes(); }
+  catch (e) { return []; }
+}
+function visibleMysteryModeDefs(settings = state.settings) {
+  const defs = allMysteryModeDefs();
+  if (!(settings && settings.pg)) return defs;
+  const safe = new Set(pgSafeModeIds());
+  return defs.filter((effect) => safe.has(effect.id));
+}
+function normalizedStartModeId(settings = state.settings) {
+  const picked = typeof (settings && settings.startModeId) === "string" ? settings.startModeId : "";
+  if (!picked) return "";
+  const known = new Set(allMysteryModeIds());
+  if (!known.has(picked)) return "";
+  if (settings && settings.pg) {
+    const safe = new Set(pgSafeModeIds());
+    if (!safe.has(picked)) return "";
+  }
+  return picked;
+}
+function startModeOptions(settings = state.settings) {
+  return [{ id: "", name: "Guess Who" }, ...visibleMysteryModeDefs(settings)
+    .slice()
+    .sort((a, b) => (a.tier || 99) - (b.tier || 99) || a.name.localeCompare(b.name))
+    .map((effect) => ({ id: effect.id, name: effect.name }))];
+}
+function normalizedAllowedModeIds(settings = state.settings) {
+  const known = new Set(allMysteryModeIds());
+  const picked = Array.isArray(settings && settings.allowedModeIds)
+    ? settings.allowedModeIds.filter((id) => known.has(id))
+    : [];
+  const base = picked.length ? picked : [...known];
+  if (settings && settings.pg) {
+    const safe = new Set(pgSafeModeIds());
+    const safePicked = base.filter((id) => safe.has(id));
+    return safePicked.length ? safePicked : [...safe];
+  }
+  return base;
+}
+function normalizeGameSettings(raw) {
+  const next = { ...state.settings, ...(raw || {}) };
+  next.mystery = true;
+  next.startModeId = normalizedStartModeId(next);
+  next.modePolicy = effectiveModePolicy(next);
+  next.allowedModeIds = normalizedAllowedModeIds(next);
+  return next;
+}
+function hydrateSerializedCharacter(character) {
+  if (!character || typeof character !== "object") return null;
+  const hydrated = JSON.parse(JSON.stringify(character));
+  if (hydrated.traits && window.faceGenerator) {
+    try { hydrated.image = window.faceGenerator.renderPortrait(hydrated.seed || 0, hydrated.traits); }
+    catch (e) { /* keep image empty */ }
+  }
+  return hydrated;
+}
+function hydrateSavedBoard(saved) {
+  if (Array.isArray(saved && saved.board) && saved.board.length > 1) {
+    return saved.board.map(hydrateSerializedCharacter).filter(Boolean);
+  }
+  if (Array.isArray(saved && saved.boardIds) && saved.boardIds.length > 1) {
+    const byId = new Map(generatedCharacters.map((c) => [c.id, c]));
+    const extras = new Map(((saved && saved.babies) || []).map((baby) => [baby.id, hydrateSerializedCharacter(baby)]));
+    return saved.boardIds.map((id) => extras.get(id) || byId.get(id)).filter(Boolean);
+  }
+  return [];
+}
+function mysteryModeGroups() {
+  const defs = visibleMysteryModeDefs().slice().sort((a, b) => (a.tier || 99) - (b.tier || 99) || a.name.localeCompare(b.name));
+  const groups = [];
+  defs.forEach((effect) => {
+    const index = Math.max(0, (effect.tier || 1) - 1);
+    if (!groups[index]) groups[index] = { label: TIER_LABELS[index] || `Tier ${index + 1}`, items: [] };
+    groups[index].items.push(effect);
+  });
+  return groups.filter(Boolean);
+}
+function renderModePolicyControls() {
+  const host = els.settingModePolicy;
   if (!host) return;
-  const n = tierCount();
-  const on = enabledTierSet();
+  const current = effectiveModePolicy();
   host.innerHTML = "";
-  for (let i = 1; i <= n; i += 1) {
+  [
+    ["progressive", "Progressive"],
+    ["chaotic", "Chaotic"],
+    ["custom", "Custom"]
+  ].forEach(([value, title]) => {
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.className = `tier-chip${on.has(i) ? " is-on" : ""}`;
-    chip.dataset.tier = String(i);
-    chip.innerHTML = `<b>${i}</b><span>${escapeHtml(TIER_LABELS[i - 1] || `Tier ${i}`)}</span>`;
-    chip.setAttribute("aria-pressed", on.has(i) ? "true" : "false");
+    chip.className = `mode-policy-chip${current === value ? " is-on" : ""}`;
+    chip.dataset.policy = value;
+    chip.setAttribute("aria-pressed", current === value ? "true" : "false");
+    chip.innerHTML = `<b>${escapeHtml(title)}</b>`;
     chip.addEventListener("click", () => {
-      const nowOn = !chip.classList.contains("is-on");
-      // Never let the host switch off the last remaining tier (the wheel would have nothing to land on).
-      if (!nowOn && host.querySelectorAll(".tier-chip.is-on").length <= 1) {
-        flashToast("Keep at least one tier on");
-        return;
-      }
-      chip.classList.toggle("is-on", nowOn);
-      chip.setAttribute("aria-pressed", nowOn ? "true" : "false");
+      host.querySelectorAll(".mode-policy-chip").forEach((btn) => {
+        const on = btn === chip;
+        btn.classList.toggle("is-on", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      syncModePickerVisibility();
     });
     host.appendChild(chip);
-  }
+  });
 }
-function readTierToggles() {
-  const host = els.settingTiers;
+function selectedModeIdsFromForm() {
+  if (!els.settingModes) return normalizedAllowedModeIds();
+  const selected = [...els.settingModes.querySelectorAll(".mode-check:checked")].map((box) => box.value);
+  const base = selected.length ? selected : normalizedAllowedModeIds();
+  if (els.settingPG?.checked) {
+    const safe = new Set(pgSafeModeIds());
+    const safePicked = base.filter((id) => safe.has(id));
+    return safePicked.length ? safePicked : pgSafeModeIds();
+  }
+  return base;
+}
+function renderSetupStartModeSelect() {
+  if (!els.settingStartMode) return;
+  const selected = normalizedStartModeId();
+  els.settingStartMode.innerHTML = startModeOptions().map((mode) => `
+    <option value="${escapeHtml(mode.id)}">${escapeHtml(mode.name)}</option>
+  `).join("");
+  els.settingStartMode.value = startModeOptions().some((mode) => mode.id === selected) ? selected : "";
+}
+function syncHostOwnedSetupVisibility() {
+  const hostOwnsModes = state.gameMode !== "online" || state.isHost;
+  els.settingStartMode?.closest(".setup-mode-row")?.toggleAttribute("hidden", !hostOwnsModes);
+  els.settingModePolicy?.closest(".mode-section")?.toggleAttribute("hidden", !hostOwnsModes);
+}
+function syncModePickerVisibility() {
+  const policy = els.settingModePolicy?.querySelector(".mode-policy-chip.is-on")?.dataset.policy || effectiveModePolicy();
+  if (els.settingModes) els.settingModes.closest(".mode-section")?.classList.toggle("is-custom", policy === "custom");
+}
+function buildModePicker() {
+  const host = els.settingModes;
   if (!host) return;
-  const on = [...host.querySelectorAll(".tier-chip.is-on")].map((c) => Number(c.dataset.tier));
-  const n = tierCount();
-  // Store null when every tier is on (the natural default), else the chosen subset.
-  state.settings.tiers = on.length && on.length < n ? on.sort((a, b) => a - b) : null;
+  const selected = new Set(normalizedAllowedModeIds());
+  host.innerHTML = mysteryModeGroups().map((group) => `
+    <section class="mode-group">
+      <div class="mode-group-head">
+        <strong>${escapeHtml(group.label)}</strong>
+        <small>${group.items.length} modes</small>
+      </div>
+      <div class="mode-check-grid">
+        ${group.items.map((effect) => `
+          <label class="mode-check-row">
+            <input class="mode-check" type="checkbox" value="${escapeHtml(effect.id)}" ${selected.has(effect.id) ? "checked" : ""}>
+            <span class="mode-check-copy">
+              <b>${escapeHtml(effect.name)}</b>
+            </span>
+          </label>
+        `).join("")}
+      </div>
+    </section>
+  `).join("");
+  syncModePickerVisibility();
+}
+function readModeSettingsFromForm() {
+  state.settings.modePolicy = els.settingModePolicy?.querySelector(".mode-policy-chip.is-on")?.dataset.policy || "progressive";
+  state.settings.allowedModeIds = selectedModeIdsFromForm();
 }
 
 function syncSettingsToForm() {
   els.settingPrompts.checked = state.settings.prompts;
-  els.settingMystery.checked = state.settings.mystery;
+  if (els.settingMystery) els.settingMystery.checked = true;
   els.settingLocations.checked = state.settings.locations;
   els.settingRoles.checked = state.settings.roles;
   if (els.settingPG) els.settingPG.checked = state.settings.pg;
   if (els.settingLowPower) els.settingLowPower.checked = !!state.settings.lowPower;
-  buildTierToggles();
+  renderSetupStartModeSelect();
+  renderModePolicyControls();
+  buildModePicker();
+  syncHostOwnedSetupVisibility();
   if (els.settingSeed) els.settingSeed.value = state.gameSalt ? currentSeedCode() : "";
   // Remember the seed the field was PREFILLED with. Only a seed the user actually changed counts as a
   // paste - otherwise applying settings shifts currentSeedCode() and we'd wrongly "replay" the old
@@ -1818,6 +1990,8 @@ function buildGameSave() {
     clientId: state.clientId || "",
     myRosterIndex: state.myRosterIndex || 0,
     isHost: !!state.isHost,
+    headsForm: Number.isFinite(state.headsForm) ? state.headsForm : 0,
+    board: state.board.map(serializeCharacter),
     boardIds: state.board.map((c) => c.id),   // pin the exact deal: the pool can grow mid-round (fresh GAYBYs)
     effectId: state.global.mystery ? state.global.mystery.id : null,   // debug-picked/mystery-swapped modes survive too
     babies: state.board.filter((c) => c.isBaby || (c.isGayby && !c.persistedGayby)).map(serializeCharacter),
@@ -1834,7 +2008,10 @@ function loadGameSave() {
   // A save is resumable with a salt (a dealt round) OR as a lobby rejoin (online room, no deal yet).
   try {
     const s = JSON.parse(localStorage.getItem(GAME_SAVE_KEY) || "null");
-    return s && s.v === 1 && (s.salt || (s.inLobby && s.gameMode === "online" && s.roomCode)) ? s : null;
+    if (!(s && s.v === 1 && (s.salt || (s.inLobby && s.gameMode === "online" && s.roomCode)))) return null;
+    if (s.settings) s.settings = normalizeGameSettings(s.settings);
+    if (!Number.isFinite(s.headsForm)) s.headsForm = 0;
+    return s;
   } catch (e) { return null; }
 }
 // Collection meta: every mode the player has ever seen, persisted, shown as "N / total" on the title.
@@ -1900,7 +2077,7 @@ function resumeGame(saved) {
   // A refresh mid-LOBBY (online, nothing dealt yet): rejoin the room as the same person instead of
   // trying to resume a round that never existed.
   if (saved.inLobby && (saved.gameMode || "") === "online") { resumeOnlineLobby(saved); return; }
-  state.settings = { ...state.settings, ...(saved.settings || {}) };
+  state.settings = normalizeGameSettings(saved.settings || {});
   state.gameMode = saved.gameMode || "local";
   state.playMode = saved.playMode === "solo" ? "solo" : "team";
   state.pname = isValidPlayerName(saved.pname) ? cleanPlayerName(saved.pname) : (state.pname || "Player");
@@ -1927,26 +2104,14 @@ function resumeGame(saved) {
   state.clientId = saved.clientId || state.clientId;
   state.myRosterIndex = saved.myRosterIndex || 0;
   state.isHost = !!saved.isHost;
+  state.headsForm = Number.isFinite(saved.headsForm) ? saved.headsForm : 0;
   newGame(saved.salt, { resume: true, remote: true });
-  // Rebuild the EXACT dealt board from the save: re-dealing from the salt isn't enough because the
-  // pool can have grown mid-round (a fresh GAYBY persists into it instantly and would displace
-  // someone). Falls back to the salt deal for old saves.
-  if (Array.isArray(saved.boardIds) && saved.boardIds.length > 1) {
-    const byId = new Map(generatedCharacters.map((c) => [c.id, c]));
-    const rebuilt = saved.boardIds.map((id) => byId.get(id)).filter(Boolean);
-    if (rebuilt.length >= 2) {
-      state.board = rebuilt;
-      state.global.roleMap = {};
-      state.board.forEach((ch, i) => { state.global.roleMap[ch.id] = state.settings.roles ? characterRoles[i % characterRoles.length] : ch.role; });
-    }
+  const rebuilt = hydrateSavedBoard(saved);
+  if (rebuilt.length >= 2) {
+    state.board = rebuilt;
+    state.global.roleMap = {};
+    state.board.forEach((ch, i) => { state.global.roleMap[ch.id] = state.settings.roles ? characterRoles[i % characterRoles.length] : ch.role; });
   }
-  // Session babies rejoin the board (images re-rendered from their traits).
-  (saved.babies || []).forEach((b) => {
-    if (state.board.some((c) => c.id === b.id)) return;
-    const baby = { ...b };
-    if (baby.traits && window.faceGenerator) { try { baby.image = window.faceGenerator.renderPortrait(baby.seed, baby.traits); } catch (e) { return; } }
-    state.board.push(baby);
-  });
   // Apply the effect AFTER the babies exist so they get per-mode stats too. No wheel replay. The
   // saved effect id wins (covers debug-picked modes); old saves fall back to the derived wheel.
   const effId = saved.effectId !== undefined ? saved.effectId : (state.settings.mystery ? wheelTarget() : null);
@@ -2607,10 +2772,68 @@ function showTitleSettings() {
 }
 // PG toggle now lives INSIDE the local/host setup steps (not the main menu), so it's chosen in
 // context right before a game. Same control markup in both places; a single handler keeps them synced.
+const TITLE_TICKER_QUESTIONS = [
+  "WHERE WOULD YOU WANT TO BE BURIED?",
+  "WHO IS YOUR FAVOURITE PRESIDENT?",
+  "IS MY GENDER ASSOCIATED WITH ETERNAL PAIN?",
+  "WHAT'S YOUR BIGGEST REGRET?",
+  "WOULD YOU RATHER LIVE IN SPACE OR UNDER THE OCEAN?",
+  "DO ALIENS DREAM TOO?",
+  "WHAT'S YOUR MOST UNPOPULAR OPINION?",
+  "WHAT'S THE WEIRDEST THING YOU BELIEVE?",
+  "WHO WOULD PLAY YOU IN A MOVIE?",
+  "COULD YOU SURVIVE IN THE WILD?",
+  "WHAT'S A SECRET YOU'VE NEVER TOLD ANYONE?",
+  "WHAT IS THE MOST ILLEGAL THING YOU'VE DONE?",
+  "DO YOU BELIEVE IN GHOSTS?",
+  "WHAT WOULD YOU DO WITH ONE YEAR LEFT TO LIVE?",
+  "WHAT'S YOUR PERFECT DAY?",
+  "WHAT'S YOUR BIGGEST RED FLAG?",
+  "COULD YOU WAKE UP FAMOUS?",
+  "WHO WOULD YOU DELETE FROM HISTORY?",
+  "WHAT IS SOMETHING EMBARRASSING THAT HAS HAPPENED TO YOU?",
+  "WHAT WOULD YOUR DREAM JOB BE?",
+  "WOULD YOU RATHER NEVER SLEEP OR NEVER EAT?",
+  "WHAT IS YOUR FAVOURITE CONSPIRACY THEORY?",
+  "IF YOU COULDN'T LIE, HOW WOULD YOUR LIFE CHANGE?",
+  "WHAT IS SOMETHING YOU PRETEND TO UNDERSTAND?",
+  "WHO KNOWS YOU BETTER THAN ANYONE?",
+  "WHAT WOULD YOU DO IF NOBODY COULD JUDGE YOU?",
+  "WHO WOULD YOU TRUST WITH YOUR LIFE?",
+  "WHAT IS YOUR MOST USELESS TALENT?"
+];
+const TITLE_TICKER_DURATIONS = [70, 84, 96, 110, 125, 88, 104, 118, 76, 132];
+const TITLE_TICKER_OPACITIES = [0.13, 0.18, 0.15, 0.22, 0.16, 0.2, 0.14, 0.24, 0.17, 0.21];
+function titleTickerRowText(rowIndex) {
+  const total = TITLE_TICKER_QUESTIONS.length;
+  const count = 6 + (rowIndex % 3);
+  const parts = [];
+  for (let i = 0; i < count; i += 1) {
+    parts.push(TITLE_TICKER_QUESTIONS[(rowIndex * 5 + i * 3 + (rowIndex % 2 ? 1 : 0)) % total]);
+  }
+  return `${parts.join(" • ")} • `;
+}
+function buildTitleTickerRows(count = 10) {
+  return Array.from({ length: count }, (_, rowIndex) => {
+    const text = escapeHtml(titleTickerRowText(rowIndex));
+    const duration = TITLE_TICKER_DURATIONS[rowIndex % TITLE_TICKER_DURATIONS.length];
+    const opacity = TITLE_TICKER_OPACITIES[rowIndex % TITLE_TICKER_OPACITIES.length];
+    const delay = -((rowIndex * 11) % duration);
+    return `
+      <div class="ts-qrow ${rowIndex % 2 ? "is-reverse" : ""}" style="--ticker-duration:${duration}s; --ticker-opacity:${opacity}; --ticker-delay:${delay}s;">
+        <div class="ts-qtrack">
+          <span>${text}</span>
+          <span aria-hidden="true">${text}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
 // Bold, single-colour line icons for the whole title menu - no emoji, so every row reads as one
 // consistent set. Drawn on a 24-grid with currentColor, so they inherit each pill's ink (navy on
 // white/yellow) and match automatically. Wrapped in the .ts-ico slot (icon + hairline separator).
 const TS_ICONS = {
+  play: '<path d="M8 6.5 18 12 8 17.5Z" fill="currentColor" stroke="none"/>',
   local: '<path d="M4 10.5V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2.5"/><path d="M3.5 10.5h17a1.5 1.5 0 0 1 1.5 1.5V17H2v-5a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M5 19v-2M19 19v-2"/>',
   online: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
   host: '<path d="M4 11.5 12 5l8 6.5"/><path d="M6 10.5V19h12v-8.5"/><path d="M10 19v-4.5h4V19"/>',
@@ -2654,6 +2877,12 @@ function boardSizeMarkup() {
   const pills = BOARD_SIZES.map((n) => `<button type="button" class="ts-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
   return `<div class="ts-opt ts-opt-board">${tsIcon("board")}<span class="ts-opt-label">Board</span><span class="ts-size-pills">${pills}</span></div>`;
 }
+function startModeMarkup(selectClass = "") {
+  const options = startModeOptions().map((mode) => `
+    <option value="${escapeHtml(mode.id)}" ${normalizedStartModeId() === mode.id ? "selected" : ""}>${escapeHtml(mode.name)}</option>
+  `).join("");
+  return `<label class="ts-opt ts-opt-select">${tsIcon("dice")}<span class="ts-opt-label">Game Mode</span><span class="ts-select-shell"><select class="ts-mode-select ${escapeHtml(selectClass)}" aria-label="Game mode">${options}</select></span></label>`;
+}
 // Two independent settings rows: game sounds (FX) and music, each with an animated on/off glyph.
 function audioToggleMarkup() {
   // Initial states come from device prefs so they survive reloads (Sound.isMusicOn() also checks the
@@ -2668,22 +2897,33 @@ function audioToggleMarkup() {
 function showTitleScreen() {
   const saved = loadGameSave();
   const ov = document.createElement("div");
-  ov.className = "title-screen";
+  ov.className = "title-screen title-landing";
   ov.innerHTML = `
-    <div class="ts-words" aria-hidden="true">
-      <span class="ts-who">WHO?</span>
-      <span class="ts-isit">IS IT?</span>
-    </div>
-    <div class="ts-actions">
-      <div class="ts-step ts-step-main">
-        <button type="button" class="button primary ts-local">${tsIcon("local")}<span class="ts-lbl">LOCAL GAME</span></button>
-        <button type="button" class="button secondary ts-online">${tsIcon("online")}<span class="ts-lbl">ONLINE GAME</span></button>
-        ${saved ? `<button type="button" class="button ghost ts-resume">${saved.gameMode === "online"
-          ? `${tsIcon("online")}<span class="ts-lbl">${saved.inLobby ? "REJOIN LOBBY" : "RESUME ONLINE"} · #${escapeHtml(saved.roomCode || "?")}</span>`
-          : `${tsIcon("resume")}<span class="ts-lbl">RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</span>`}</button>` : ""}
+    <div class="ts-ticker-field" aria-hidden="true">${buildTitleTickerRows(10)}</div>
+    <div class="ts-legibility" aria-hidden="true"></div>
+    <div class="ts-stage">
+      <div class="ts-poster-slot">
+        <div class="ts-poster">
+          <div class="ts-words" aria-hidden="true">
+            <span class="ts-who">WHO?</span>
+            <span class="ts-isit">IS IT?</span>
+          </div>
+          <div class="ts-cta">
+            <button type="button" class="button primary ts-letplay">${tsIcon("play")}<span class="ts-lbl">LET'S PLAY</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="ts-actions">
+        <div class="ts-step ts-step-main" hidden>
+          <button type="button" class="button primary ts-local">${tsIcon("local")}<span class="ts-lbl">LOCAL GAME</span></button>
+          <button type="button" class="button secondary ts-online">${tsIcon("online")}<span class="ts-lbl">ONLINE GAME</span></button>
+          ${saved ? `<button type="button" class="button ghost ts-resume">${saved.gameMode === "online"
+            ? `${tsIcon("online")}<span class="ts-lbl">${saved.inLobby ? "REJOIN LOBBY" : "RESUME ONLINE"} · #${escapeHtml(saved.roomCode || "?")}</span>`
+            : `${tsIcon("resume")}<span class="ts-lbl">RESUME ROUND · #${(stableHash(saved.salt) % 9000) + 1000}</span>`}</button>` : ""}
+          ${audioToggleMarkup()}
+          <button type="button" class="button ghost ts-splash-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
       </div>
       <div class="ts-step ts-step-names" hidden>
-        <p class="ts-names-label">Name your players</p>
         <div class="ts-names-list"></div>
         <button type="button" class="ts-add-player">${tsIcon("add")}<span class="ts-lbl">ADD PLAYER</span></button>
         <label class="ts-opt ts-team-mode" hidden>
@@ -2691,6 +2931,7 @@ function showTitleScreen() {
           <input class="ts-team-mode-input" type="checkbox" checked>
           <b class="ts-chip">ON</b>
         </label>
+        ${startModeMarkup("ts-mode-local")}
         ${pgToggleMarkup()}
         ${boardSizeMarkup()}
         ${audioToggleMarkup()}
@@ -2701,10 +2942,10 @@ function showTitleScreen() {
       </div>
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
+        ${startModeMarkup("ts-mode-online")}
         <button type="button" class="button primary ts-host">${tsIcon("host")}<span class="ts-lbl">HOST A ROOM</span></button>
         <button type="button" class="button secondary ts-showjoin">${tsIcon("join")}<span class="ts-lbl">JOIN A ROOM</span></button>
         <button type="button" class="button ghost ts-observe">${tsIcon("tv")}<span class="ts-lbl">DISPLAY ON A TV</span></button>
-        ${audioToggleMarkup()}
         <button type="button" class="button ghost ts-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
       </div>
       <div class="ts-step ts-step-join" hidden>
@@ -2712,6 +2953,7 @@ function showTitleScreen() {
         <input class="ts-join-input" type="text" inputmode="numeric" maxlength="4" placeholder="1234" aria-label="Room code to join">
         <button type="button" class="button primary ts-join-go">${tsIcon("door")}<span class="ts-lbl">JOIN ROOM</span></button>
         <button type="button" class="button ghost ts-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
+      </div>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -2728,8 +2970,11 @@ function showTitleScreen() {
     b.setAttribute("aria-pressed", String(state.settings.pg));
   });
   ov.querySelectorAll(".ts-pg").forEach((pgBtn) => pgBtn.addEventListener("click", () => {
-    if (!state.settings.pg) { setPgMode(true); paintPg(); sfx("blip"); return; }
-    askAdultGate((ok) => { if (ok) { setPgMode(false); paintPg(); sfx("coin"); } else { setPgMode(true); paintPg(); sfx("buzzer"); } });
+    if (!state.settings.pg) { setPgMode(true); paintPg(); paintStartModes(); sfx("blip"); return; }
+    askAdultGate((ok) => {
+      if (ok) { setPgMode(false); paintPg(); paintStartModes(); sfx("coin"); }
+      else { setPgMode(true); paintPg(); paintStartModes(); sfx("buzzer"); }
+    });
   }));
   // Inline settings (board size + sound + music) live in the local/host steps, mirrored across both.
   ov.querySelectorAll(".ts-size").forEach((btn) => btn.addEventListener("click", () => {
@@ -2743,6 +2988,19 @@ function showTitleScreen() {
   const paintAudio = (sel, on) => ov.querySelectorAll(sel).forEach((x) => {
     x.classList.toggle("on", on); x.setAttribute("aria-pressed", String(on)); x.querySelector("b").textContent = on ? "ON" : "OFF";
   });
+  const paintStartModes = () => {
+    const selected = normalizedStartModeId();
+    const options = startModeOptions();
+    ov.querySelectorAll(".ts-mode-select").forEach((select) => {
+      select.innerHTML = options.map((mode) => `<option value="${escapeHtml(mode.id)}">${escapeHtml(mode.name)}</option>`).join("");
+      select.value = options.some((mode) => mode.id === selected) ? selected : "";
+    });
+  };
+  const setStartMode = (value) => {
+    state.settings.startModeId = value || "";
+    state.settings = normalizeGameSettings(state.settings);
+    paintStartModes();
+  };
   ov.querySelectorAll(".ts-sound").forEach((btn) => btn.addEventListener("click", () => {
     const on = !btn.classList.contains("on");
     if (window.Sound) { Sound.setEnabled(on); if (on) Sound.resume(); }
@@ -2755,6 +3013,15 @@ function showTitleScreen() {
     savePrefs({ music: on });
     paintAudio(".ts-music", on);
   }));
+  ov.querySelectorAll(".ts-mode-select").forEach((select) => select.addEventListener("change", () => setStartMode(select.value)));
+  const openSplash = () => {
+    observeMode = false;
+    ov.classList.remove("ts-menu-open");
+    Object.values(steps).forEach((el) => {
+      el.hidden = true;
+      el.classList.remove("ts-step-enter");
+    });
+  };
   const steps = {
     main: ov.querySelector(".ts-step-main"),
     names: ov.querySelector(".ts-step-names"),
@@ -2763,6 +3030,7 @@ function showTitleScreen() {
   };
   const show = (name) => Object.entries(steps).forEach(([k, el]) => {
     const active = k === name;
+    ov.classList.add("ts-menu-open");
     el.hidden = !active;
     if (active) { el.classList.remove("ts-step-enter"); void el.offsetWidth; el.classList.add("ts-step-enter"); }   // re-trigger the fade-in
   });
@@ -2772,6 +3040,8 @@ function showTitleScreen() {
     setTimeout(() => el.classList.remove("shake"), 400);
     el.focus();
   };
+  ov.querySelector(".ts-letplay").addEventListener("click", () => show("main"));
+  ov.querySelector(".ts-splash-back").addEventListener("click", openSplash);
   // LOCAL games: no up-front stepper. The names step starts at 2 slots and the host adds/removes
   // players there (2..MAX_PLAYERS). Team Mode appears once there are 3+.
   let localPlayMode = "team";
@@ -2865,6 +3135,8 @@ function showTitleScreen() {
   joinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doJoin(); });
   const res = ov.querySelector(".ts-resume");
   if (res) res.addEventListener("click", () => { close(); resumeGame(saved); });
+  paintStartModes();
+  openSplash();
 }
 
 // LOCAL: pass-and-play on one screen - the YOU/B (or team) toggle is how you hand off the device.
@@ -2896,7 +3168,8 @@ function startLocalGame(count, names, playMode = "team") {
   state.playMode = playMode === "solo" ? "solo" : "team";
   state.roster = normalizeRoster(count || MIN_PLAYERS, names);
   state.playerCount = state.roster.length;
-  newGame(undefined, { first: true });
+  const effectId = normalizedStartModeId(state.settings) || null;
+  newGame(undefined, effectId ? { effectId } : { first: true });
   // The plain opening round returns before newGame's own scheduleSave, so a fresh multi-player
   // setup would vanish on an immediate refresh - pin it now.
   scheduleSave();
@@ -3060,8 +3333,9 @@ function showLobby() {
     state.playerCount = state.roster.length;
     state.wheelPickShared = null;
     syncMySeatFromRoster();
-    netSend("start", { salt: state.gameSalt, settings: state.settings, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, effectId: null, first: true });
-    newGame(state.gameSalt, { effectId: null, announced: true, first: true });
+    const effectId = normalizedStartModeId(state.settings) || null;
+    netSend("start", { salt: state.gameSalt, settings: state.settings, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, effectId, first: !effectId });
+    newGame(state.gameSalt, effectId ? { effectId, announced: true } : { effectId: null, announced: true, first: true });
   });
   updateLobby();
 }

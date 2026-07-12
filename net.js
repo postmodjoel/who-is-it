@@ -52,7 +52,25 @@ function startNetHeartbeat() {
     netPeers.forEach((p) => { if (!p.gone && p.lastSeen && now - p.lastSeen > 13000) peerGone(p, "dropped"); });
   }, 4000);
 }
-function setNetStatus(s) { state.netStatus = s; const el = document.querySelector(".or-status"); if (el && state.gameMode === "online") el.textContent = s === "open" ? (state.onlinePeer ? "🟢 friend connected" : "🟡 connected — waiting for a friend…") : s === "connecting" ? "🟠 connecting…" : "🔴 disconnected — retrying…"; updateLobby(); }
+function setNetStatus(s) {
+  state.netStatus = s;
+  const el = document.querySelector(".or-status");
+  if (el && state.gameMode === "online") {
+    const text = s === "open"
+      ? (state.onlinePeer ? "Friend connected" : "Connected — waiting for a friend")
+      : s === "connecting"
+        ? "Connecting"
+        : "Disconnected — retrying";
+    el.classList.toggle("is-connected", s === "open" && !!state.onlinePeer);
+    el.classList.toggle("is-waiting", s === "open" && !state.onlinePeer);
+    el.classList.toggle("is-connecting", s === "connecting");
+    el.classList.toggle("is-disconnected", s !== "open" && s !== "connecting");
+    const label = el.querySelector("span:last-child");
+    if (label) label.textContent = text;
+    else el.textContent = text;
+  }
+  updateLobby();
+}
 // Cross-device transport: add ?relay=ws://<host>:8765 to the URL on every device and run
 // `python3 relay.py` on one machine - the relay fans messages out per room. Without the param the
 // transport is a BroadcastChannel (two tabs in the same browser). Same protocol either way.
@@ -136,6 +154,16 @@ function handleNetMsg(msg) {
   if (msg.type === "bye") { peerGone(netPeers.get(msg.clientId), "left"); return; }
   if (msg.type === "sfx") { if (window.Sound && typeof msg.name === "string") window.Sound.play(msg.name); return; }
   if (msg.type === "music") { if (window.Sound) { window.Sound.setTrack(Number(msg.track) || 0); window.Sound.setMusic(!!msg.on); } return; }
+  if (msg.type === "settings") {
+    markPeerOnline();
+    if (msg.clientId && msg.clientId === state.clientId) return;
+    state.settings = typeof normalizeGameSettings === "function"
+      ? normalizeGameSettings({ ...state.settings, ...(msg.settings || {}) })
+      : { ...state.settings, ...(msg.settings || {}) };
+    if (els.setupDialog?.open && typeof syncSettingsToForm === "function") syncSettingsToForm();
+    if (typeof scheduleSave === "function") scheduleSave();
+    return;
+  }
   if (msg.type === "editchar") {
     // The other player restyled a board character - apply their traits + re-render our copy.
     const c = state.board.find((x) => x.id === msg.id);
@@ -240,7 +268,9 @@ function handleNetMsg(msg) {
     markPeerOnline();
     applyRosterFromMsg(msg);
     if (msg.salt && msg.salt !== state.gameSalt) {
-      state.settings = { ...state.settings, ...(msg.settings || {}) };
+      state.settings = typeof normalizeGameSettings === "function"
+        ? normalizeGameSettings({ ...state.settings, ...(msg.settings || {}) })
+        : { ...state.settings, ...(msg.settings || {}) };
       state.inLobby = false;
       document.querySelector(".lobby-screen")?.remove();
       state.gameSalt = msg.salt;
@@ -251,7 +281,9 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "start") {
     markPeerOnline();
-    state.settings = { ...state.settings, ...(msg.settings || {}) };
+    state.settings = typeof normalizeGameSettings === "function"
+      ? normalizeGameSettings({ ...state.settings, ...(msg.settings || {}) })
+      : { ...state.settings, ...(msg.settings || {}) };
     applyRosterFromMsg(msg);
     state.inLobby = false;
     document.querySelector(".lobby-screen")?.remove();
@@ -289,6 +321,14 @@ function handleNetMsg(msg) {
     try { reapplyCurrentMystery(); } catch (e) { /* fine */ }
     addLog(`${baby.name} arrived from the other seat!`);
     renderBoard();
+    return;
+  }
+  if (msg.type === "headsform") {
+    markPeerOnline();
+    if (msg.clientId && msg.clientId === state.clientId) return;
+    state.headsForm = Math.max(0, Math.min(5, Number(msg.form) || 0));
+    if (state.global.mystery?.id === "heads-only") renderBoard();
+    scheduleSave();
     return;
   }
   if (msg.type === "tug") {

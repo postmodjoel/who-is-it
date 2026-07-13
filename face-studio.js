@@ -4,6 +4,7 @@ const traitBook = window.faceGenerator.traitBook;
 const expressions = traitBook.expressions;
 const accessoryChoices = traitBook.accessories;
 const correctionStorageKey = "who-is-that-face-corrections";
+const selectedFaceStorageKey = "who-is-that-last-selected-face";
 const sharedEditor = window.WhoEditorShared || {};
 const titleCase = sharedEditor.titleCase || ((value) => String(value)
   .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -236,15 +237,39 @@ const state = {
   hair: "all",
   accessory: "all",
   search: "",
+  groupBy: "none",
   matrix: false,
-  selectedId: characters[0]?.id || "",
+  selectedId: readSelectedFaceId(),
   selectedExpression: "assigned",
   activeGroup: "Structure",
   exportMode: "corrections",
-  corrections: readCorrections(),
+  corrections: cleanStoredCorrections(readCorrections()),
   // Pen tool (draw custom hair). pts: anchors {x,y,hx,hy} in 256-space; hx/hy = outgoing handle.
   pen: { mode: false, pts: [], dragging: -1, color: "", outline: true, lines: true, closed: false }
 };
+
+const rosterGroupOptions = [
+  ["none", "None"],
+  ["skinTone", "Skin Tone"],
+  ["expression", "Expression"],
+  ["accessory", "Accessory"],
+  ["hair", "Hair"],
+  ["backgroundWarmth", "Background Warmth"],
+  ["shirtColor", "Shirt Colour"]
+];
+
+const rosterGroupOrder = {
+  skinTone: ["Fair", "Light", "Medium", "Tan", "Deep"],
+  expression: expressions.map((expression) => titleCase(expression)),
+  backgroundWarmth: ["Cool", "Neutral", "Warm"],
+  shirtColor: ["Black", "Grey", "White", "Brown", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink"]
+};
+
+const editorNavFamilies = [
+  { label: "Base", groups: ["Structure", "Skin", "Lighting", "Face Lines", "Cheeks"] },
+  { label: "Features", groups: ["Brows", "Eyes", "Nose", "Mouth", "Teeth"] },
+  { label: "Styling", groups: ["Hair", "Beard", "Moustache", "Clothing", "Accessory", "Jewellery", "Tattoo", "Animation"] }
+];
 
 const PEN_LOCK_KEY = "who-is-that-pen-locks";
 function readPenLocks() {
@@ -260,12 +285,13 @@ const els = {
   expressionFilter: document.querySelector("#expressionFilter"),
   hairFilter: document.querySelector("#hairFilter"),
   accessoryFilter: document.querySelector("#accessoryFilter"),
+  groupByFilter: document.querySelector("#groupByFilter"),
   searchInput: document.querySelector("#searchInput"),
   matrixToggle: document.querySelector("#matrixToggle"),
   resetButton: document.querySelector("#resetButton"),
   faceGrid: document.querySelector("#faceGrid"),
   resultCount: document.querySelector("#resultCount"),
-  expressionSummary: document.querySelector("#expressionSummary"),
+  rosterMeta: document.querySelector("#rosterMeta"),
   selectedPortrait: document.querySelector("#selectedPortrait"),
   selectedMeta: document.querySelector("#selectedMeta"),
   variantStrip: document.querySelector("#variantStrip"),
@@ -282,6 +308,7 @@ const els = {
   exportModeEdited: document.querySelector("#exportModeEdited"),
   copyExportButton: document.querySelector("#copyExportButton"),
   copyCombinedExportButton: document.querySelector("#copyCombinedExportButton"),
+  resetAllCorrectionsButton: document.querySelector("#resetAllCorrectionsButton"),
   resetCorrectionButton: document.querySelector("#resetCorrectionButton")
 };
 let portraitRefreshFrame = 0;
@@ -296,6 +323,7 @@ function init() {
   ]);
   fillSelect(els.hairFilter, [["all", "All"], ...optionsFrom("hair")]);
   fillSelect(els.accessoryFilter, [["all", "All"], ...optionsFrom("accessory")]);
+  fillSelect(els.groupByFilter, rosterGroupOptions);
 
   els.expressionFilter.addEventListener("change", () => {
     state.expression = els.expressionFilter.value;
@@ -308,6 +336,10 @@ function init() {
   });
   els.accessoryFilter.addEventListener("change", () => {
     state.accessory = els.accessoryFilter.value;
+    render();
+  });
+  els.groupByFilter.addEventListener("change", () => {
+    state.groupBy = els.groupByFilter.value;
     render();
   });
   els.searchInput.addEventListener("input", () => {
@@ -324,6 +356,7 @@ function init() {
   els.exportModeEdited?.addEventListener("click", () => setExportMode("editedCharacters"));
   els.copyExportButton?.addEventListener("click", copyCurrentExport);
   els.copyCombinedExportButton?.addEventListener("click", copyCombinedExport);
+  els.resetAllCorrectionsButton?.addEventListener("click", clearAllCorrections);
 
   renderHotspots();
   wireLockStageOnce();
@@ -336,12 +369,14 @@ function reset() {
   state.hair = "all";
   state.accessory = "all";
   state.search = "";
+  state.groupBy = "none";
   state.matrix = false;
-  state.selectedId = characters[0]?.id || "";
+  setSelectedFaceId(characters[0]?.id || "");
   state.selectedExpression = "assigned";
   els.expressionFilter.value = state.expression;
   els.hairFilter.value = state.hair;
   els.accessoryFilter.value = state.accessory;
+  els.groupByFilter.value = state.groupBy;
   els.searchInput.value = "";
   els.matrixToggle.checked = false;
   render();
@@ -350,7 +385,7 @@ function reset() {
 function render() {
   const visible = filteredCharacters();
   if (!visible.some((character) => character.id === state.selectedId) && visible[0]) {
-    state.selectedId = visible[0].id;
+    setSelectedFaceId(visible[0].id);
     state.selectedExpression = state.expression;
   }
   renderSummary(visible);
@@ -360,54 +395,37 @@ function render() {
 
 function renderSummary(visible) {
   els.resultCount.textContent = `${visible.length} ${visible.length === 1 ? "face" : "faces"}`;
-  const editedCount = visible.filter((character) => Object.keys(correctionFor(character.id)).length).length;
-  const counts = expressions.map((expression) => [
-    expression,
-    visible.filter((character) => character.traits.expression === expression).length
-  ]);
-  els.expressionSummary.innerHTML = counts
-    .map(([expression, count]) => `<span class="summary-pill">${escapeHtml(expression)} ${count}</span>`)
-    .concat(editedCount ? [`<span class="summary-pill summary-pill-edited">${editedCount} edited</span>`] : [])
-    .join("");
+  const groups = groupedCharacters(visible);
+  const groupLabel = rosterGroupOptions.find(([value]) => value === state.groupBy)?.[1] || "None";
+  els.rosterMeta.textContent = state.groupBy === "none"
+    ? `${state.search ? "Search active" : "Flat roster"}`
+    : `${groupLabel} · ${groups.length} ${groups.length === 1 ? "cluster" : "clusters"}`;
 }
 
 function renderGrid(visible) {
+  const previousRects = captureRosterCardRects();
   els.faceGrid.innerHTML = "";
-  visible.forEach((character) => {
-    const sourceIndex = characters.indexOf(character);
-    const displayTraits = traitsFor(character, selectedExpressionFor(character));
-    const editCount = Object.keys(correctionFor(character.id)).length;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `face-card ${state.matrix ? "matrix-card" : ""}`;
-    button.classList.toggle("is-selected", character.id === state.selectedId);
-    button.classList.toggle("is-edited", editCount > 0);
-    button.addEventListener("click", () => {
-      state.selectedId = character.id;
-      state.selectedExpression = state.expression;
-      renderSelected();
-      document.querySelectorAll(".face-card").forEach((card) => card.classList.remove("is-selected"));
-      button.classList.add("is-selected");
+  const groups = groupedCharacters(visible);
+  els.faceGrid.classList.toggle("is-grouped", state.groupBy !== "none");
+  if (state.groupBy === "none") {
+    groups[0]?.items.forEach((character) => els.faceGrid.appendChild(buildFaceCard(character)));
+  } else {
+    groups.forEach((group) => {
+      const section = document.createElement("section");
+      section.className = "face-group";
+      section.innerHTML = `
+        <div class="face-group-head">
+          <h3>${escapeHtml(group.label)}</h3>
+          <span>${group.items.length}</span>
+        </div>
+        <div class="face-group-grid"></div>
+      `;
+      const grid = section.querySelector(".face-group-grid");
+      group.items.forEach((character) => grid.appendChild(buildFaceCard(character)));
+      els.faceGrid.appendChild(section);
     });
-
-    if (state.matrix) {
-      button.innerHTML = `
-        ${editCount ? `<span class="face-card-edits">${editCount}</span>` : ""}
-        ${expressions.map((expression) => `<img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)} ${escapeHtml(expression)}">`).join("")}
-        <h3>${escapeHtml(character.name)}</h3>
-        <p>${escapeHtml(character.feature)}</p>
-      `;
-    } else {
-      const expression = state.expression === "assigned" ? character.traits.expression : state.expression;
-      button.innerHTML = `
-        ${editCount ? `<span class="face-card-edits">${editCount}</span>` : ""}
-        <img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)}">
-        <h3>${escapeHtml(character.name)}</h3>
-        <p>${escapeHtml(describeCard(displayTraits, expression))}</p>
-      `;
-    }
-    els.faceGrid.appendChild(button);
-  });
+  }
+  animateRosterCards(previousRects);
 }
 
 function renderSelected() {
@@ -415,17 +433,12 @@ function renderSelected() {
   if (!character) return;
   const index = characters.indexOf(character);
   const expression = selectedExpressionFor(character);
-  const correction = correctionFor(character.id);
-  const editCount = Object.keys(correction).length;
-  const groupCount = Object.keys(groupEditCounts(correction)).length;
   els.selectedPortrait.innerHTML = `<img src="${portraitFor(character, index, expression)}" alt="${escapeHtml(character.name)}">`;
   renderLockOverlay(character);
   els.selectedMeta.innerHTML = `
     <div>
-      <p class="meta-label">Selected</p>
       <h2>${escapeHtml(character.name)}</h2>
     </div>
-    <p class="selected-meta-note">${editCount || 0} ${editCount === 1 ? "override" : "overrides"} across ${groupCount || 0} ${groupCount === 1 ? "group" : "groups"}</p>
   `;
   els.variantStrip.innerHTML = expressions
     .map((item) => {
@@ -448,13 +461,171 @@ function renderSelected() {
 
 function filteredCharacters() {
   return characters.filter((character) => {
-    const displayTraits = { ...character.traits, ...correctionFor(character.id) };
+    const displayTraits = displayTraitsFor(character);
     const matchesHair = state.hair === "all" || displayTraits.hair === state.hair;
     const matchesAccessory = state.accessory === "all" || displayTraits.accessory === state.accessory;
     const haystack = `${character.name} ${character.feature} ${character.role} ${Object.values(displayTraits).join(" ")}`.toLowerCase();
     const matchesSearch = !state.search || haystack.includes(state.search);
     return matchesHair && matchesAccessory && matchesSearch;
   });
+}
+
+function displayTraitsFor(character) {
+  return { ...character.traits, ...correctionFor(character.id) };
+}
+
+function groupedCharacters(visible) {
+  if (state.groupBy === "none") return [{ key: "all", label: "All Faces", items: visible }];
+  const grouped = new Map();
+  visible.forEach((character) => {
+    const traits = displayTraitsFor(character);
+    const group = rosterGroupFor(character, traits);
+    const key = group.key || "other";
+    if (!grouped.has(key)) grouped.set(key, { key, label: group.label, items: [] });
+    grouped.get(key).items.push(character);
+  });
+  return [...grouped.values()]
+    .sort((a, b) => compareRosterGroups(state.groupBy, a.label, b.label))
+    .map((group) => ({
+      ...group,
+      items: group.items.slice().sort((a, b) => a.name.localeCompare(b.name))
+    }));
+}
+
+function rosterGroupFor(character, traits) {
+  switch (state.groupBy) {
+    case "skinTone":
+      return groupBySkinTone(traits);
+    case "expression":
+      return { key: traits.expression || "assigned", label: titleCase(traits.expression || "assigned") };
+    case "accessory":
+      return { key: traits.accessory || "none", label: titleCase(traits.accessory || "none") };
+    case "hair":
+      return { key: traits.hair || "none", label: titleCase(traits.hair || "none") };
+    case "backgroundWarmth":
+      return groupByWarmth(traits.background || character.traits.background || "#a9c4e0");
+    case "shirtColor":
+      return groupByColorFamily(traits.shirt || character.traits.shirt || "#8a8e99");
+    default:
+      return { key: "all", label: "All Faces" };
+  }
+}
+
+function groupBySkinTone(traits) {
+  const toneHex = (traitBook.skinToneHex && traitBook.skinToneHex[traits.skin]) || "#c89070";
+  const { l } = rgbToHsl(...Object.values(hexToRgb(toneHex)));
+  if (l >= 74) return { key: "fair", label: "Fair" };
+  if (l >= 62) return { key: "light", label: "Light" };
+  if (l >= 50) return { key: "medium", label: "Medium" };
+  if (l >= 36) return { key: "tan", label: "Tan" };
+  return { key: "deep", label: "Deep" };
+}
+
+function groupByWarmth(color) {
+  const { h, s } = rgbToHsl(...Object.values(hexToRgb(color)));
+  if (s < 18 || (h >= 45 && h <= 75)) return { key: "neutral", label: "Neutral" };
+  if (h >= 170 && h <= 290) return { key: "cool", label: "Cool" };
+  return { key: "warm", label: "Warm" };
+}
+
+function groupByColorFamily(color) {
+  const { h, s, l } = rgbToHsl(...Object.values(hexToRgb(color)));
+  if (l <= 14) return { key: "black", label: "Black" };
+  if (s <= 12 && l < 82) return { key: "grey", label: "Grey" };
+  if (s <= 10 && l >= 82) return { key: "white", label: "White" };
+  if (h >= 12 && h < 42 && l < 42) return { key: "brown", label: "Brown" };
+  if (h < 16 || h >= 345) return { key: "red", label: "Red" };
+  if (h < 38) return { key: "orange", label: "Orange" };
+  if (h < 62) return { key: "yellow", label: "Yellow" };
+  if (h < 165) return { key: "green", label: "Green" };
+  if (h < 255) return { key: "blue", label: "Blue" };
+  if (h < 315) return { key: "purple", label: "Purple" };
+  if (h < 345) return { key: "pink", label: "Pink" };
+  return { key: "brown", label: "Brown" };
+}
+
+function compareRosterGroups(groupMode, left, right) {
+  const order = rosterGroupOrder[groupMode];
+  if (Array.isArray(order)) {
+    const leftIndex = order.indexOf(left);
+    const rightIndex = order.indexOf(right);
+    if (leftIndex !== -1 || rightIndex !== -1) {
+      if (leftIndex === -1) return 1;
+      if (rightIndex === -1) return -1;
+      return leftIndex - rightIndex;
+    }
+  }
+  return left.localeCompare(right);
+}
+
+function buildFaceCard(character) {
+  const sourceIndex = characters.indexOf(character);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `face-card ${state.matrix ? "matrix-card" : ""}`;
+  button.dataset.id = character.id;
+  button.classList.toggle("is-selected", character.id === state.selectedId);
+  button.addEventListener("click", () => {
+    setSelectedFaceId(character.id);
+    state.selectedExpression = state.expression;
+    renderSelected();
+    document.querySelectorAll(".face-card").forEach((card) => card.classList.remove("is-selected"));
+    button.classList.add("is-selected");
+  });
+
+  if (state.matrix) {
+    button.innerHTML = `
+      ${expressions.map((expression) => `<img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)} ${escapeHtml(expression)}">`).join("")}
+      <h3>${escapeHtml(character.name)}</h3>
+    `;
+  } else {
+    const expression = state.expression === "assigned"
+      ? displayTraitsFor(character).expression
+      : state.expression;
+    button.innerHTML = `
+      <img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)}">
+      <h3>${escapeHtml(character.name)}</h3>
+    `;
+  }
+  return button;
+}
+
+function captureRosterCardRects() {
+  return new Map(
+    [...els.faceGrid.querySelectorAll(".face-card[data-id]")]
+      .map((card) => [card.dataset.id, card.getBoundingClientRect()])
+  );
+}
+
+function animateRosterCards(previousRects) {
+  if (!previousRects.size || prefersReducedMotion()) return;
+  window.requestAnimationFrame(() => {
+    els.faceGrid.querySelectorAll(".face-card[data-id]").forEach((card) => {
+      const before = previousRects.get(card.dataset.id);
+      if (!before) {
+        card.animate(
+          [{ opacity: 0, transform: "scale(0.97)" }, { opacity: 1, transform: "scale(1)" }],
+          { duration: 200, easing: "ease-out" }
+        );
+        return;
+      }
+      const after = card.getBoundingClientRect();
+      const dx = before.left - after.left;
+      const dy = before.top - after.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      card.animate(
+        [
+          { transform: `translate(${dx}px, ${dy}px)` },
+          { transform: "translate(0, 0)" }
+        ],
+        { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" }
+      );
+    });
+  });
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function selectedExpressionFor(character) {
@@ -472,10 +643,6 @@ function traitsFor(character, expression) {
   return { ...character.traits, ...correctionFor(character.id), expression };
 }
 
-function describeCard(traits, expression) {
-  return [expression, traits.mouthStyle, traits.hair, traits.accessory].filter(Boolean).map(titleCase).join(" / ");
-}
-
 function optionsFrom(key) {
   return [...new Set(characters.map((character) => character.traits[key]))]
     .sort((a, b) => a.localeCompare(b))
@@ -486,10 +653,6 @@ function fillSelect(select, options) {
   select.innerHTML = options
     .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
     .join("");
-}
-
-function traitPill(label, value) {
-  return `<span class="trait-pill">${escapeHtml(label)}: ${escapeHtml(titleCase(value))}</span>`;
 }
 
 function escapeHtml(value) {
@@ -596,28 +759,32 @@ function miniSwatchButton(targetId) {
 function renderEditor(character) {
   const correction = correctionFor(character.id);
   if (!editorGroups.includes(state.activeGroup)) state.activeGroup = editorGroups[0];
-  const editedGroupCounts = groupEditCounts(correction);
-  const editedGroups = new Set(Object.keys(editedGroupCounts));
+  const navFamilies = editorNavFamilies
+    .map((family) => ({
+      label: family.label,
+      groups: family.groups.filter((group) => editorGroups.includes(group))
+    }))
+    .filter((family) => family.groups.length);
   const nav = `
-    <div class="editor-summary">
-      <div class="editor-summary-main">
-        <span class="meta-label">Active Group</span>
-        <strong>${escapeHtml(sharedGroupTitle(state.activeGroup))}</strong>
-      </div>
-      <div class="editor-summary-pills">
-        <span class="trait-pill">${Object.keys(correction).length || 0} ${Object.keys(correction).length === 1 ? "override" : "overrides"}</span>
-        <span class="trait-pill">${Object.keys(editedGroupCounts).length || 0} ${Object.keys(editedGroupCounts).length === 1 ? "group" : "groups"}</span>
-      </div>
+    <div class="editor-context">
+      <span class="meta-label">Now Editing</span>
+      <strong>${escapeHtml(sharedGroupTitle(state.activeGroup))}</strong>
     </div>
-    <div class="editor-tabs">
-      ${editorGroups
-        .map((group) => `
-          <button type="button" class="editor-tab ${group === state.activeGroup ? "is-active" : ""} ${editedGroups.has(group) ? "is-edited" : ""}" data-group="${escapeHtml(group)}">
-            <span>${escapeHtml(sharedGroupTitle(group))}</span>
-            ${editedGroupCounts[group] ? `<em class="editor-tab-count">${editedGroupCounts[group]}</em>` : ""}
-          </button>
-        `)
-        .join("")}
+    <div class="editor-nav-bands">
+      ${navFamilies.map((family) => `
+        <section class="editor-nav-family">
+          <span class="editor-nav-label">${escapeHtml(family.label)}</span>
+          <div class="editor-tabs">
+            ${family.groups
+              .map((group) => `
+                <button type="button" class="editor-tab ${group === state.activeGroup ? "is-active" : ""}" data-group="${escapeHtml(group)}">
+                  <span>${escapeHtml(sharedGroupTitle(group))}</span>
+                </button>
+              `)
+              .join("")}
+          </div>
+        </section>
+      `).join("")}
     </div>
   `;
 
@@ -627,10 +794,10 @@ function renderEditor(character) {
     .filter((field) => !(state.activeGroup === "Jewellery" && field.group === "Jewellery"))
     .filter((field) => !field.when || field.when({ ...character.traits, ...correction }))
     .map((field) => {
-    const edited = Object.hasOwn(correction, field.key);
+    const isDraft = Object.hasOwn(correction, field.key);
     const base = baseValueFor(character, field);
     const value = correction[field.key] ?? base;
-    const status = edited ? "edited" : "base";
+    const status = isDraft ? "draft" : "base";
     const control = field.type === "select"
       ? `
         <select id="edit-${escapeHtml(field.key)}" data-key="${escapeHtml(field.key)}" data-kind="select">
@@ -676,10 +843,10 @@ function renderEditor(character) {
         <span class="editor-value">${status}</span>
       `;
     return `
-      <div class="editor-control ${edited ? "is-edited" : ""}" data-group="${escapeHtml(field.group)}" data-field="${escapeHtml(field.key)}">
+      <div class="editor-control ${isDraft ? "is-draft" : ""}" data-group="${escapeHtml(field.group)}" data-field="${escapeHtml(field.key)}">
         <label for="edit-${escapeHtml(field.key)}">${escapeHtml(field.label)}</label>
         ${control}
-        <button type="button" class="editor-reset ${edited ? "" : "is-hidden"}" data-field-reset="${escapeHtml(field.key)}" title="Reset this field to the base value">Reset</button>
+        <button type="button" class="editor-reset ${isDraft ? "" : "is-hidden"}" data-field-reset="${escapeHtml(field.key)}" title="Reset this field to the base value">Reset</button>
       </div>
     `;
   });
@@ -817,23 +984,6 @@ function renderEditor(character) {
   renderCorrectionExport();
 }
 
-function groupEditCounts(correction) {
-  return Object.keys(correction).reduce((acc, key) => {
-    const specialGroups = {
-      hairLocks: "Hair",
-      hairHex: "Hair",
-      beardBlobs: "Beard",
-      tattoos: "Tattoo",
-      jewelleryItems: "Jewellery",
-      castShadowItems: "Lighting"
-    };
-    const group = specialGroups[key] || editorFields.find((field) => field.key === key)?.group;
-    if (!group) return acc;
-    acc[group] = (acc[group] || 0) + 1;
-    return acc;
-  }, {});
-}
-
 function wireInlineSwatchButtons(root) {
   root.querySelectorAll("[data-inline-swatchfor]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -925,6 +1075,15 @@ function clearSelectedCorrection() {
   render();
 }
 
+function clearAllCorrections() {
+  if (!Object.keys(state.corrections).length) return;
+  const ok = window.confirm("Revert all local Face Studio drafts and reload the baked base cast?");
+  if (!ok) return;
+  state.corrections = {};
+  saveCorrections();
+  render();
+}
+
 function baseValueFor(character, field) {
   const raw = character.traits[field.key] ?? field.fallback;
   return field.type === "select" ? raw : normalizeNumber(raw);
@@ -936,9 +1095,7 @@ function renderHotspots() {
     .map((spot, i) => `
       <button type="button" class="portrait-hotspot" data-group="${escapeHtml(spot.group)}"
         style="left:${spot.left}%; top:${spot.top}%; width:${spot.width}%; height:${spot.height}%;"
-        title="${escapeHtml(spot.label)}">
-        <span>${escapeHtml(spot.label)}</span>
-      </button>
+        title="${escapeHtml(spot.label)}" aria-label="${escapeHtml(spot.label)}"></button>
     `)
     .join("");
   els.portraitHotspots.querySelectorAll(".portrait-hotspot").forEach((button) => {
@@ -968,6 +1125,27 @@ function correctionFor(id) {
   return state.corrections[id] || {};
 }
 
+function readSelectedFaceId() {
+  try {
+    const stored = localStorage.getItem(selectedFaceStorageKey) || "";
+    return characters.some((character) => character.id === stored)
+      ? stored
+      : (characters[0]?.id || "");
+  } catch {
+    return characters[0]?.id || "";
+  }
+}
+
+function setSelectedFaceId(id) {
+  state.selectedId = id;
+  try {
+    if (id) localStorage.setItem(selectedFaceStorageKey, id);
+    else localStorage.removeItem(selectedFaceStorageKey);
+  } catch {
+    // Ignore storage issues and keep working in-memory.
+  }
+}
+
 function setCorrection(id, correction) {
   const clean = Object.fromEntries(Object.entries(correction).filter(([, value]) => value !== "" && value !== null && value !== undefined));
   if (Object.keys(clean).length) {
@@ -987,8 +1165,57 @@ function readCorrections() {
   }
 }
 
+function cleanStoredCorrections(raw) {
+  if (!raw || typeof raw !== "object") return {};
+  let changed = false;
+  const cleaned = {};
+  Object.entries(raw).forEach(([id, correction]) => {
+    if (!correction || typeof correction !== "object" || Array.isArray(correction)) {
+      changed = true;
+      return;
+    }
+    const character = characters.find((item) => item.id === id);
+    if (!character) {
+      cleaned[id] = correction;
+      return;
+    }
+    const next = {};
+    Object.entries(correction).forEach(([key, value]) => {
+      if (draftValueMatchesBase(character, key, value)) {
+        changed = true;
+      } else {
+        next[key] = value;
+      }
+    });
+    if (Object.keys(next).length) cleaned[id] = next;
+    else if (Object.keys(correction).length) changed = true;
+  });
+  if (changed || Object.keys(cleaned).length !== Object.keys(raw).length) {
+    if (Object.keys(cleaned).length) localStorage.setItem(correctionStorageKey, JSON.stringify(cleaned));
+    else localStorage.removeItem(correctionStorageKey);
+  }
+  return cleaned;
+}
+
+function draftValueMatchesBase(character, key, value) {
+  const field = editorFields.find((item) => item.key === key);
+  const rawBase = character.traits[key] ?? field?.fallback;
+  if (rawBase === undefined) return false;
+  if (field && !field.type) return numbersEqual(normalizeNumber(value), normalizeNumber(rawBase));
+  return stableComparable(value) === stableComparable(rawBase);
+}
+
+function stableComparable(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value.startsWith("#") ? value.toLowerCase() : value;
+  if (typeof value !== "object") return String(value);
+  if (Array.isArray(value)) return `[${value.map(stableComparable).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${key}:${stableComparable(value[key])}`).join(",")}}`;
+}
+
 function saveCorrections() {
-  localStorage.setItem(correctionStorageKey, JSON.stringify(state.corrections));
+  if (Object.keys(state.corrections).length) localStorage.setItem(correctionStorageKey, JSON.stringify(state.corrections));
+  else localStorage.removeItem(correctionStorageKey);
 }
 
 function setExportMode(mode) {
@@ -1043,10 +1270,9 @@ function renderCorrectionExport() {
     els.combinedCorrectionExport.value = JSON.stringify(combinedEditorPastePayload(), null, 2);
   }
   if (els.exportModeLabel) {
-    const editedCount = characters.filter((character) => Object.keys(correctionFor(character.id)).length).length;
     els.exportModeLabel.textContent = state.exportMode === "editedCharacters"
-      ? `Edited Characters (${editedCount})`
-      : "Corrections Export";
+      ? "Bake Export"
+      : "Draft Export";
   }
   if (els.combinedExportLabel) {
     els.combinedExportLabel.textContent = `Combined Editor Paste (${characters.length})`;
@@ -2214,7 +2440,10 @@ function renderLockOverlay(character) {
     els.lockOverlay.hidden = true;
     els.lockOverlay.innerHTML = "";
     if (els.portraitHotspots) els.portraitHotspots.style.display = "none";
-    if (els.hotspotHint) els.hotspotHint.textContent = "Pen tool active — draw the hair shape on the portrait.";
+    if (els.hotspotHint) {
+      els.hotspotHint.hidden = false;
+      els.hotspotHint.textContent = "Pen tool active — draw the hair shape on the portrait.";
+    }
     renderPenOverlay();
     return;
   }
@@ -2222,11 +2451,12 @@ function renderLockOverlay(character) {
   els.lockOverlay.hidden = !overlayMode;
   if (els.portraitHotspots) els.portraitHotspots.style.display = overlayMode ? "none" : "";
   if (els.hotspotHint) {
+    els.hotspotHint.hidden = !overlayMode;
     els.hotspotHint.textContent = hairMode
       ? "Drag a lock from the palette onto the hair · drag a marker to reposition"
       : beardMode
         ? "Drag the beard blobs on the face · they mirror automatically"
-        : "Click a region on the face to jump to its controls";
+        : "";
   }
   if (!overlayMode) { els.lockOverlay.innerHTML = ""; return; }
   if (beardMode) {

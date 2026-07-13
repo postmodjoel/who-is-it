@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WHO? IS IT? — Prompt Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%232b54e0'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle'%3E✍%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0d1220; --panel:#161c2c; --raised:#1d2436; --soft:#22293a;
+    --ink:#eef1f6; --ink2:#a5adc0; --mut:#78819a;
+    --line:rgba(255,255,255,.12); --line2:rgba(255,255,255,.22);
+    --yellow:#ffd400; --blue:#2b54e0; --red:#e2231a;
+    --keep:#ffd400; --fine:#2b54e0; --weak:#e08a00; --kill:#e2231a;
+    --shadow:0 12px 34px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:0 0 90px;background:var(--bg);color:var(--ink);
+    font:14.5px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:0 18px}
+  header{position:sticky;top:0;z-index:40;background:var(--bg);padding:12px 0 10px;
+    border-bottom:3px solid transparent;
+    border-image:linear-gradient(90deg,var(--yellow) 0 33%,var(--blue) 33% 66%,var(--red) 66% 100%) 1}
+  h1{margin:0;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:.02em}
+  h1 .q{color:var(--yellow);text-shadow:.05em .05em 0 var(--blue)}
+  .sub{margin:2px 0 10px;color:var(--ink2);font-size:12.5px}
+  .counts{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+  .cnt{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:4px 10px;
+    font-size:12px;font-weight:700;color:var(--ink2)}
+  .cnt b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .cnt b.k{color:var(--keep)} .cnt b.x{color:var(--kill)}
+  .filters{display:flex;flex-wrap:wrap;gap:7px}
+  .filters select,.filters input[type=search]{background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12.5px;font-weight:600}
+  .filters input[type=search]{flex:1;min-width:150px}
+  main{padding-top:14px}
+  section.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);margin:0 0 14px;overflow:hidden}
+  section.box>summary{cursor:pointer;list-style:none;padding:12px 16px;font-weight:900;
+    text-transform:uppercase;letter-spacing:.06em;font-size:12px}
+  details.box>summary::before{content:"▸ ";color:var(--mut)}
+  details.box[open]>summary::before{content:"▾ "}
+  .box .bd{padding:4px 16px 16px;border-top:1px solid var(--line)}
+  .box p.hint{color:var(--mut);font-size:12px;max-width:76ch;margin:8px 0}
+  textarea{width:100%;background:var(--raised);color:var(--ink);border:1px solid var(--line);
+    border-radius:9px;padding:9px 11px;font:13px/1.5 inherit;resize:vertical;min-height:56px}
+  textarea.mono,#out{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
+  .taste{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:640px){.taste{grid-template-columns:1fr}}
+  .taste label{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--mut);text-transform:uppercase}
+  .row{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:0 0 8px;
+    padding:10px 12px;border-left:5px solid var(--line2)}
+  .row.v-keep{border-left-color:var(--keep)} .row.v-fine{border-left-color:var(--fine)}
+  .row.v-weak{border-left-color:var(--weak)} .row.v-kill{border-left-color:var(--kill)}
+  .rtop{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .rdeck{font:700 10.5px ui-monospace,Menlo,monospace;color:var(--mut);text-transform:uppercase}
+  .rheat{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;
+    padding:1px 7px;border-radius:999px;border:1px solid var(--line2);color:var(--ink2)}
+  .rheat[data-h="mild"]{color:#9db4f5;border-color:#9db4f5}
+  .rheat[data-h="medium"]{color:var(--weak);border-color:var(--weak)}
+  .rheat[data-h="feral"]{color:var(--red);border-color:var(--red)}
+  .rflags{display:flex;gap:5px}
+  .flag{font-size:9.5px;font-weight:800;letter-spacing:.03em;padding:1px 6px;border-radius:999px;
+    background:rgba(226,35,26,.14);color:#ff9a93;border:1px solid rgba(226,35,26,.4)}
+  .rtext{margin:7px 0 2px;font-size:15px;line-height:1.45;cursor:text}
+  .rtext.edited{color:var(--yellow)}
+  .rtext .orig{display:block;font-size:11.5px;color:var(--mut);text-decoration:line-through;margin-top:2px}
+  .redit{display:none;margin:7px 0 2px}
+  .row.editing .rtext{display:none}
+  .row.editing .redit{display:block}
+  .rbtns{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;align-items:center}
+  .rbtns button{border:1px solid var(--line2);background:var(--raised);color:var(--ink);
+    border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:800;cursor:pointer}
+  .rbtns button:hover{border-color:var(--blue)}
+  .rbtns button.on[data-v="keep"]{background:var(--keep);color:#131313;border-color:var(--keep)}
+  .rbtns button.on[data-v="fine"]{background:var(--fine);color:#fff;border-color:var(--fine)}
+  .rbtns button.on[data-v="weak"]{background:var(--weak);color:#131313;border-color:var(--weak)}
+  .rbtns button.on[data-v="kill"]{background:var(--kill);color:#fff;border-color:var(--kill)}
+  .rnote{flex:1;min-width:160px;background:var(--raised);border:1px solid var(--line);
+    border-radius:8px;color:var(--ink);padding:5px 9px;font-size:12px}
+  .exports{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 10px}
+  .exports button{background:var(--panel);border:2px solid var(--line2);border-radius:10px;
+    color:var(--ink);font-weight:800;font-size:12.5px;padding:9px 13px;cursor:pointer}
+  .exports button.primary{background:var(--yellow);border-color:var(--yellow);color:#131313}
+  .exports button:hover{border-color:var(--blue)}
+  #out{width:100%;min-height:130px;display:none;background:var(--raised);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;padding:10px}
+  .patchrow{display:flex;gap:10px;align-items:flex-start;background:var(--raised);
+    border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin:0 0 7px;font-size:13px}
+  .patchrow .pa{font-weight:900;font-size:10.5px;letter-spacing:.05em;padding:2px 7px;border-radius:999px}
+  .patchrow[data-a="replace"] .pa{background:rgba(224,138,0,.2);color:var(--weak)}
+  .patchrow[data-a="add"] .pa{background:rgba(43,84,224,.2);color:#9db4f5}
+  .patchrow[data-a="remove"] .pa{background:rgba(226,35,26,.2);color:#ff9a93}
+  .patchrow .pt{flex:1}
+  .patchrow .pt .from{color:var(--mut);text-decoration:line-through;font-size:12px;display:block}
+  .patchrow button{border:1px solid var(--line2);background:var(--panel);color:var(--ink);
+    border-radius:8px;padding:4px 9px;font-size:11px;font-weight:800;cursor:pointer}
+  .patchrow button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .patchrow button.off{background:var(--red);color:#fff;border-color:var(--red)}
+  .loadmore{width:100%;padding:11px;border-radius:10px;border:1px dashed var(--line2);
+    background:none;color:var(--ink2);font-weight:800;cursor:pointer;margin:4px 0 14px}
+  button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1><span class="q">WHO? IS IT?</span> — Prompt Studio <span style="font-weight:600;color:var(--mut);font-size:12px">rate · edit · regenerate with Claude</span></h1>
+  <p class="sub">Every prompt in the game, judged by you. Verdicts, edits and notes save locally (<b>whoisit_prompt_studio_v1</b>). When you're done with a pass, <b>EXPORT FOR CLAUDE</b> and paste it into the session — Claude returns a patch you review in the Import panel, and only the file on disk ever changes when Claude applies your accepted patch.</p>
+  <div class="counts" id="counts"></div>
+  <div class="filters">
+    <input id="q" type="search" placeholder="Search prompt text…">
+    <select id="fDeck"><option value="">Deck — all</option></select>
+    <select id="fVerdict"><option value="">Verdict — all</option><option value="unrated">Unrated</option><option value="keep">🔥 Keep</option><option value="fine">👍 Fine</option><option value="weak">👎 Weak</option><option value="kill">💀 Kill</option><option value="edited">✍ Edited</option></select>
+    <select id="fHeat"><option value="">Heat — all</option><option>mild</option><option>medium</option><option>feral</option></select>
+    <select id="fFlag"><option value="">Flags — all</option><option value="punch">Punch-tic ending</option><option value="long">Over 14 words</option><option value="verb">Confess/Explain opener</option><option value="any">Any flag</option><option value="none">No flags</option></select>
+  </div>
+</div></header>
+
+<main class="wrap">
+  <details class="box" open><summary>Taste profile — what Claude should learn</summary><div class="bd">
+    <p class="hint">Free text, your words. This travels with every export so regenerated prompts aim at YOUR taste, and it keeps growing — add to it whenever a prompt crystallises what you love or hate.</p>
+    <div class="taste">
+      <div><label for="likes">What I like</label><textarea id="likes" placeholder="e.g. dark implications played straight · prompts that make someone PERFORM · conscripting a second player · specific institutions (body corporate, RSL)…"></textarea></div>
+      <div><label for="hates">What I hate</label><textarea id="hates" placeholder="e.g. whimsy · 'Sell it.' punch endings · random nouns · anything that sounds like a LinkedIn icebreaker…"></textarea></div>
+    </div>
+  </div></details>
+
+  <details class="box"><summary>Import a Claude patch</summary><div class="bd">
+    <p class="hint">Paste the JSON patch Claude gives you back, then accept/reject each change. EXPORT ACCEPTED PATCH hands the survivors back to Claude to apply to game-data.js. Nothing here edits the file itself.</p>
+    <textarea id="patchIn" class="mono" placeholder='{"changes":[{"deck":"absurdPrompts","action":"replace","match":"old text…","text":"new text…","heat":"medium"}]}'></textarea>
+    <div class="exports" style="margin:10px 0 6px">
+      <button onclick="loadPatch()">Review patch</button>
+      <button onclick="exportAcceptedPatch()">⬇ Export ACCEPTED patch</button>
+    </div>
+    <div id="patchList"></div>
+  </div></details>
+
+  <div id="list"></div>
+  <button class="loadmore" id="more" onclick="PAGE+=1;renderList(true)">Show more</button>
+
+  <div class="exports">
+    <button class="primary" onclick="exportForClaude()">⬇ EXPORT FOR CLAUDE (taste + verdicts + edits)</button>
+    <button onclick="dumpRaw()">🆘 Dump raw (rescue)</button>
+    <button onclick="resetFilters()">Clear filters</button>
+  </div>
+  <textarea id="out" readonly aria-label="Export output"></textarea>
+</main>
+
+<script src="game-data.js?v=207"></script>
+<script>
+const KEY="whoisit_prompt_studio_v1";
+const $=s=>document.querySelector(s);
+let store={verdicts:{},taste:{likes:"",hates:""},patch:null,patchDecisions:{}};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s&&s.verdicts)store=s;}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}}
+
+function fnv(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36);}
+
+// ---- Build the full prompt index from the live game data ----
+const GD=window.GameData||{};
+const DECKS=[];
+function addDeck(key,label,arr){
+  if(!Array.isArray(arr)||!arr.length)return;
+  DECKS.push({key,label,items:arr.map((p,i)=>{
+    const text=typeof p==="string"?p:p.text;
+    const heat=typeof p==="string"?null:(p.heat||"mild");
+    return {deck:key,label,index:i,text,heat,id:key+":"+fnv(text)};
+  })});
+}
+addDeck("classicPrompts","CLASSIC (eliminators)",GD.classicPrompts);
+addDeck("absurdPrompts","BASE DECK",GD.absurdPrompts);
+addDeck("locationPrompts","LOCATION",GD.locationPrompts);
+Object.keys(GD.modePrompts||{}).forEach(k=>addDeck("modePrompts."+k,("MODE · "+k).toUpperCase(),GD.modePrompts[k]));
+const ALL=DECKS.flatMap(d=>d.items);
+
+// ---- Mechanical tic flags (same regexes as the audit) ----
+function flagsOf(text){
+  const f=[];
+  if(/\. [A-Z][a-z']+( [a-z']+){0,2}\.$/.test(text))f.push("punch");
+  if(text.split(/\s+/).length>14)f.push("long");
+  if(/\b(Confess|Explain|Justify)\b/.test(text))f.push("verb");
+  return f;
+}
+
+// ---- Filters + list ----
+let PAGE=1;const PER=60;
+const fDeck=$("#fDeck");
+DECKS.forEach(d=>{const o=document.createElement("option");o.value=d.key;o.textContent=d.label+" ("+d.items.length+")";fDeck.appendChild(o)});
+["q","fDeck","fVerdict","fHeat","fFlag"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{PAGE=1;renderList()}));
+function resetFilters(){["q","fDeck","fVerdict","fHeat","fFlag"].forEach(id=>document.getElementById(id).value="");PAGE=1;renderList();}
+
+function rec(id){return store.verdicts[id]||null}
+function match(it){
+  const r=rec(it.id);
+  const q=$("#q").value.trim().toLowerCase();
+  if(q && !((r&&r.edit?r.edit:it.text).toLowerCase().includes(q)||it.text.toLowerCase().includes(q)))return false;
+  if($("#fDeck").value && it.deck!==$("#fDeck").value)return false;
+  const fv=$("#fVerdict").value;
+  if(fv==="unrated"&&r&&r.v)return false;
+  if(["keep","fine","weak","kill"].includes(fv)&&(!r||r.v!==fv))return false;
+  if(fv==="edited"&&!(r&&r.edit))return false;
+  if($("#fHeat").value && (r&&r.heat?r.heat:it.heat)!==$("#fHeat").value)return false;
+  const ff=$("#fFlag").value;
+  if(ff){const f=flagsOf(r&&r.edit?r.edit:it.text);
+    if(ff==="any"&&!f.length)return false;
+    if(ff==="none"&&f.length)return false;
+    if(["punch","long","verb"].includes(ff)&&!f.includes(ff))return false;}
+  return true;
+}
+function renderCounts(){
+  const vs=Object.values(store.verdicts);
+  const c=v=>vs.filter(x=>x.v===v).length;
+  $("#counts").innerHTML=
+    `<span class="cnt">Prompts <b>${ALL.length}</b></span>`+
+    `<span class="cnt">Rated <b>${vs.filter(x=>x.v).length}</b></span>`+
+    `<span class="cnt">🔥 <b class="k">${c("keep")}</b></span>`+
+    `<span class="cnt">👍 <b>${c("fine")}</b></span>`+
+    `<span class="cnt">👎 <b>${c("weak")}</b></span>`+
+    `<span class="cnt">💀 <b class="x">${c("kill")}</b></span>`+
+    `<span class="cnt">✍ Edited <b>${vs.filter(x=>x.edit).length}</b></span>`;
+}
+const HEATS=[null,"mild","medium","feral"];
+function row(it){
+  const r=rec(it.id)||{};
+  const text=r.edit||it.text;
+  const heat=r.heat||it.heat;
+  const flags=flagsOf(text);
+  const el=document.createElement("div");
+  el.className="row"+(r.v?" v-"+r.v:"");
+  el.innerHTML=`
+    <div class="rtop">
+      <span class="rdeck">${it.label}</span>
+      ${heat?`<span class="rheat" data-h="${heat}" title="click to cycle heat">${heat}</span>`:""}
+      <span class="rflags">${flags.map(f=>`<span class="flag">${f==="punch"?"PUNCH-TIC":f==="long"?">14W":"CONFESS/EXPLAIN"}</span>`).join("")}</span>
+    </div>
+    <p class="rtext${r.edit?" edited":""}" title="click to edit">${escapeHtml(text)}${r.edit?`<span class="orig">${escapeHtml(it.text)}</span>`:""}</p>
+    <div class="redit"><textarea>${escapeHtml(text)}</textarea>
+      <div class="rbtns"><button data-act="saveedit">SAVE EDIT</button><button data-act="canceledit">CANCEL</button><button data-act="revert">REVERT TO ORIGINAL</button></div>
+    </div>
+    <div class="rbtns">
+      <button data-v="keep" class="${r.v==="keep"?"on":""}">🔥 KEEP</button>
+      <button data-v="fine" class="${r.v==="fine"?"on":""}">👍 FINE</button>
+      <button data-v="weak" class="${r.v==="weak"?"on":""}">👎 WEAK</button>
+      <button data-v="kill" class="${r.v==="kill"?"on":""}">💀 KILL</button>
+      <input class="rnote" placeholder="note (why / direction)…" value="${escapeHtml(r.note||"")}">
+    </div>`;
+  el.querySelectorAll("[data-v]").forEach(b=>b.addEventListener("click",()=>{
+    const cur=(rec(it.id)||{}).v;
+    upd(it.id,{v:cur===b.dataset.v?null:b.dataset.v});
+    replaceRow(el,it);
+  }));
+  el.querySelector(".rnote").addEventListener("input",e=>upd(it.id,{note:e.target.value}));
+  el.querySelector(".rtext").addEventListener("click",()=>{el.classList.add("editing");el.querySelector(".redit textarea").focus();});
+  const hchip=el.querySelector(".rheat");
+  if(hchip)hchip.addEventListener("click",()=>{
+    const cur=(rec(it.id)||{}).heat||it.heat;
+    const next=HEATS[(HEATS.indexOf(cur)+1)||1]||"mild";
+    upd(it.id,{heat:next===it.heat?null:next});
+    replaceRow(el,it);
+  });
+  el.querySelectorAll("[data-act]").forEach(b=>b.addEventListener("click",()=>{
+    const ta=el.querySelector(".redit textarea");
+    if(b.dataset.act==="saveedit"){const v=ta.value.trim();upd(it.id,{edit:v&&v!==it.text?v:null});}
+    if(b.dataset.act==="revert")upd(it.id,{edit:null});
+    replaceRow(el,it);
+  }));
+  return el;
+}
+function upd(id,patch){
+  const r=store.verdicts[id]||(store.verdicts[id]={});
+  Object.assign(r,patch);
+  Object.keys(r).forEach(k=>{if(r[k]===null||r[k]==="")delete r[k]});
+  if(!Object.keys(r).length)delete store.verdicts[id];
+  save();renderCounts();
+}
+function replaceRow(el,it){el.replaceWith(row(it));}
+function renderList(append){
+  const list=$("#list");
+  if(!append)list.innerHTML="";
+  const items=ALL.filter(match);
+  const slice=items.slice(append?(PAGE-1)*PER:0,PAGE*PER);
+  slice.forEach(it=>list.appendChild(row(it)));
+  $("#more").style.display=items.length>PAGE*PER?"block":"none";
+  if(!append&&!items.length)list.innerHTML='<p style="color:var(--mut);padding:20px 4px">Nothing matches. Clear a filter.</p>';
+  renderCounts();
+}
+function escapeHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+// ---- Taste profile ----
+$("#likes").value=store.taste.likes||"";
+$("#hates").value=store.taste.hates||"";
+$("#likes").addEventListener("input",e=>{store.taste.likes=e.target.value;save()});
+$("#hates").addEventListener("input",e=>{store.taste.hates=e.target.value;save()});
+
+// ---- Exports ----
+function show(t){const o=$("#out");o.style.display="block";o.value=t;o.focus();o.select();}
+function exportForClaude(){
+  const verdicts=[];
+  ALL.forEach(it=>{
+    const r=rec(it.id);
+    if(!r)return;
+    verdicts.push({deck:it.deck,original:it.text,...(r.v?{verdict:r.v}:{}),...(r.edit?{edited:r.edit}:{}),...(r.heat?{heat:r.heat}:{}),...(r.note?{note:r.note}:{})});
+  });
+  const payload={
+    studio:"whoisit-prompt-studio-v1",
+    exported:new Date().toISOString(),
+    instructions:"You wrote these prompts; I have now judged them. KEEP = untouchable calibration set - new prompts must sit comfortably beside these. KILL = delete or completely rework. WEAK = rework in place. Edits are mine and FINAL - apply them verbatim. Use the taste profile to draft replacements/additions in my voice (see the game-data.js voice header + framework). Return a patch as JSON {changes:[{deck, action:'replace'|'remove'|'add', match:'<original text>', text?, heat?}]} for me to review in the studio - do NOT touch game-data.js until I hand back the accepted patch.",
+    taste:store.taste,
+    stats:{total:ALL.length,rated:verdicts.filter(v=>v.verdict).length,edited:verdicts.filter(v=>v.edited).length},
+    verdicts
+  };
+  show(JSON.stringify(payload,null,2));
+}
+function dumpRaw(){show(JSON.stringify({key:KEY,store},null,2));}
+
+// ---- Patch review ----
+function loadPatch(){
+  let p;
+  try{p=JSON.parse($("#patchIn").value)}catch(e){alert("That's not valid JSON: "+e.message);return}
+  if(!p||!Array.isArray(p.changes)){alert("Expected {changes:[…]}");return}
+  store.patch=p;store.patchDecisions={};save();
+  renderPatch();
+}
+function renderPatch(){
+  const box=$("#patchList");box.innerHTML="";
+  const p=store.patch;
+  if(!p)return;
+  p.changes.forEach((c,i)=>{
+    const d=store.patchDecisions[i];
+    const el=document.createElement("div");
+    el.className="patchrow";el.dataset.a=c.action;
+    el.innerHTML=`<span class="pa">${(c.action||"?").toUpperCase()}</span>
+      <span class="pt">${c.action!=="add"?`<span class="from">${escapeHtml(c.match||"")}</span>`:""}${c.action!=="remove"?escapeHtml(c.text||"")+(c.heat?` <em style="color:var(--mut)">(${c.heat})</em>`:""):""}
+      <em style="color:var(--mut);font-size:11px;display:block">${escapeHtml(c.deck||"")}</em></span>
+      <button class="acc ${d===true?"on":""}">ACCEPT</button>
+      <button class="rej ${d===false?"off":""}">REJECT</button>`;
+    el.querySelector(".acc").addEventListener("click",()=>{store.patchDecisions[i]=store.patchDecisions[i]===true?undefined:true;save();renderPatch();});
+    el.querySelector(".rej").addEventListener("click",()=>{store.patchDecisions[i]=store.patchDecisions[i]===false?undefined:false;save();renderPatch();});
+    box.appendChild(el);
+  });
+}
+function exportAcceptedPatch(){
+  const p=store.patch;
+  if(!p){alert("Load a patch first.");return}
+  const changes=p.changes.filter((c,i)=>store.patchDecisions[i]===true);
+  const rejected=p.changes.filter((c,i)=>store.patchDecisions[i]===false).length;
+  const undecided=p.changes.length-changes.length-rejected;
+  show(JSON.stringify({studio:"whoisit-prompt-studio-v1",acceptedPatch:true,
+    note:`${changes.length} accepted, ${rejected} rejected, ${undecided} left undecided (NOT included). Apply exactly these to game-data.js.`,
+    changes},null,2));
+}
+if(store.patch)renderPatch();
+
+renderList();
+</script>
+</body>
+</html>

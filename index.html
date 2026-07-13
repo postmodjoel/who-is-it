@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WHO? IS IT?</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23ffbe0b'/%3E%3Ccircle cx='32' cy='24' r='13' fill='%23fffdf7' stroke='%23171512' stroke-width='4'/%3E%3Cpath d='M14 58c2-16 34-16 36 0' fill='%233a86ff' stroke='%23171512' stroke-width='4'/%3E%3C/svg%3E">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Press+Start+2P&family=Cinzel:wght@500;600;700;800;900&family=MedievalSharp&family=Reem+Kufi:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="styles.css?v=243">
+    <!-- PERF2-01: the two SYSTEM faces are SELF-HOSTED (assets/fonts, OFL) so boot never round-trips
+         to Google on party wifi. AES-02: costume fonts (Cinzel / Press Start 2P / Reem Kufi) are
+         still injected by modes.js on the first activation of the mode that wears them. -->
+    <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+    <link rel="stylesheet" href="styles.css?v=253">
   </head>
   <body>
     <div id="locationBackdrop" class="location-backdrop" aria-hidden="true"></div>
@@ -30,7 +31,6 @@
             </div>
 
             <div class="cue-card" aria-live="polite">
-              <p class="label">The question</p>
               <p id="questionPrompt" class="question-prompt"></p>
               <p id="mysteryResult" class="mystery-result"></p>
             </div>
@@ -53,15 +53,10 @@
             <section id="locationBand" class="location-band" aria-live="polite"></section>
             <div class="topbar-actions">
               <span class="sort-wrap" title="Sort board by">
+                <!-- VC-10: options are rebuilt at runtime by rebuildSortOptions() (BASE_SORTS + the
+                     active mode's sorts, uniform sentence case). This is only the pre-render default. -->
                 <select id="sortSelect" class="button ghost" aria-label="Sort board by">
-                  <option value="">Board order</option>
-                  <option value="happiness">Happiness 😀</option>
-                  <option value="horniness">Horniness 🔥</option>
-                  <option value="deathness">Close to death 💀</option>
-                  <option value="cum">Cum count 💦</option>
-                  <option value="fuck">Fuckability 😏</option>
-                  <option value="skin">Skin tone 🎨</option>
-                  <option value="name">Name A–Z</option>
+                  <option value="">Sort by…</option>
                 </select>
                 <span class="sort-glyph" aria-hidden="true"></span>
               </span>
@@ -70,9 +65,11 @@
               </select>
               <button id="almanacButton" class="button ghost" type="button" aria-label="The Almanac" title="The Almanac — everyone this universe has established" style="font-size:1rem">📖</button>
               <button id="editorButton" class="button ghost" type="button" aria-label="Character editor" title="Character editor" style="font-size:1rem">🎨</button>
+              <button id="soundboardButton" class="button ghost" type="button" aria-label="Soundboard" title="Soundboard — long-press for BUZZER" style="font-size:1rem">📣</button>
               <button id="soundButton" class="button ghost" type="button" aria-label="Sound" title="Sound &amp; music" style="font-size:1rem">🔊</button>
               <button id="themeButton" class="button ghost icon-only" type="button" aria-label="Light mode" title="Light mode"></button>
               <button id="setupButton" class="button ghost icon-only" type="button" aria-label="Setup" title="Setup"></button>
+              <button id="helpButton" class="button ghost" type="button" aria-label="How it works" title="How it works" style="font-weight:900">?</button>
             </div>
           </div>
           <div class="board-wrap">
@@ -86,10 +83,7 @@
     <dialog id="setupDialog" class="setup-dialog">
       <form method="dialog" class="setup-form">
         <div class="dialog-head">
-          <div>
-            <p class="eyebrow">Game setup</p>
-            <h2>Choose the nonsense</h2>
-          </div>
+          <h2>Game setup</h2>
           <button class="icon-button" value="cancel" aria-label="Close setup" type="submit">X</button>
         </div>
 
@@ -112,15 +106,7 @@
 
           <label class="toggle-row">
             <span>
-              <strong>Roles</strong>
-              <small>Everyone gets a job, hidden until the Role Reveal mystery hits.</small>
-            </span>
-            <input id="settingRoles" type="checkbox" checked>
-          </label>
-
-          <label class="toggle-row">
-            <span>
-              <strong>PG mode 🧒</strong>
+              <strong>PG mode</strong>
               <small>Kid-safe: only wholesome modes, no breeding/woohoo. Nephew-approved.</small>
             </span>
             <input id="settingPG" type="checkbox" checked>
@@ -128,7 +114,28 @@
 
           <label class="toggle-row">
             <span>
-              <strong>Low power mode 🔋</strong>
+              <strong>Win &amp; Loss</strong>
+              <small>End a round by guessing who the other player is. Guess wrong too many times and they win.</small>
+            </span>
+            <input id="settingGuessing" type="checkbox" checked>
+          </label>
+
+          <div class="toggle-row guess-count-row">
+            <span>
+              <strong>Guesses each</strong>
+              <small>How many tries before you're out.</small>
+            </span>
+            <span class="guess-pills" id="settingMaxGuesses">
+              <button type="button" class="gp" data-n="1">1</button>
+              <button type="button" class="gp" data-n="2">2</button>
+              <button type="button" class="gp" data-n="3">3</button>
+              <button type="button" class="gp" data-n="5">5</button>
+            </span>
+          </div>
+
+          <label class="toggle-row">
+            <span>
+              <strong>Low power mode</strong>
               <small>Phone running warm? Pauses the looping animations + blur to keep it cool.</small>
             </span>
             <input id="settingLowPower" type="checkbox">
@@ -144,7 +151,7 @@
 
         <div class="mode-section">
           <div class="tier-head">
-            <strong>Mode lineup</strong>
+            <strong>MODE LINEUP</strong>
           </div>
           <div id="settingModePolicy" class="mode-policy-toggles"></div>
           <div class="mode-picker-wrap">
@@ -152,16 +159,21 @@
           </div>
         </div>
 
-        <label class="select-row seed-row">
-          <span>
-            <strong>Seed code</strong>
-            <small>Copy to share this exact round; paste one to replay it.</small>
-          </span>
-          <span class="seed-controls">
-            <input id="settingSeed" type="text" spellcheck="false" autocomplete="off" placeholder="paste a seed code…">
-            <button id="copySeedButton" class="button ghost" type="button" title="Copy seed code">📋</button>
-          </span>
-        </label>
+        <!-- FLOW-06: seed codes are power-user plumbing — folded behind a closed disclosure so the
+             settings read clean for the 95% who never touch them. -->
+        <details class="seed-disclosure">
+          <summary>Share this exact round</summary>
+          <label class="select-row seed-row">
+            <span>
+              <strong>Seed code</strong>
+              <small>Copy to share this exact round; paste one to replay it.</small>
+            </span>
+            <span class="seed-controls">
+              <input id="settingSeed" type="text" spellcheck="false" autocomplete="off" placeholder="paste a seed code…">
+              <button id="copySeedButton" class="button ghost" type="button" title="Copy seed code">📋</button>
+            </span>
+          </label>
+        </details>
 
         <div class="select-row room-share-row">
           <span>
@@ -172,6 +184,11 @@
         </div>
 
         <p id="setupApplyHint" class="setup-apply-hint" hidden>💡 Your settings will take over next round.</p>
+        <div class="setup-about">
+          <span id="setupVersion" class="setup-about-ver">WHO? IS IT?</span>
+          <span>All data stays on your devices — nothing is uploaded.</span>
+          <span>A dark parody of a childhood classic. Play responsibly-ish.</span>
+        </div>
         <div class="dialog-actions">
           <button id="quitToMenuButton" class="button" value="cancel" type="button">← Main menu</button>
           <button id="saveSetupButton" class="button primary" value="default" type="submit">Save settings</button>
@@ -179,21 +196,21 @@
       </form>
     </dialog>
 
-    <script src="game-data.js?v=205"></script>
+    <script src="game-data.js?v=207"></script>
     <script src="studio-bakes-import.js?v=1"></script>
     <script src="face-generator.js?v=236"></script>
     <script src="faces-hair.js?v=207"></script>
     <script src="sound.js?v=206"></script>
-    <script src="net.js?v=221"></script>
+    <script src="net.js?v=224"></script>
     <script src="breeding.js?v=205"></script>
+    <!-- PERF-02: editor.js + vendor-qrcode.js are lazy-loaded by app.js (first 🎨 click / first
+         lobby-or-receipt + idle preload). editor-shared.js stays eager: face-generator uses it. -->
     <script src="editor-shared.js?v=221"></script>
-    <script src="editor.js?v=228"></script>
-    <script src="vendor-qrcode.js?v=205"></script>
     <script src="opponent-sim.js?v=205"></script>
     <script src="habbo-assets.js?v=205"></script>
     <script src="habbo-avatars.js?v=205"></script>
     <script src="habbo-spares.js?v=218"></script>
-    <script src="modes.js?v=220"></script>
-    <script src="app.js?v=237"></script>
+    <script src="modes.js?v=227"></script>
+    <script src="app.js?v=248"></script>
   </body>
 </html>

@@ -215,13 +215,15 @@ const generatedCharacters = window.faceGenerator
 
 // Illustrated location banners (1600x520) live in assets/locations/.
 // Each location ships a day and a night variant; a variant is chosen per game.
+// PERF-01: banners are JPEG q80 (~140KB each) — they were ~950KB PNGs, which alone made web
+// deployment impractical (65MB → 10MB for the whole set). They're opaque illustrations; no alpha lost.
 const LOCATION_ART_DIR = "assets/locations";
 
 const locations = window.GameData.locations.map((loc) => ({
   ...loc,
   art: {
-    day: `${LOCATION_ART_DIR}/${loc.slug}_day_banner.png`,
-    night: `${LOCATION_ART_DIR}/${loc.slug}_night_banner.png`
+    day: `${LOCATION_ART_DIR}/${loc.slug}_day_banner.jpg`,
+    night: `${LOCATION_ART_DIR}/${loc.slug}_night_banner.jpg`
   }
 }));
 
@@ -241,7 +243,10 @@ const state = {
     startModeId: "",    // blank = a plain Guess Who opener; otherwise start in the chosen mystery mode
     modePolicy: "progressive",   // progressive = current ramp, chaotic = everything, custom = explicit mode picks
     allowedModeIds: null,        // custom mode allowlist; null/empty falls back to the full registry
+    roundPicker: "random",       // custom only: "random" draws from the allowlist, "manual" lets players choose each round-end
     tiers: null,        // host intensity gate: null/[] = every tier on; else the enabled tier numbers
+    guessing: true,     // "Win & Loss": end a round by GUESSING the other player, X tries each
+    maxGuesses: 3,      // tries per side before you're out (and the other side wins)
     lowPower: false,    // phones running warm: pause continuous animation loops + blur to cool down
     boardSize: 24
   },
@@ -292,6 +297,8 @@ const els = {
   editorButton: document.querySelector("#editorButton"),
   almanacButton: document.querySelector("#almanacButton"),
   soundButton: document.querySelector("#soundButton"),
+  soundboardButton: document.querySelector("#soundboardButton"),
+  helpButton: document.querySelector("#helpButton"),
   settingSeed: document.querySelector("#settingSeed"),
   copySeedButton: document.querySelector("#copySeedButton"),
   debugEffectPicker: document.querySelector("#debugEffectPicker"),
@@ -306,6 +313,8 @@ const els = {
   settingModePolicy: document.querySelector("#settingModePolicy"),
   settingModes: document.querySelector("#settingModes"),
   settingLowPower: document.querySelector("#settingLowPower"),
+  settingGuessing: document.querySelector("#settingGuessing"),
+  settingMaxGuesses: document.querySelector("#settingMaxGuesses"),
   setupRoomCode: document.querySelector("#setupRoomCode"),
 };
 
@@ -386,10 +395,11 @@ function currentTheme() {
   return document.body.dataset.theme === "light" ? "light" : "dark";
 }
 
+const THEME_KEY = "whoisit_theme_v1";
 function applyTheme(theme) {
   document.body.dataset.theme = theme === "light" ? "light" : "dark";
   try {
-    localStorage.setItem("lickyspits-theme", currentTheme());
+    localStorage.setItem(THEME_KEY, currentTheme());
   } catch (error) {
     // Ignore storage issues in local previews.
   }
@@ -455,7 +465,9 @@ function toggleTheme() {
 function loadTheme() {
   let savedTheme = "dark";
   try {
-    savedTheme = localStorage.getItem("lickyspits-theme") || "dark";
+    // One-time migration off the old project-name key; the new value wins once written.
+    savedTheme = localStorage.getItem(THEME_KEY) || localStorage.getItem("lickyspits-theme") || "dark";
+    localStorage.removeItem("lickyspits-theme");
   } catch (error) {
     savedTheme = "dark";
   }
@@ -515,8 +527,12 @@ function newGame(seedSalt, opts = {}) {
   if (state.gameMode === "online") {
     netConnect();   // no-op if already on this room's socket (won't drop the peer)
     // Announce the new round to the peer, UNLESS the lobby's START handler already sent it.
-    if (!opts.remote && !opts.announced) netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
+    if (!opts.remote && !opts.announced) {
+      state.lastStartSentAt = Date.now();   // marks us a live dealer for the crossing-starts tie-break
+      netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
+    }
   }
+  resetGuessState();
   drawPrompt();
   addLog("New game dealt. Nobody looks trustworthy.");
   render();
@@ -756,7 +772,18 @@ function render() {
   renderPromptCard();
   renderOpponentPanel();
   if (state.isObserver) { renderObserverHeader(); fitObserverBoard(); } else document.getElementById("observerBar")?.remove();
-  maybeShowOnboarding();   // one-time first-play nudges (no-op after the first dismissal)
+  syncActionLabel();
+  // First-ever board: the manifesto shows first; the mechanic nudges follow once it's dismissed.
+  // Later sessions instead open on the forecast bill (it declines to stack with the manifesto).
+  if (maybeShowManifesto()) { maybeShowOnboarding(); maybeShowForecast(); }
+}
+// The primary HUD action reads "IS IT…?" in Win & Loss (it opens the guess), else "END ROUND".
+function syncActionLabel() {
+  const txt = document.querySelector("#swapSeatButton .er-txt");
+  if (!txt) return;
+  const guessing = state.settings.guessing && guessTargetSeat() !== null && !state.isObserver;
+  txt.textContent = guessing ? "IS IT…?" : "END ROUND";
+  els.swapSeatButton.classList.toggle("is-guess", !!guessing);
 }
 
 // ===================== Board sorting =====================
@@ -891,7 +918,8 @@ function characterStat(ch, key) {
 }
 // Baseline visual stats every character "holds"; extra options appear only for the modes that track
 // them, and the chosen sort persists across rounds unless it is not valid for the new mode.
-const BASE_SORTS = [["eye", "Eye colour"], ["skin", "Skin colour"], ["ear", "Ear size"], ["hairamount", "Amount of hair"], ["appeal", "General appeal"]];
+// VC-10: uniform 'Label emoji' format across every sort (mode sorts already carry an emoji), sentence case.
+const BASE_SORTS = [["eye", "Eye colour 👁"], ["skin", "Skin colour 🎨"], ["ear", "Ear size 👂"], ["hairamount", "Amount of hair 💇"], ["appeal", "General appeal ⭐"]];
 function rebuildSortOptions() {
   const sel = els.sortSelect;
   if (!sel) return;
@@ -903,7 +931,7 @@ function rebuildSortOptions() {
     ? [["", "Sort by…"], ...BASE_SORTS]
     : [["", "Sort by…"], ...BASE_SORTS, ...MysteryModes.modeSorts(state.global.mystery?.id)];
   // Hidden host-only sort: only surfaces once the debug picker is unlocked.
-  if (document.body.classList.contains("debug-mode")) opts.push(["nameappropriateness", "Name Appropriateness"]);
+  if (document.body.classList.contains("debug-mode")) opts.push(["nameappropriateness", "Name appropriateness 🔤"]);
   if (!opts.some((o) => o[0] === state.sortKey)) state.sortKey = "";   // fall back to board order, not the first named sort
   sel.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
   sel.value = state.sortKey;
@@ -1235,6 +1263,8 @@ function renderPromptCard() {
 
 function toggleEliminated(id) {
   if (state.isObserver) return;   // TV display is read-only - a click must not cross off a real seat
+  if (state.guessMode) { makeGuess(id); return; }   // Win & Loss: a tap is an accusation, not a cross-off
+  if (state.roundOver) return;
   const player = currentPlayer();
   // Clicking a downed tile flips it back up, so the toggle is its own undo.
   if (player.eliminated.has(id)) {
@@ -1249,7 +1279,15 @@ function toggleEliminated(id) {
     state.justEliminated = id;
     state.justRestored = null;
   }
-  renderBoard();
+  // PERF2-02: on a PLAIN round a tap only needs to flip one card's is-down class - rebuilding all
+  // 24-36 card nodes was wasted work. Any active mystery mode keeps the full re-render because its
+  // per-card hooks (ygo-flip, swipe-nope, fireworks head-pop…) fire during card construction.
+  const cardEl = !state.global.mystery ? document.getElementById(`card-${id}`) : null;
+  if (cardEl) {
+    cardEl.classList.toggle("is-down", player.eliminated.has(id));
+  } else {
+    renderBoard();
+  }
   state.justEliminated = null;
   state.justRestored = null;
   const down = player.eliminated.has(id);
@@ -1258,7 +1296,37 @@ function toggleEliminated(id) {
   if (down && Math.random() < 0.4 && typeof showLastWords === "function") showLastWords(id);
   sfx(down ? "eliminate" : "revive");
   netSend("elim", { id, down });   // live-sync the cross-off
+  maybeFinalTwo(player);
   scheduleSave();
+}
+// FUN2-02: the natural climax of every round used to pass silently. When a seat's live board drops
+// to exactly TWO faces, one loud beat: banner + sting, once per seat per round (crossing back up and
+// re-reaching two stays quiet - the moment only lands the first time).
+const FINAL_TWO_LINES = [
+  "FINAL TWO. One of these people is lying to you.",
+  "FINAL TWO. Choose like your reputation depends on it.",
+  "FINAL TWO. One of them has been smiling too long.",
+  "FINAL TWO. The universe is holding its breath.",
+  "FINAL TWO. Statistically, you're about to blow this.",
+  "FINAL TWO. Look them both in the eyes first."
+];
+function maybeFinalTwo(player) {
+  if (state.isObserver || state.roundOver || !player) return;
+  const remaining = (state.board || []).length - player.eliminated.size;
+  if (remaining !== 2) return;
+  if (!state.finalTwoShown) state.finalTwoShown = {};
+  const seat = state.gameMode === "online" ? (state.mySeat || 0) : clampSeatIndex(state.currentPlayer);
+  if (state.finalTwoShown[seat]) return;
+  state.finalTwoShown[seat] = true;
+  const line = FINAL_TWO_LINES[stableHash(`${state.gameSalt}:ft:${seat}`) % FINAL_TWO_LINES.length];
+  document.querySelector(".final-two-banner")?.remove();
+  const b = document.createElement("div");
+  b.className = "guess-banner final-two-banner";
+  b.setAttribute("role", "status");
+  b.innerHTML = `<span class="gb-text">⚡ ${escapeHtml(line)}</span>`;
+  document.body.appendChild(b);
+  sfx("coin");
+  setTimeout(() => { b.classList.add("ft-out"); setTimeout(() => b.remove(), 400); }, 2600);
 }
 
 // Per-mode question decks - when a special mode is active, every drawn question matches its flavour.
@@ -1272,8 +1340,21 @@ function promptHeat(p) { return (p && typeof p === "object" && p.heat) || "mild"
 // then medium unlocks, then feral late. PG mode never goes past medium. Heat is a LOCAL flavour
 // choice (prompts aren't synced), so no salt determinism is needed here.
 function allowedHeats(age, pg) {
-  const tiers = age < 3 ? ["mild"] : age < 6 ? ["mild", "medium"] : ["mild", "medium", "feral"];
+  // Escalate FAST: mild only for round 0, medium unlocks round 1, feral from round 3 - most sessions
+  // are 3-5 rounds, so the sharpest material now actually shows up (was locked until round 7).
+  const tiers = age < 1 ? ["mild"] : age < 3 ? ["mild", "medium"] : ["mild", "medium", "feral"];
   return pg ? tiers.filter((h) => h !== "feral") : tiers;
+}
+// No-repeat prompt bag: a prompt won't come up again until the whole current pool has cycled. Keyed
+// by prompt text so it works across decks. Reset per session (startLocalGame) + when a pool empties.
+function drawFromPool(pool) {
+  if (!pool.length) return null;
+  state.seenPrompts = state.seenPrompts instanceof Set ? state.seenPrompts : new Set();
+  let fresh = pool.filter((p) => !state.seenPrompts.has(promptText(p)));
+  if (!fresh.length) { pool.forEach((p) => state.seenPrompts.delete(promptText(p))); fresh = pool; }
+  const chosen = pick(fresh);
+  state.seenPrompts.add(promptText(chosen));
+  return chosen;
 }
 function drawPrompt() {
   if (!state.settings.prompts) {
@@ -1282,18 +1363,19 @@ function drawPrompt() {
   }
   const modeDeck = state.global.mystery ? modePrompts[state.global.mystery.id] : null;
   let deck = modeDeck && modeDeck.length ? modeDeck : absurdPrompts;
-  // Location-aware prompts: when a location is set, roughly 1-in-6 draws come from the shared
-  // {location} deck instead - the banner scene leaks into the questions, whatever the mode.
   const locDeck = (window.GameData && window.GameData.locationPrompts) || [];
-  if (state.location && locDeck.length && Math.random() < 0.16) deck = locDeck;
-  // Escalation only kicks in for decks that actually carry heat tags; untagged decks are used whole,
-  // so this is a no-op until the content is tagged.
+  const classicDeck = (window.GameData && window.GameData.classicPrompts) || [];
+  const roll = Math.random();
+  // The banner scene leaks into ~1-in-6 draws. Plus, in the FIRST couple of rounds (before people
+  // find their feet), a ~1-in-5 draw is a plain trait ELIMINATOR so beginners see how to actually
+  // whittle the board down (the deduction on-ramp the dares never provided).
+  if (state.location && locDeck.length && roll < 0.16) deck = locDeck;
+  else if (classicDeck.length && (state.roundAge || 0) <= 1 && roll < 0.36) deck = classicDeck;
+  // Escalation only kicks in for decks that actually carry heat tags; untagged decks are used whole.
   let pool = deck;
   if (deck.some((p) => p && typeof p === "object" && p.heat)) {
     const allow = allowedHeats(state.roundAge || 0, state.settings.pg);
     let filtered = deck.filter((p) => allow.includes(promptHeat(p)));
-    // A deck with nothing at the allowed heats (e.g. orgy has no mild) clamps to its LOWEST available
-    // tier rather than falling back to the whole deck - early rounds never leak feral prompts.
     if (!filtered.length) {
       for (const heat of ["mild", "medium", "feral"]) {
         filtered = deck.filter((p) => promptHeat(p) === heat);
@@ -1303,7 +1385,11 @@ function drawPrompt() {
     if (filtered.length) pool = filtered;
   }
   // {location} resolves to the current banner scene ("the Wine Cellar"); safe fallback if unset.
-  const text = promptText(pick(pool)).replace(/\{location\}/g, state.location ? `the ${state.location.name}` : "this place");
+  // {who} stays generic ("your character") because the cue card is shared - each reader performs as
+  // the secret THEY are hiding, so a name here would leak the board.
+  const text = promptText(drawFromPool(pool))
+    .replace(/\{location\}/g, state.location ? `the ${state.location.name}` : "this place")
+    .replace(/\{who\}/g, "your character");
   els.questionPrompt.textContent = text;
 }
 
@@ -1372,12 +1458,24 @@ function createCharacterCard(character, player) {
     : character.isGayby
       ? `<span class="gayby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">🏳️‍🌈 GAYBY</span>`
       : character.isBaby ? `<span class="baby-badge" title="${escapeHtml((character.parents || []).join(" + "))}">👶 NEW</span>` : "";
+  // FUN2-05: characters who keep turning up as SECRETS earn a title on the board itself, so the
+  // session's history is visible where you play, not just on the receipt. Plain rounds only -
+  // costume modes have their own card chrome and the ribbon would fight it.
+  let loreRibbon = "";
+  if (!state.global.mystery) {
+    const burns = (state.lore || []).reduce((n, e) => n + ((e.ids || []).includes(character.id) ? 1 : 0), 0);
+    if (burns >= 2) {
+      const titles = ["TWICE-BURNED", "BACK AGAIN", "THE USUAL SUSPECT", "REPEAT OFFENDER", "KNOWN TO POLICE", "CAN'T STAY AWAY"];
+      loreRibbon = `<span class="lore-ribbon" title="Unmasked ${burns} times tonight">${titles[stableHash(`${character.id}:${burns}`) % titles.length]}</span>`;
+    }
+  }
   card.innerHTML = `
     <div class="portrait-wrap">
       <img src="${portraitSrc}" alt="${escapeHtml(character.name)}">
       ${modeOverlayHtml}
       ${prop}
       ${babyBadge}
+      ${loreRibbon}
       ${state.sortKey === "abortions" ? `<span class="abortion-count" title="abortions">👼 ${character.abortions || 0}</span>` : ""}
       ${mystery.cornerHtml || ""}
     </div>
@@ -1680,7 +1778,7 @@ els.setupButton.addEventListener("click", () => {
 const quitToMenuButton = document.querySelector("#quitToMenuButton");
 if (quitToMenuButton) quitToMenuButton.addEventListener("click", () => {
   try { els.setupDialog.close(); } catch (e) { /* fine */ }
-  try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }
+  clearOwnSave();
   if (state.gameMode === "online") { try { netSend("bye", {}); } catch (e) { /* fine */ } try { net && net.close(); } catch (e) { /* fine */ } }
   state.inLobby = false; state.isObserver = false;
   document.body.classList.remove("observer");
@@ -1692,8 +1790,9 @@ els.saveSetupButton.addEventListener("click", () => {
   state.settings.prompts = els.settingPrompts.checked;
   state.settings.mystery = true;
   state.settings.locations = els.settingLocations.checked;
-  state.settings.roles = els.settingRoles.checked;
+  if (els.settingRoles) state.settings.roles = els.settingRoles.checked;   // Roles toggle retired; roles stay on
   if (els.settingPG) state.settings.pg = els.settingPG.checked;
+  if (els.settingGuessing) state.settings.guessing = els.settingGuessing.checked;
   if (els.settingStartMode) state.settings.startModeId = els.settingStartMode.value || "";
   if (els.settingLowPower) { state.settings.lowPower = els.settingLowPower.checked; savePrefs({ lowPower: state.settings.lowPower }); applyLowPower(); }
   readModeSettingsFromForm();
@@ -1706,7 +1805,10 @@ els.saveSetupButton.addEventListener("click", () => {
     state.settings = normalizeGameSettings({ ...state.settings, ...(parsed.g || {}) });
     newGame(parsed.s);
   } else {
-    if (state.gameMode === "online") netSend("settings", { settings: state.settings });
+    // Only the host's settings ride the wire (receiver also enforces this — see net.js).
+    if (state.gameMode === "online" && (state.isHost || state.clientId === (typeof netHostId === "function" ? netHostId() : null))) {
+      netSend("settings", { settings: state.settings });
+    }
     scheduleSave();
     if (setupApplyHint) setupApplyHint.hidden = true;
   }
@@ -1744,19 +1846,20 @@ function toggleSoundPanel() {
   let panel = document.getElementById("soundPanel");
   if (panel) { panel.remove(); return; }
   if (!window.Sound) return;
+  document.getElementById("soundboardPanel")?.remove();   // they share an anchor - only one at a time
   unlockSound();
   panel = document.createElement("div");
   panel.id = "soundPanel"; panel.className = "sound-panel";
   const S = window.Sound;
   const host = state.gameMode !== "online" || state.isHost;
   const trackOpts = S.trackNames().map((n, i) => `<option value="${i}" ${i === S.currentTrack() ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
+  // Settings only (FX / Music / Track). The soundboard moved to its own 📣 button (FUN-04) so this
+  // panel is a small settings card, and switches/select use the shared De Stijl controls (VC-04).
   panel.innerHTML = `
-    <div class="sp-head"><b>🔊 Sound</b><button type="button" class="sp-x" aria-label="close">✕</button></div>
+    <div class="sp-head"><b>Sound</b><button type="button" class="sp-x" aria-label="close">✕</button></div>
     <label class="sp-row"><span>Sound FX</span><input type="checkbox" class="sp-master" ${S.isEnabled() ? "checked" : ""}></label>
     <label class="sp-row"><span>Music${host ? "" : " (host controls)"}</span><input type="checkbox" class="sp-music" ${S.isMusicOn() ? "checked" : ""} ${host ? "" : "disabled"}></label>
-    <label class="sp-row"><span>Track</span><select class="sp-track" ${host ? "" : "disabled"}>${trackOpts}</select></label>
-    <div class="sp-board-label">Soundboard — both players hear it</div>
-    <div class="sp-board">${S.sfxNames().map((n) => `<button type="button" class="sp-fx" data-fx="${n}">${escapeHtml(n)}</button>`).join("")}</div>`;
+    <label class="sp-row"><span>Track</span><select class="sp-track" ${host ? "" : "disabled"}>${trackOpts}</select></label>`;
   document.querySelector(".game-stage")?.appendChild(panel) || document.body.appendChild(panel);
   panel.querySelector(".sp-x").addEventListener("click", () => panel.remove());
   panel.querySelector(".sp-master").addEventListener("change", (e) => { S.setEnabled(e.target.checked); savePrefs({ sound: e.target.checked }); if (e.target.checked) sfx("blip"); });
@@ -1764,9 +1867,42 @@ function toggleSoundPanel() {
   const trackSel = panel.querySelector(".sp-track");
   const pushMusic = () => { S.setMusic(musicBox.checked); S.setTrack(Number(trackSel.value)); if (state.gameMode === "online") netSend("music", { on: musicBox.checked, track: Number(trackSel.value) }); };
   if (host) { musicBox.addEventListener("change", pushMusic); trackSel.addEventListener("change", () => { if (!musicBox.checked) musicBox.checked = true; pushMusic(); }); }
-  panel.querySelectorAll(".sp-fx").forEach((b) => b.addEventListener("click", () => sfx(b.dataset.fx, { shared: true })));
 }
 if (els.soundButton) els.soundButton.addEventListener("click", toggleSoundPanel);
+
+// FUN-04: the party soundboard was buried two levels deep inside the sound settings. It's a genuinely
+// great toy, so it gets its own 📣 toolbar button opening a compact grid. Both players hear each hit.
+function toggleSoundboardPanel() {
+  let panel = document.getElementById("soundboardPanel");
+  if (panel) { panel.remove(); return; }
+  if (!window.Sound) return;
+  document.getElementById("soundPanel")?.remove();   // they share an anchor - only one at a time
+  unlockSound();
+  const S = window.Sound;
+  panel = document.createElement("div");
+  panel.id = "soundboardPanel"; panel.className = "sound-panel soundboard-panel";
+  panel.innerHTML = `
+    <div class="sp-head"><b>📣 Soundboard</b><button type="button" class="sp-x" aria-label="close">✕</button></div>
+    <div class="sp-board-label">Both players hear it</div>
+    <div class="sp-board">${S.sfxNames().map((n) => `<button type="button" class="sp-fx" data-fx="${n}">${escapeHtml(n)}</button>`).join("")}</div>`;
+  document.querySelector(".game-stage")?.appendChild(panel) || document.body.appendChild(panel);
+  panel.querySelector(".sp-x").addEventListener("click", () => panel.remove());
+  panel.querySelectorAll(".sp-fx").forEach((b) => b.addEventListener("click", () => sfx(b.dataset.fx, { shared: true })));
+}
+if (els.soundboardButton) {
+  // Long-press the 📣 icon = instant BUZZER; a normal click opens/closes the grid. The buzzer
+  // long-press swallows the click that follows so it doesn't also toggle the panel open.
+  let sbHold = null;
+  let sbFired = false;
+  els.soundboardButton.addEventListener("pointerdown", () => {
+    sbFired = false;
+    sbHold = setTimeout(() => { sbHold = null; sbFired = true; unlockSound(); sfx("buzzer", { shared: true }); }, 500);
+  });
+  const cancelHold = () => { if (sbHold) { clearTimeout(sbHold); sbHold = null; } };
+  els.soundboardButton.addEventListener("pointerup", cancelHold);
+  els.soundboardButton.addEventListener("pointerleave", cancelHold);
+  els.soundboardButton.addEventListener("click", () => { if (sbFired) { sbFired = false; return; } toggleSoundboardPanel(); });
+}
 
 const MODE_POLICY_LABELS = {
   progressive: "Progressive ramping",
@@ -1836,6 +1972,9 @@ function normalizeGameSettings(raw) {
   next.startModeId = normalizedStartModeId(next);
   next.modePolicy = effectiveModePolicy(next);
   next.allowedModeIds = normalizedAllowedModeIds(next);
+  next.roundPicker = next.roundPicker === "manual" ? "manual" : "random";
+  next.guessing = next.guessing !== false;
+  next.maxGuesses = [1, 2, 3, 5].includes(next.maxGuesses) ? next.maxGuesses : 3;
   return next;
 }
 function hydrateSerializedCharacter(character) {
@@ -1918,6 +2057,22 @@ function syncHostOwnedSetupVisibility() {
   const hostOwnsModes = state.gameMode !== "online" || state.isHost;
   els.settingStartMode?.closest(".setup-mode-row")?.toggleAttribute("hidden", !hostOwnsModes);
   els.settingModePolicy?.closest(".mode-section")?.toggleAttribute("hidden", !hostOwnsModes);
+  // Every GAME setting (prompts/locations/roles/PG/board/seed) is host-authoritative online: a guest
+  // sees them but can't touch them (BUG-01 + NET-10). Device-local prefs (low power) stay live for all.
+  const form = els.setupDialog?.querySelector(".setup-form");
+  if (form) {
+    form.classList.toggle("guest-locked", !hostOwnsModes);
+    [els.settingPrompts, els.settingLocations, els.settingRoles, els.settingPG, els.settingSeed, els.copySeedButton]
+      .forEach((el) => el && (el.disabled = !hostOwnsModes));
+    els.setupDialog.querySelectorAll(".ts-size, .mode-policy-chip, .mode-check").forEach((el) => { el.disabled = !hostOwnsModes; });
+    const hint = els.setupDialog.querySelector(".setup-guest-hint");
+    if (!hostOwnsModes && !hint) {
+      const p = document.createElement("p");
+      p.className = "setup-guest-hint";
+      p.textContent = "Only the host can change the game settings. Low power is yours to keep.";
+      form.insertBefore(p, form.querySelector(".settings-grid"));
+    } else if (hostOwnsModes && hint) hint.remove();
+  }
 }
 function syncModePickerVisibility() {
   const policy = els.settingModePolicy?.querySelector(".mode-policy-chip.is-on")?.dataset.policy || effectiveModePolicy();
@@ -1951,13 +2106,47 @@ function readModeSettingsFromForm() {
   state.settings.modePolicy = els.settingModePolicy?.querySelector(".mode-policy-chip.is-on")?.dataset.policy || "progressive";
   state.settings.allowedModeIds = selectedModeIdsFromForm();
 }
+// Guess-count pills (1/2/3/5) + Win&Loss toggle grey-out.
+function syncGuessPills() {
+  const on = state.settings.guessing !== false;
+  els.settingMaxGuesses?.querySelectorAll(".gp").forEach((b) => {
+    b.classList.toggle("on", Number(b.dataset.n) === state.settings.maxGuesses);
+  });
+  els.settingMaxGuesses?.closest(".guess-count-row")?.classList.toggle("is-off", !on);
+  // FLOW2-04: Win & Loss runs on exactly TWO SIDES - two players, or any table with Team Mode on
+  // (teams share one pooled guess count). Only a 3+ SOLO table can't guess; say so instead of
+  // presenting live-looking switches that silently do nothing.
+  const available = typeof gameSeatCount === "function" ? gameSeatCount() === 2 : true;
+  const winRow = els.settingGuessing?.closest(".toggle-row");
+  const countRow = els.settingMaxGuesses?.closest(".guess-count-row");
+  [winRow, countRow].forEach((row) => row && row.classList.toggle("is-unavailable", !available));
+  const small = winRow?.querySelector("small");
+  if (small) {
+    if (!small.dataset.original) small.dataset.original = small.textContent;
+    small.textContent = available
+      ? small.dataset.original
+      : "Needs two sides: 2 players, or 3+ with Team Mode on (teams pool their guesses).";
+  }
+}
+if (els.settingMaxGuesses) {
+  els.settingMaxGuesses.addEventListener("click", (e) => {
+    const b = e.target.closest(".gp");
+    if (!b) return;
+    state.settings.maxGuesses = Number(b.dataset.n);
+    syncGuessPills();
+    sfx("blip");
+  });
+}
+if (els.settingGuessing) els.settingGuessing.addEventListener("change", () => { state.settings.guessing = els.settingGuessing.checked; syncGuessPills(); });
 
 function syncSettingsToForm() {
   els.settingPrompts.checked = state.settings.prompts;
   if (els.settingMystery) els.settingMystery.checked = true;
   els.settingLocations.checked = state.settings.locations;
-  els.settingRoles.checked = state.settings.roles;
+  if (els.settingRoles) els.settingRoles.checked = state.settings.roles;
   if (els.settingPG) els.settingPG.checked = state.settings.pg;
+  if (els.settingGuessing) els.settingGuessing.checked = state.settings.guessing !== false;
+  syncGuessPills();
   if (els.settingLowPower) els.settingLowPower.checked = !!state.settings.lowPower;
   renderSetupStartModeSelect();
   renderModePolicyControls();
@@ -1975,6 +2164,19 @@ function syncSettingsToForm() {
 // The whole round survives a refresh: the salt re-derives the board/effect/secrets, and the save
 // carries what ISN'T derivable - session babies, eliminations, seat, settings.
 const GAME_SAVE_KEY = "whoisit_game_v1";
+// Deleting the save is destructive for EVERY tab sharing this browser profile. Only the tab whose
+// clientId made the save may clear it — a second tab hitting Leave used to nuke the host tab's
+// refresh-resume out from under it.
+function clearOwnSave() {
+  try {
+    const raw = localStorage.getItem(GAME_SAVE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s && s.clientId && state.clientId && s.clientId !== state.clientId) return;   // not ours
+    }
+  } catch (e) { /* unreadable save: clearing is the safe default */ }
+  try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* storage gone */ }
+}
 let saveTimer = null;
 function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveGameState, 400); }
 // One save shape for everything: refresh-resume, lobby rejoin, AND the host->reconnector snapshot
@@ -1995,6 +2197,12 @@ function buildGameSave() {
     roundAge: state.roundAge || 0,
     lore: state.lore || [],
     stats: state.stats || {},
+    scoreboard: state.scoreboard || {},   // Win & Loss tally survives a refresh
+    guessesLeft: state.guessesLeft || {},
+    roundOver: !!state.roundOver,
+    hostClaimId: state.hostClaimId || null,   // NET2-02: host-takeover authority survives refreshes
+    // NET2-03: the no-repeat prompt memory (capped - old entries just become re-askable)
+    seenPrompts: state.seenPrompts instanceof Set ? [...state.seenPrompts].slice(-60) : [],
     playerCount: state.playerCount || 2,
     roster: (state.roster || []).map((r) => ({ name: r.name, clientId: r.clientId, side: r.side, personaId: r.personaId })),
     clientId: state.clientId || "",
@@ -2046,7 +2254,7 @@ function maybeShowOnboarding() {
   if (onboardDone) return;
   try { if (localStorage.getItem(ONBOARD_KEY)) { onboardDone = true; return; } } catch (e) { onboardDone = true; return; }
   // Wait until the board is actually visible (no title/lobby/reveal overlay covering it).
-  if (document.querySelector(".title-screen, .lobby-screen, .round-reveal, .onboard-tips")) return;
+  if (document.querySelector(".title-screen, .lobby-screen, .round-reveal, .onboard-tips, .manifesto-card")) return;
   const cue = document.querySelector(".cue-card");
   const secret = els.secretCard;
   if (!cue || !secret) return;
@@ -2078,11 +2286,161 @@ function maybeShowOnboarding() {
   setTimeout(() => document.addEventListener("pointerdown", dismiss, true), 500);
   setTimeout(dismiss, 9000);   // fallback so it never lingers
 }
+// FLOW-01: instead of a how-to-play tutorial (the game is meant to reveal itself, "don't explain it
+// too much"), the FIRST-EVER board opens with a short MANIFESTO that sets the tone, then hands you
+// straight to the board. Shown once, ever. Returns true when it's already been seen (or isn't
+// applicable) so the caller can proceed to the onboarding nudges; false while it's on screen.
+const MANIFESTO_KEY = "whoisit_manifesto_v1";
+let manifestoDone = false;
+let manifestoRetryTimer = null;
+// BUG2-01: the only render() after the first-ever deal happens while the title screen is still
+// fading out, so the overlay guard used to bail exactly once — and the whole first-run teaching
+// layer (manifesto + tips) never fired. When blocked, re-arm a short retry; it self-clears the
+// moment the manifesto shows or the key is set, and never runs again after first-run.
+function scheduleManifestoRetry() {
+  if (manifestoDone || manifestoRetryTimer) return;
+  manifestoRetryTimer = setTimeout(() => {
+    manifestoRetryTimer = null;
+    if (maybeShowManifesto()) maybeShowOnboarding();
+  }, 600);
+}
+function maybeShowManifesto() {
+  if (manifestoDone) return true;
+  if (state.isObserver) { manifestoDone = true; return true; }
+  try { if (localStorage.getItem(MANIFESTO_KEY)) { manifestoDone = true; return true; } } catch (e) { manifestoDone = true; return true; }
+  if (document.querySelector(".title-screen, .lobby-screen, .round-reveal, .manifesto-card")) { scheduleManifestoRetry(); return false; }
+  const board = document.querySelector(".character-board");
+  if (!board || !board.getBoundingClientRect().width) { scheduleManifestoRetry(); return false; }   // wait until the board is laid out
+  manifestoDone = true;
+  const ov = document.createElement("div");
+  ov.className = "manifesto-card";
+  ov.setAttribute("role", "dialog");
+  ov.setAttribute("aria-label", "A manifesto");
+  ov.innerHTML = `
+    <div class="mf-shell">
+      <p class="mf-eyebrow">A MANIFESTO</p>
+      <div class="mf-body">
+        <p>Have you ever wondered what your deepest prejudices are?</p>
+        <p>Have you ever thought <em>&ldquo;how do I describe someone beyond the base level of their skin colour&rdquo;</em>, or <em>&ldquo;what noise would this person make when being choked to death?&rdquo;</em></p>
+        <p>All these and more are answered with a simple game of <b>WHO? IS IT?</b></p>
+        <p class="mf-kicker">Some will say this is a parody of the classic GUESS WHO? &nbsp;To those people we say — <b>IS IT?</b></p>
+      </div>
+      <button type="button" class="button primary mf-go">BEGIN</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const dismiss = () => {
+    try { localStorage.setItem(MANIFESTO_KEY, "1"); } catch (e) { /* fine */ }
+    if (ov._untrap) ov._untrap();
+    ov.classList.add("mf-out");
+    // The nudges wait for the card to actually LEAVE the DOM - calling immediately re-hit the same
+    // overlay guard the manifesto itself used to die on (BUG2-01, one layer down).
+    setTimeout(() => { ov.remove(); maybeShowOnboarding(); }, 280);
+  };
+  ov.querySelector(".mf-go").addEventListener("click", dismiss);
+  trapOverlay(ov, { escape: dismiss });
+  return false;
+}
+
+// A11Y2-01: minimal modal manners for the overlay family - role/aria-modal, focus the first control,
+// keep Tab inside, optionally answer Escape, and hand focus back on close. Deliberately NOT applied
+// with Escape to the round reveal / session end (skipping the scoreboard moment by accident is worse).
+function trapOverlay(el, opts = {}) {
+  if (!el.getAttribute("role")) el.setAttribute("role", "dialog");
+  el.setAttribute("aria-modal", "true");
+  const prev = document.activeElement;
+  const focusables = () => [...el.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])")]
+    .filter((b) => !b.disabled && b.offsetParent !== null);
+  const first = focusables()[0];
+  if (first) setTimeout(() => { try { first.focus(); } catch (e) { /* fine */ } }, 30);
+  const onKey = (e) => {
+    if (e.key === "Escape" && typeof opts.escape === "function") { e.preventDefault(); opts.escape(); return; }
+    if (e.key !== "Tab") return;
+    const f = focusables();
+    if (!f.length) return;
+    const i = f.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && (i === -1 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+  };
+  el.addEventListener("keydown", onKey);
+  el._untrap = () => { el.removeEventListener("keydown", onKey); try { if (prev && prev.focus) prev.focus(); } catch (e) { /* fine */ } };
+}
+
+// FLOW2-02: the '?' toolbar button - the one help surface. Replays the rules any time without
+// touching the round: three lines, the drag-and-drop tell, and a manifesto encore.
+function showHelpCard() {
+  document.querySelector(".help-card")?.remove();
+  const n = state.settings.maxGuesses || 3;
+  const ov = document.createElement("div");
+  ov.className = "manifesto-card help-card";
+  ov.setAttribute("aria-label", "How it works");
+  ov.innerHTML = `
+    <div class="mf-shell">
+      <p class="mf-eyebrow">HOW IT WORKS</p>
+      <div class="mf-body">
+        <p><b>1.</b> You are a face on their board. They're one on yours. Hide yours.</p>
+        <p><b>2.</b> Ask anything. Answer however you dare. Tap faces to cross them off.</p>
+        <p><b>3.</b> Sure? Hit <b>IS IT…?</b> — ${n} wrong guess${n === 1 ? "" : "es"} and <em>they</em> win.</p>
+        <p class="mf-kicker">Some modes let you <b>drag one face onto another</b>. Consequences occur.</p>
+      </div>
+      <button type="button" class="button ghost hc-manifesto">READ THE MANIFESTO AGAIN</button>
+      <button type="button" class="button primary mf-go">GOT IT</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = () => { if (ov._untrap) ov._untrap(); ov.classList.add("mf-out"); setTimeout(() => ov.remove(), 260); };
+  ov.querySelector(".mf-go").addEventListener("click", close);
+  ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
+  ov.querySelector(".hc-manifesto").addEventListener("click", () => {
+    close();
+    manifestoDone = false;                       // replay wanted: let it show once more, right now
+    try { localStorage.removeItem(MANIFESTO_KEY); } catch (e) { /* fine */ }
+    setTimeout(() => { if (maybeShowManifesto()) maybeShowOnboarding(); }, 300);
+  });
+  trapOverlay(ov, { escape: close });
+}
+
+// APPEAL2-02: the cold open. Once per session (and never on top of the manifesto), a salt-derived
+// bill of what tonight statistically holds. Pure theatre; tap or 2.6s dismisses it.
+function maybeShowForecast() {
+  if (state.forecastShown || (state.roundAge || 0) !== 0 || state.isObserver) return;
+  try { if (!localStorage.getItem(MANIFESTO_KEY)) return; } catch (e) { return; }
+  if (document.querySelector(".title-screen, .lobby-screen, .round-reveal, .manifesto-card, .help-card")) return;
+  if (!state.location || !state.gameSalt) return;
+  state.forecastShown = true;
+  const modes = MysteryModes.all();
+  const a = modes[stableHash(`${state.gameSalt}:fca`) % modes.length];
+  let b = modes[stableHash(`${state.gameSalt}:fcb`) % modes.length];
+  if (b === a) b = modes[(modes.indexOf(a) + 7) % modes.length];
+  const ov = document.createElement("div");
+  ov.className = "forecast-card";
+  ov.setAttribute("role", "status");
+  ov.innerHTML = `
+    <div class="fc-shell">
+      <p class="fc-eyebrow">TONIGHT'S FORECAST</p>
+      <p class="fc-line">☁ ${escapeHtml(a.name)} before midnight</p>
+      <p class="fc-line">☁ at least one ${escapeHtml(b.name.toLowerCase())} incident</p>
+      <p class="fc-line">☁ something unforgivable at the ${escapeHtml(state.location.name)}</p>
+    </div>`;
+  document.body.appendChild(ov);
+  const skip = () => { ov.classList.add("fc-out"); setTimeout(() => ov.remove(), 300); };
+  ov.addEventListener("pointerdown", skip);
+  setTimeout(skip, 2600);
+}
 function resumeGame(saved) {
   // A TV/display refresh rejoins the room as a display (never as a seated player).
   if (saved.isObserver && (saved.gameMode || "") === "online" && saved.roomCode) {
     joinRoom(saved.roomCode, "TV", { observe: true });
     return;
+  }
+  // A save's online identity belongs to the TAB that made it (clientId lives in per-tab
+  // sessionStorage). A DIFFERENT tab opening the same save must never impersonate that player —
+  // that duplicated the host live (two tabs, one clientId) and made later joins invisible.
+  // Instead the foreign tab walks in the front door: it JOINS the room as itself.
+  if ((saved.gameMode || "") === "online" && saved.roomCode && saved.clientId) {
+    const myTabId = ensureClientId();
+    if (myTabId && saved.clientId !== myTabId) {
+      joinRoom(saved.roomCode, saved.pname || "", {});
+      return;
+    }
   }
   // A refresh mid-LOBBY (online, nothing dealt yet): rejoin the room as the same person instead of
   // trying to resume a round that never existed.
@@ -2101,6 +2459,9 @@ function resumeGame(saved) {
   state.roundAge = saved.roundAge || 0;   // restored before newGame's resume path (which preserves it)
   state.lore = Array.isArray(saved.lore) ? saved.lore : [];
   state.stats = saved.stats && typeof saved.stats === "object" ? saved.stats : {};
+  state.scoreboard = saved.scoreboard && typeof saved.scoreboard === "object" ? saved.scoreboard : {};
+  state.hostClaimId = saved.hostClaimId || null;             // NET2-02: takeover authority survives
+  state.seenPrompts = new Set(Array.isArray(saved.seenPrompts) ? saved.seenPrompts : []);   // NET2-03
   state.abortedBabies = saved.abortedBabies || [];
   // Restore the roster BEFORE newGame so assignRosterTeams re-derives the same sides from the same
   // salt + roster (and the seat pill / team labels come back intact).
@@ -2213,7 +2574,21 @@ function showSoloReveal(done) {
   setTimeout(finish, 5200);
 }
 // End of round: the big reveal - BOTH secret characters side by side, then the next round deals.
-function showRoundReveal(done) {
+function showRoundReveal(done, outcome) {
+  // Crossing END ROUND clicks online would stack two reveals (each client receives the other's
+  // endround too). Clear any existing non-team reveal first so there's only ever one.
+  document.querySelectorAll(".round-reveal:not(.team-reveal)").forEach((el) => el.remove());
+  state.roundOver = true;
+  document.body.classList.remove("guess-mode");
+  document.querySelector(".guess-banner")?.remove();
+  // Win & Loss: a resolved round carries an outcome (someone guessed right, or ran out of tries).
+  // Record it on the session scoreboard once, from whichever client is showing the reveal first.
+  if (outcome && outcome.winnerName && !state.roundScored) {
+    state.roundScored = true;
+    state.scoreboard = state.scoreboard || {};
+    state.scoreboard[outcome.winnerName] = (state.scoreboard[outcome.winnerName] || 0) + 1;
+    bumpStat("roundsWon");
+  }
   const secrets = (state.players || []).map((player) => characterById(player.secretId)).filter(Boolean);
   const my = clampSeatIndex(state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer);
   const teamMode = rosterTeamMode();
@@ -2248,28 +2623,61 @@ function showRoundReveal(done) {
       <div class="rr-vs">×</div>
       <div class="rr-card">${secretCardHtml(theirs, "rr-them", "THEY WERE", epiTheirs)}</div>`;
   }
+  // Manual round picker (custom lineup + "Selected"): instead of one NEXT ROUND, the players choose
+  // the next mode from buttons - each ticked mode in the allowlist becomes a button, plus a random
+  // fallback. Any other lineup keeps the single NEXT ROUND (the wheel / ramp decides).
+  const manualPick = effectiveModePolicy() === "custom" && state.settings.roundPicker === "manual";
+  let actionsHtml;
+  if (manualPick) {
+    const modeBtns = normalizedAllowedModeIds().map((id) => {
+      const def = MysteryModes.byId(id);
+      return `<button type="button" class="button rr-mode" data-mode="${escapeHtml(id)}">${escapeHtml(def ? def.name : id)}</button>`;
+    }).join("");
+    actionsHtml = `
+      <div class="rr-pick">
+        <p class="rr-pick-label">Pick the next mode</p>
+        <div class="rr-mode-grid">${modeBtns}</div>
+        <button type="button" class="button rr-next rr-random">🎲 Surprise me</button>
+      </div>`;
+  } else {
+    actionsHtml = `<button type="button" class="button primary rr-next">NEXT ROUND →</button>`;
+  }
+  // Win banner when the round was won by a guess (or lost by running out). Otherwise a plain reveal.
+  let titleHtml = `<div class="rr-title">ROUND OVER</div>`;
+  if (outcome && outcome.winnerName) {
+    const sub = outcome.how === "guessed"
+      ? `Nailed it — <b>${escapeHtml(outcome.targetName || "them")}</b> all along.`
+      : `<b>${escapeHtml(outcome.loserName || "They")}</b> ran out of guesses.`;
+    titleHtml = `<div class="rr-winline">🏆 <b>${escapeHtml(outcome.winnerName)}</b> WINS</div><p class="rr-winsub">${sub}</p>`;
+  }
+  const scoreHtml = scoreboardLine();
+  const loreHtml = loreCallbackLine();
   const ov = document.createElement("div");
-  ov.className = `round-reveal${soloMode ? " rr-solo" : ""}`;
+  ov.className = `round-reveal${soloMode ? " rr-solo" : ""}${manualPick ? " rr-manual" : ""}${outcome && outcome.winnerName ? " rr-won" : ""}`;
   ov.innerHTML = `
     <div class="rr-shell">
-      <div class="rr-title">ROUND OVER</div>
+      ${titleHtml}
       <div class="rr-cards">${cardsHtml}</div>
+      ${loreHtml}
+      ${scoreHtml}
       <div class="rr-actions">
-        <button type="button" class="button primary rr-next">NEXT ROUND →</button>
+        ${actionsHtml}
         <button type="button" class="button rr-finish"><svg class="rr-finish-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v18l2-1.4 2 1.4 2-1.4 2 1.4 2-1.4 2 1.4V3l-2 1.4L14 3l-2 1.4L10 3 8 4.4 6 3Z"/><path d="M9 8h6M9 12h6"/></svg>FINISH SESSION</button>
       </div>
     </div>`;
   document.body.appendChild(ov);
+  trapOverlay(ov);   // A11Y2-01: keep Tab inside the reveal (no Escape - the scoreboard moment stays)
   // No auto-advance: players click NEXT ROUND when they're ready (time to pass the device / react).
   // Online: whoever clicks deals + broadcasts; a remote deal also clears any lingering reveal (newGame).
   let finished = false;
-  const finish = () => {
+  const finish = (pickId) => {
     if (finished) return;
     finished = true;
     ov.classList.add("rr-out");
-    setTimeout(() => { ov.remove(); if (done) done(); }, 560);
+    setTimeout(() => { ov.remove(); if (done) done(pickId); }, 560);
   };
-  ov.querySelector(".rr-next").addEventListener("click", finish);
+  ov.querySelector(".rr-next").addEventListener("click", () => finish());   // NEXT ROUND / Surprise me = let the wheel decide
+  ov.querySelectorAll(".rr-mode").forEach((btn) => btn.addEventListener("click", () => finish(btn.dataset.mode)));
   // FINISH SESSION: confirmed first (a mis-tap here used to end the whole night), then the
   // receipt prints on the session-end screen.
   ov.querySelector(".rr-finish").addEventListener("click", () => {
@@ -2302,8 +2710,197 @@ function confirmEndSession(onConfirm) {
   ov.addEventListener("click", (e) => { if (e.target === ov) ov.remove(); });
 }
 function endRound() {
+  // Win & Loss on: the round ENDS by guessing. The old "just reveal" is still reachable from inside
+  // the guess prompt ("just reveal it"). Solo mode with 3+ separate secrets keeps the plain reveal.
+  if (state.settings.guessing && !state.roundOver && !state.isObserver && guessTargetSeat() !== null) {
+    enterGuessMode();
+    return;
+  }
   netSend("endround", {});
-  showRoundReveal(() => newGame());
+  // A picked mode (manual round picker) forces that mode next round; otherwise the wheel decides.
+  showRoundReveal((pickId) => newGame(null, pickId ? { effectId: pickId } : {}));
+}
+
+// ===================== Win & Loss: guess the other player =====================
+// Reset each round (called from newGame). Session scoreboard survives; per-round tries don't.
+function resetGuessState() {
+  state.roundOver = false;
+  state.roundScored = false;
+  state.guessMode = null;
+  state.finalTwoShown = {};   // FUN2-02: the FINAL TWO beat re-arms each round
+  document.querySelector(".final-two-banner")?.remove();
+  const n = state.settings.maxGuesses || 3;
+  state.guessesLeft = {};
+  (state.players || []).forEach((_, i) => { state.guessesLeft[i] = n; });
+  document.body.classList.remove("guess-mode");
+  document.querySelector(".guess-banner, .guess-confirm")?.remove();
+}
+// Who is the guesser this turn: local pass-and-play = the active seat; online = my seat.
+function guesserSeat() {
+  return clampSeatIndex(state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer);
+}
+// Head-to-head only: the seat you're trying to name. Two secrets (2p or team) → the other side.
+// Solo mode with 3+ distinct secrets has no single "them", so guessing is off there (null).
+function guessTargetSeat() {
+  const seats = (state.players || []).length;
+  if (seats !== 2) return null;
+  return guesserSeat() === 0 ? 1 : 0;
+}
+function seatWinnerName(seat) {
+  if (rosterTeamMode && rosterTeamMode() && typeof teamLabel === "function") return teamLabel(seat);
+  const r = (state.roster || [])[seat];
+  if (r && r.name) return r.name;
+  return `Player ${seat + 1}`;
+}
+// The universe remembers: sometimes the reveal drops a one-line callback to an EARLIER round, so a
+// session reads as an unfolding story rather than disconnected rounds. ~55% when there's history.
+function loreCallbackLine() {
+  const lore = state.lore || [];
+  if (lore.length < 2) return "";
+  const now = lore[lore.length - 1];
+  const past = lore.slice(0, -1);
+  if (Math.random() > 0.55) return "";
+  const nowNames = new Set(now.names || []);
+  // A name that has surfaced before this round.
+  const recurring = [];
+  past.forEach((e, i) => (e.names || []).forEach((nm) => { if (nowNames.has(nm)) recurring.push({ nm, round: i + 1 }); }));
+  let line = "";
+  if (recurring.length) {
+    const r = recurring[Math.floor(Math.random() * recurring.length)];
+    const opts = [
+      `${r.nm.toUpperCase()} again. The universe keeps handing them out.`,
+      `That's twice for ${r.nm.toUpperCase()}. Someone's cursed.`,
+      `${r.nm.toUpperCase()} was in round ${r.round} too. Coincidence? Obviously not.`
+    ];
+    line = opts[Math.floor(Math.random() * opts.length)];
+  } else {
+    const e = past[Math.floor(Math.random() * past.length)];
+    const opts = [
+      e.modeName ? `Remember ${String(e.modeName).toUpperCase()}? The universe does.` : "",
+      e.you ? `You've been ${e.you.toUpperCase()} before. It suits you, unfortunately.` : "",
+      `Round ${past.indexOf(e) + 1} really happened. No refunds.`
+    ].filter(Boolean);
+    line = opts[Math.floor(Math.random() * opts.length)];
+  }
+  return line ? `<p class="rr-lore">🕰️ ${escapeHtml(line)}</p>` : "";
+}
+function scoreboardLine() {
+  const sb = state.scoreboard || {};
+  const entries = Object.entries(sb).filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return "";
+  const parts = entries.map(([nm, w]) => `<span class="rr-score-chip"><b>${escapeHtml(nm)}</b> ${w}</span>`).join("");
+  return `<div class="rr-scoreboard"><span class="rr-score-label">Wins tonight</span>${parts}</div>`;
+}
+function enterGuessMode() {
+  const seat = guesserSeat();
+  const left = (state.guessesLeft || {})[seat] ?? (state.settings.maxGuesses || 3);
+  if (left <= 0) { flashToast("You're out of guesses — the round's nearly over."); return; }
+  state.guessMode = { seat };
+  document.body.classList.add("guess-mode");
+  document.querySelector(".guess-banner")?.remove();
+  // BUG2-04: local copy names both sides ("JOEL — tap who you think NAOMI is"), doubling as a
+  // whose-turn reminder in pass-and-play. Online keeps the simple second-person line.
+  const guesser = seatWinnerName(seat);
+  const target = seatWinnerName(guessTargetSeat());
+  const b = document.createElement("div");
+  b.className = "guess-banner";
+  b.setAttribute("role", "status");
+  b.innerHTML = `
+    <span class="gb-text">🔍 ${state.gameMode === "online"
+      ? "Tap who you think they are"
+      : `${escapeHtml(guesser)} — tap who you think ${escapeHtml(target)} is`} · <b>${left}</b> guess${left === 1 ? "" : "es"} left</span>
+    <span class="gb-row">
+      <button type="button" class="button ghost gb-cancel">CANCEL</button>
+      <button type="button" class="button ghost gb-reveal">JUST REVEAL IT</button>
+    </span>`;
+  document.body.appendChild(b);
+  b.querySelector(".gb-cancel").addEventListener("click", exitGuessMode);
+  b.querySelector(".gb-reveal").addEventListener("click", () => {
+    exitGuessMode();
+    netSend("endround", {});
+    showRoundReveal((pickId) => newGame(null, pickId ? { effectId: pickId } : {}));
+  });
+  sfx("blip");
+}
+function exitGuessMode() {
+  state.guessMode = null;
+  document.body.classList.remove("guess-mode");
+  document.querySelector(".guess-banner")?.remove();
+}
+// A tap in guess mode: accuse this character of being the other side's secret.
+function makeGuess(charId) {
+  if (!state.guessMode) return;
+  const seat = state.guessMode.seat;
+  const theirSeat = seat === 0 ? 1 : 0;
+  const theirSecretId = state.players[theirSeat] && state.players[theirSeat].secretId;
+  const char = characterById(charId);
+  if (!char) return;
+  document.querySelector(".guess-confirm")?.remove();
+  // FLOW2-03: guessing someone YOU crossed off is usually a mis-tap — flag it in voice, still allow
+  // it (maybe they bluffed themselves; deliberate galaxy-brain plays get funnier with the warning).
+  const selfCrossed = !!(state.players[seat] && state.players[seat].eliminated && state.players[seat].eliminated.has(charId));
+  const c = document.createElement("div");
+  c.className = "guess-confirm";
+  c.innerHTML = `
+    <div class="gc-box">
+      <p class="gc-q">${selfCrossed ? "YOU CROSSED THEM OFF YOURSELF." : "IS IT…"}</p>
+      <img class="gc-face" src="${char.image || ""}" alt="">
+      <p class="gc-name">${escapeHtml(char.name)}?</p>
+      ${selfCrossed ? `<p class="gc-warn">Bold. The universe is watching.</p>` : ""}
+      <div class="gc-actions">
+        <button type="button" class="button gc-back">← Not sure</button>
+        <button type="button" class="button primary gc-yes">${selfCrossed ? "LOCK IT IN ANYWAY" : "LOCK IT IN"}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(c);
+  const closeConfirm = () => { if (c._untrap) c._untrap(); c.remove(); };
+  c.addEventListener("click", (e) => { if (e.target === c) closeConfirm(); });
+  c.querySelector(".gc-back").addEventListener("click", closeConfirm);
+  trapOverlay(c, { escape: closeConfirm });   // A11Y2-01
+  c.querySelector(".gc-yes").addEventListener("click", () => {
+    c.remove();
+    const correct = charId === theirSecretId;
+    netSend("guess", { seat, id: charId, correct });
+    if (correct) {
+      sfx("win");
+      resolveRound({ winnerSeat: seat, winnerName: seatWinnerName(seat), how: "guessed", targetName: char.name });
+    } else {
+      sfx("buzzer");
+      // A wrong guess crosses that face off for the guesser (confirmed not them) + burns a try.
+      const p = state.players[seat];
+      if (p && !p.eliminated.has(charId)) { p.eliminated.add(charId); netSend("elim", { id: charId, down: true }); }
+      state.guessesLeft[seat] = Math.max(0, (state.guessesLeft[seat] ?? state.settings.maxGuesses) - 1);
+      const left = state.guessesLeft[seat];
+      renderBoard();
+      if (left <= 0) {
+        resolveRound({ winnerSeat: theirSeat, winnerName: seatWinnerName(theirSeat), how: "exhausted", loserName: seatWinnerName(seat) });
+      } else {
+        exitGuessMode();
+        flashToast(`❌ Not ${char.name}. ${wrongGuessTaunt(charId)} ${left} guess${left === 1 ? "" : "es"} left.`);
+      }
+    }
+  });
+}
+// FUN2-04: wrong guesses are a comedy beat, not a status update. Salt+id keeps the line stable for
+// both ends of an online round; the pool is big enough that repeats read as callbacks, not loops.
+const WRONG_GUESS_TAUNTS = [
+  "Confidently wrong. The universe noted it.",
+  "That person is somewhere, being innocent.",
+  "They watched you say that.",
+  "Somewhere, a lawyer smiled.",
+  "The board remembers this.",
+  "An accusation like that follows you.",
+  "Wrong, and now everyone knows your process.",
+  "Add it to the incident report."
+];
+function wrongGuessTaunt(charId) {
+  return WRONG_GUESS_TAUNTS[stableHash(`${state.gameSalt}:taunt:${charId}`) % WRONG_GUESS_TAUNTS.length];
+}
+// End the round with a winner (or lost-by-exhaustion). Broadcast so both clients show the same result.
+function resolveRound(outcome) {
+  if (state.roundOver) return;
+  netSend("endround", { outcome });
+  showRoundReveal((pickId) => newGame(null, pickId ? { effectId: pickId } : {}), outcome);
 }
 
 // Session stat tally: modes report their unlocked absurdities here; the receipt prints any > 0.
@@ -2384,6 +2981,103 @@ const RECEIPT_STAT_LABELS = {
   headsPopped: "HEADS POPPED",
   bobbas: "BOBBAS SAID"
 };
+// FUN-06: a tiny seeded matrix-dot / ASCII face per character, printed on the receipt. Deterministic
+// (same seed → same face) so a scanned summary reprints the identical portraits. Fixed-width lines so
+// they stay aligned in the monospace <pre>. (Noted for later: a full "ASCII MODE" mystery effect that
+// renders the WHOLE board like this — see the roadmap note in modes.js.)
+const ASCII_EYES = ["o", "O", "*", "x", "^", "-", "@", "="];
+const ASCII_NOSE = ["_", "v", ".", "!", "7"];
+const ASCII_MOUTH = ["___", "vvv", "---", "ooo", "www", ")-(", "\\_/"];
+function asciiFace(seed) {
+  const h = stableHash(String(seed || "x")) >>> 0;   // unsigned: a signed >> could go negative → undefined index
+  const e = ASCII_EYES[h % ASCII_EYES.length];
+  const n = ASCII_NOSE[(h >>> 3) % ASCII_NOSE.length];
+  const m = ASCII_MOUTH[(h >>> 6) % ASCII_MOUTH.length];
+  // Every line's inner width is 7 chars so the box stays square in the monospace <pre>.
+  return [
+    ".-------.",
+    `| ${e}   ${e} |`,
+    `|   ${n}   |`,
+    `|  ${m}  |`,
+    "'-------'"
+  ].join("\n");
+}
+// FUN-06: 3–5 salt-picked per-player superlatives computed from the session's wins + how often each
+// name was the secret. Deterministic pick so online peers and the scanned summary agree.
+function receiptSuperlatives(scoreboard, lore, saltSrc) {
+  const wins = scoreboard || {};
+  const appear = {};
+  (lore || []).forEach((e) => (e.names || []).forEach((nm) => { appear[nm] = (appear[nm] || 0) + 1; }));
+  const names = [...new Set([...Object.keys(wins), ...Object.keys(appear)])];
+  if (!names.length) return "";
+  const used = new Set();
+  const awards = [];
+  const add = (label, nm) => { if (!nm || used.has(nm) || awards.length >= 5) return; used.add(nm); awards.push(`${label} — ${nm.toUpperCase()}`); };
+  const topOf = (obj) => { const es = Object.entries(obj).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]); return es.length ? es[0][0] : null; };
+  add("🏆 MOST DANGEROUS", topOf(wins));
+  add("🎭 FACE OF THE NIGHT", topOf(appear));
+  const zero = names.filter((n) => (appear[n] || 0) > 0 && !(wins[n] > 0) && !used.has(n));
+  add("🥀 PARTICIPATION TROPHY", zero.length ? zero[stableHash(`${saltSrc}:loser`) % zero.length] : null);
+  const flav = ["🔪 MOST LIKELY TO REOFFEND", "🕳️ LEAST MISSED", "🧊 COLDEST DEAD EYES", "🎪 BIGGEST LIABILITY", "📉 WORST DECISIONS", "🫥 HARDEST TO DESCRIBE"];
+  names.filter((n) => !used.has(n)).forEach((nm) => { if (awards.length < 3) add(flav[stableHash(`${saltSrc}:flav:${nm}`) % flav.length], nm); });
+  return awards.slice(0, 5).map((t) => `<div class="rc-award">${escapeHtml(t)}</div>`).join("");
+}
+// APP-01: render the on-screen receipt to a shareable PNG. foreignObject taints the canvas in some
+// browsers, so we draw the receipt manually from its DOM — reliable, self-contained, no libraries.
+function saveReceiptPng() {
+  const node = document.querySelector(".receipt-paper");
+  if (!node) return;
+  const scale = 2, W = 384, PADX = 26;
+  const rows = [];
+  node.querySelectorAll(":scope > *").forEach((el) => {
+    const cls = el.className || "";
+    if (/rc-qr|rc-save|rc-foot/.test(cls) && !/rc-qr-none/.test(cls)) return;   // links/QR don't belong in a static image
+    if (cls.includes("rc-rule")) { rows.push({ t: "rule" }); return; }
+    if (cls.includes("rc-barcode")) { rows.push({ t: "barcode" }); return; }
+    if (cls.includes("rc-ascii-row")) {
+      el.querySelectorAll(".rc-ascii").forEach((pre, i, all) => {
+        (pre.textContent || "").split("\n").forEach((ln) => rows.push({ t: "mono", s: ln }));
+        rows.push({ t: "mono", s: (pre.dataset.name || "") });
+        if (i < all.length - 1) rows.push({ t: "gap" });
+      });
+      return;
+    }
+    if (cls.includes("rc-line") || cls.includes("rc-award")) {
+      const span = el.querySelector("span"), b = el.querySelector("b");
+      if (span || b) rows.push({ t: "kv", l: span ? span.textContent : "", r: b ? b.textContent : "" });
+      else rows.push({ t: "center", s: el.textContent.trim() });
+      return;
+    }
+    rows.push({ t: cls.includes("rc-head") ? "head" : "center", s: el.textContent.trim(), big: cls.includes("rc-logo") });
+  });
+  const H = rows.reduce((y, r) => y + ({ rule: 14, barcode: 34, gap: 8, mono: 15 }[r.t] || (r.big ? 40 : 24)), 40) + 20;
+  const canvas = document.createElement("canvas");
+  canvas.width = W * scale; canvas.height = H * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#fffdf7"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171512"; ctx.textBaseline = "alphabetic";
+  let y = 30;
+  rows.forEach((r) => {
+    if (r.t === "rule") { ctx.strokeStyle = "rgba(23,21,18,0.4)"; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(PADX, y + 2); ctx.lineTo(W - PADX, y + 2); ctx.stroke(); ctx.setLineDash([]); y += 14; return; }
+    if (r.t === "gap") { y += 8; return; }
+    if (r.t === "barcode") { ctx.fillStyle = "#171512"; let bx = PADX; while (bx < W - PADX) { const bw = 1 + (stableHash(`${bx}:bar`) % 4); ctx.fillRect(bx, y, bw, 26); bx += bw + 1 + (stableHash(`${bx}:gap`) % 3); } y += 34; return; }
+    if (r.t === "mono") { ctx.fillStyle = "#171512"; ctx.textAlign = "center"; ctx.font = "12px 'Courier New', monospace"; ctx.fillText(r.s || "", W / 2, y + 11); y += 15; return; }
+    if (r.t === "kv") { ctx.fillStyle = "#171512"; ctx.font = "13px 'Space Grotesk', system-ui, sans-serif"; ctx.textAlign = "left"; ctx.fillText(r.l || "", PADX, y + 15); ctx.textAlign = "right"; ctx.font = "bold 13px 'Space Grotesk', system-ui, sans-serif"; ctx.fillText(r.r || "", W - PADX, y + 15); y += 24; return; }
+    ctx.fillStyle = "#171512"; ctx.textAlign = r.t === "head" ? "left" : "center";
+    ctx.font = `${r.big ? "800 26px" : (r.t === "head" ? "800 14px" : "600 14px")} 'Space Grotesk', system-ui, sans-serif`;
+    ctx.fillText(r.s || "", r.t === "head" ? PADX : W / 2, y + (r.big ? 28 : 16));
+    y += r.big ? 40 : 24;
+  });
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "who-is-it-receipt.png";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }, "image/png");
+}
 // The thermal printout. opts.data overrides the live state (the scanned summary page rebuilds the
 // same receipt from the QR payload); opts.qrUrl prints a scannable QR + link under the barcode.
 function buildReceiptPaper(opts = {}) {
@@ -2401,9 +3095,30 @@ function buildReceiptPaper(opts = {}) {
     : `<div class="rc-line"><span>0x ROUNDS ON RECORD</span><b>[SUSPICIOUS]</b></div>`;
   const you = [...new Set(lore.map((e) => e.you).filter(Boolean))];
   const secretsBurned = lore.reduce((n, e) => n + (e.names ? e.names.length : 0), 0);
+  // Win & Loss scoreboard: winners this session, most wins first.
+  const scoreboard = d.scoreboard || state.scoreboard || {};
+  const winRows = Object.entries(scoreboard).filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]);
+  const winnersLine = winRows.length
+    ? winRows.map(([nm, w]) => `<div class="rc-line"><span>${escapeHtml(nm.toUpperCase())}</span><b>${w} WIN${w === 1 ? "" : "S"}</b></div>`).join("")
+    : `<div class="rc-line"><span>WINNERS</span><b>N/A</b></div>`;
   const statLines = Object.entries(RECEIPT_STAT_LABELS)
     .filter(([key]) => stats[key] > 0)
     .map(([key, label]) => `<div class="rc-line"><span>${label}</span><b>${stats[key]}</b></div>`).join("");
+  // FUN-06: matrix-dot ASCII faces for up to 3 distinct characters this session + salt-picked awards.
+  const faces = [];
+  const seenFace = new Set();
+  lore.forEach((e) => (e.ids || []).forEach((id, i) => {
+    if (!id || seenFace.has(id) || faces.length >= 3) return;
+    seenFace.add(id);
+    faces.push({ id, name: (e.names && e.names[i]) || "?" });
+  }));
+  const asciiRow = faces.length
+    ? `<div class="rc-rule"></div><div class="rc-ascii-row">${faces.map((f) => {
+        const nm = String(f.name).toUpperCase();
+        return `<div class="rc-ascii-face"><pre class="rc-ascii" data-name="${escapeHtml(nm)}">${escapeHtml(asciiFace(f.id))}</pre><span class="rc-ascii-name">${escapeHtml(nm)}</span></div>`;
+      }).join("")}</div>`
+    : "";
+  const awards = receiptSuperlatives(scoreboard, lore, serialSrc);
   // The QR: local generation (vendor-qrcode.js), graceful fallback to a plain link if it fails.
   let qrBlock = "";
   if (opts.qrUrl) {
@@ -2440,12 +3155,15 @@ function buildReceiptPaper(opts = {}) {
       <div class="rc-rule"></div>
       <p class="rc-head">TONIGHT YOU WERE:</p>
       <p class="rc-cast">${you.length ? you.map(escapeHtml).join(", ") : "NOBODY (YET)"}</p>
+      ${asciiRow}
       <div class="rc-rule"></div>
       <div class="rc-line"><span>ROUNDS PLAYED</span><b>${lore.length}</b></div>
       <div class="rc-line"><span>SECRETS BURNED</span><b>${secretsBurned}</b></div>
       ${statLines ? `<div class="rc-rule"></div><p class="rc-head">INCIDENT TALLY:</p>${statLines}` : ""}
       <div class="rc-rule"></div>
-      <div class="rc-line"><span>WINNERS</span><b>N/A</b></div>
+      <p class="rc-head">WINNERS:</p>
+      ${winnersLine}
+      ${awards ? `<div class="rc-rule"></div><p class="rc-head">SUPERLATIVES:</p>${awards}` : ""}
       <div class="rc-line"><span>REFUNDS</span><b>NONE</b></div>
       <div class="rc-rule"></div>
       <p class="rc-thanks">THANK YOU FOR EXISTING<br>IN THIS UNIVERSE</p>
@@ -2480,6 +3198,7 @@ function buildSessionSummaryPayload() {
     serial: state.gameSalt || "void",
     lore: (state.lore || []).slice(-12).map((e) => ({ modeName: e.modeName, names: e.names, you: e.you })),
     stats: state.stats || {},
+    scoreboard: state.scoreboard || {},
     disc: loadDiscoveredModes().filter((id) => MysteryModes.all().some((e) => e.id === id)).length
   };
 }
@@ -2544,7 +3263,12 @@ function showSummaryPage(p) {
 // credit-roll of everyone encountered this session (mode-flavoured, doubles welcome: WOKE OLIVIA
 // and GALLERY OLIVIA are different people), and the receipt printing out of its slot.
 // Discovering every mode upgrades it to THE COMPLETE UNIVERSE.
-function showSessionEnd() {
+function showSessionEnd(opts = {}) {
+  // NET-05: ending the session used to be local-only - the other player was left sitting in a dead
+  // room with no explanation. Tell the peers; they print their OWN receipt (stats are per-device).
+  if (state.gameMode === "online" && !opts.remote && !state.isObserver) {
+    try { netSend("sessionend", {}); } catch (e) { /* offline is fine */ }
+  }
   document.querySelector(".session-end")?.remove();
   const visibleModes = MysteryModes.all();
   const found = loadDiscoveredModes().filter((id) => visibleModes.some((e) => e.id === id)).length;
@@ -2583,10 +3307,12 @@ function showSessionEnd() {
       </div>
       <div class="se-actions">
         <button type="button" class="button primary se-continue">▶ CONTINUE PLAYING</button>
+        <button type="button" class="button se-savepng">🖼 SAVE THE RECEIPT</button>
         <button type="button" class="button se-home">BACK TO TITLE</button>
       </div>
     </div>`;
   document.body.appendChild(ov);
+  trapOverlay(ov);   // A11Y2-01: Tab stays on the receipt actions (no Escape - closing is a decision)
   try {
     if (window.Sound) { Sound.resume(); Sound.printer(1800); Sound.creditsLoop(true); }
   } catch (e) { /* silence is acceptable at a funeral */ }
@@ -2616,6 +3342,26 @@ function showSessionEnd() {
     copyBtn.textContent = "COPIED ✓";
     setTimeout(() => { copyBtn.textContent = "COPY LINK"; }, 1200);
   });
+  // APP-01: SAVE THE RECEIPT renders the on-screen receipt node to a PNG the player can share.
+  ov.querySelector(".se-savepng")?.addEventListener("click", (e) => {
+    try { saveReceiptPng(); e.currentTarget.textContent = "🖼 SAVED ✓"; setTimeout(() => { e.currentTarget.textContent = "🖼 SAVE THE RECEIPT"; }, 1600); }
+    catch (err) { e.currentTarget.textContent = "Couldn't save"; }
+  });
+  // PERF-02: QR encoder is lazy - if it wasn't in when the receipt printed, reprint the paper with
+  // the QR once it lands (the scroll/printer theatrics are not restarted).
+  if (typeof qrcode === "undefined") {
+    ensureQrcode().then(() => {
+      if (!ov.isConnected) return;
+      const win = ov.querySelector(".rc-window");
+      if (win) win.innerHTML = buildReceiptPaper({ qrUrl: summaryUrl(), saveUrl: gameLinkUrl() });
+      const cb = ov.querySelector(".rc-save-copy");
+      if (cb) cb.addEventListener("click", () => {
+        if (navigator.clipboard) navigator.clipboard.writeText(cb.dataset.url || "").catch(() => {});
+        cb.textContent = "COPIED ✓";
+        setTimeout(() => { cb.textContent = "COPY LINK"; }, 1200);
+      });
+    }).catch(() => {});
+  }
   // CONTINUE PLAYING: the receipt was a checkpoint, not the end - keep the ledger and deal on.
   ov.querySelector(".se-continue").addEventListener("click", () => {
     try { if (window.Sound) Sound.creditsLoop(false); } catch (e) { /* fine */ }
@@ -2624,7 +3370,7 @@ function showSessionEnd() {
   });
   ov.querySelector(".se-home").addEventListener("click", () => {
     // The session is over: clear the round save + ledger so the next night starts fresh.
-    try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }
+    clearOwnSave();
     state.lore = [];
     state.stats = {};
     try { if (window.Sound) Sound.creditsLoop(false); } catch (e) { /* fine */ }
@@ -2865,36 +3611,20 @@ function showTitleSettings() {
 }
 // PG toggle now lives INSIDE the local/host setup steps (not the main menu), so it's chosen in
 // context right before a game. Same control markup in both places; a single handler keeps them synced.
-const TITLE_TICKER_QUESTIONS = [
-  "WHERE WOULD YOU WANT TO BE BURIED?",
-  "WHO IS YOUR FAVOURITE PRESIDENT?",
-  "IS MY GENDER ASSOCIATED WITH ETERNAL PAIN?",
-  "WHAT'S YOUR BIGGEST REGRET?",
-  "WOULD YOU RATHER LIVE IN SPACE OR UNDER THE OCEAN?",
-  "DO ALIENS DREAM TOO?",
-  "WHAT'S YOUR MOST UNPOPULAR OPINION?",
-  "WHAT'S THE WEIRDEST THING YOU BELIEVE?",
-  "WHO WOULD PLAY YOU IN A MOVIE?",
-  "COULD YOU SURVIVE IN THE WILD?",
-  "WHAT'S A SECRET YOU'VE NEVER TOLD ANYONE?",
-  "WHAT IS THE MOST ILLEGAL THING YOU'VE DONE?",
-  "DO YOU BELIEVE IN GHOSTS?",
-  "WHAT WOULD YOU DO WITH ONE YEAR LEFT TO LIVE?",
-  "WHAT'S YOUR PERFECT DAY?",
-  "WHAT'S YOUR BIGGEST RED FLAG?",
-  "COULD YOU WAKE UP FAMOUS?",
-  "WHO WOULD YOU DELETE FROM HISTORY?",
-  "WHAT IS SOMETHING EMBARRASSING THAT HAS HAPPENED TO YOU?",
-  "WHAT WOULD YOUR DREAM JOB BE?",
-  "WOULD YOU RATHER NEVER SLEEP OR NEVER EAT?",
-  "WHAT IS YOUR FAVOURITE CONSPIRACY THEORY?",
-  "IF YOU COULDN'T LIE, HOW WOULD YOUR LIFE CHANGE?",
-  "WHAT IS SOMETHING YOU PRETEND TO UNDERSTAND?",
-  "WHO KNOWS YOU BETTER THAN ANYONE?",
-  "WHAT WOULD YOU DO IF NOBODY COULD JUDGE YOU?",
-  "WHO WOULD YOU TRUST WITH YOUR LIFE?",
-  "WHAT IS YOUR MOST USELESS TALENT?"
-];
+// The landing ticker is now the GAME'S OWN voice, not a separate reel of corporate icebreakers -
+// real dares (mild/medium) + the location dares, with {location} resolved to a scene. First
+// impressions should sound like the game you're about to play.
+const TITLE_TICKER_QUESTIONS = (() => {
+  const gd = window.GameData || {};
+  const scenes = (gd.locations || [{ name: "the party" }]);
+  const resolveTokens = (t) => t
+    .replace(/\{location\}/g, `the ${scenes[stableHash(t) % scenes.length].name}`)
+    .replace(/\{who\}/g, "your character");
+  const dares = (gd.absurdPrompts || []).filter((p) => p.heat !== "feral").map((p) => resolveTokens(p.text));
+  const locs = (gd.locationPrompts || []).filter((p) => p.heat !== "feral").map((p) => resolveTokens(p.text));
+  const pool = [...dares, ...locs].map((t) => t.replace(/[.…]+$/, ""));
+  return pool.length ? pool : ["WHO IS IT?"];
+})();
 const TITLE_TICKER_DURATIONS = [70, 84, 96, 110, 125, 88, 104, 118, 76, 132];
 const TITLE_TICKER_OPACITIES = [0.13, 0.18, 0.15, 0.22, 0.16, 0.2, 0.14, 0.24, 0.17, 0.21];
 function titleTickerRowText(rowIndex) {
@@ -2963,7 +3693,7 @@ function tsAudioIconSlot(kind) {
 }
 function pgToggleMarkup() {
   const on = state.settings.pg;
-  return `<button type="button" class="ts-opt ts-pg ${on ? "on" : ""}" aria-pressed="${on}">${tsIcon("pg")}<span class="ts-opt-label">PG Mode</span><b class="ts-chip">${on ? "ON" : "OFF"}</b></button>`;
+  return `<button type="button" class="ts-opt ts-pg ${on ? "on" : ""}" aria-pressed="${on}">${tsIcon("pg")}<span class="ts-opt-label">PG mode</span><b class="ts-chip">${on ? "ON" : "OFF"}</b></button>`;
 }
 // Board size lives inline in the setup step now (no nested settings panel).
 function boardSizeMarkup() {
@@ -3000,10 +3730,21 @@ function modeLineupMarkup() {
           </label>`).join("")}
       </div>
     </section>`).join("");
+  // Custom only: choose whether each new round's mode is drawn at random from the ticked set, or
+  // hand-picked by the players at the end of every round (buttons appear on the ROUND OVER screen).
+  const manual = state.settings.roundPicker === "manual";
+  const roundPick = `
+    <div class="ts-roundpick">
+      <span class="ts-roundpick-label">ROUND PICKER</span>
+      <div class="ts-roundpick-seg" role="group" aria-label="Round picker">
+        <button type="button" class="ts-roundpick-opt ${manual ? "" : "is-on"}" data-pick="random">Random</button>
+        <button type="button" class="ts-roundpick-opt ${manual ? "is-on" : ""}" data-pick="manual">Selected</button>
+      </div>
+    </div>`;
   return `<div class="ts-mode-lineup mode-section ${policy === "custom" ? "is-custom" : ""}">
-    <div class="ts-lineup-head">Mode lineup</div>
+    <div class="ts-lineup-head">MODE LINEUP</div>
     <div class="mode-policy-toggles">${chips}</div>
-    <div class="mode-picker-wrap"><div class="mode-picker">${groups}</div></div>
+    <div class="mode-picker-wrap">${roundPick}<div class="mode-picker">${groups}</div></div>
   </div>`;
 }
 // Two independent settings rows: game sounds (FX) and music, each with an animated on/off glyph.
@@ -3021,8 +3762,12 @@ function showTitleScreen() {
   const saved = loadGameSave();
   const ov = document.createElement("div");
   ov.className = "title-screen title-landing";
+  // AES2-01: one quiet anchor for the empty lower half on TALL screens - a slow marquee of the mode
+  // roster at low opacity. CSS only shows it >=900px tall and hides it while the menu is open.
+  const marqueeNames = MysteryModes.all().map((e) => e.name.toUpperCase()).join(" · ");
   ov.innerHTML = `
     <div class="ts-ticker-field" aria-hidden="true">${buildTitleTickerRows(10)}</div>
+    <div class="ts-mode-marquee" aria-hidden="true"><span>${escapeHtml(marqueeNames)} · ${escapeHtml(marqueeNames)} · </span></div>
     <div class="ts-legibility" aria-hidden="true"></div>
     <div class="ts-stage">
       <div class="ts-poster-slot">
@@ -3036,6 +3781,12 @@ function showTitleScreen() {
             ${saved ? `<button type="button" class="button ghost ts-resume ts-resume-splash">${saved.gameMode === "online"
               ? `${tsIcon("online")}<span class="ts-lbl">${saved.inLobby ? "REJOIN LOBBY" : "RESUME"} · #${escapeHtml(saved.roomCode || "?")}</span>`
               : `${tsIcon("resume")}<span class="ts-lbl">RESUME LAST GAME</span>`}</button>` : ""}
+            ${(() => {
+              // APP-02: a tiny discovery chip, but only once you've seen 3+ modes - first-timers see nothing.
+              const total = MysteryModes.all().length;
+              const disc = loadDiscoveredModes().filter((id) => MysteryModes.all().some((e) => e.id === id)).length;
+              return disc >= 3 ? `<p class="ts-discovery" title="Mystery modes you've unlocked">🎡 ${disc} / ${total} modes discovered</p>` : "";
+            })()}
           </div>
         </div>
       </div>
@@ -3054,7 +3805,6 @@ function showTitleScreen() {
           <input class="ts-team-mode-input" type="checkbox" checked>
           <b class="ts-chip">ON</b>
         </label>
-        ${startModeMarkup("ts-mode-local")}
         ${modeLineupMarkup()}
         ${pgToggleMarkup()}
         ${boardSizeMarkup()}
@@ -3066,7 +3816,6 @@ function showTitleScreen() {
       </div>
       <div class="ts-step ts-step-online" hidden>
         <input class="ts-name-input" type="text" maxlength="16" placeholder="Your name" aria-label="Your name">
-        ${startModeMarkup("ts-mode-online")}
         ${modeLineupMarkup()}
         <button type="button" class="button primary ts-host">${tsIcon("host")}<span class="ts-lbl">HOST A ROOM</span></button>
         <button type="button" class="button secondary ts-showjoin">${tsIcon("join")}<span class="ts-lbl">JOIN A ROOM</span></button>
@@ -3144,6 +3893,13 @@ function showTitleScreen() {
   // than wire each, we delegate on the overlay and keep them in lockstep off state.settings.
   const repaintLineups = () => ov.querySelectorAll(".ts-mode-lineup").forEach((node) => { node.outerHTML = modeLineupMarkup(); });
   ov.addEventListener("click", (e) => {
+    const pick = e.target.closest(".ts-roundpick-opt");
+    if (pick) {
+      state.settings.roundPicker = pick.dataset.pick === "manual" ? "manual" : "random";
+      repaintLineups();
+      sfx("blip");
+      return;
+    }
     const chip = e.target.closest(".ts-mode-lineup .mode-policy-chip");
     if (!chip) return;
     state.settings.modePolicy = chip.dataset.policy;
@@ -3183,10 +3939,31 @@ function showTitleScreen() {
     el.hidden = !active;
     if (active) { el.classList.remove("ts-step-enter"); void el.offsetWidth; el.classList.add("ts-step-enter"); }   // re-trigger the fade-in
   });
-  const markInvalid = (el) => {
+  // A11Y-01: validation was a silent visual shake. Now it also writes an inline, announced error line
+  // under the field (aria-live) and sets aria-invalid, so screen-reader + no-animation users get it.
+  const markInvalid = (el, message) => {
     if (!el) return;
     el.classList.add("shake");
+    el.setAttribute("aria-invalid", "true");
     setTimeout(() => el.classList.remove("shake"), 400);
+    if (message) {
+      // Anchor the line after the whole name row (input + remove button), else after the input.
+      const anchor = el.closest(".ts-name-row") || el;
+      if (!el._errNode || !el._errNode.isConnected) {
+        const err = document.createElement("p");
+        err.className = "ts-field-error";
+        err.setAttribute("aria-live", "polite");
+        anchor.insertAdjacentElement("afterend", err);
+        el._errNode = err;
+      }
+      el._errNode.textContent = message;
+      const clear = () => {
+        el.removeAttribute("aria-invalid");
+        if (el._errNode) { el._errNode.remove(); el._errNode = null; }
+        el.removeEventListener("input", clear);
+      };
+      el.addEventListener("input", clear);
+    }
     el.focus();
   };
   ov.querySelector(".ts-letplay").addEventListener("click", () => show("main"));
@@ -3239,7 +4016,7 @@ function showTitleScreen() {
   ov.querySelector(".ts-names-go").addEventListener("click", () => {
     const inputs = [...namesList.querySelectorAll(".ts-name-slot")];
     const bad = inputs.find((el) => !isValidPlayerName(el.value));
-    if (bad) { markInvalid(bad); return; }
+    if (bad) { markInvalid(bad, "Everyone needs a name. Even Greg."); return; }
     const names = inputs.map((el) => cleanPlayerName(el.value));
     const count = inputs.length;
     close();
@@ -3249,7 +4026,7 @@ function showTitleScreen() {
   const nameInput = ov.querySelector(".ts-name-input");
   const nameOf = () => cleanPlayerName(nameInput?.value);
   const requireName = () => {
-    if (!isValidPlayerName(nameInput?.value)) { markInvalid(nameInput); return null; }
+    if (!isValidPlayerName(nameInput?.value)) { markInvalid(nameInput, "Everyone needs a name. Even Greg."); return null; }
     return nameOf();
   };
   ov.querySelector(".ts-host").addEventListener("click", () => {
@@ -3278,7 +4055,7 @@ function showTitleScreen() {
     if (!observeMode && !nm) { show("online"); return; }
     const code = (joinInput.value || "").trim();
     if (/^\d{3,4}$/.test(code)) { close(); joinRoom(code, nm, { observe: observeMode }); }
-    else markInvalid(joinInput);
+    else markInvalid(joinInput, "Room codes are 3 or 4 digits — check the host's screen.");
   };
   ov.querySelector(".ts-join-go").addEventListener("click", doJoin);
   joinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doJoin(); });
@@ -3286,6 +4063,15 @@ function showTitleScreen() {
   if (res) res.addEventListener("click", () => { close(); resumeGame(saved); });
   paintStartModes();
   openSplash();
+  // FLOW-04: arrived via a ?join=CODE link/QR. Jump to the name step with the code stashed, so the
+  // guest just types a name and hits JOIN A ROOM. (A name is still required - we never auto-name.)
+  if (pendingJoinCode) {
+    const code = pendingJoinCode; pendingJoinCode = null;
+    joinInput.value = code;
+    show("online");
+    setTimeout(() => { try { nameInput.focus(); } catch (e) { /* fine */ } }, 60);
+    if (typeof flashToast === "function") flashToast(`Joining room #${code} — enter your name, then JOIN A ROOM.`);
+  }
 }
 
 // LOCAL: pass-and-play on one screen - the YOU/B (or team) toggle is how you hand off the device.
@@ -3314,11 +4100,16 @@ function showDimensionWarp() {
 
 function startLocalGame(count, names, playMode = "team") {
   state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; state.isHost = false;
+  state.scoreboard = {};   // fresh session, fresh Win & Loss tally
+  state.seenPrompts = new Set();   // fresh session, prompts cycle without repeats
   state.playMode = playMode === "solo" ? "solo" : "team";
   state.roster = normalizeRoster(count || MIN_PLAYERS, names);
   state.playerCount = state.roster.length;
   const effectId = normalizedStartModeId(state.settings) || null;
-  newGame(undefined, effectId ? { effectId } : { first: true });
+  // Progressive lineups ease in with a plain Guess Who round; chaotic/custom lineups already opted
+  // into nonsense, so they spin a mode on round one (FLOW-05).
+  const skipWarmup = effectiveModePolicy() !== "progressive";
+  newGame(undefined, effectId ? { effectId } : (skipWarmup ? {} : { first: true }));
   // The plain opening round returns before newGame's own scheduleSave, so a fresh multi-player
   // setup would vanish on an immediate refresh - pin it now.
   scheduleSave();
@@ -3328,10 +4119,17 @@ function startLocalGame(count, names, playMode = "team") {
 // stable through the eventual deal; players gather, then the host presses START.
 function startOnlineGame(name) {
   state.gameMode = "online"; state.isHost = true; state.mySeat = 0; state.inLobby = true;
+  state.scoreboard = {};
+  state.seenPrompts = new Set();   // NET2-03: fresh session, fresh no-repeat memory (matches local)
+  state.hostClaimId = null;
   ensureClientId();
   state.playMode = "team";
   state.pname = cleanPlayerName(name) || "Player 1";
   state.gameSalt = `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  // NET-09 (documented, accepted risk): 4-digit codes can collide — two concurrent hosts have a
+  // ~1-in-9000 chance of sharing a room, in which case a joiner may reach the wrong lobby. At this
+  // game's scale (a party, one relay) that's acceptable; recovery is "leave, host a new room".
+  // If the game ever runs on a shared public relay, widen to 5-6 digits or salt-prefix the channel.
   state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
   state.playerCount = 1;
   state.roster = [{ name: state.pname, clientId: state.clientId }];   // host is roster slot 0
@@ -3343,6 +4141,7 @@ function startOnlineGame(name) {
 }
 // ONLINE guest: connect to the host's room and wait for the host's roster broadcast + START.
 // opts.observe = a TV/display client: joins the room but takes no seat and just mirrors the board.
+let joinAckTimer = null;
 function joinRoom(code, name, opts = {}) {
   state.isObserver = !!(opts && opts.observe);
   state.gameMode = "online"; state.isHost = false; state.mySeat = 0; state.inLobby = true;
@@ -3357,7 +4156,117 @@ function joinRoom(code, name, opts = {}) {
   netConnect();
   if (state.isObserver) showObserverWait(); else showLobby();
   saveGameState();   // the lobby itself is resumable - an accidental refresh rejoins this room
+  // A wrong/dead code otherwise waits forever, indistinguishable from loading. If NO host answers
+  // (lobby/snapshot/start) within 10s, say so - and keep listening in case they show up late.
+  clearTimeout(joinAckTimer);
+  joinAckTimer = setTimeout(() => {
+    if (state.gameMode === "online" && state.inLobby && !(state.roster || []).some((r) => r.clientId && r.clientId !== state.clientId)) {
+      showJoinDeadEnd("silent");
+    }
+  }, 10000);
 }
+// The host answered something - the room is real; stand the dead-end warning down.
+function joinAcked() {
+  clearTimeout(joinAckTimer);
+  document.querySelector(".join-deadend")?.remove();
+}
+// The two ways a join dies: silence (typo'd/dead code) and a full room. Both get told, in voice,
+// with a way out - a full room still offers the couch (observer/TV mode).
+function showJoinDeadEnd(kind) {
+  if (!document.querySelector(".lobby-screen")) return;   // only meaningful while waiting
+  clearTimeout(joinAckTimer);                             // don't let the silence timer clobber this
+  document.querySelector(".join-deadend")?.remove();
+  const box = document.createElement("div");
+  box.className = "join-deadend";
+  box.setAttribute("role", "alert");
+  box.innerHTML = kind === "full"
+    ? `<b>Room #${escapeHtml(state.roomCode)} is full.</b><span>Twelve seats, all warm. Someone has to leave first — or take the couch.</span>
+       <span class="jd-row"><button type="button" class="button jd-tv">📺 WATCH AS TV</button><button type="button" class="button ghost jd-back">← BACK</button></span>`
+    : `<b>Nobody's hosting room #${escapeHtml(state.roomCode)}.</b><span>Check the code with your host — or wait, in case they're mid-refresh.</span>
+       <span class="jd-row"><button type="button" class="button jd-retry">RETRY</button><button type="button" class="button ghost jd-back">← BACK</button></span>`;
+  document.querySelector(".lobby-screen").appendChild(box);
+  box.querySelector(".jd-back")?.addEventListener("click", () => {
+    try { netSend("bye", {}); net && net.close(); } catch (e) { /* fine */ }
+    clearOwnSave();
+    state.gameMode = "local"; state.inLobby = false;
+    document.querySelector(".lobby-screen")?.remove();
+    showTitleScreen();
+  });
+  box.querySelector(".jd-retry")?.addEventListener("click", () => {
+    box.remove();
+    netSend("hello", { pname: state.pname });
+    clearTimeout(joinAckTimer);
+    joinAckTimer = setTimeout(() => { if (state.inLobby) showJoinDeadEnd("silent"); }, 10000);
+  });
+  box.querySelector(".jd-tv")?.addEventListener("click", () => {
+    document.querySelector(".lobby-screen")?.remove();
+    joinRoom(state.roomCode, "TV", { observe: true });
+  });
+}
+// Host takeover: if the host has been silent >30s mid-game, the FIRST live guest in join order is
+// offered the crown. Claiming broadcasts "hostclaim" — everyone records the new authority and a
+// late-returning original host demotes itself (see net.js). Offered once per host-outage.
+let hostTakeoverShown = false;
+function maybeOfferHostTakeover() {
+  if (state.gameMode !== "online" || state.isHost || state.inLobby || state.isObserver) return;
+  if (hostTakeoverShown || document.querySelector(".host-takeover")) return;
+  const hostId = typeof netHostId === "function" ? netHostId() : null;
+  if (!hostId || hostId === state.clientId) return;
+  const hp = netPeers.get(hostId);
+  if (!hp || !hp.gone || Date.now() - hp.lastSeen < 30000) return;   // must have been heard, then lost
+  // Next in line = the first roster entry after the host that is either me or a live peer. Only the
+  // player who IS next in line sees the offer (no thundering herd of new hosts).
+  const nextInLine = (state.roster || []).slice(1).find((r) => r.clientId === state.clientId || (netPeers.get(r.clientId) && !netPeers.get(r.clientId).gone));
+  if (!nextInLine || nextInLine.clientId !== state.clientId) return;
+  hostTakeoverShown = true;
+  const b = document.createElement("div");
+  b.className = "host-takeover";
+  b.setAttribute("role", "status");
+  b.innerHTML = `<span>👑 The host's gone quiet. You're next in line.</span><button type="button" class="button ht-claim">TAKE OVER HOSTING</button><button type="button" class="button ghost ht-dismiss">Not me</button>`;
+  document.body.appendChild(b);
+  b.querySelector(".ht-claim").addEventListener("click", () => {
+    state.isHost = true;
+    state.hostClaimId = state.clientId;
+    netSend("hostclaim", {});
+    flashToast("👑 You're the host now.");
+    saveGameState();
+    b.remove();
+  });
+  b.querySelector(".ht-dismiss").addEventListener("click", () => b.remove());
+}
+// The host reappeared before anyone claimed: withdraw the offer (and re-arm it for next time).
+function resetHostTakeoverOffer() {
+  hostTakeoverShown = false;
+  document.querySelector(".host-takeover")?.remove();
+  lobbyHostGoneShown = false;
+  document.querySelector(".lobby-host-gone")?.remove();
+}
+// MISS-02: guests waiting in a lobby whose host vanished used to just sit there forever. If the host
+// peer has been gone >20s while we're still in the lobby, drop a banner and pull focus to Leave.
+let lobbyHostGoneShown = false;
+function maybeWarnLobbyHostGone() {
+  if (state.gameMode !== "online" || state.isHost || !state.inLobby || state.isObserver) return;
+  const ov = document.querySelector(".lobby-screen");
+  if (!ov) return;
+  const hostId = typeof netHostId === "function" ? netHostId() : null;
+  const hp = hostId ? netPeers.get(hostId) : null;
+  const gone = !!(hp && hp.gone && Date.now() - hp.lastSeen > 20000);
+  if (!gone) {
+    if (lobbyHostGoneShown) { ov.querySelector(".lobby-host-gone")?.remove(); lobbyHostGoneShown = false; }
+    return;
+  }
+  if (lobbyHostGoneShown || ov.querySelector(".lobby-host-gone")) return;
+  lobbyHostGoneShown = true;
+  const b = document.createElement("div");
+  b.className = "lobby-host-gone";
+  b.setAttribute("role", "alert");
+  b.innerHTML = `<b>The host left the lobby.</b><span>No one's dealing any more. Hang on a moment in case they refreshed — or head back.</span>`;
+  const status = ov.querySelector(".lobby-status");
+  if (status) status.after(b); else ov.appendChild(b);
+  const leave = ov.querySelector(".lobby-leave");
+  if (leave) { try { leave.focus(); } catch (e) { /* fine */ } }
+}
+
 // The TV's holding screen until the host deals a round. Shares .lobby-screen so the round-apply
 // handler auto-removes it, then the observer board renders underneath.
 function showObserverWait() {
@@ -3373,7 +4282,7 @@ function showObserverWait() {
   ov.querySelector(".lobby-leave").addEventListener("click", () => {
     state.isObserver = false; state.inLobby = false;
     document.body.classList.remove("observer");
-    netSend("bye", {}); try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }
+    netSend("bye", {}); clearOwnSave();
     try { net && net.close(); } catch (e) { /* fine */ }
     ov.remove(); showTitleScreen();
   });
@@ -3447,6 +4356,26 @@ function resumeOnlineLobby(saved) {
 }
 
 // The waiting room: room number, who's arrived, and (host only) a START button once a friend joins.
+// FLOW-04: the lobby now hands out an actual join URL + QR (using the receipt's QR generator), not
+// just "share the room code". When there's no relay (same-origin WS), cross-device play can't work,
+// so we say so plainly instead of letting a phone silently fail to connect.
+function lobbyJoinShareMarkup() {
+  const relay = (typeof NET_RELAY !== "undefined") ? NET_RELAY : null;
+  const url = `${location.origin}${location.pathname}?join=${encodeURIComponent(state.roomCode)}`;
+  let qrSvg = "";
+  if (relay) {
+    try { const qr = qrcode(0, "M"); qr.addData(url); qr.make(); qrSvg = qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); } catch (e) { qrSvg = ""; }
+  }
+  const shown = url.replace(/^https?:\/\//, "");
+  const display = shown.length > 40 ? `${shown.slice(0, 37)}…` : shown;
+  return `<div class="lobby-share">
+    ${relay
+      ? `${qrSvg ? `<div class="ls-qr">${qrSvg}</div>` : ""}
+         <p class="ls-hint">Scan to join, or share this link:</p>
+         <div class="ls-url"><a href="${url.replace(/"/g, "&quot;")}">${escapeHtml(display)}</a><button type="button" class="button ghost ls-copy" data-url="${url.replace(/"/g, "&quot;")}">Copy</button></div>`
+      : `<p class="ls-hint">Room <b>#${escapeHtml(state.roomCode)}</b> works for tabs on <b>this device</b> only. To let phones join, serve the game with the relay running (same-origin WebSocket).</p>`}
+  </div>`;
+}
 function showLobby() {
   document.querySelector(".lobby-screen")?.remove();
   const host = state.isHost;
@@ -3455,6 +4384,7 @@ function showLobby() {
   ov.innerHTML = `
     <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">IS IT?</span></div>
     <p class="lobby-code">ROOM <b>#${escapeHtml(state.roomCode)}</b></p>
+    ${host ? lobbyJoinShareMarkup() : ""}
     ${host ? `<label class="ts-opt ts-team-mode lobby-team-mode ${state.playMode === "solo" ? "" : "on"}">
       ${tsIcon("team")}<span class="ts-opt-label">Team Mode</span>
       <input class="lobby-team-mode-input" type="checkbox" ${state.playMode === "solo" ? "" : "checked"}>
@@ -3469,10 +4399,19 @@ function showLobby() {
       <button type="button" class="button ghost lobby-leave">← Leave</button>
     </div>`;
   document.body.appendChild(ov);
+  // PERF-02: the QR encoder is a lazy script - if it isn't in yet, re-render the lobby once it lands
+  // so the share box upgrades from link-only to QR+link. showLobby() is idempotent.
+  if (host && typeof qrcode === "undefined") {
+    ensureQrcode().then(() => { if (state.inLobby && document.querySelector(".lobby-screen")) showLobby(); }).catch(() => {});
+  }
+  ov.querySelector(".ls-copy")?.addEventListener("click", (e) => {
+    const url = e.currentTarget.dataset.url || "";
+    try { navigator.clipboard.writeText(url); e.currentTarget.textContent = "Copied"; setTimeout(() => { e.currentTarget.textContent = "Copy"; }, 1400); } catch (err) { /* clipboard blocked */ }
+  });
   ov.querySelector(".lobby-leave").addEventListener("click", () => {
     state.inLobby = false;
     netSend("bye", { pname: state.pname });                          // tell the room we left on purpose
-    try { localStorage.removeItem(GAME_SAVE_KEY); } catch (e) { /* fine */ }   // don't offer a rejoin to a room we quit
+    clearOwnSave();   // don't offer a rejoin to a room we quit
     try { net && net.close(); } catch (e) { /* fine */ }
     ov.remove(); showTitleScreen();
   });
@@ -3539,7 +4478,7 @@ function updateLobby() {
   ov.querySelector(".lobby-players").innerHTML = Array.from({ length: slots }, (_, i) => {
     const r = roster[i];
     const me = r && r.clientId && r.clientId === state.clientId;
-    return `<div class="lobby-player ${r ? "here" : "empty"}">${r ? `✅ ${escapeHtml(r.name)}${me ? " (you)" : ""}` : "Share the room code"}</div>`;
+    return `<div class="lobby-player ${r ? "here" : "empty"}">${r ? `● ${escapeHtml(r.name)}${me ? " (you)" : ""}` : "Share the room code"}</div>`;   // De Stijl: no green ✅ - the blue pill already says "present"
   }).join("");
   const enough = roster.length >= 2;
   const modeLine = roster.length > 2 ? ` Team Mode ${state.playMode === "solo" ? "OFF" : "ON"}.` : "";
@@ -3565,7 +4504,20 @@ function parseSeedCode(code) {
 }
 
 loadTheme();
+document.body.classList.add("destijl-chrome");   // AES-04: De Stijl chrome accents (remove this line to revert)
 installStaticIcons();
+// MISS-03: settings footer version reads the app.js cache-bust number straight off the script tag,
+// so the build stamp is always accurate without a second place to update.
+(() => {
+  const verEl = document.getElementById("setupVersion");
+  if (!verEl) return;
+  let build = "";
+  try {
+    const src = document.querySelector('script[src*="app.js"]')?.getAttribute("src") || "";
+    build = (src.match(/v=(\d+)/) || [])[1] || "";
+  } catch (e) { /* fine */ }
+  verEl.textContent = `WHO? IS IT?${build ? ` · build ${build}` : ""}`;
+})();
 // Device prefs (board size, sound/music) set from the title-screen settings panel.
 {
   const prefs = loadPrefs();
@@ -3580,21 +4532,72 @@ installStaticIcons();
     if (prefs.music !== false) Sound.setMusic(true);   // music ON by default (playback still waits for the first gesture)
   }
 }
+// PERF-02: on-demand script loader. editor.js and vendor-qrcode.js no longer load at boot — the
+// editor arrives on the first 🎨 click, the QR encoder on first lobby/receipt (plus an idle preload).
+// habbo-*/breeding stay eager: a habbo-round RESUME applies the mode synchronously during boot.
+const _loadedScripts = {};
+function loadScriptOnce(src) {
+  if (_loadedScripts[src]) return _loadedScripts[src];
+  _loadedScripts[src] = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => { delete _loadedScripts[src]; reject(new Error(`failed to load ${src}`)); };
+    document.body.appendChild(s);
+  });
+  return _loadedScripts[src];
+}
+const EDITOR_SRC = "editor.js?v=229";
+const QRCODE_SRC = "vendor-qrcode.js?v=205";
+function ensureQrcode() { return typeof qrcode !== "undefined" ? Promise.resolve() : loadScriptOnce(QRCODE_SRC); }
+
+// Saved-custom-character storage (moved from editor.js so the BOOT deal can fold customs into the
+// pool without loading the whole editor). editor.js reuses these globals when it lazy-loads.
+const CUSTOM_KEY = "whoisit_custom_chars_v1";
+function loadCustomChars() { try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || []; } catch (e) { return []; } }
+function saveCustomChars(list) { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(list)); } catch (e) { /* storage disabled */ } }
+function buildCustomCharacter(data) {
+  const seed = data.seed != null ? data.seed : (95000 + (stableHash(data.id) % 4000));
+  return {
+    id: data.id, name: data.name || "Custom", pronouns: data.pronouns || "they",
+    feature: "a custom-made character", secret: "keeps to themselves", role: data.role || "local witness",
+    image: window.faceGenerator.renderPortrait(seed, data.traits), tags: [], variant: "",
+    traits: data.traits, seed, isCustom: true
+  };
+}
+// Rebuild the custom entries in the playable pool from storage (so saved faces get dealt into games).
+function mergeCustomIntoPool() {
+  if (!window.faceGenerator) return;
+  [generatedCharacters, allCharacters].forEach((arr) => {
+    for (let i = arr.length - 1; i >= 0; i--) if (arr[i].isCustom) arr.splice(i, 1);
+  });
+  loadCustomChars().forEach((d) => { const ch = buildCustomCharacter(d); generatedCharacters.push(ch); allCharacters.push(ch); });
+}
+
 mergeCustomIntoPool();                 // fold saved custom characters into the playable pool
 mergeGaybiesIntoPool();                // and the persistent GAYBYs
 wirePainScaleDrag();                   // drag the disease pain scale to change emotions
-if (els.editorButton) els.editorButton.addEventListener("click", openCharacterEditor);
+if (els.editorButton) els.editorButton.addEventListener("click", () => {
+  loadScriptOnce(EDITOR_SRC).then(() => openCharacterEditor()).catch(() => flashToast("Couldn't load the editor."));
+});
+// Idle preload: the QR encoder is all but guaranteed to be wanted eventually (lobby share, receipt).
+setTimeout(() => { ensureQrcode().catch(() => {}); }, 4000);
 if (els.almanacButton) els.almanacButton.addEventListener("click", showAlmanac);
+if (els.helpButton) els.helpButton.addEventListener("click", showHelpCard);   // FLOW2-02
 // A scanned receipt QR (#summary=...) opens the summary screen; ?observe=CODE turns this tab straight
 // into a TV display for that room; otherwise the title as usual.
 const observeParam = (() => { try { return new URLSearchParams(location.search).get("observe"); } catch (e) { return null; } })();
 // A saved ?g= game link (printed on the receipt) deals that exact deck straight away - the URL-safe
 // base64 is the seed code (salt + settings), so the link is self-contained.
 const gameLinkParam = (() => { try { return new URLSearchParams(location.search).get("g"); } catch (e) { return null; } })();
+// FLOW-04: ?join=CODE (from the lobby QR/link) boots straight into the join flow for that room.
+const joinParam = (() => { try { return new URLSearchParams(location.search).get("join"); } catch (e) { return null; } })();
+let pendingJoinCode = null;
 function bootFromGameLink(raw) {
   const parsed = parseSeedCode(String(raw).replace(/-/g, "+").replace(/_/g, "/"));
   try { history.replaceState(null, "", location.pathname); } catch (e) { /* keep the URL as-is */ }
-  if (!parsed) return false;
+  // BUG2-07: a mangled/ancient ?g= link used to fail silently to the title - acknowledge it in voice.
+  if (!parsed) { setTimeout(() => { try { flashToast("That game link didn't survive. Deal a fresh universe instead."); } catch (e) { /* pre-UI */ } }, 600); return false; }
   if (parsed.g) state.settings = normalizeGameSettings({ ...state.settings, ...parsed.g });
   state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; state.isHost = false;
   state.playMode = "team";
@@ -3609,6 +4612,11 @@ function bootFromGameLink(raw) {
 const resumableSave = loadGameSave();
 if (maybeShowSummaryPage()) { /* summary page shown */ }
 else if (observeParam && /^\d{3,4}$/.test(observeParam.trim())) { joinRoom(observeParam.trim(), "TV", { observe: true }); }
+else if (joinParam && /^\d{3,4}$/.test(joinParam.trim())) {
+  pendingJoinCode = joinParam.trim();
+  try { history.replaceState(null, "", location.pathname); } catch (e) { /* keep URL */ }
+  showTitleScreen();
+}
 else if (gameLinkParam && bootFromGameLink(gameLinkParam)) { /* saved game link dealt */ }
 else if (resumableSave) { try { resumeGame(resumableSave); } catch (e) { showTitleScreen(); } }
 else showTitleScreen();

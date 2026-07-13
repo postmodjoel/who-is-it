@@ -1,0 +1,537 @@
+<meta charset="utf-8">
+<title>WHO? IS IT? — Audit v2</title>
+<style>
+  :root{
+    --bg:#f2f3f6; --panel:#ffffff; --raised:#f7f8fa; --ink:#12151c; --ink2:#5b6270; --mut:#8a93a5;
+    --line:rgba(18,21,28,.14); --line2:rgba(18,21,28,.24);
+    --yellow:#ffd400; --blue:#2b54e0; --red:#e2231a;
+    --p1:#e2231a; --p2:#e08a00; --p3:#5b6270;
+    --ok:#2b54e0; --chipbg:rgba(18,21,28,.05);
+    --shadow:0 10px 30px rgba(10,14,25,.10);
+  }
+  @media (prefers-color-scheme: dark){ :root{
+    --bg:#0d1220; --panel:#161c2c; --raised:#1d2436; --ink:#eef1f6; --ink2:#a5adc0; --mut:#78819a;
+    --line:rgba(255,255,255,.12); --line2:rgba(255,255,255,.22);
+    --p2:#ffb02e; --chipbg:rgba(255,255,255,.06);
+    --shadow:0 12px 34px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0d1220; --panel:#161c2c; --raised:#1d2436; --ink:#eef1f6; --ink2:#a5adc0; --mut:#78819a;
+    --line:rgba(255,255,255,.12); --line2:rgba(255,255,255,.22);
+    --p2:#ffb02e; --chipbg:rgba(255,255,255,.06);
+    --shadow:0 12px 34px rgba(0,0,0,.45);
+  }
+  :root[data-theme="light"]{
+    --bg:#f2f3f6; --panel:#ffffff; --raised:#f7f8fa; --ink:#12151c; --ink2:#5b6270; --mut:#8a93a5;
+    --line:rgba(18,21,28,.14); --line2:rgba(18,21,28,.24);
+    --p2:#e08a00; --chipbg:rgba(18,21,28,.05);
+    --shadow:0 10px 30px rgba(10,14,25,.10);
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font:15px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;padding:0 0 80px}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+  header.top{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:3px solid transparent;
+    border-image:linear-gradient(90deg,var(--yellow) 0 33%,var(--blue) 33% 66%,var(--red) 66% 100%) 1;padding:14px 0 10px}
+  h1{font-size:22px;font-weight:900;letter-spacing:.02em;margin:0;text-transform:uppercase}
+  h1 .q{color:var(--yellow);text-shadow:.05em .05em 0 var(--blue)}
+  .sub{color:var(--ink2);font-size:13px;margin:2px 0 10px}
+  .counts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+  .cnt{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--ink2)}
+  .cnt b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .cnt.appr b{color:var(--blue)} .cnt.rej b{color:var(--red)} .cnt.mod b{color:var(--p2)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .filters select,.filters input[type=search]{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:13px;font-weight:600}
+  .filters input[type=search]{flex:1;min-width:180px}
+  .filters button{cursor:pointer}
+  main{padding-top:16px}
+  section.report{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);margin:0 0 18px;overflow:hidden}
+  section.report>summary,details.rep>summary{cursor:pointer;list-style:none;padding:14px 18px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;font-size:13px}
+  details.rep>summary::before{content:"▸ ";color:var(--mut)} details.rep[open]>summary::before{content:"▾ "}
+  details.rep .bd{padding:2px 20px 18px;border-top:1px solid var(--line)}
+  details.rep h3{font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 6px;color:var(--ink)}
+  details.rep p,details.rep li{color:var(--ink2);font-size:13.5px;max-width:72ch}
+  details.rep li b{color:var(--ink)}
+  .rescue{background:var(--panel);border:2px solid var(--yellow);border-radius:14px;padding:12px 16px;margin:0 0 18px;font-size:13px;color:var(--ink2)}
+  .rescue b{color:var(--ink)}
+  .rescue button{margin-left:8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);margin:0 0 14px;overflow:hidden;border-left:6px solid var(--p3)}
+  .card.P1{border-left-color:var(--p1)} .card.P2{border-left-color:var(--p2)} .card.P3{border-left-color:var(--p3)}
+  .card.done{opacity:.78}
+  .chead{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:13px 16px 8px;cursor:pointer}
+  .cid{font:700 12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--mut)}
+  .ctitle{font-weight:800;font-size:15.5px;flex:1;min-width:220px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--chipbg);color:var(--ink2);border:1px solid var(--line)}
+  .chip.pri.P1{background:var(--p1);color:#fff;border-color:var(--p1)}
+  .chip.pri.P2{background:var(--p2);color:#131313;border-color:var(--p2)}
+  .chip.conf.confirmed{border-color:var(--blue);color:var(--blue)}
+  .chip.st{border-style:dashed}
+  .chip.st[data-s="Approve"]{background:var(--blue);color:#fff;border-color:var(--blue);border-style:solid}
+  .chip.st[data-s="Reject"]{background:var(--red);color:#fff;border-color:var(--red);border-style:solid}
+  .chip.st[data-s="Modify"]{background:var(--p2);color:#131313;border-color:var(--p2);border-style:solid}
+  .chip.st[data-s="Needs discussion"]{background:var(--yellow);color:#131313;border-color:var(--yellow);border-style:solid}
+  .chip.st[data-s="Defer"]{background:var(--chipbg);border-style:solid}
+  .cbody{display:none;padding:2px 18px 16px;border-top:1px solid var(--line)}
+  .card.open .cbody{display:block}
+  .cbody h4{margin:13px 0 3px;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut)}
+  .cbody p{margin:2px 0;color:var(--ink2);font-size:13.5px;max-width:76ch;white-space:pre-wrap}
+  .cbody p.ev{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow-x:auto}
+  .meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--mut)}
+  .decide{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 6px}
+  .decide button{border:1px solid var(--line2);background:var(--raised);color:var(--ink);border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:800;cursor:pointer}
+  .decide button:hover{border-color:var(--blue)}
+  .decide button.on[data-d="Approve"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .decide button.on[data-d="Reject"]{background:var(--red);color:#fff;border-color:var(--red)}
+  .decide button.on[data-d="Modify"]{background:var(--p2);color:#131313;border-color:var(--p2)}
+  .decide button.on[data-d="Needs discussion"]{background:var(--yellow);color:#131313;border-color:var(--yellow)}
+  .decide button.on[data-d="Defer"]{background:var(--ink2);color:var(--bg);border-color:var(--ink2)}
+  textarea.note{width:100%;min-height:54px;background:var(--raised);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:13px/1.5 inherit;resize:vertical}
+  .exports{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 26px}
+  .exports button{background:var(--panel);border:2px solid var(--line2);border-radius:11px;color:var(--ink);font-weight:800;font-size:13px;padding:10px 14px;cursor:pointer}
+  .exports button.primary{background:var(--yellow);border-color:var(--yellow);color:#131313}
+  .exports button:hover{border-color:var(--blue)}
+  #out{width:100%;min-height:120px;display:none;background:var(--raised);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
+  .shotnote{font-size:12px;color:var(--mut);font-style:italic}
+  button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="top"><div class="wrap">
+  <h1><span class="q">WHO? IS IT?</span> — Audit v2 <span style="font-weight:600;color:var(--mut);font-size:13px">post-implementation review · 48 findings · analysis only</span></h1>
+  <p class="sub">Second full product review of the shipped build (all 64 v1 findings implemented). Every screen exercised live at 390 / 800 / 1280 px, dark + light, plus code, protocol and a scan of all 1,397 prompts. Decisions save locally under <b>whoisit-audit-v2</b> (v1 decisions untouched). Screenshots for the visual findings are inline in the review session transcript — each finding notes which sweep shot shows it.</p>
+  <div class="counts" id="counts"></div>
+  <div class="filters">
+    <input id="q" type="search" placeholder="Search title, description, id…">
+    <select id="fCat"><option value="">Category — all</option></select>
+    <select id="fPri"><option value="">Priority — all</option><option>P1</option><option>P2</option><option>P3</option></select>
+    <select id="fSev"><option value="">Severity — all</option><option>high</option><option>medium</option><option>low</option></select>
+    <select id="fConf"><option value="">Confidence — all</option><option>confirmed</option><option>likely</option><option>plausible</option><option>subjective</option></select>
+    <select id="fEff"><option value="">Effort — all</option><option>XS</option><option>S</option><option>M</option><option>L</option></select>
+    <select id="fSt"><option value="">Status — all</option><option>Not reviewed</option><option>Approve</option><option>Reject</option><option>Modify</option><option>Needs discussion</option><option>Defer</option></select>
+    <button id="expandAll" class="cnt">Expand all</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+  <div class="rescue">🆘 <b>Recover my decisions:</b> if the export buttons ever misbehave, this always works —
+    <button onclick="dumpRaw()">Dump raw JSON below</button> <span class="shotnote">(copies everything from localStorage into the box at the bottom)</span></div>
+
+  <details class="rep" open><summary>Report — executive summary, roadmap, quick wins, not-recommended</summary><div class="bd">
+    <h3>1 · Executive summary</h3>
+    <p>The game is in the best shape it has ever been: the De Stijl system holds across almost every surface, the guess mechanic gives rounds real endings, the decks speak with one (occasionally too-recognisable) voice, and the 373MB→44MB asset work makes it deployable. This pass found <b>no P0s</b> and three P1s — one of which quietly kills the entire first-run experience: the manifesto and onboarding tips never actually fire for a genuinely new player (BUG2-01). The other two P1s: the light-theme round reveal renders its names white-on-white (BUG2-02), and the base question deck — the one every player sees most — is the thinnest deck in the game at 39 prompts (DECK2-01). Beyond those, the findings cluster into four themes: <b>(a)</b> the flavour-pool repetition class (same joke twice on one board) that v1 fixed for Judgement but not the other modes; <b>(b)</b> a first-five-minutes funnel that buries the premise and over-fronts settings; <b>(c)</b> a writing tic inventory measured across all 1,397 prompts (11.6% end on the same 1–3-word punch); and <b>(d)</b> online polish — the question card is not actually synchronised between devices, and host-takeover authority doesn't survive a refresh.</p>
+    <h3>2 · Highest-priority findings</h3>
+    <p><b>BUG2-01</b> first-run teaching layer dead · <b>BUG2-02</b> light-theme reveal unreadable · <b>DECK2-01</b> base deck thinnest in game · <b>NET2-01</b> unsynced online question card · <b>BUG2-05</b> same-board flavour repeats · <b>FLOW2-01</b> overloaded local setup step · <b>APPEAL2-01</b> premise invisible on landing.</p>
+    <h3>3–13 · Category sections</h3>
+    <p>Every finding is filed under its category below — use the Category filter to read the report section-by-section: Visual consistency (VC2), Game flow (FLOW2), Appeal (APPEAL2), Fun factor (FUN2), Question decks (DECK2), Aesthetic system (AES2), Online reliability (NET2), Bugs (BUG2), Performance (PERF2), Accessibility (A11Y2), Missing states (MISS2).</p>
+    <h3>14 · Recommended roadmap</h3>
+    <p>Wave 1 (ship this week): BUG2-01/02/03/04 + APPEAL2-01 + FLOW2-02 — first-run works, reveal readable, premise on the door. Wave 2: DECK2-01/02/03/04/05 as one writing session using the DECK2-08 framework. Wave 3: BUG2-05 + DECK2-07 (pool mechanics), NET2-01/02. Wave 4: FLOW2-01, FUN2-01/02, A11Y2-01. Everything else rides along as polish.</p>
+    <h3>15 · Quick wins (XS, high visibility)</h3>
+    <p>BUG2-03 sort icon · BUG2-04 guess copy · VC2-01 casing · VC2-04 chip truncation · FLOW2-03 eliminated-guess roast · A11Y2-04 pill targets · BUG2-07 dead-link toast · AES2-03 light icons.</p>
+    <h3>16 · High-value larger improvements</h3>
+    <p>DECK2-01+05 (the writing session), NET2-01 (shared question), FUN2-01 (shot clock), FLOW2-01 (setup diet), A11Y2-01 (overlay focus).</p>
+    <h3>17 · Low-priority polish</h3>
+    <p>VC2-05/06/07, AES2-01/02, FUN2-04/05, PERF2-02, DECK2-06, MISS2-01, NET2-03/04.</p>
+    <h3>18 · Ideas considered but NOT recommended</h3>
+    <p>• <b>Audience/companion voting app</b> — a second screen fractures a pass-and-play party game; the DOUBT micro-vote (FUN2-03) gets 90% of the value with zero infrastructure. • <b>Accounts / cloud saves</b> — against the local-first design; the save-key + seed links already cover continuity. • <b>Default-on round timers</b> — timers fight social pacing; ship as an opt-in modifier only (FUN2-01). • <b>Moderation/reporting systems</b> — meaningless for a local party game with no UGC distribution. • <b>Full ASCII mode now</b> — already queued on the roadmap in modes.js; do it as content, not as part of this audit. • <b>Rewriting all 1,397 prompts</b> — the voice is fundamentally right; targeted de-ticking beats a rewrite.</p>
+  </div></details>
+
+  <div id="list"></div>
+
+  <div class="exports">
+    <button class="primary" onclick="exportJSON()">⬇ Export JSON (decisions + notes)</button>
+    <button onclick="exportOpus()">⬇ Opus implementation prompt (approved + modified only)</button>
+    <button onclick="exportMD()">⬇ Markdown report</button>
+    <button onclick="document.getElementById('out').style.display='block';dumpRaw()">Show raw</button>
+  </div>
+  <textarea id="out" readonly aria-label="Export output"></textarea>
+</main>
+
+<script>
+const KEY="whoisit-audit-v2";
+const F=[
+{id:"BUG2-01",cat:"Bugs",area:"app.js render()/maybeShowManifesto · first-ever board",title:"The entire first-run teaching layer never fires (manifesto + onboarding tips)",sev:"high",conf:"confirmed",imp:"A brand-new player gets no manifesto, no tone-setting, and no 'tap your card / tap the question' tips — the two systems built to teach the game silently skip.",eff:"S",pri:"P1",
+desc:"maybeShowManifesto() is only called from render(). The one render() after dealing happens while the title screen is still fading out (.title-screen stays in the DOM ~400ms during ts-out), so the guard `document.querySelector('.title-screen…')` returns and the function bails WITHOUT marking done. No later render() occurs — board clicks call renderBoard() only. Reproduced live on a cleared profile: board appeared, no manifesto; a manual render() then showed it instantly. Because maybeShowOnboarding() is gated behind maybeShowManifesto() returning true, the tips die with it — on the FIRST game they never show either (they only appear from game 2 onward).",
+ev:"Repro: clear whoisit_manifesto_v1 → LET'S PLAY → BEGIN → board, no manifesto; render() → manifesto appears. Code: app.js render() tail 'if (maybeShowManifesto()) maybeShowOnboarding()'; title close() removes .title-screen after ~400ms fade.",
+rec:"After the title's close()/fade completes, explicitly call maybeShowManifesto() (setTimeout ~450ms in startLocalGame/startOnlineGame post-close, or dispatch from the ts-out transitionend). Keep the render() hook as a fallback. Acceptance: fresh profile sees manifesto on board 1, tips after dismissing it, neither on board 2.",
+exp:"First-time players get the manifesto beat, then the two mechanic tips — the intended first five minutes.",risk:"None — additive timing fix.",shot:"Sweep: 'first board, no manifesto' + manual-render proof."},
+
+{id:"BUG2-02",cat:"Bugs",area:"styles.css .rr-name / .rr-epilogue / .rr-label · round reveal (light theme)",title:"Light-theme round reveal renders names white-on-white",sev:"high",conf:"confirmed",imp:"In light theme every round ends on an unreadable screen — the character names and epilogue jokes are invisible.",eff:"S",pri:"P1",
+desc:"The reveal card name strip and epilogue are hardcoded to cream (.rr-name color:#fffdf7; .rr-epilogue color:rgba(255,253,247,.75)) while the card plate + shell go light in light theme → white text on white plate. 'YOU WERE' (.rr-label.rr-you, #ffbe0b) is also yellow-on-white, borderline invisible. Dark theme is unaffected.",
+ev:"Live light-theme reveal: JAVIER / INES name strips blank white; epilogues ('Remains, somehow, at large.') ghosted. styles.css:6495 .rr-name{color:#fffdf7}; 7420 .rr-epilogue cream; 6493 .rr-label.rr-you #ffbe0b.",
+rec:"Tokenise: .rr-name → var(--text-primary) on a plate using --bg-panel-raised; .rr-epilogue → var(--text-secondary); .rr-you keeps yellow in dark, switches to a darkened amber (or --accent-blue) in light. Acceptance: reveal legible in both themes at 390 and 1280.",
+exp:"Round reveal readable in light theme; epilogue jokes land for light-theme players.",risk:"None.",shot:"Sweep: light-theme 'Joel WINS' reveal."},
+
+{id:"DECK2-01",cat:"Question decks",area:"game-data.js absurdPrompts",title:"The base deck is the thinnest deck in the game (39 prompts) — and it's the one players see most",sev:"high",conf:"confirmed",imp:"Plain rounds + reroll-tapping burn through 39 prompts in one long night; repeats hit exactly where the game should feel deepest.",eff:"M",pri:"P1",
+desc:"Inventory: base absurdPrompts = 39 (13 mild / 14 medium / 12 feral) vs ~48 per mode deck and 69 for LinkedIn. The base deck serves every plain round, warm-up rounds, and every reroll tap. With the no-repeat cycler a table that rerolls even a few times a round has seen the entire mild tier by round 2–3 of a second session. The thinnest deck carries the most traffic.",
+ev:"Deck inventory scan: classic 16, absurd 39, location 24, mode decks 34–69 ×31. drawFromPool cycles without repeats then resets.",
+rec:"Grow the base deck to ~60 using the DECK2-08 framework and the DECK2-05 register list (workplace, family, funerals, petty crime, real estate, Australian material). Keep the 13/14/12 heat balance roughly proportional. Do it as one writing session so the voice stays uniform.",
+exp:"Two full sessions before anyone hears a repeat; the game's core deck matches the modes' depth.",risk:"Deck bloat if additions are filler — gate every prompt through the framework checklist.",shot:"—"},
+
+{id:"BUG2-03",cat:"Bugs",area:"styles.css .sort-glyph + LinkedIn mode --ink remap",title:"Sort icon is invisible in LinkedIn mode (dark glyph on dark button)",sev:"medium",conf:"confirmed",imp:"One of seven toolbar icons appears blank for the entire LinkedIn round, both mobile and desktop.",eff:"XS",pri:"P2",
+desc:"The sort glyph inherits color:var(--ink). LinkedIn's white-page costume remaps --ink to near-black for its cream board, but the toolbar ghost buttons stay dark navy → computed rgb(29,29,29) glyph on rgb(29,35,50) button. Neighbouring icons use fixed light colors and stay visible.",
+ev:"Computed live in linkedin mode: sort-glyph color rgb(29,29,29); #sortSelect background rgb(29,35,50). Visible in both sweep screenshots (390 + 1280).",
+rec:"Give .sort-wrap .sort-glyph an explicit color that tracks the toolbar surface, not the page ink (e.g. color:var(--text-primary) scoped to .topbar-actions), or add a body.mode-neighbourhood-watch/linkedin override.",
+exp:"Sort icon visible in every mode.",risk:"None.",shot:"Sweep: LinkedIn desktop — first toolbar cell blank."},
+
+{id:"BUG2-04",cat:"Bugs",area:"app.js:2632 enterGuessMode banner",title:"Guess banner copy is ungrammatical in local games: 'Tap who you think Joel is guessing'",sev:"medium",conf:"confirmed",imp:"The single most important instruction in the new flagship mechanic reads like a broken sentence at the exact moment of peak attention.",eff:"XS",pri:"P2",
+desc:"Local branch renders `Tap who you think ${who} is guessing` where who = the GUESSER's name — producing 'Tap who you think Joel is guessing — 3 guesses left'. The intended meaning is 'Joel: tap who you think Naomi is.' Online branch ('they are') is fine.",
+ev:"app.js:2632 template literal; live banner screenshot.",
+rec:"Rewrite local copy to: '🔍 ${guesser} — tap who you think ${targetName} is · ${left} guesses left' (targetName = other seat's display name). Keep online branch.",
+exp:"Banner reads naturally; doubles as a whose-turn reminder in pass-and-play.",risk:"None.",shot:"Sweep: guess-mode board, bottom banner."},
+
+{id:"BUG2-05",cat:"Bugs",area:"modes.js per-character flavour assignment (astrology, pantone, swipe, sims…)",title:"Same-board flavour repeats: the v1 dedupe fixed Judgement only",sev:"medium",conf:"confirmed",imp:"Two cards on one board wearing the identical joke reads as a bug and dilutes ask-ability (pantone swatch names are gameplay-relevant).",eff:"M",pri:"P2",
+desc:"spreadAssign() (v1 FUN-03) is only wired into Judgement. Live: astrology board showed 'trauma-dumps on strangers' on two cards at once; pantone board had Persimmon Bloom ×3, Aqua Foam ×3, Candy Pink ×3; astrologySigns quotes are only 3-per-sign. Pool sizes measured 10–19 across modes vs boards of 24–36, so per-character independent hashing guarantees collisions. Judgement itself still wraps slightly (1 dup thought, 4 dup locations at 24) because its pools are 10–12 per verdict.",
+ev:"Live astrology screenshot (dup red flag visible); pantone screenshot (×3 swatches); pool-size scan: judgementThoughts 12/verdict, judgementLocations 10, swipeFlags 15, simsCareers 17, astrologySigns 3/sign.",
+rec:"Mechanical half: route every per-character flavour pick through spreadAssign (astrology red flags + quotes-within-sign, pantone swatch names, swipe flags, sims careers/actions, woke badges). Content half is DECK2-07 (grow pools). Pantone specifically should guarantee near-unique names per board — they're askable game state.",
+exp:"No duplicate flavour line on any board ≤ pool size; graceful wrap beyond.",risk:"Deterministic order must stay salt-stable for online (spreadAssign already is).",shot:"Sweep: astrology + pantone boards."},
+
+{id:"BUG2-06",cat:"Bugs",area:"modes.js wheel reel filler",title:"Wheel reel flashes non-PG mode glyphs during PG games",sev:"low",conf:"confirmed",imp:"Cosmetic: biohazard/fertility glyphs spin past kids before landing on something wholesome.",eff:"XS",pri:"P3",
+desc:"The spinning reel's filler cells sample the full glyph set; the LANDING is PG-filtered but the theatre isn't. Seen live with PG on: ☣ and ☥ in the reel.",ev:"Sweep: wheel overlay screenshot (biohazard visible, PG on).",
+rec:"Filter reel filler cells by wheelPgOk() too.",exp:"PG reel shows only PG glyphs.",risk:"None.",shot:"Sweep: wheel spin."},
+
+{id:"BUG2-07",cat:"Bugs",area:"app.js bootFromGameLink",title:"A dead ?g= game link fails silently to the title screen",sev:"low",conf:"confirmed",imp:"Scanning an old receipt QR with a mangled code looks like the app ignored you.",eff:"XS",pri:"P3",
+desc:"bootFromGameLink returns false on parse failure and boot falls through to the title with no message.",ev:"Code path: parseSeedCode → null → return false; no toast.",
+rec:"flashToast('That game link didn't survive. Dealing you a fresh universe instead.') on parse failure.",exp:"Failed links are acknowledged in-voice.",risk:"None.",shot:"—"},
+
+{id:"NET2-01",cat:"Online sync",area:"app.js drawPrompt / net.js (no prompt message)",title:"The question card is not synchronised online — each device shows a different dare",sev:"medium",conf:"likely",imp:"Two phones in one room show two different questions at the same moment; the shared-laugh beat the cue card exists for doesn't happen online.",eff:"M",pri:"P2",
+desc:"drawPrompt() is purely local (Math.random over pools) and no net message carries prompt text — confirmed by protocol grep. Local pass-and-play is unaffected (one screen). Whether this is a bug or a feature is a design decision: per-device prompts give each player a private dare; synced prompts give the table one shared bit. Given the decks are written as table-facing dares ('the person to your left…'), synced is almost certainly the intent.",
+ev:"grep net.js for prompt/question: zero handlers; drawPrompt call sites all local.",
+rec:"Dealer-draws model: whoever deals (and whoever taps reroll) broadcasts {type:'prompt', text} — receivers render it verbatim. ~20 lines. Alternatively: explicitly bless per-device prompts with a subtle 'your dare' label. Recommend syncing.",
+exp:"Both phones read the same dare at the same time; reroll is shared.",risk:"Slight chattiness on reroll-spam; debounce at 300ms.",shot:"—"},
+
+{id:"NET2-02",cat:"Online sync",area:"app.js buildGameSave / hostclaim",title:"Host-takeover authority (hostClaimId) is not persisted — a refresh silently reverts the host",sev:"medium",conf:"plausible",imp:"After a takeover, the new host refreshes → roster[0] (the vanished original) is authority again; host-only settings gating and 'settings' broadcasts can flip-flop between two believers.",eff:"S",pri:"P2",
+desc:"netHostId() = state.hostClaimId || roster[0].clientId. hostclaim sets state.hostClaimId live, but buildGameSave doesn't include it (verified by field scan), so the claimant's refresh loses the claim while OTHER peers still hold it — asymmetric authority. If the original host also returns, both now pass isHost checks in their own tabs.",
+ev:"buildGameSave field scan: salt/settings/roster/scoreboard/guessesLeft/roundOver present, hostClaimId absent.",
+rec:"Persist hostClaimId in the save + restore in resumeGame; include it in the snapshot message so re-joiners adopt it.",
+exp:"Host authority survives refreshes on all peers symmetrically.",risk:"None — additive field.",shot:"—"},
+
+{id:"NET2-03",cat:"Online sync",area:"app.js state.seenPrompts",title:"No-repeat question memory is lost on refresh and never reset online",sev:"low",conf:"plausible",imp:"Resume repeats recently-asked questions; a long-lived tab hosting session after session slowly staled.",eff:"S",pri:"P3",
+desc:"state.seenPrompts (the no-repeat Set) is not in buildGameSave — a refresh forgets what's been asked. It's reset in startLocalGame only; online paths rely on lazy init, so a second online session in the same tab inherits the previous session's memory (harmlessly, but semantics drift).",
+ev:"grep seenPrompts: init at drawFromPool, reset only at startLocalGame:3899; absent from save.",
+rec:"Persist last ~60 prompt keys in the save; reset in startOnlineGame + the net 'start' handler on new salt.",exp:"Prompt memory consistent across refreshes and sessions.",risk:"None.",shot:"—"},
+
+{id:"NET2-04",cat:"Online sync",area:"net.js sessionend handler × guess mode",title:"sessionend arriving mid-guess leaves the guess banner + body class stacked under the receipt",sev:"low",conf:"plausible",imp:"Guest in guess mode when host prints the receipt → session-end shows but body.guess-mode + banner persist; after CONTINUE PLAYING the stale guess UI can linger.",eff:"S",pri:"P3",
+desc:"The sessionend handler removes .round-reveal but doesn't call exitGuessMode(); guess-mode state is board-level UI, not an overlay.",
+ev:"net.js sessionend handler: removes .round-reveal only.",
+rec:"Call exitGuessMode() (if defined) in the sessionend handler before showSessionEnd({remote:true}).",exp:"Clean state on remote session end.",risk:"None.",shot:"—"},
+
+{id:"FLOW2-01",cat:"Game flow",area:"Title → LOCAL GAME names step",title:"The names step is a 9-control settings wall between 'let's play' and playing",sev:"medium",conf:"subjective",imp:"First-time hosts must scroll past mode-lineup policy, PG, board size, sound AND music (duplicated from the previous step) before BEGIN — momentum dies at the exact moment enthusiasm peaks.",eff:"M",pri:"P2",
+desc:"Live at 800×1392 the step runs: 2 name slots, ADD PLAYER, Mode-lineup panel (2 segmented rows), PG, BOARD, SOUND, MUSIC, then BACK/BEGIN below the fold. Sound + Music also exist one step earlier on the main menu — duplicate controls two taps apart. Defaults are all sensible; nothing here NEEDS deciding to start a good game.",
+ev:"Sweep shots: names step (×2, scrolled). Main-menu step showing the same audio toggles.",
+rec:"Keep: names, ADD PLAYER, PG, BEGIN. Fold Mode lineup + Board size (+ audio, removing the duplicates) behind one closed 'MORE OPTIONS' disclosure styled like the seed-row disclosure. Returning players who changed nothing get a two-tap start.",
+exp:"Names → BEGIN visible without scrolling on phones; options remain one tap away.",risk:"Power users lose at-a-glance lineup control — the disclosure keeps it one tap away.",shot:"Sweep: names step full + scrolled."},
+
+{id:"FLOW2-02",cat:"Game flow",area:"Toolbar / help affordance",title:"There is no way to ever re-read the rules — no '?' anywhere",sev:"medium",conf:"confirmed",imp:"The manifesto is once-ever (and currently never — BUG2-01); the tips are once-ever; a player who joins the table mid-night has zero recourse.",eff:"S",pri:"P2",
+desc:"v1's FLOW-01 recommendation included a toolbar '?' that replays the how-it-works layer; the manifesto shipped without it. There is genuinely no help surface in the product.",
+ev:"Toolbar inventory: sort/chat/palette/megaphone/speaker/theme/gear — no help.",
+rec:"Add a '?' ghost button (toolbar, after the gear): replays the manifesto, then the two onboarding tips, then a 3-line HOW IT WORKS card (you are a face · ask + cross off · IS IT…? to end). Same overlay components, no new systems.",
+exp:"Anyone can re-learn the game in 15 seconds without ending a round.",risk:"Toolbar is at 7 icons; consider folding editor 🎨 into the gear to keep 7.",shot:"—"},
+
+{id:"FLOW2-03",cat:"Game flow",area:"makeGuess / guess confirm",title:"You can lock in a guess on a character you already crossed off — silently",sev:"low",conf:"confirmed",imp:"The most common wrong guess in play-testing will be the mis-tap on a darkened card; the confirm gives no signal you're about to burn a guess on someone YOU eliminated.",eff:"XS",pri:"P3",
+desc:"Reproduced live: eliminated Felix, entered guess mode, tapped Felix — confirm sheet offered 'IS IT… Felix?' normally.",
+ev:"Sweep: guess-confirm on an eliminated character.",
+rec:"When the tapped character is in the guesser's own eliminated set, restyle the confirm in-voice: 'You crossed Felix off yourself. LOCK IT IN anyway?' — still allowed (maybe they bluffed themselves), but flagged. One conditional + one string.",
+exp:"Mis-taps get one beat of friction; deliberate galaxy-brain plays stay possible and get funnier.",risk:"None.",shot:"Sweep: guess confirm."},
+
+{id:"FLOW2-04",cat:"Game flow",area:"Setup dialog · Win & Loss rows in 3+ player games",title:"Win & Loss settings show as live in 3+ player games where the mechanic is inert",sev:"low",conf:"confirmed",imp:"Hosts of 3+ tables toggle guess counts that do nothing (guessTargetSeat() requires exactly 2 seats; button correctly falls back to END ROUND).",eff:"S",pri:"P3",
+desc:"The mechanic's 2-player constraint is enforced in code but invisible in settings.",
+ev:"app.js guessTargetSeat(): seats!==2 → null; setup rows render enabled regardless.",
+rec:"When players>2: dim both rows + swap the small copy to 'Two-player rounds only (for now)'. Or hide entirely.",exp:"No dead switches.",risk:"None.",shot:"—"},
+
+{id:"VC2-01",cat:"Visual consistency",area:"Names step Mode-lineup panel · heads formation chips",title:"Control-label casing drifts within single components",sev:"medium",conf:"confirmed",imp:"'Mode lineup' (sentence case) sits directly above 'ROUND PICKER' (caps) in the same panel; heads chips ('Ring', 'Figure-8') are sentence case while every equivalent segment elsewhere is caps.",eff:"XS",pri:"P2",
+desc:"The De Stijl control language is caps labels (PG MODE, BOARD, PROGRESSIVE). Two stragglers break it inside otherwise-consistent components.",
+ev:"Sweep: names step panel; heads board formation bar.",
+rec:"Caps both: 'MODE LINEUP' heading and formation chips ('RING ○', 'FIGURE-8 ∞', …).",exp:"One casing rule for control labels everywhere.",risk:"None.",shot:"Sweep shots as above."},
+
+{id:"VC2-02",cat:"Visual consistency",area:"styles.css — #ffbe0b (34 uses) vs --accent-yellow #ffd400 (13 uses)",title:"Two yellows share the brand: poster yellow and token yellow meet on the same screens",sev:"medium",conf:"confirmed",imp:"On the round reveal, 'YOU WERE' (#ffbe0b) sits ~40px from the NEXT ROUND button (#ffd400) — close enough to look like an accident rather than a system.",eff:"S",pri:"P2",
+desc:"The title/poster world was built on #ffbe0b before the token system standardised #ffd400. Both survive: 34 hardcoded poster-yellow uses vs 13 token uses, with no rule for which surface gets which.",
+ev:"grep counts; reveal screenshot shows both within one viewport.",
+rec:"Name the second yellow: --brand-yellow:#ffbe0b with a documented role (title poster, splash CTAs, ticker) and --accent-yellow for ALL in-game controls. Sweep the ~10 in-game stragglers (rr-label, ka-q, reel-title, al-eyebrow…) onto the token. Do NOT restyle the title poster.",
+exp:"Every yellow is one of two named yellows with a stated role.",risk:"Subtle hue shift on swept elements.",shot:"Sweep: reveal (both yellows visible)."},
+
+{id:"VC2-03",cat:"Visual consistency",area:"Guess banner buttons",title:"'Cancel' / 'Just reveal it' break the CTA caps convention",sev:"low",conf:"confirmed",imp:"Minor register drift on a high-attention surface.",eff:"XS",pri:"P3",
+desc:"Primary action language elsewhere is caps (LOCK IT IN, NEXT ROUND, BEGIN). The banner pair is sentence case.",ev:"Sweep: guess banner.",
+rec:"'CANCEL' / 'JUST REVEAL IT'.",exp:"Uniform CTA register.",risk:"None.",shot:"Sweep: guess banner."},
+
+{id:"VC2-04",cat:"Visual consistency",area:"Desktop rail chip",title:"Rail chip truncates names early ('MATI…') with spare plate width",sev:"low",conf:"confirmed",imp:"Common names truncate in the skinny HUD even when room exists.",eff:"XS",pri:"P3",
+desc:"The compact chip's label max-width is tighter than its plate; MATILDA → 'MATI…' at 1280 with ~30px unused.",ev:"Sweep: LinkedIn desktop top bar.",
+rec:"Let the h3 use the full plate (max-width:100%, keep ellipsis) and/or drop chip font to 0.95rem below 1100px.",exp:"Full first names in the chip in most cases.",risk:"None.",shot:"Sweep: desktop rail."},
+
+{id:"VC2-05",cat:"Visual consistency",area:"Mobile rail chip · mode corner badges",title:"Mode corner badges overlap the mobile chip portrait",sev:"low",conf:"confirmed",imp:"Astrology's zodiac badge (etc.) crowds the tiny mobile portrait; desktop already hides these.",eff:"XS",pri:"P3",
+desc:"The ≥861px plain-chip rule hides .portrait-wrap children except img; the <861px compact strip doesn't, so corner badges render at chip scale.",ev:"Sweep: astrology mobile — ↗ badge over LEON's face.",
+rec:"Extend the badge-hiding rule to the mobile compact strip (same selector, drop the media floor for .portrait-wrap > :not(img)).",exp:"Clean face+name chip at every width; badges stay on board cards.",risk:"Verify YGO mobile card exemption still shows its frame.",shot:"Sweep: astrology mobile."},
+
+{id:"VC2-06",cat:"Visual consistency",area:"Wheel overlay · light theme",title:"Wheel of Fate backdrop muddies to olive in light theme; landing label under-contrasted",sev:"low",conf:"confirmed",imp:"The flagship between-rounds moment looks accidentally dirty for light-theme players.",eff:"S",pri:"P3",
+desc:"The yellow scrim over a light page reads olive; the white mode-name caption ('Astrology') lands on that wash at low contrast. Dark theme is the designed-for case and looks right.",
+ev:"Sweep: wheel spin (light).",
+rec:"Theme-aware scrim: keep yellow-on-dark; in light use a navy scrim (rgba(9,18,35,.8)) so the reel pops and the caption stays white-on-dark.",exp:"Wheel moment reads deliberate in both themes.",risk:"None.",shot:"Sweep: wheel spin."},
+
+{id:"VC2-07",cat:"Visual consistency",area:"YGO mobile secret card",title:"Yu-Gi-Oh mobile secret card fills half the viewport before the board",sev:"low",conf:"subjective",imp:"On phones the (gorgeous) card pushes the cue + board far below the fold every YGO round.",eff:"S",pri:"P3",
+desc:"min(200px,54vw) card + IS IT…? + seats ≈ 55% of an 844px viewport. It's your own reminder card, not the star.",
+ev:"Sweep: YGO at 800 — board starts ~1290px down.",
+rec:"Cap mobile YGO card at ~150px (keep full art on board + reveal).",exp:"One swipe less to the board each YGO round.",risk:"Purists may prefer the big card — it's their own secret though.",shot:"Sweep: YGO."},
+
+{id:"AES2-01",cat:"Aesthetic system",area:"Title landing · tall screens",title:"The landing page's lower half is dead space on tall screens",sev:"low",conf:"subjective",imp:"First impression on desktop/tablet: logo + one button + 55% dim emptiness.",eff:"M",pri:"P3",
+desc:"The CTA cluster anchors at ~40-45% height; the ticker rows below are (intentionally) at 13-24% opacity, so the composition bottom-halves into fog. On phones it's fine.",
+ev:"Sweep: fresh landing 800×1392.",
+rec:"Anchor the bottom with ONE quiet element on ≥900px-tall viewports: either the discovery chip relocated down there, or a slow marquee of tonight's mode names ('MURDER! LIVE! · YU-GI-OH · JUDGEMENT DAY…') at ~40% opacity. Not a second CTA.",
+exp:"Landing composition holds top-to-bottom without competing with LET'S PLAY.",risk:"Overcooking the landing — keep it to one element.",shot:"Sweep: fresh landing."},
+
+{id:"AES2-02",cat:"Aesthetic system",area:"Pantone mode",title:"PANTONE® with the ® on every card — parody flying close if the game ever goes public",sev:"low",conf:"confirmed",imp:"None today (private party game). A public web deploy hands a famously protective brand a literal ® mark misuse on every card.",eff:"XS",pri:"P3",
+desc:"Cards print 'PANTONE®' + plausible TCX codes. Parody protection is murkier for trademarks than copyright, and the ® strengthens their letter.",
+ev:"Sweep: pantone board.",
+rec:"If/when hosting publicly: rename to PANTOMIME™ or SWATCH-ADJACENT (keeps the joke, drops the mark). No action for private play.",exp:"One find-replace before any public URL.",risk:"None.",shot:"Sweep: pantone."},
+
+{id:"AES2-03",cat:"Aesthetic system",area:"Light theme · toolbar ghost buttons",title:"Light-theme toolbar icons wash out",sev:"low",conf:"confirmed",imp:"The seven core controls are the faintest elements on the light board screen.",eff:"XS",pri:"P3",
+desc:"Ghost icon color on light panel computes to a low-contrast grey (visibly fainter than dark theme's). The palette/chat glyphs nearly vanish.",
+ev:"Sweep: light board — toolbar row.",
+rec:"Bump light-theme ghost icon color to var(--text-secondary) (#5b626d) minimum.",exp:"AA-ish icons in both themes.",risk:"None.",shot:"Sweep: light board."},
+
+{id:"FUN2-01",cat:"Fun factor",area:"Round pacing · optional modifier",title:"Add an opt-in shot clock (party modifier) for question turns",sev:"medium",conf:"subjective",imp:"Real tables stall when one player over-optimises; downtime is the #1 party-game killer. An OPTIONAL timer converts analysis into panic-comedy.",eff:"M",pri:"P2",
+desc:"Assessment against the game: turns are untimed by design and that's right for the default. But groups of 4+ with drinks develop 90-second silences. A host-toggled 60s soft clock (escalating tick after 40s, in-voice buzzer + 'The universe got bored.' on expiry — no mechanical penalty) adds tension without changing rules. Fits the existing settings grid + Sound system; ships OFF.",
+ev:"—",
+rec:"Setup toggle 'SHOT CLOCK' (off) + seconds pill (30/60/90). Timer chip appears by the room number; expiry plays buzzer + taunt line, nothing else.",
+exp:"Faster rounds for tables that want them; zero change otherwise.",risk:"Feature creep in setup (mitigate: lives inside FLOW2-01's MORE OPTIONS disclosure).",shot:"—"},
+
+{id:"FUN2-02",cat:"Fun factor",area:"Endgame beat",title:"FINAL TWO — auto-moment when a player's live board hits 2 faces",sev:"medium",conf:"subjective",imp:"The natural climax of every round currently passes silently; making it loud creates a repeatable table moment for one string + one sting.",eff:"S",pri:"P2",
+desc:"When eliminations reduce a seat's remaining candidates to exactly 2, flash a brief banner ('FINAL TWO. One of these people is lying to you.') + a short sting sfx, once per seat per round. Pure theatre on state the game already tracks.",
+ev:"remaining-count already computed for elimination UI.",
+rec:"Banner reuses .guess-banner styling; trigger in toggleEliminated when remaining===2 and !seatFinalTwoShown.",
+exp:"Every round gets a felt climax before the guess.",risk:"Repetition fatigue — keep copy pool ≥6 lines, rotate.",shot:"—"},
+
+{id:"FUN2-03",cat:"Fun factor",area:"3+ player participation",title:"DOUBT — a once-per-round heckle button for non-active players (experimental)",sev:"low",conf:"subjective",imp:"In 3+ local games, waiting players are pure audience; one shared heckle affordance keeps hands on the game.",eff:"M",pri:"P3",
+desc:"Any non-active player may tap DOUBT once per round when an answer smells like a lie: screen flashes red, buzzer, 'THE TABLE DOUBTS YOU' — the table then argues it out (no mechanical effect; the argument IS the feature). Honest assessment: could be noise for quiet groups — ship as an experimental modifier next to the shot clock, default off.",
+ev:"—",rec:"Prototype behind MORE OPTIONS as 'TABLE DOUBT (experimental)'.",exp:"Waiting players get one licensed interruption per round.",risk:"Chaos-prone tables spam it — hence once-per-round per player.",shot:"—"},
+
+{id:"FUN2-04",cat:"Fun factor",area:"Wrong-guess feedback",title:"Wrong guesses deserve a taunt line, not a status toast",sev:"low",conf:"subjective",imp:"'❌ Joel guessed wrong — 2 left' is logistics; the moment is comedy.",eff:"XS",pri:"P3",
+desc:"The wrong-guess toast is the driest copy in the flagship mechanic.",
+ev:"net.js/app.js wrong-guess toast strings.",
+rec:"Small pool (8+) of in-voice lines appended to the count: 'Confidently wrong. The universe noted it.' / 'That person is somewhere, being innocent.' / 'Naomi is watching you flail.' Rotate via stableHash.",
+exp:"Wrong guesses get laughs instead of shrugs.",risk:"None.",shot:"—"},
+
+{id:"FUN2-05",cat:"Fun factor",area:"Session lore",title:"Recurring-character titles on the board (TWICE-BURNED) — experimental",sev:"low",conf:"subjective",imp:"Lore currently lives in reveal lines + receipts; putting a tiny earned title ON the board card makes the universe visibly persistent.",eff:"M",pri:"P3",
+desc:"If a character has been a secret 2+ times this session (state.lore already tracks ids), stamp a small ribbon on their card next deal: 'TWICE-BURNED', 'BACK AGAIN', 'THE USUAL SUSPECT'. Honest assessment: pure charm, M effort, no mechanics — do it after the P1/P2 list.",
+ev:"state.lore ids per round already recorded.",
+rec:"Board-render check against lore counts; one ribbon class + 6 title strings.",exp:"Sessions visibly accumulate history on the board itself.",risk:"Visual noise on busy mode cards — suppress in costume modes.",shot:"—"},
+
+{id:"APPEAL2-01",cat:"Appeal",area:"Title landing",title:"The premise is invisible until the setup-dialog footer — put one strapline on the door",sev:"medium",conf:"subjective",imp:"A newcomer sees a logo and a button; the entire pitch ('Guess Who, but everyone's a liability') lives in small print two screens deep. Identity should land in 3 seconds.",eff:"S",pri:"P2",
+desc:"The landing has zero premise copy. The manifesto (once fixed — BUG2-01) delivers tone AFTER commitment; the door needs one line BEFORE it.",
+ev:"Sweep: fresh landing — logo + LET'S PLAY only.",
+rec:"One strapline under the logo, poster-styled, ~0.9rem caps: 'GUESS WHO, IF EVERYONE INVOLVED WAS A LIABILITY.' (or the manifesto's 'SOME WILL SAY THIS IS A PARODY. WE SAY — IS IT?'). No second sentence.",
+exp:"First-visit comprehension without reading anything else.",risk:"Cluttering the poster — one line, nothing else.",shot:"Sweep: fresh landing."},
+
+{id:"APPEAL2-02",cat:"Appeal",area:"Session start",title:"'Tonight's forecast' cold-open card (optional)",sev:"low",conf:"subjective",imp:"Primes callbacks and sets tone before round 1; pairs with the receipt as bookends.",eff:"M",pri:"P3",
+desc:"Salt-derived one-liner card before the first deal: 'TONIGHT: one divorce, two fake charities, and something unforgivable at the Aquarium.' Honest: it's a garnish. Do after P2s.",
+ev:"—",rec:"Derive 3 items from the session salt (mode names + location + deck verbs); show 2.5s, skippable.",exp:"Sessions open with a bit instead of a deal.",risk:"Delays time-to-board; must be tap-skippable.",shot:"—"},
+
+{id:"DECK2-02",cat:"Question decks",area:"All decks — closing-punch tic",title:"11.6% of ALL prompts end on the same 1–3-word imperative punch ('Sell it.' 'Commit anyway.')",sev:"medium",conf:"confirmed",imp:"The signature move reads as house style for 5 prompts and as a template by the 15th — the single biggest 'written by one prompt' tell in the content.",eff:"S",pri:"P2",
+desc:"Measured: 162/1397 prompts end with a ≤3-word imperative sentence ('Sell it.', 'Full detail.', 'Go.', 'Make it specific.', 'Skip nothing.'). Within a single round of rerolls a table can hear three in a row. The fix is not removing the move — it's rationing it and diversifying closers.",
+ev:"Regex scan across game-data.js: 162 hits / 1397 prompts (11.6%). Adjacent examples: absurd deck lines 60/68/70/77.",
+rec:"Editing pass with three moves: (1) delete the punch where the body already lands ('Name your fake charity and tell me where the money goes.' needs no 'Sell it.'); (2) replace with a specific consequence clause ('…the officer is writing as you speak.'); (3) keep the bare punch on the ~30 prompts where rhythm genuinely needs it. Target ≤4% density.",
+exp:"The voice keeps its bluntness; the pattern stops being predictable.",risk:"Over-editing could flatten rhythm — keep the best 30.",shot:"—"},
+
+{id:"DECK2-03",cat:"Question decks",area:"All decks — verb monoculture",title:"'Confess' (100) and 'Explain/Justify' (98) anchor 14% of all prompts",sev:"medium",conf:"confirmed",imp:"Two verbs carry a seventh of the game's comedy; structures start rhyming across modes ('Confess the X…', 'Explain the Y…').",eff:"S",pri:"P2",
+desc:"Scan: Confess 100/1397, Explain|Justify 98/1397. Both are correct workhorses for the accused-at-a-party register, but their density makes decks feel machine-stamped in long sessions.",
+ev:"Regex counts across game-data.js.",
+rec:"Swap ~half into the wider performative verb set the strongest prompts already use: defend / deny under oath / negotiate / audition for / re-enact / narrate / coach someone through / take questions from the press about / read aloud / give the safety briefing for. Keep Confess/Explain where interrogation is the joke.",
+exp:"Same voice, twice the structural variety.",risk:"None if done in one sitting with the framework open.",shot:"—"},
+
+{id:"DECK2-04",cat:"Question decks",area:"Cross-deck duplicate concepts",title:"Near-duplicate premises: two divorces, two group-chat exits, two eulogies, eight 3am scenes",sev:"medium",conf:"confirmed",imp:"The same bit resurfacing in one night reads as running out of ideas (vs a deliberate callback).",eff:"S",pri:"P2",
+desc:"Pairs found: 'Ask for the divorce… loudly' (base feral) vs 'Ask me for a divorce, but you're {who}' (DECK-03); 'Leave the group chat…' vs 'Confess the group-chat screenshot…' (closer than they need to be); 'deliver the eulogy nobody asked for' vs deck-out eulogy (yugioh — fine, different world) vs funeral prompts in location deck; 3am appears in 8 prompts across decks.",
+ev:"Topic scan: divorce 2, group chat 13 mentions (2 near-dupes in base), eulogy/funeral/grave 15, 3am 8.",
+rec:"Keep the {who} divorce (it's the sharper one), retire the base one or push it to a different rupture ('Announce the custody arrangement for the dog.'). Differentiate the two group-chat prompts (one exit, one betrayal is fine — tighten wording so they don't share 'group chat' + 'message' phrasing). Ration 3am to feral tier only.",
+exp:"Every premise appears once per register.",risk:"None.",shot:"—"},
+
+{id:"DECK2-05",cat:"Question decks",area:"Base + location decks — register gaps",title:"The Australian register (and several requested social settings) is absent from the play decks",sev:"medium",conf:"subjective",imp:"The stated comedy targets — Australian cultural references, real-estate/rental grief, clubs and raffles, suburban pettiness — exist only in the adult-gate riddles, not where players actually play.",eff:"M",pri:"P2",
+desc:"The base deck's settings skew universal (dinner party, office, court, bar). Zero servo/Bunnings/Centrelink/RSL/body-corporate/school-pickup material. These registers are precisely the 'observant, slightly mean human' voice the brief asks for. Ten representative rewrites in the intended voice:\n\n1. \"Return the Bunnings snag you already ate. Explain the refund you deserve.\" (mild)\n2. \"The body corporate has questions about your balcony. Answer none of them, confidently.\" (mild)\n3. \"You've been on hold to Centrelink for four hours and the music just stopped. Say your first sentence.\" (mild)\n4. \"Read aloud the note you left on that windscreen in the school pickup zone.\" (medium)\n5. \"Talk the RSL raffle announcer through why you're claiming the meat tray twice.\" (medium)\n6. \"Coach your P-plater nephew through the roundabout while the funeral procession waits.\" (medium)\n7. \"You're the celebrant at your ex's wedding. Get through the vows without editorialising. You won't.\" (medium)\n8. \"Defend your search history to the IT guy who has clearly already read it.\" (medium)\n9. \"The neighbour's CCTV caught you at 2am. Narrate the footage like a nature documentary.\" (feral)\n10. \"Audition for the role of 'concerned mourner' at a funeral you weren't invited to.\" (feral)\n\nNote the verb spread (return/answer/read/talk-through/coach/defend/narrate/audition) and near-zero closing-punch usage — these demonstrate DECK2-02/03 compliance too.",
+ev:"Register scan of base + location decks; adult-gate riddles are the only AU content.",
+rec:"Fold ~10 AU-register + ~10 suburban/institutional prompts into the DECK2-01 expansion. Keep AU references recognisable-from-context (a non-Australian can still play 'the meat tray').",
+exp:"The deck sounds like it was written by a specific person from a specific place — the brief's definition of human.",risk:"Over-localising: cap AU-specific at ~15% of base deck.",shot:"—"},
+
+{id:"DECK2-06",cat:"Question decks",area:"Long prompts",title:"Six prompts run 17–18 words — too long to read aloud naturally",sev:"low",conf:"confirmed",imp:"Read-aloud rhythm dies past ~14 words; these get paraphrased by players, losing their wording.",eff:"XS",pri:"P3",
+desc:"Scan found 6 >16 words, e.g. 'You and someone at this table were both at {location} at 3am. Get your stories straight, out loud.' (18w — also the best prompt in the game, worth the trim to keep the pace).",
+ev:"Word-count scan (list in evidence).",
+rec:"Trim each to ≤14 without losing the turn: e.g. 'You and someone here were both at {location} at 3am. Sync your stories, out loud.'",
+exp:"Everything reads aloud in one breath.",risk:"None.",shot:"—"},
+
+{id:"DECK2-07",cat:"Question decks",area:"Flavour pools (content half of BUG2-05)",title:"Grow the small flavour pools to board scale",sev:"low",conf:"confirmed",imp:"Even with spreadAssign everywhere, pools of 10–15 wrap on 24–36 boards.",eff:"S",pri:"P3",
+desc:"Measured: judgementThoughts 12/verdict, judgementLocations 10/verdict, swipe flags 15 each way, simsCareers 17, astrology quotes 3/sign. Target: ≥18 per verdict-half, ≥36 for whole-board pools, ≥6 per zodiac sign.",
+ev:"Pool-size scan output (in session).",
+rec:"One writing batch per pool using the DECK2-08 framework's flavour rules (≤8 words, judgement-in-passing, no punch-tic).",exp:"Wrap-free boards at every size.",risk:"None.",shot:"—"},
+
+{id:"DECK2-08",cat:"Question decks",area:"game-data.js voice doc",title:"Codify the deck-writing framework (the voice doc, made mechanical)",sev:"medium",conf:"confirmed",imp:"The DECK-06 voice header states the register; this adds the checkable structure so future prompts (including AI-drafted ones) can be audited instead of vibed.",eff:"S",pri:"P2",
+desc:"Framework to append to the game-data.js header:\n• REGISTER (pick 1): accused / celebrant / official / witness / mourner / applicant / neighbour.\n• TARGET (pick 1): me / the table / person to your left / {who} / an absent authority.\n• SETTING: a named, specific place or institution (never 'a party' twice in a row).\n• HEAT: mild=embarrassing, medium=incriminating, feral=unforgivable.\n• FORM: ≤14 words · imperative or second person · at most ONE closing punch per 20 prompts · no 'random' nouns, the noun must be the most plausible one.\n• TEST: would a slightly cruel friend say it unprompted at 11pm, and does it make someone PERFORM?\nMechanical tag for classic deck additions: which trait axis it splits (hair/facial-hair/glasses/accessory/expression/age/clothing-loudness) — a classic question that can't name its axis doesn't ship.",
+ev:"Existing voice header (game-data.js:1-28) covers register but not structure/density rules.",
+rec:"Append the framework block to the header; run the DECK2-01/05 writing session against it.",
+exp:"Every future prompt is auditable against six checkable rules.",risk:"None — documentation.",shot:"—"},
+
+{id:"DECK2-09",cat:"Question decks",area:"Calibration set",title:"The strongest prompts, named — keep these untouched as the voice reference",sev:"low",conf:"confirmed",imp:"Editing passes need a do-not-touch list so de-ticking doesn't sand off the best material.",eff:"XS",pri:"P3",
+desc:"Keep verbatim (and why): 'Write your own missing poster. Be honest about why nobody's looking.' (self-judgement, zero wink) · 'You and someone at this table were both at {location} at 3am…' (conscripts a second player — the only prompt that creates a CONSPIRACY) · 'Do the passive-aggressive some-people post while staring dead-eyed at one specific person here.' (weaponises the table) · 'Fire someone without technically saying they're fired. I'm the someone.' (direct address) · 'Name your boat. Now justify it to the coastguard.' (specific absurd authority) · 'Leave the group chat with one final, devastating message.' (recognisable social violence) · 'Reject a suitor purely on their star sign. Deliver the cosmic dealbreaker with a straight face.' (mode voice done right).",
+ev:"Live sweep + deck read.",
+rec:"Mark these with a // KEEP comment; new prompts should sit comfortably beside them.",exp:"The editing waves have a fixed north star.",risk:"None.",shot:"—"},
+
+{id:"PERF2-01",cat:"Performance",area:"index.html boot fonts",title:"Self-host Archivo + Space Grotesk — party wifi is the worst wifi",sev:"medium",conf:"confirmed",imp:"The two system faces load render-blocking from Google Fonts at boot; on flaky/offline party networks the whole UI falls back mid-swap or stalls. Everything else about the game is now offline-capable.",eff:"S",pri:"P2",
+desc:"PERF-02 made costume fonts lazy, but the boot pair still round-trips to fonts.googleapis.com + fonts.gstatic.com. A static game that otherwise runs from one folder should not need a CDN for its brand face.",
+ev:"index.html:8-13 preconnect + stylesheet link.",
+rec:"Download the two families (weights actually used: Archivo 400-900, Space Grotesk 500-700), serve as /assets/fonts/*.woff2 with @font-face + font-display:swap; drop the preconnects. ~120KB total, cached forever by the stamp.",
+exp:"Fully offline-capable boot; no font pop on bad wifi.",risk:"None; license (OFL) permits self-hosting.",shot:"—"},
+
+{id:"PERF2-02",cat:"Performance",area:"app.js renderBoard",title:"Full board rebuild on every elimination toggle",sev:"low",conf:"confirmed",imp:"36 cards × innerHTML rebuild per tap; imperceptible on modern phones, measurable on low-power mode targets.",eff:"S",pri:"P3",
+desc:"toggleEliminated → renderBoard() reconstructs all card nodes. Heads/habbo modes already mutate in place. Not currently a felt problem — logged for the low-powered-device goal, not urgency.",
+ev:"renderBoard call in toggleEliminated; card nodes rebuilt each call.",
+rec:"Fast path: when only elimination state changed, toggle .is-down on the one card. Keep full rebuild for deals/mode swaps.",exp:"O(1) toggles.",risk:"State drift if fast path misses a mode hook — gate to plain/classic renderer only.",shot:"—"},
+
+{id:"A11Y2-01",cat:"Accessibility",area:"All overlays (reveal, manifesto, guess confirm, session end, wheel)",title:"No overlay traps focus, sets aria-modal, or answers Escape",sev:"medium",conf:"confirmed",imp:"Keyboard/screen-reader users can tab into the hidden board mid-reveal; Escape does nothing on most overlays; focus stays wherever it was.",eff:"M",pri:"P2",
+desc:"Scan: zero aria-modal/focus-trap instances in app.js/modes.js. The board cards are real <button>s (good — keyboard elimination works), which makes the leak worse: tab from the reveal goes straight into clickable hidden cards.",
+ev:"grep aria-modal|trapFocus: 0 hits; dialogs are plain divs except setupDialog (<dialog>, correct).",
+rec:"One 20-line helper: openOverlay(el) → role=dialog, aria-modal, remember focus, focus first button, trap Tab, close on Escape where a cancel exists (guess confirm, manifesto, sound panels; NOT session end). Apply to the big five overlays.",
+exp:"Keyboard round-trip: play, guess, reveal, next round — without a mouse.",risk:"Escape-to-close on reveal could skip scoreboard moment — exclude it.",shot:"—"},
+
+{id:"A11Y2-02",cat:"Accessibility",area:"Small translucent text",title:"Sub-AA small print survives in the title hint + ticker-adjacent copy",sev:"low",conf:"confirmed",imp:"The .ts-hint line (white at 50%) and similar 0.7rem translucent strings fall below AA.",eff:"XS",pri:"P3",
+desc:"--text-muted was fixed in v1; the title-screen's own rgba() one-offs weren't part of that sweep.",
+ev:"styles.css .ts-hint rgba(255,255,255,.5) at 0.72rem.",
+rec:"Raise the title-screen small print to rgba(255,255,255,.72)+.",exp:"AA on every reading-size string.",risk:"None.",shot:"—"},
+
+{id:"A11Y2-03",cat:"Accessibility",area:"Elimination state encoding",title:"Crossed-off cards encode state by darkness alone",sev:"low",conf:"confirmed",imp:"Low-vision + colour-blind players (and anyone at glare angles) read eliminated vs live by brightness only; heads mode already adds strikethrough names, grid mode has no glyph.",eff:"S",pri:"P3",
+desc:"Grid cards get a brightness/grayscale filter; no shape channel.",
+ev:"Sweep: board with eliminated FELIX (dark card, no mark).",
+rec:"Add a stamped ✕ (SVG, --accent-red at 60%) over eliminated grid cards; keep the darken.",exp:"State readable by shape and colour.",risk:"Mode costumes may need per-mode ✕ colour.",shot:"Sweep: guess-mode board (FELIX)."},
+
+{id:"A11Y2-04",cat:"Accessibility",area:"Setup dialog guess pills",title:"Guesses-each pills are under the 44px touch minimum",sev:"low",conf:"confirmed",imp:"1/2/3/5 pills are ~34px tall — the only sub-44 controls left in setup.",eff:"XS",pri:"P3",
+desc:"The .gp buttons render below the touch-target floor the rest of setup meets.",ev:"styles.css .guess-pills .gp padding → ~34px computed.",
+rec:"min-height:44px; min-width:48px.",exp:"Every setup control meets the floor.",risk:"None.",shot:"—"},
+
+{id:"MISS2-01",cat:"Missing states",area:"face-studio.html script pins",title:"Face Studio pins stale versions of the shared generator (v201 vs game's v236+)",sev:"low",conf:"confirmed",imp:"The calibration workbench can silently render DIFFERENT faces than the live game after any generator change — the exact drift it exists to prevent.",eff:"XS",pri:"P3",
+desc:"face-studio.html loads face-generator.js?v=201, faces-hair.js?v=160, editor-shared.js?v=24 while index.html is at ?v=236/207/221. Cache-key drift means a stale studio after generator edits unless hard-refreshed.",
+ev:"face-studio.html:124-128 vs index.html script tags.",
+rec:"Add face-studio.html to tools/stamp.sh's rewrite scope so both pages stamp together.",exp:"Studio and game always render from the same generator build.",risk:"None.",shot:"—"}
+];
+
+const CATS=[...new Set(F.map(f=>f.cat))];
+const $=s=>document.querySelector(s);
+let store={};
+try{store=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){store={}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}}
+function st(id){return (store[id]&&store[id].d)||""}
+function note(id){return (store[id]&&store[id].n)||""}
+
+const fCat=$("#fCat"); CATS.forEach(c=>{const o=document.createElement("option");o.textContent=c;fCat.appendChild(o)});
+["q","fCat","fPri","fSev","fConf","fEff","fSt"].forEach(id=>document.getElementById(id).addEventListener("input",renderList));
+$("#expandAll").addEventListener("click",()=>{document.querySelectorAll(".card").forEach(c=>c.classList.add("open"))});
+
+function sevWord(s){return s==="high"?"high":s==="medium"?"medium":"low"}
+function renderCounts(){
+  const total=F.length;
+  const by=d=>F.filter(f=>st(f.id)===d).length;
+  const reviewed=F.filter(f=>st(f.id)).length;
+  $("#counts").innerHTML=
+    `<span class="cnt">Total <b>${total}</b></span>`+
+    `<span class="cnt appr">Approved <b>${by("Approve")}</b></span>`+
+    `<span class="cnt rej">Rejected <b>${by("Reject")}</b></span>`+
+    `<span class="cnt mod">Modified <b>${by("Modify")}</b></span>`+
+    `<span class="cnt">Needs discussion <b>${by("Needs discussion")}</b></span>`+
+    `<span class="cnt">Deferred <b>${by("Defer")}</b></span>`+
+    `<span class="cnt">Not reviewed <b>${total-reviewed}</b></span>`;
+}
+function match(f){
+  const q=$("#q").value.trim().toLowerCase();
+  if(q && !(f.id+" "+f.title+" "+f.desc+" "+f.area+" "+f.rec).toLowerCase().includes(q))return false;
+  if($("#fCat").value && f.cat!==$("#fCat").value)return false;
+  if($("#fPri").value && f.pri!==$("#fPri").value)return false;
+  if($("#fSev").value && f.sev!==$("#fSev").value)return false;
+  if($("#fConf").value && f.conf!==$("#fConf").value)return false;
+  if($("#fEff").value && f.eff!==$("#fEff").value)return false;
+  const fs=$("#fSt").value;
+  if(fs){ if(fs==="Not reviewed"){ if(st(f.id))return false; } else if(st(f.id)!==fs)return false; }
+  return true;
+}
+function card(f){
+  const d=st(f.id);
+  const el=document.createElement("div");
+  el.className=`card ${f.pri}${d?" done":""}`;
+  el.innerHTML=`
+  <div class="chead" data-toggle>
+    <span class="cid">${f.id}</span>
+    <span class="ctitle">${f.title}</span>
+    <span class="chips">
+      <span class="chip pri ${f.pri}">${f.pri}</span>
+      <span class="chip">${f.cat}</span>
+      <span class="chip">sev ${sevWord(f.sev)}</span>
+      <span class="chip conf ${f.conf}">${f.conf}</span>
+      <span class="chip">effort ${f.eff}</span>
+      ${d?`<span class="chip st" data-s="${d}">${d}</span>`:`<span class="chip st">not reviewed</span>`}
+    </span>
+  </div>
+  <div class="cbody">
+    <h4>Screen / area</h4><p>${f.area}</p>
+    <h4>What's wrong</h4><p>${f.desc}</p>
+    <h4>Evidence</h4><p class="ev">${f.ev}</p>
+    ${f.shot && f.shot!=="—"?`<p class="shotnote">📸 ${f.shot}</p>`:""}
+    <h4>User impact</h4><p>${f.imp}</p>
+    <h4>Recommendation</h4><p>${f.rec}</p>
+    <h4>Expected result</h4><p>${f.exp}</p>
+    <h4>Risks / trade-offs</h4><p>${f.risk}</p>
+    <div class="decide">${["Approve","Reject","Modify","Needs discussion","Defer"].map(x=>`<button data-d="${x}" class="${d===x?"on":""}">${x}</button>`).join("")}</div>
+    <textarea class="note" placeholder="Notes / modifications…">${note(f.id)}</textarea>
+    <div class="meta"><span>id ${f.id}</span><span>priority ${f.pri}</span><span>confidence ${f.conf}</span><span>effort ${f.eff}</span></div>
+  </div>`;
+  el.querySelector("[data-toggle]").addEventListener("click",()=>el.classList.toggle("open"));
+  el.querySelectorAll(".decide button").forEach(b=>b.addEventListener("click",e=>{
+    e.stopPropagation();
+    const cur=st(f.id);
+    const nxt=cur===b.dataset.d?"":b.dataset.d;
+    store[f.id]=store[f.id]||{}; store[f.id].d=nxt; save();
+    renderList(); renderCounts();
+  }));
+  el.querySelector(".note").addEventListener("input",e=>{store[f.id]=store[f.id]||{};store[f.id].n=e.target.value;save();});
+  el.querySelector(".note").addEventListener("click",e=>e.stopPropagation());
+  return el;
+}
+function renderList(){
+  const list=$("#list"); list.innerHTML="";
+  const open=new Set([...document.querySelectorAll(".card.open .cid")].map(x=>x.textContent));
+  const order={P1:0,P2:1,P3:2};
+  F.filter(match).sort((a,b)=>order[a.pri]-order[b.pri]).forEach(f=>{
+    const c=card(f);
+    if(open.has(f.id))c.classList.add("open");
+    list.appendChild(c);
+  });
+  renderCounts();
+}
+function payload(){
+  return {audit:"whoisit-audit-v2",exported:new Date().toISOString(),findings:F.map(f=>({...f,decision:st(f.id)||"Not reviewed",notes:note(f.id)}))};
+}
+function show(t){const o=$("#out");o.style.display="block";o.value=t;o.focus();o.select();}
+function exportJSON(){show(JSON.stringify(payload(),null,2));}
+function dumpRaw(){show(JSON.stringify({key:KEY,store:store},null,2));}
+function exportMD(){
+  const p=payload();
+  let md="# WHO? IS IT? — Audit v2 report\n\nExported "+p.exported+"\n\n";
+  ["Approve","Modify","Needs discussion","Defer","Reject","Not reviewed"].forEach(d=>{
+    const rows=p.findings.filter(f=>f.decision===d);
+    if(!rows.length)return;
+    md+="\n## "+d+" ("+rows.length+")\n\n";
+    rows.forEach(f=>{md+="### "+f.id+" · "+f.title+"\n- Priority "+f.pri+" · "+f.conf+" · effort "+f.eff+" · "+f.cat+"\n- Area: "+f.area+"\n- Problem: "+f.desc.replace(/\n/g," ")+"\n- Recommendation: "+f.rec.replace(/\n/g," ")+(f.notes?"\n- **My notes:** "+f.notes:"")+"\n\n";});
+  });
+  show(md);
+}
+function exportOpus(){
+  const p=payload().findings.filter(f=>f.decision==="Approve"||f.decision==="Modify");
+  const rej=payload().findings.filter(f=>f.decision==="Reject"||f.decision==="Defer").map(f=>f.id);
+  let t="# Implementation prompt — WHO? IS IT? audit v2 (approved + modified only)\n\n";
+  t+="Implement the following audit findings in the WHO? IS IT? codebase. Retain the exact IDs in commit messages/comments. Items marked [MODIFIED] carry user notes that OVERRIDE the original recommendation. Findings labelled confidence:confirmed are verified bugs; likely/plausible are architectural risks — verify before fixing; subjective are design decisions already made by approval.\n\n";
+  t+="DO NOT implement these rejected/deferred ids: "+(rej.join(", ")||"(none)")+".\n\n";
+  const groups={};
+  p.forEach(f=>{(groups[f.cat]=groups[f.cat]||[]).push(f)});
+  Object.entries(groups).forEach(([cat,rows])=>{
+    t+="\n## "+cat+"\n";
+    rows.sort((a,b)=>a.pri<b.pri?-1:1).forEach(f=>{
+      t+="\n### "+f.id+(f.decision==="Modify"?" [MODIFIED]":"")+" ("+f.pri+", effort "+f.eff+", "+f.conf+")\n";
+      t+="Area: "+f.area+"\nProblem: "+f.desc.replace(/\n/g," ")+"\nDo: "+f.rec.replace(/\n/g," ")+"\nAcceptance: "+f.exp.replace(/\n/g," ")+"\n";
+      if(f.notes)t+="USER NOTES (override): "+f.notes+"\n";
+    });
+  });
+  show(t);
+}
+renderList();
+</script>

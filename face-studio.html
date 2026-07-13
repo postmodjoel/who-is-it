@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Face Studio</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23f4c84e'/%3E%3Ccircle cx='32' cy='26' r='15' fill='%23fffdf7' stroke='%23171512' stroke-width='4'/%3E%3Cpath d='M16 62c3-17 29-17 32 0' fill='%234a7bd9' stroke='%23171512' stroke-width='4'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="face-studio.css?v=167">
+    <link rel="stylesheet" href="face-studio.css?v=170">
   </head>
   <body>
     <main class="studio-shell">
@@ -16,31 +16,35 @@
         </div>
         <div class="topbar-actions">
           <a class="button ghost" href="index.html">Game</a>
-          <button id="resetButton" class="button primary" type="button">Reset</button>
+          <button id="resetButton" class="button primary" type="button">Clear Filters</button>
         </div>
       </header>
 
       <section class="controls-band" aria-label="Generator controls">
-        <label>
-          <span>Expression</span>
-          <select id="expressionFilter"></select>
-        </label>
-        <label>
-          <span>Hair</span>
-          <select id="hairFilter"></select>
-        </label>
-        <label>
-          <span>Accessory</span>
-          <select id="accessoryFilter"></select>
-        </label>
-        <label>
-          <span>Name</span>
-          <input id="searchInput" type="search" autocomplete="off" placeholder="Search faces">
-        </label>
-        <label class="toggle-control">
-          <input id="matrixToggle" type="checkbox">
-          <span>Matrix</span>
-        </label>
+        <div class="controls-primary">
+          <label>
+            <span>Expression</span>
+            <select id="expressionFilter"></select>
+          </label>
+          <label>
+            <span>Hair</span>
+            <select id="hairFilter"></select>
+          </label>
+          <label>
+            <span>Accessory</span>
+            <select id="accessoryFilter"></select>
+          </label>
+          <label>
+            <span>Group By</span>
+            <select id="groupByFilter"></select>
+          </label>
+        </div>
+        <div class="controls-utility">
+          <label class="toggle-control compact">
+            <input id="matrixToggle" type="checkbox">
+            <span>Matrix</span>
+          </label>
+        </div>
       </section>
 
       <section class="studio-layout">
@@ -52,27 +56,28 @@
               <div id="lockOverlay" class="lock-overlay" hidden></div>
               <svg id="penOverlay" class="pen-overlay" viewBox="0 0 256 256" preserveAspectRatio="none" hidden></svg>
             </div>
-            <p id="hotspotHint" class="hotspot-hint">Click a region on the face to jump to its controls</p>
+            <p id="hotspotHint" class="hotspot-hint" hidden></p>
             <div id="selectedMeta" class="selected-meta"></div>
             <div id="variantStrip" class="variant-strip"></div>
           </aside>
 
           <section class="editor-panel">
-            <section class="correction-editor" aria-label="Correction editor">
+            <section class="correction-editor" aria-label="Base design editor">
               <div class="editor-head">
                 <div>
                   <p class="meta-label">Editor</p>
-                  <h2>Corrections</h2>
+                  <h2>Base Designer</h2>
                 </div>
-                <button id="resetCorrectionButton" class="mini-button" type="button">Clear Face</button>
+                <button id="resetCorrectionButton" class="mini-button" type="button">Revert Face</button>
               </div>
               <div id="editorControls" class="editor-controls"></div>
               <label class="export-box">
                 <div class="export-head">
                   <span id="exportModeLabel">Export</span>
                   <div class="export-actions">
-                    <button id="exportModeCorrections" class="mini-button is-active" type="button">Corrections</button>
-                    <button id="exportModeEdited" class="mini-button" type="button">Edited Faces</button>
+                    <button id="exportModeCorrections" class="mini-button is-active" type="button">Draft JSON</button>
+                    <button id="exportModeEdited" class="mini-button" type="button">Bake Export</button>
+                    <button id="resetAllCorrectionsButton" class="mini-button" type="button">Revert Local Drafts</button>
                     <button id="copyExportButton" class="mini-button" type="button">Copy</button>
                   </div>
                 </div>
@@ -88,7 +93,13 @@
               <p class="eyebrow">Roster</p>
               <h2 id="resultCount">0 faces</h2>
             </div>
-            <div id="expressionSummary" class="summary-pills"></div>
+            <div id="rosterMeta" class="roster-meta"></div>
+          </div>
+          <div class="gallery-toolbar">
+            <label class="gallery-search">
+              <span>Search</span>
+              <input id="searchInput" type="search" autocomplete="off" placeholder="Search faces">
+            </label>
           </div>
           <div id="faceGrid" class="face-grid" aria-label="Generated faces"></div>
         </section>
@@ -110,10 +121,10 @@
       </section>
     </main>
 
-    <script src="faces-hair.js?v=160"></script>
+    <script src="faces-hair.js?v=207"></script>
     <script src="studio-bakes-import.js?v=1"></script>
-    <script src="face-generator.js?v=201"></script>
-    <script src="editor-shared.js?v=24"></script>
-    <script src="face-studio.js?v=190"></script>
+    <script src="face-generator.js?v=236"></script>
+    <script src="editor-shared.js?v=221"></script>
+    <script src="face-studio.js?v=194"></script>
   </body>
 </html>

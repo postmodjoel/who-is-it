@@ -1,23 +1,80 @@
+/* AES-01 — TWO BUTTON/SURFACE DIALECTS, ON PURPOSE:
+   1. The TOKEN SYSTEM below (radii/shadows/accents) — every non-mode surface uses it: chrome,
+      menus, dialogs, lobby, hint shelf, KEEP/ABORT + reel overlays, editor chrome.
+   2. MODE COSTUMES — deliberately EXEMPT. A mode is a costume, and its surfaces keep their own
+      voice. Do not "fix" these onto tokens:
+        receipt paper (thermal cream), murder pastels, LinkedIn white, Yu-Gi-Oh gold card frames,
+        Habbo pixel chrome (Press Start 2P + hard pixel shadows), PIXALL, disguise, gallery plaques.
+      Rule of thumb: if it only exists while a mystery mode is active, it's a costume. */
 :root {
   color-scheme: dark;
-  --ink: #eef0f4;
-  --muted: #8a919d;
-  --paper: #0c0d11;
-  --panel: #15171d;
-  --panel-soft: #1c1f27;
-  --card-surface: #1f232c;
-  --card-surface-2: #262b35;
+  /* ===== Design tokens (single source of truth - no one-off greys/shadows/radii) ===== */
+  --bg-page: #0b1020;
+  --bg-shell: #111725;
+  --bg-panel: #171d2b;
+  --bg-panel-raised: #1d2332;
+  --bg-panel-soft: #22293a;
+
+  --border-subtle: rgba(255, 255, 255, 0.10);
+  --border-standard: rgba(255, 255, 255, 0.17);
+  --border-strong: rgba(255, 255, 255, 0.28);
+
+  --text-primary: #f5f6f8;
+  --text-secondary: #a4abba;
+  --text-muted: #7f8898;   /* A11Y-02: ≈5.1:1 on the dark panel, was #747d8e (4.43:1, under AA) */
+
+  /* De Stijl palette: red / blue / yellow / black / white. No green - the old teal "on/checked"
+     colour is repointed to De Stijl blue. Yellow = chosen option, blue = switched on / ticked. */
+  --accent-yellow: #ffd400;
+  /* VC2-02: the SECOND yellow, named. Role: title poster, splash CTAs, ticker — the pre-token
+     "poster world" only. Every in-game control/label uses --accent-yellow. Don't mix them. */
+  --brand-yellow: #ffbe0b;
+  --accent-red: #e2231a;
+  --accent-blue: #2b54e0;
+  --accent-green: var(--accent-blue);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  --shadow-control: 0 2px 0 rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-modal: 0 18px 60px rgba(0, 0, 0, 0.50);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* ===== Legacy aliases: the older var names now RESOLVE to the tokens above ===== */
+  --ink: var(--text-primary);
+  --muted: var(--text-secondary);
+  --paper: var(--bg-page);
+  --panel: var(--bg-panel);
+  --panel-soft: var(--bg-panel-raised);
+  --card-surface: var(--bg-panel-raised);
+  --card-surface-2: var(--bg-panel-soft);
   --surface: #f6f7f9;
   --surface-soft: #e7e9ee;
   --surface-muted: #cdd1d9;
   --card-ink: #111319;
   --line: #11131a;
-  --accent: #e63327;
-  --accent-2: #18a589;
-  --accent-3: #1d57e0;
-  --accent-4: #ffd400;
-  --shadow: 0 18px 45px rgba(0, 0, 0, 0.52);
+  --accent: var(--accent-red);
+  --accent-2: var(--accent-green);
+  --accent-3: var(--accent-blue);
+  --accent-4: var(--accent-yellow);
+  --shadow: var(--shadow-panel);
   --grid-line: rgba(220, 228, 240, 0.05);
+
+  /* Control skin (flips for light theme) */
+  --control-bg: var(--bg-panel-raised);
+  --control-bg-hover: var(--bg-panel-soft);
+  --control-ink: var(--text-primary);
+  --control-border: var(--border-standard);
 }
 
 * {
@@ -45,6 +102,22 @@ body {
 
 body[data-theme="light"] {
   color-scheme: light;
+  --bg-page: #eef0f3;
+  --bg-shell: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-panel-raised: #f4f5f8;
+  --bg-panel-soft: #e9ebf0;
+  --border-subtle: rgba(17, 19, 26, 0.10);
+  --border-standard: rgba(17, 19, 26, 0.17);
+  --border-strong: rgba(17, 19, 26, 0.28);
+  --text-primary: #111319;
+  --text-secondary: #5b626d;
+  --text-muted: #646b77;   /* A11Y-02: darker on cream so muted still clears AA (light theme) */
+  --shadow-panel: 0 8px 24px rgba(17, 19, 26, 0.14);
+  --shadow-modal: 0 18px 60px rgba(17, 19, 26, 0.22);
+  --accent-red: #e2231a;
+  --accent-blue: #1f43c9;
+  --accent-green: var(--accent-blue);
   --ink: #111319;
   --muted: #5b626d;
   --paper: #eef0f3;
@@ -59,6 +132,10 @@ body[data-theme="light"] {
   --line: #11131a;
   --shadow: 0 16px 36px rgba(17, 19, 26, 0.16);
   --grid-line: rgba(17, 19, 26, 0.06);
+  --control-bg: #ffffff;
+  --control-bg-hover: #f1f3f6;
+  --control-ink: #111319;
+  --control-border: rgba(17, 19, 26, 0.2);
 }
 
 button,
@@ -106,7 +183,7 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 /* Same colours + shadows as the splash: yellow WHO?, white IS IT? with a blue drop. */
-.side-head h1 .brand-who { color: #ffbe0b; text-shadow: 0.045em 0.05em 0 #1533cc; }
+.side-head h1 .brand-who { color: var(--brand-yellow); text-shadow: 0.045em 0.05em 0 #1533cc; }
 .side-head h1 .brand-isit { color: #fffdf7; text-shadow: 0.045em 0.05em 0 #e01b1b; }
 .side-head .room-code {
   font-size: 0.72rem;
@@ -149,6 +226,16 @@ button:disabled {
 /* The location banner sits across the top of the stage (half height); the action buttons nest into
    its right-hand side so the whole top strip reads as one piece. */
 .stage-top { position: relative; margin: 12px 12px 0; }
+/* AES-04: push the De Stijl identity into the CHROME (not a re-theme). Exactly three accent rules,
+   tokens only, all behind `body.destijl-chrome` so it reverts by removing one class. 1) a primary
+   tricolour hairline under the top bar, 2) a yellow block behind "IS IT?", 3) a De Stijl edge on the
+   sticky rail. */
+body.destijl-chrome .stage-top {
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, var(--accent-yellow) 0 33.3%, var(--accent-blue) 33.3% 66.6%, var(--accent-red) 66.6% 100%) 1;
+}
+body.destijl-chrome .side-head h1 .brand-isit { box-shadow: inset 0 -0.16em 0 var(--accent-yellow); }
+body.destijl-chrome .side-panel { border-left: 3px solid var(--accent-blue); }
 .stage-top .location-band {
   position: relative;
   height: 66px;
@@ -836,7 +923,9 @@ body.low-power .secret-card.secret-hide .sht-q { animation: none; }
   pointer-events: none;
 }
 
-/* Eliminated: dim and tint the tile mostly dark (face-down), no stamp */
+/* Eliminated: dim and tint the tile mostly dark (face-down) + an ✕ stamp.
+   A11Y2-03: the darkness alone was the only state channel - colour-blind / low-vision players (and
+   anyone at a glare angle) now also get a SHAPE. The stamp rides ::after so mode costumes keep it. */
 .character-card.is-down {
   filter: grayscale(0.9) brightness(0.4) contrast(0.95);
 }
@@ -844,7 +933,13 @@ body.low-power .secret-card.secret-hide .sht-q { animation: none; }
 .character-card.is-down::after {
   position: absolute;
   inset: 0;
-  content: "";
+  content: "✕";
+  display: grid;
+  place-items: center;
+  font-size: clamp(2.2rem, 7vw, 3.4rem);
+  font-weight: 900;
+  color: color-mix(in srgb, var(--accent-red) 62%, transparent);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
   background: rgba(8, 9, 13, 0.45);
   pointer-events: none;
 }
@@ -1487,7 +1582,7 @@ body.low-power .secret-card.secret-hide .sht-q { animation: none; }
 }
 
 .character-card.manor-guest {
-  border-color: #18a589;
+  border-color: var(--accent-blue);
 }
 
 .knockoff-manor-board {
@@ -4366,7 +4461,9 @@ body.mode-pixall .secret-card img {
 .float-head {
   position: absolute;
   top: 0; left: 0;
-  width: 78px;
+  /* VC-08: head footprint shrinks as the board grows (--heads-n set in modes.js) so heads + labels
+     stop colliding at 24/36-head boards. clamp keeps it sane at both extremes. */
+  width: clamp(46px, calc(84px - (var(--heads-n, 12) * 1.4px)), 78px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4379,8 +4476,9 @@ body.mode-pixall .secret-card img {
   z-index: 1;
 }
 .float-head img {
-  width: 68px;
-  height: 68px;
+  width: 88%;
+  height: auto;
+  aspect-ratio: 1;
   object-fit: contain;
   object-position: 50% 32%;
   /* No live drop-shadow filter: it's baked into the rasterised head (rasterizeHead in app.js).
@@ -4391,13 +4489,25 @@ body.mode-pixall .secret-card img {
 }
 @keyframes head-bob { 0%, 100% { transform: translateY(-2px) rotate(-2deg); } 50% { transform: translateY(2px) rotate(2deg); } }
 .float-head .float-name {
-  font-size: 0.6rem;
+  /* Font scales down with head count; the label can't exceed the head footprint (ellipsis) so long
+     names never bleed into the neighbour. */
+  font-size: clamp(0.42rem, calc(0.62rem - (var(--heads-n, 12) * 0.006rem)), 0.6rem);
   font-weight: 800;
   color: #fff;
   text-shadow: 0 1px 3px #000, 0 0 6px rgba(0, 0, 0, 0.6);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 118%;
   letter-spacing: 0.01em;
 }
+/* Densest boards (>=28 heads): hide the name until the head is hovered/focused, so the field reads as
+   faces not a wall of text. Touch users tap-hold (focus) or just rely on the portraits. */
+.heads-layer.heads-dense .float-head .float-name {
+  opacity: 0; transition: opacity 120ms ease;
+}
+.heads-layer.heads-dense .float-head:hover .float-name,
+.heads-layer.heads-dense .float-head:focus .float-name { opacity: 1; z-index: 4; }
 .float-head:hover { z-index: 3; }
 .float-head:hover img { transform: scale(1.15); }
 .float-head.is-down { opacity: 0.22; }
@@ -4467,7 +4577,7 @@ body.mode-pixall .secret-card img {
   box-shadow: 0 0 0 2px rgba(255, 212, 0, 0.85);
   border-radius: 8px;
 }
-.ed-group { grid-column: 1 / -1; margin: 9px 0 1px; font: 800 0.62rem "Archivo", sans-serif; text-transform: uppercase; letter-spacing: 0.06em; color: #ffbe0b; border-bottom: 1px solid rgba(255,255,255,.12); padding-bottom: 3px; }
+.ed-group { grid-column: 1 / -1; margin: 9px 0 1px; font: 800 0.62rem "Archivo", sans-serif; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-yellow); border-bottom: 1px solid rgba(255,255,255,.12); padding-bottom: 3px; }
 .ed-group:first-child { margin-top: 0; }
 .ed-field { display: flex; flex-direction: column; gap: 2px; font-size: 0.62rem; font-weight: 600; color: #aab2c2; }
 .ed-field input[type="text"], .ed-field input[type="number"], .ed-field select {
@@ -4475,13 +4585,13 @@ body.mode-pixall .secret-card img {
   background: #0d0f15; color: #eef1f6; font-size: 0.72rem;
 }
 .ed-field input[type="color"] { width: 100%; height: 26px; padding: 0; border: 1px solid rgba(255,255,255,.14); border-radius: 7px; background: #0d0f15; }
-.ed-field input[type="range"] { width: 100%; accent-color: #ffbe0b; }
+.ed-field input[type="range"] { width: 100%; accent-color: var(--accent-yellow); }
 .ed-range { display: grid; grid-template-columns: minmax(0, 1fr) 72px; align-items: center; gap: 7px; }
 .ed-range .ed-num { min-width: 0; text-align: right; }
 .editor-saved { margin-top: 12px; }
 .ed-saved-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
 .ed-chip { padding: 3px 9px; border-radius: 20px; border: 1px solid rgba(255,255,255,.2); background: #22252e; color: #eef1f6; font-size: 0.66rem; font-weight: 700; cursor: pointer; }
-.ed-chip:hover { border-color: #ffbe0b; }
+.ed-chip:hover { border-color: var(--accent-yellow); }
 .ed-chip.is-on { background: #ffd400; color: #111; border-color: #ffd400; }
 .ed-empty { font-size: 0.66rem; color: #8890a0; }
 .ed-rand { display: flex; gap: 8px; margin-top: 4px; width: 100%; }
@@ -4807,13 +4917,15 @@ body.mode-pixall .secret-card img {
   position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5;
   display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 0 10px; max-width: 96%;
 }
+/* VC-06: aligned to the shared segmented-control tokens (token radius, --accent-yellow active) instead
+   of a bespoke pill. Inactive keeps a dark translucent fill so it stays legible floating on the board. */
 .heads-form-btn {
-  padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 5px 11px; border-radius: var(--radius-sm); border: 1px solid var(--border-standard);
   background: rgba(14, 16, 30, 0.72); color: #cdd6f0; font-size: 0.62rem; font-weight: 700; cursor: pointer;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px); transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
 }
-.heads-form-btn:hover { border-color: #ffbe0b; }
-.heads-form-btn.on { background: #ffbe0b; color: #1a1508; border-color: #ffbe0b; }
+.heads-form-btn:hover { border-color: var(--accent-yellow); }
+.heads-form-btn.on { background: var(--accent-yellow); color: #1a1508; border-color: var(--accent-yellow); }
 /* Fingers need more chip than mice do. */
 @media (pointer: coarse) { .heads-form-btn { min-height: 36px; min-width: 44px; } }
 
@@ -4992,7 +5104,7 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .sp-x { border: none; background: none; color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .sp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 0.8rem; font-weight: 600; }
 .sp-row select { flex: 0 0 auto; max-width: 55%; padding: 4px 6px; border-radius: 6px; border: 2px solid var(--line); background: var(--surface); color: var(--card-ink); font-weight: 700; }
-.sp-row input[type="checkbox"] { accent-color: #18a589; width: 18px; height: 18px; }
+.sp-row input[type="checkbox"] { accent-color: var(--accent-blue); width: 18px; height: 18px; }
 .sp-board-label { margin: 10px 0 6px; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .sp-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .sp-fx {
@@ -5021,12 +5133,37 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   color: #fffdf7; box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.32);
 }
 .button.ts-gear:hover { background: rgba(255, 255, 255, 0.13); }
-.ts-pg b { padding: 2px 7px; border-radius: 4px; background: #e01b1b; color: #fffdf7; font-size: 0.74rem; }
-.ts-pg.on b { background: #178a47; }
+/* PG toggle uses the shared .ts-chip switch styling (below); no bespoke red/green chip. */
 
 /* First-play onboarding nudges (one-time). Non-interactive layer; any tap dismisses them. */
 /* Coach marks point at BOARD elements: above the in-game HUD (900) but below the round reveal
    (1900), session end (1500) and warp (3000) - they used to float over the receipt screen. */
+/* FLOW-01: the first-ever board opens with a one-time manifesto (dark modal shell, De Stijl). */
+.manifesto-card {
+  position: fixed; inset: 0; z-index: 1300; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(6, 9, 20, 0.86);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  animation: loreIn 0.32s ease;
+}
+.manifesto-card.mf-out { opacity: 0; transition: opacity 0.24s ease; }
+.manifesto-card .mf-shell {
+  width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-4);
+  padding: clamp(22px, 5vw, 34px);
+  border: 1px solid var(--border-standard); border-radius: var(--radius-xl);
+  background: var(--bg-panel-raised); box-shadow: var(--shadow-modal);
+  animation: modal-in 220ms ease-out;
+}
+.manifesto-card .mf-eyebrow {
+  margin: 0; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 0.8rem;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent-yellow);
+}
+.manifesto-card .mf-body { display: flex; flex-direction: column; gap: 12px; }
+.manifesto-card .mf-body p { margin: 0; font-size: clamp(0.98rem, 2.4vw, 1.12rem); line-height: 1.5; color: var(--text-primary); }
+.manifesto-card .mf-body em { font-style: italic; color: var(--text-secondary); }
+.manifesto-card .mf-kicker { font-weight: 800; }
+.manifesto-card .mf-kicker b { color: var(--accent-yellow); }
+.manifesto-card .mf-go { width: 100%; min-height: 54px; font-size: 1.05rem; letter-spacing: 0.06em; }
 .onboard-tips { position: fixed; inset: 0; z-index: 1200; pointer-events: none; transition: opacity 0.3s ease; }
 .onboard-tips.ob-out { opacity: 0; }
 .onboard-tip {
@@ -5216,14 +5353,15 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   position: fixed; inset: 0; z-index: 1003; display: flex; align-items: center; justify-content: center;
   background: rgba(8, 4, 14, 0.72); backdrop-filter: blur(3px);
 }
+/* AES-01: modal tokens; the yellow accent ring stays (it's the shared accent, not a dialect). */
 .reel-box {
-  padding: 22px 26px; border-radius: 18px; text-align: center;
-  background: radial-gradient(circle at 50% 0%, #2a1a4d, #100a20);
-  border: 2px solid #ffbe0b; box-shadow: 0 0 0 4px rgba(255, 190, 11, 0.15), 0 18px 60px rgba(0, 0, 0, 0.7);
+  padding: 22px 26px; border-radius: var(--radius-xl); text-align: center;
+  background: var(--bg-panel-raised);
+  border: 2px solid var(--accent-yellow); box-shadow: 0 0 0 4px rgba(255, 212, 0, 0.14), var(--shadow-modal);
   animation: reel-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 @keyframes reel-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.reel-title { margin: 0 0 14px; font-size: 0.95rem; font-weight: 900; letter-spacing: 0.12em; color: #ffd24d; }
+.reel-title { margin: 0 0 14px; font-size: 0.95rem; font-weight: 900; letter-spacing: 0.12em; color: var(--accent-yellow); }   /* VC2-02 */
 .reel-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .reel {
   min-width: 130px; padding: 10px 12px; border-radius: 12px;
@@ -5235,7 +5373,7 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   font-size: 0.95rem; font-weight: 900; color: #eef1f6; min-height: 1.3em;
   filter: blur(0.6px); opacity: 0.85;
 }
-.reel.landed { border-color: #ffbe0b; box-shadow: 0 0 14px rgba(255, 190, 11, 0.45); animation: reel-land 0.3s ease-out; }
+.reel.landed { border-color: var(--accent-yellow); box-shadow: 0 0 14px rgba(255, 212, 0, 0.45); animation: reel-land 0.3s ease-out; }
 .reel.landed .reel-value { filter: none; opacity: 1; color: #ffd24d; }
 @keyframes reel-land { 0% { transform: scale(1.15); } 100% { transform: scale(1); } }
 @media (max-width: 560px) { .reel { min-width: 96px; } .reel-value { font-size: 0.78rem; } }
@@ -5404,7 +5542,7 @@ img.pol-mascot {
   font-size: clamp(4rem, 16vw, 9.5rem); color: #fffdf7;
 }
 .ts-who {
-  color: #ffbe0b; text-shadow: 0.05em 0.055em 0 #1533cc;   /* De Stijl primary BLUE drop */
+  color: var(--brand-yellow); text-shadow: 0.05em 0.055em 0 #1533cc;   /* De Stijl primary BLUE drop */
   animation: ts-slide-l 0.65s cubic-bezier(0.2, 1.2, 0.3, 1) both;
 }
 .ts-isit {
@@ -5430,6 +5568,8 @@ img.pol-mascot {
   overflow-y: auto;
   background: linear-gradient(90deg, #0d2d87 0%, #091223 48%, #3f0f1f 100%);
   animation: none;
+  /* VC-09: one width token so LET'S PLAY / Resume / the menu pills all line up (was 420 vs 360). */
+  --ts-cta-w: min(400px, calc(100vw - 2.5rem));
 }
 .title-screen.title-landing .ts-ticker-field,
 .title-screen.title-landing .ts-legibility {
@@ -5533,7 +5673,7 @@ img.pol-mascot {
   animation: none;
 }
 .title-screen.title-landing .ts-who {
-  color: #ffbe0b;
+  color: var(--brand-yellow);
   text-shadow: 0.055em 0.06em 0 #1533cc;
 }
 .title-screen.title-landing .ts-isit {
@@ -5545,9 +5685,51 @@ img.pol-mascot {
   opacity: 1;
   transform: translate3d(0, 0, 0);
   transition: opacity 220ms ease, transform 220ms ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+/* Resume sits under LET'S PLAY on the splash: same footprint + icon slot, but a translucent
+   "secondary" skin so PLAY still reads as the primary call to action. */
+.title-screen.title-landing .ts-resume-splash {
+  width: var(--ts-cta-w);
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 46px;
+  align-items: center;
+  padding: 0 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #fffdf7;
+  box-shadow: 0 4px 0 rgba(7, 22, 70, 0.55);
+  font-family: "Archivo", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.title-screen.title-landing .ts-resume-splash .ts-ico {
+  width: 34px;
+  height: 26px;
+  margin: 0;
+  padding-right: 14px;
+  border-right-color: rgba(255, 255, 255, 0.34);
+}
+.title-screen.title-landing .ts-resume-splash .ts-lbl { justify-self: start; flex: initial; }
+.title-screen.title-landing .ts-resume-splash:hover,
+.title-screen.title-landing .ts-resume-splash:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+  outline: none;
+}
+.title-screen.title-landing .ts-resume-splash:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(7, 22, 70, 0.55);
 }
 .title-screen.title-landing .ts-letplay {
-  width: min(420px, calc(100vw - 2.5rem));
+  width: var(--ts-cta-w);
   min-height: 60px;
   display: grid;
   grid-template-columns: 46px minmax(0, 1fr) 46px;
@@ -5569,9 +5751,9 @@ img.pol-mascot {
   border-right-color: rgba(16, 36, 92, 0.34);
 }
 .title-screen.title-landing .ts-letplay .ts-lbl {
-  justify-self: center;
+  justify-self: start;
   flex: initial;
-  padding-right: 18px;
+  padding-right: 0;
 }
 .title-screen.title-landing .ts-letplay:hover,
 .title-screen.title-landing .ts-letplay:focus-visible {
@@ -5586,7 +5768,7 @@ img.pol-mascot {
   box-shadow: 0 3px 0 rgba(7, 22, 70, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .title-screen.title-landing .ts-actions {
-  width: min(360px, calc(100vw - 2.5rem));
+  width: var(--ts-cta-w);
   min-height: 0;
   padding-bottom: clamp(1.5rem, 5vh, 3rem);
   opacity: 0;
@@ -5607,7 +5789,7 @@ img.pol-mascot {
   pointer-events: auto;
   transform: translate3d(0, 0, 0);
 }
-.title-screen.title-landing .ts-step { width: min(360px, calc(100vw - 2.5rem)); }
+.title-screen.title-landing .ts-step { width: var(--ts-cta-w); }
 .title-screen.title-landing .ts-step-names,
 .title-screen.title-landing .ts-step-online { width: min(430px, calc(100vw - 2.5rem)); }
 .title-screen.title-landing button:focus-visible,
@@ -5725,7 +5907,7 @@ img.pol-mascot {
 .side-panel .cue-card,
 .side-panel .side-actions,
 .side-panel .opponent-panel {
-  border-top: 1.5px dashed color-mix(in srgb, var(--line) 55%, transparent);
+  border-top: 1px solid var(--border-subtle);
   margin-top: 12px;
   padding-top: 12px;
 }
@@ -5814,6 +5996,40 @@ body.low-power .side-you.seat-secret-back { animation: none; }
   .side-panel .secret-card .card-role { display: none; }   /* face + name only on phones */
   .side-panel .secret-card .portrait-wrap .prop-overlay,
   .side-panel .secret-card .portrait-wrap .wp-pixel { display: none; }
+}
+/* VC-01/02/07: the desktop rail is a skinny "you are ___" reminder. Mode dressing - LinkedIn's full
+   profile sheet (which also HIDES the name), the Yu-Gi-Oh card frame, HEAVEN/head badges, corner art
+   and mode backgrounds - collides with the 52px chip and truncates. On the rail we render a PLAIN
+   chip: square portrait + full name. The board and the round reveal keep the full mode treatment.
+   Scoped :not(.is-hidden) so the censored "?" tile (no img child) is left alone. */
+@media (min-width: 861px) {
+  .side-panel .secret-card.character-card:not(.is-hidden),
+  .side-panel .secret-card.character-card.ygo:not(.is-hidden) {
+    display: flex; flex-direction: row; align-items: center;
+    width: 100%; margin-inline: 0; aspect-ratio: auto; padding: 0;
+    background: var(--bg-raised) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--border-standard);
+  }
+  .side-panel .secret-card:not(.is-hidden) .portrait-wrap {
+    width: 62px; flex: 0 0 auto; aspect-ratio: 1; border-radius: 10px 0 0 10px; overflow: hidden;
+  }
+  .side-panel .secret-card:not(.is-hidden) .portrait-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .side-panel .secret-card:not(.is-hidden) .portrait-wrap > *:not(img) { display: none !important; }
+  .side-panel .secret-card:not(.is-hidden) .card-plate {
+    flex: 1; min-width: 0; align-items: flex-start; justify-content: center;
+    text-align: left; padding: 6px 12px; background: none;
+  }
+  .side-panel .secret-card:not(.is-hidden) .card-plate h3 {
+    display: block !important;   /* LinkedIn hides the name; the rail chip always shows it */
+    margin: 0; font-size: 1rem; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+    color: var(--text-primary) !important;
+  }
+  .side-panel .secret-card:not(.is-hidden) .card-meta,
+  .side-panel .secret-card:not(.is-hidden) .card-pronouns,
+  .side-panel .secret-card:not(.is-hidden) .card-role,
+  .side-panel .secret-card:not(.is-hidden) .li-sheet { display: none !important; }
 }
 /* Sort select: COMPACT (an icon + down-arrow) at rest, EXPANDS to the labelled dropdown on
    hover/focus. The select's own value text is hidden while compact; a themed glyph sits on top. */
@@ -5912,20 +6128,31 @@ body.low-power .ts-step-enter { animation: none; }
   box-shadow: 0 3px 0 rgba(6, 10, 30, 0.45);
 }
 .title-screen .ts-step .button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(6, 10, 30, 0.45); }
-.title-screen .ts-step .button.primary { background: #ffbe0b; border-color: rgba(120, 84, 0, 0.4); color: #14235c; }
+.title-screen .ts-step .button.primary { background: var(--brand-yellow); border-color: rgba(120, 84, 0, 0.4); color: #14235c; }
 .title-screen .ts-step .button:hover,
-.title-screen .ts-step .button:focus-visible { background: #ffbe0b; border-color: rgba(120, 84, 0, 0.4); color: #14235c; outline: none; }
+.title-screen .ts-step .button:focus-visible { background: var(--brand-yellow); border-color: rgba(120, 84, 0, 0.4); color: #14235c; outline: none; }
 /* --- Option pills (translucent, ON/OFF chip) --- */
 .title-screen .ts-opt {
   border: 2px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.07); color: #fffdf7;
 }
 .title-screen .ts-opt:hover { background: rgba(255, 255, 255, 0.12); }
-.title-screen .ts-opt-select { gap: 12px; }
-.title-screen .ts-select-shell {
-  flex: 0 1 180px;
-  min-width: 0;
-  margin-left: auto;
+/* Game Mode row: at phone width a label + a select sharing one line means one of them clips
+   ("GA…" or "GUESS WH"), and mode names get long ("Witness Protection Filter"). So wrap the select
+   onto its own full-width line under the label - the value always shows in full, whatever the mode. */
+.title-screen .ts-opt-select {
+  flex-wrap: wrap;
+  gap: 9px 10px;
+  min-height: 54px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
+.title-screen .ts-opt-select .ts-opt-label { flex: 1 1 auto; }
+.title-screen .ts-select-shell {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin-left: 0;
+}
+.title-screen .ts-mode-select { min-height: 42px; }
 .title-screen .ts-mode-select {
   width: 100%;
   min-height: 38px;
@@ -5940,17 +6167,114 @@ body.low-power .ts-step-enter { animation: none; }
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
-.title-screen .ts-mode-select:focus { outline: none; border-color: #ffbe0b; }
+.title-screen .ts-mode-select:focus { outline: none; border-color: var(--brand-yellow); }
+/* Mode lineup on the title menu: the SAME .mode-* picker the setup gear uses, recoloured to the
+   title's translucent palette so it reads as one continuous control stack (not a pasted-in modal). */
+.title-screen .ts-mode-lineup {
+  width: 100%;
+  padding: 12px 12px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.title-screen .ts-lineup-head {
+  font-family: "Archivo", sans-serif;
+  font-weight: 900;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  text-transform: none;                 /* sentence case: "Mode lineup" */
+  color: #fffdf7;
+  opacity: 0.92;
+}
+/* Policy chips: the SAME pill voice as the rest of the menu - chunky Archivo, translucent shell,
+   brand-yellow when active (matching the board-size pills / primary CTAs), not the setup dialog's
+   green. Three equal segments. */
+.title-screen .ts-mode-lineup .mode-policy-toggles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.title-screen .ts-mode-lineup .mode-policy-chip {
+  min-height: 46px;
+  padding: 8px 6px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fffdf7;
+  box-shadow: none;
+  font-family: "Archivo", sans-serif;
+  text-transform: uppercase;
+}
+.title-screen .ts-mode-lineup .mode-policy-chip:hover { background: rgba(255, 255, 255, 0.13); transform: translateY(-1px); }
+.title-screen .ts-mode-lineup .mode-policy-chip b { font-size: 0.8rem; font-weight: 900; letter-spacing: 0.02em; }
+.title-screen .ts-mode-lineup .mode-policy-chip.is-on { border-color: var(--brand-yellow); background: var(--brand-yellow); color: #14235c; }
+.title-screen .ts-mode-lineup .mode-policy-chip.is-on b { color: #14235c; }
+/* Round picker (custom only): a labelled two-segment toggle above the mode checklist, same yellow
+   selection language as the policy chips. */
+.title-screen .ts-roundpick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.title-screen .ts-roundpick-label {
+  flex: 0 0 auto;
+  font-family: "Archivo", sans-serif;
+  font-weight: 900;
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 253, 247, 0.9);
+}
+.title-screen .ts-roundpick-seg {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 6px;
+}
+.title-screen .ts-roundpick-opt {
+  flex: 1 1 0;
+  min-height: 40px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fffdf7;
+  font-family: "Archivo", sans-serif;
+  font-weight: 900;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease, transform 100ms ease;
+}
+.title-screen .ts-roundpick-opt:hover { background: rgba(255, 255, 255, 0.13); }
+.title-screen .ts-roundpick-opt.is-on { border-color: var(--brand-yellow); background: var(--brand-yellow); color: #14235c; }
+.title-screen .ts-mode-lineup .mode-group {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+}
+.title-screen .ts-mode-lineup .mode-group-head strong { color: #fffdf7; }
+.title-screen .ts-mode-lineup .mode-group-head small { color: rgba(255, 253, 247, 0.6); }
+.title-screen .ts-mode-lineup .mode-check-row {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+.title-screen .ts-mode-lineup .mode-check-copy b { color: #fffdf7; }
+.title-screen .ts-mode-lineup .mode-check { accent-color: var(--accent-blue); }
 /* The native checkbox is hidden but kept full-size + transparent over the pill, so the WHOLE row is
    the toggle (and it stays actionable for keyboard/automation - a 0x0 box would not be). */
 .title-screen .ts-team-mode { position: relative; }
 .title-screen .ts-team-mode input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+/* Toggle switch (was an ON/OFF text chip): track + knob, De Stijl blue when on, no text. */
 .title-screen .ts-chip {
-  flex: 0 0 auto; margin-left: auto; padding: 3px 11px; border-radius: 999px;
-  background: #b3261e; color: #fffdf7; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.06em;
-  transition: background 140ms ease;
+  flex: 0 0 auto; margin-left: auto;
+  width: 50px; height: 28px; padding: 0; border-radius: 999px;
+  font-size: 0;                                           /* hide the ON/OFF text the JS still sets */
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background-color: rgba(255, 255, 255, 0.12);
+  background-image: radial-gradient(circle 10px at 14px 13px, #fffdf7 0 98%, transparent 100%);
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
-.title-screen .ts-opt.on .ts-chip { background: #178a47; }
+.title-screen .ts-opt.on .ts-chip {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  background-image: radial-gradient(circle 10px at 36px 13px, #fffdf7 0 98%, transparent 100%);
+}
 /* --- Shared icon slot + label --- */
 .title-screen .ts-ico {
   flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
@@ -5959,6 +6283,14 @@ body.low-power .ts-step-enter { animation: none; }
 }
 .title-screen .ts-ico { color: inherit; }
 .title-screen .ts-ico::after { display: none; }              /* separator is the border-right */
+/* APP-02: quiet discovery chip under the splash CTA (only rendered after 3+ modes seen). */
+.title-screen .ts-discovery {
+  margin: 10px auto 0; padding: 4px 12px; width: max-content; max-width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.82); text-align: center;
+}
 .title-screen .ts-opt .ts-ico { border-right-color: rgba(255, 255, 255, 0.28); }
 .title-screen .ts-step .button .ts-ico { border-right-color: rgba(29, 63, 168, 0.32); }
 .title-screen .ts-step .button.primary .ts-ico,
@@ -5993,7 +6325,7 @@ body.low-power .ts-ico-audio .ts-svg { transition: none; }
   box-shadow: 0 3px 0 rgba(6, 10, 30, 0.4);
 }
 .title-screen .ts-name-input:focus,
-.title-screen .ts-name-slot:focus { outline: none; border-color: #ffbe0b; }
+.title-screen .ts-name-slot:focus { outline: none; border-color: var(--brand-yellow); }
 .ts-join-label { margin: 0 0 2px; font-size: 0.82rem; font-weight: 700; color: rgba(255,255,255,0.75); text-align: center; }
 .ts-join-input {
   width: 100%; padding: 14px 16px; border-radius: 14px;
@@ -6002,7 +6334,7 @@ body.low-power .ts-ico-audio .ts-svg { transition: none; }
   font-size: 2.4rem; text-align: center; letter-spacing: 0.22em; text-indent: 0.22em;
   box-shadow: 0 3px 0 rgba(6, 10, 30, 0.45);
 }
-.ts-join-input:focus { outline: none; border-color: #ffbe0b; }
+.ts-join-input:focus { outline: none; border-color: var(--brand-yellow); }
 .ts-join-input::placeholder { color: rgba(29, 63, 168, 0.3); }
 .ts-join-input.shake { animation: ts-shake 0.4s; border-color: #ff5a5a; }
 @keyframes ts-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
@@ -6076,7 +6408,7 @@ body.low-power .ts-ico-audio .ts-svg { transition: none; }
   box-shadow: 0 0 0 3px rgba(56, 212, 122, 0.14);
 }
 .or-status.is-waiting .or-dot {
-  background: #ffbe0b;
+  background: var(--brand-yellow);
   box-shadow: 0 0 0 3px rgba(255, 190, 11, 0.16);
 }
 
@@ -6092,7 +6424,7 @@ body:not(.mode-online) .opponent-panel { display: none; }
 body.debug-mode #debugEffectPicker { display: inline-flex; }
 .debug-pg-toggle { display: none; }
 body.debug-mode .debug-pg-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; height: 36px; border-radius: 6px; border: 2px solid var(--line); background: var(--surface); color: var(--card-ink); font-weight: 800; font-size: 0.7rem; cursor: pointer; }
-.debug-pg-toggle input { accent-color: #18a589; }
+.debug-pg-toggle input { accent-color: var(--accent-blue); }
 
 /* ===================== Dark-themed chrome (topbar + side controls) ===================== */
 /* The floating white pills clashed with the dark board. In dark mode the controls take the panel
@@ -6128,14 +6460,15 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   display: grid; place-items: center;
   background: rgba(8, 5, 14, 0.78); backdrop-filter: blur(4px);
 }
+/* AES-01: on the shared modal tokens (panel bg, radius-xl, shadow-modal, yellow accent border). */
 .ka-box {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
-  padding: 22px 30px; border-radius: 18px; text-align: center;
-  background: radial-gradient(circle at 50% 0%, #2a2138, #14101e);
-  border: 2px solid #ffbe0b; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7);
+  padding: 22px 30px; border-radius: var(--radius-xl); text-align: center;
+  background: var(--bg-panel-raised);
+  border: 2px solid var(--accent-yellow); box-shadow: var(--shadow-modal);
   animation: reel-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
-.ka-q { margin: 0; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.06em; color: #ffd24d; text-transform: uppercase; }
+.ka-q { margin: 0; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.06em; color: var(--accent-yellow); text-transform: uppercase; }   /* VC2-02 */
 .ka-face { width: 120px; height: 120px; object-fit: cover; border-radius: 14px; border: 3px solid #fffdf7; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
 .ka-name { margin: 0; font-weight: 900; font-size: 1.1rem; text-transform: uppercase; color: #fffdf7; }
 .ka-btns { display: flex; gap: 10px; margin-top: 4px; }
@@ -6168,9 +6501,13 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
 }
 .rr-label { font-size: 0.72rem; font-weight: 900; letter-spacing: 0.16em; }
-.rr-label.rr-you { color: #ffbe0b; }
+/* BUG2-02 + VC2-02: token yellow in dark; darkened amber/full blue in light so the labels clear AA. */
+.rr-label.rr-you { color: var(--accent-yellow); }
 .rr-label.rr-them { color: #7aa8ff; }
-.rr-name { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.3rem; text-transform: uppercase; color: #fffdf7; }
+body[data-theme="light"] .rr-label.rr-you { color: #a07800; }
+body[data-theme="light"] .rr-label.rr-them { color: var(--accent-blue); }
+/* BUG2-02: tokenised - the old hardcoded cream was white-on-white in light theme. */
+.rr-name { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.3rem; text-transform: uppercase; color: var(--text-primary); }
 .rr-solo .rr-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); width: min(920px, 94vw); gap: clamp(10px, 2vw, 18px); }
 .rr-solo .rr-card img { width: clamp(92px, 14vw, 150px); height: clamp(92px, 14vw, 150px); border-radius: 12px; }
 .rr-solo .rr-name { font-size: clamp(0.8rem, 1.8vw, 1.05rem); text-align: center; }
@@ -6187,12 +6524,12 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .tr-face { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 255, 255, 0.72); }
 .tr-team { display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: clamp(140px, 28vw, 240px); }
 .tr-head { font-family: "Archivo", sans-serif; font-weight: 900; font-size: clamp(1.6rem, 5vw, 2.7rem); letter-spacing: 0.04em; text-transform: uppercase; }
-.tr-a .tr-head { color: #ffbe0b; }
+.tr-a .tr-head { color: var(--accent-yellow); }
 .tr-b .tr-head { color: #7aa8ff; }
 .tr-members { display: flex; flex-direction: column; gap: 9px; width: 100%; }
 .tr-chip { display: flex; align-items: center; gap: 12px; padding: 9px 15px; border-radius: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); }
 .tr-ini { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 auto; border-radius: 50%; font-weight: 900; font-size: 1rem; color: #120c1e; background: #fffdf7; }
-.tr-a .tr-chip .tr-ini { background: #ffbe0b; }
+.tr-a .tr-chip .tr-ini { background: var(--accent-yellow); }
 .tr-b .tr-chip .tr-ini { background: #7aa8ff; }
 .tr-nm { font-weight: 800; color: #fffdf7; font-size: 1.15rem; }
 .tr-as { display: block; margin-top: 2px; font-size: 0.72rem; font-style: normal; color: rgba(255, 255, 255, 0.62); line-height: 1.2; }
@@ -6211,6 +6548,12 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .ts-count-val { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.6rem; min-width: 1.4ch; text-align: center; color: #fffdf7; }
 .ts-names-label { display: none; }
 .ts-names-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; width: 100%; }
+/* A11Y-01: inline validation error line under the failing field, in the game's voice. */
+.ts-field-error {
+  width: 100%; margin: 4px 2px 2px; padding: 0;
+  font-size: 0.72rem; font-weight: 800; line-height: 1.35;
+  color: #ff8f86; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
 /* Name rows: the input pill + a matching square remove button. */
 .ts-name-row { display: flex; align-items: stretch; gap: 8px; width: 100%; }
 .ts-name-row .ts-name-slot { flex: 1 1 auto; min-width: 0; }
@@ -6241,7 +6584,7 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 .ts-size:hover { background: rgba(255, 255, 255, 0.12); }
-.ts-size.on { background: #ffbe0b; border-color: #ffbe0b; color: #14235c; }
+.ts-size.on { background: var(--brand-yellow); border-color: var(--brand-yellow); color: #14235c; }
 /* Back | Begin: the one intentional 2-up action pair. */
 .ts-btn-row { display: flex; gap: 10px; width: 100%; }
 .ts-btn-row .button { flex: 1 1 0; min-width: 0; }
@@ -6265,7 +6608,7 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 .seat-roster.seat-teams .seat-half { flex-direction: column; gap: 2px; padding-top: 6px; padding-bottom: 6px; }
 /* Team rosters list one name per line (taller pill, no truncated name-mush). */
 .seat-teams .seat-sub { font-size: 0.62rem; font-weight: 700; opacity: 0.7; max-width: 42vw; line-height: 1.5; text-align: center; }
-.or-team { font-weight: 800; color: #ffbe0b; font-size: 0.9rem; margin-top: 2px; }
+.or-team { font-weight: 800; color: var(--accent-yellow); font-size: 0.9rem; margin-top: 2px; }
 
 
 /* ===================== Sidebar chrome tweaks ===================== */
@@ -6712,13 +7055,21 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 }
 .ts-name-input::placeholder { color: rgba(255,255,255,0.4); font-weight: 500; }
 /* ROOM + number one size, wrapped in a soft pill so it reads as a shareable code. */
+/* VC-05: the lobby COMMITS to the navy base (no red-phase drift — the waiting room shouldn't read
+   as an unrelated third gradient) with ONE deliberate De Stijl red accent: the room-code panel,
+   echoing the logo's red. Backstage identity, on brand. */
+.lobby-screen.title-screen {
+  background: linear-gradient(90deg, #0d2d87 0%, #091223 48%, #1c0a0d 100%);
+  animation: none;
+}
 .lobby-code {
   display: inline-flex; align-items: baseline; gap: 8px; margin: 8px 0 2px;
-  padding: 8px 18px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06); border: 1.5px solid rgba(255, 255, 255, 0.14);
+  padding: 8px 18px; border-radius: var(--radius-sm);
+  background: var(--accent-red); border: 1.5px solid rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
   font-size: 1.35rem; font-weight: 900; letter-spacing: 0.06em; color: #fffdf7; text-transform: uppercase;
 }
-.lobby-code b { color: #ffbe0b; font-size: inherit; letter-spacing: 0.02em; }
+.lobby-code b { color: #ffd400; font-size: inherit; letter-spacing: 0.02em; }
 /* Lobby host controls sit at the same modest width as Team Mode / Board size (PG was full-bleed). */
 /* The lobby lays its option pills out directly (no .ts-step wrapper) - constrain them to the same
    width as the title steps so they don't stretch full-viewport. */
@@ -6726,9 +7077,24 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
 /* The lobby is a waiting room, not the hero screen - a trimmed logo keeps START above the fold. */
 .lobby-screen .ts-who, .lobby-screen .ts-isit { font-size: clamp(2.6rem, 9vw, 5rem); }
 .lobby-screen { gap: 20px; }
+/* FLOW-04: lobby join QR + link (or the no-relay hint). */
+.lobby-share {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: min(320px, 84vw); margin: 4px 0 2px;
+  padding: 14px; border: 1px solid rgba(255,255,255,0.16); border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+}
+.lobby-share .ls-qr { width: 132px; height: 132px; padding: 8px; background: #fff; border-radius: 10px; }
+.lobby-share .ls-qr svg { width: 100%; height: 100%; display: block; }
+.lobby-share .ls-hint { margin: 0; font-size: 0.76rem; font-weight: 600; color: rgba(255,255,255,0.72); text-align: center; line-height: 1.45; }
+.lobby-share .ls-hint b { color: #fff; }
+.lobby-share .ls-url { display: flex; align-items: center; gap: 8px; max-width: 100%; }
+.lobby-share .ls-url a { font-size: 0.72rem; font-weight: 700; color: var(--accent-yellow); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lobby-share .ls-copy { min-height: 34px; padding: 4px 12px; font-size: 0.72rem; flex: 0 0 auto; }
 .lobby-players { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; min-width: min(300px, 78vw); }
 .lobby-player { padding: 12px 16px; border-radius: 12px; font-weight: 800; text-align: center; font-size: 0.95rem; }
-.lobby-player.here { background: rgba(62, 196, 106, 0.16); color: #7fe0a0; border: 1px solid rgba(62,196,106,0.4); }
+/* De Stijl: present = blue (the palette's "on" colour), never green. */
+.lobby-player.here { background: rgba(43, 84, 224, 0.22); color: #9db4f5; border: 1px solid rgba(43, 84, 224, 0.55); }
 .lobby-player.empty { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.45); border: 1px dashed rgba(255,255,255,0.2); }
 .lobby-status { font-size: 0.82rem; color: rgba(255,255,255,0.6); margin: 2px 0 4px; text-align: center; }
 .lobby-actions { display: flex; flex-direction: column; gap: 10px; align-items: center; }
@@ -7055,7 +7421,7 @@ body.mode-nw .cue-card {
 .lore-box { max-width: 520px; padding: 0 24px; text-align: center; }
 .lore-eyebrow {
   margin: 0 0 10px; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.32em;
-  color: #ffbe0b; text-transform: uppercase;
+  color: var(--accent-yellow); text-transform: uppercase;
   animation: loreLine 0.5s ease 0.1s backwards;
 }
 .lore-line {
@@ -7069,7 +7435,7 @@ body.mode-nw .cue-card {
 .rr-epilogue {
   display: block; max-width: 220px; margin-top: 5px;
   font-size: 0.68rem; font-weight: 600; font-style: italic; line-height: 1.3;
-  color: rgba(255, 253, 247, 0.75);
+  color: var(--text-secondary);   /* BUG2-02: was cream - invisible on the light shell */
 }
 
 /* ===================== Last words: the eliminated protest ===================== */
@@ -7104,7 +7470,7 @@ body.mode-nw .cue-card {
 .finale-box { max-width: 560px; width: min(92vw, 560px); padding: 28px 26px; text-align: center; }
 .sf-eyebrow {
   margin: 0 0 8px; font-size: 0.64rem; font-weight: 900; letter-spacing: 0.34em;
-  color: #ffbe0b; animation: loreLine 0.5s ease 0.1s backwards;
+  color: var(--accent-yellow); animation: loreLine 0.5s ease 0.1s backwards;
 }
 .sf-title {
   margin: 0 0 18px; font-family: "Archivo", sans-serif; font-weight: 900;
@@ -7126,28 +7492,40 @@ body.mode-nw .cue-card {
 .sf-next { animation: loreLine 0.4s ease 1.1s backwards; }
 
 /* ===================== The Almanac ===================== */
+/* VC-03: rebuilt on the shared ModalShell (dark shell, --radius-xl, --shadow-modal, modal-in) so the
+   Almanac stops being a third modal language. The cream "paper archive" feel is kept ONLY for the
+   entries list - the receipt precedent makes paper-on-dark legitimate as a material, not a whole modal. */
 .almanac-overlay {
   position: fixed; inset: 0; z-index: 330;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(10, 10, 16, 0.8);
+  background: rgba(6, 9, 20, 0.78);
+  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
   animation: loreIn 0.3s ease;
 }
 .almanac-box {
   width: min(94vw, 620px); max-height: 84vh;
   display: flex; flex-direction: column;
-  background: #fffdf7; color: #171512;
-  border: 3px solid #171512; border-radius: 14px;
-  box-shadow: 8px 8px 0 rgba(23, 21, 18, 0.5);
+  background: var(--bg-panel-raised); color: var(--text-primary);
+  border: 1px solid var(--border-standard); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
   overflow: hidden;
+  animation: modal-in 180ms ease-out;
 }
 .al-head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-  padding: 16px 18px 12px; border-bottom: 3px solid #171512;
-  background: #ffbe0b;
+  padding: 18px 20px 14px; border-bottom: 1px solid var(--border-subtle);
 }
-.al-eyebrow { margin: 0; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.15rem; letter-spacing: 0.06em; }
-.al-sub { margin: 2px 0 0; font-size: 0.72rem; font-weight: 600; opacity: 0.75; }
-.al-list { overflow-y: auto; padding: 10px 14px 16px; }
+.al-eyebrow {
+  margin: 0; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.15rem;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-primary);
+}
+.al-sub { margin: 3px 0 0; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); }
+/* The entries area keeps the paper-archive material: cream card, dark ink. */
+.al-list {
+  overflow-y: auto; margin: 14px; padding: 6px 14px 10px;
+  background: #fffdf7; color: #171512;
+  border: 1px solid rgba(23, 21, 18, 0.22); border-radius: var(--radius-md);
+}
 .al-empty { font-size: 0.85rem; font-style: italic; opacity: 0.7; padding: 18px 6px; }
 .al-row {
   display: flex; gap: 12px; padding: 12px 4px;
@@ -7210,6 +7588,12 @@ body.mode-nw .cue-card {
 .rc-line b { font-weight: 700; white-space: nowrap; }
 .rc-head { margin: 0; font-weight: 700; }
 .rc-cast { margin: 2px 0 0; font-weight: 400; text-transform: uppercase; }
+/* FUN-06: matrix-dot ASCII faces + salt-picked superlatives on the receipt. */
+.rc-ascii-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin: 8px 0 2px; }
+.rc-ascii-face { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.rc-ascii { margin: 0; font-family: "Courier New", monospace; font-size: 0.62rem; line-height: 1.05; white-space: pre; letter-spacing: 0.02em; }
+.rc-ascii-name { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.04em; }
+.rc-award { font-weight: 700; font-size: 0.82rem; margin: 1px 0; }
 .rc-thanks { margin: 0; text-align: center; font-weight: 700; letter-spacing: 0.05em; }
 .rc-barcode {
   height: 30px; margin: 10px 8px 4px;
@@ -7263,7 +7647,7 @@ body.mode-nw .cue-card {
 /* De Stijl: thick black frame, primary-colour corner bars, loud saturation. */
 .character-card.gal-destijl .portrait-wrap {
   border: 6px solid #14120e;
-  box-shadow: -12px 0 0 -6px #e01b1b, 12px 0 0 -6px #1533cc, 0 -12px 0 -6px #ffbe0b;
+  box-shadow: -12px 0 0 -6px #e01b1b, 12px 0 0 -6px #1533cc, 0 -12px 0 -6px var(--brand-yellow);
 }
 .character-card.gal-destijl .portrait-wrap img { filter: saturate(1.5) contrast(1.12); }
 /* Renaissance: ornate double gold, sepia varnish. */
@@ -7392,7 +7776,7 @@ body.mode-nw .cue-card {
 @keyframes seRoll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
 .se-cast { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .se-cast img { width: 78px; height: 78px; object-fit: cover; border-radius: 10px; border: 2px solid rgba(255, 253, 247, 0.35); }
-.se-cast-mode { font-size: 0.5rem; font-weight: 900; letter-spacing: 0.14em; color: #ffbe0b; }
+.se-cast-mode { font-size: 0.5rem; font-weight: 900; letter-spacing: 0.14em; color: var(--accent-yellow); }
 .se-cast-name { font-size: 0.68rem; font-weight: 800; color: rgba(255, 253, 247, 0.85); text-transform: uppercase; }
 /* The foreground stage: title, printer, receipt, exit. */
 .se-stage {
@@ -7531,7 +7915,7 @@ body.mode-nw .cue-card {
   width: 40px; height: 32px; border-radius: 7px; border: 2px solid #171512;
   background: #fffdf7; font-weight: 900; cursor: pointer;
 }
-.tsp-size.on { background: #ffbe0b; }
+.tsp-size.on { background: var(--brand-yellow); }
 .tsp-toggle { position: relative; display: inline-block; width: 46px; height: 26px; cursor: pointer; }
 .tsp-toggle input { opacity: 0; width: 0; height: 0; }
 .tsp-toggle i {
@@ -7569,9 +7953,9 @@ body.mode-nw .cue-card {
 }
 
 /* Personas: "Name as CHARACTER" in the team pill + faces on the team-reveal chips. */
-.seat-as { font-style: italic; font-weight: 600; opacity: 0.75; color: #ffbe0b; }
+.seat-as { font-style: italic; font-weight: 600; opacity: 0.75; color: var(--accent-yellow); }
 .tr-face { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255, 253, 247, 0.7); flex: 0 0 auto; }
-.tr-as { display: block; font-style: italic; font-size: 0.62rem; font-weight: 600; opacity: 0.8; color: #ffbe0b; }
+.tr-as { display: block; font-style: italic; font-size: 0.62rem; font-weight: 600; opacity: 0.8; color: var(--accent-yellow); }
 
 /* ===================== Editor: colour widget + lock designer rows ===================== */
 .ed-colorwrap { display: flex; align-items: center; gap: 5px; position: relative; }
@@ -7657,8 +8041,8 @@ body.mode-nw .cue-card {
 .rr-tile img { width: 76px; height: 76px; object-fit: cover; border-radius: 10px; border: 2px solid rgba(255, 253, 247, 0.5); }
 .rr-tile-name { font-weight: 900; font-size: 0.7rem; color: #fffdf7; text-transform: uppercase; }
 .rr-tile i { font-style: normal; font-size: 0.56rem; font-weight: 800; letter-spacing: 0.08em; color: rgba(255, 253, 247, 0.65); }
-.rr-tile.rr-tile-secret img { border-color: #ffbe0b; box-shadow: 0 0 0 2px rgba(255, 190, 11, 0.35); }
-.rr-tile.rr-tile-secret i { color: #ffbe0b; }
+.rr-tile.rr-tile-secret img { border-color: var(--accent-yellow); box-shadow: 0 0 0 2px rgba(255, 212, 0, 0.35); }
+.rr-tile.rr-tile-secret i { color: var(--accent-yellow); }
 @media (max-width: 700px) {
   .round-reveal.rr-teamgrid .rr-cards { flex-direction: column; align-items: center; }
   .round-reveal.rr-teamgrid .rr-card { max-width: 92vw; }
@@ -7811,7 +8195,7 @@ body.observer.tv-fit .character-card .card-plate { flex: 0 0 auto; }
 }
 body:not(.observer) #observerBar { display: none; }
 .ob-brand { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 1.5rem; letter-spacing: -0.01em; }
-.ob-who { color: #ffbe0b; text-shadow: 0.03em 0.04em 0 #1533cc; }
+.ob-who { color: var(--brand-yellow); text-shadow: 0.03em 0.04em 0 #1533cc; }
 .ob-isit { color: #fffdf7; text-shadow: 0.03em 0.04em 0 #e01b1b; }
 .ob-meta { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ob-chip {
@@ -7819,7 +8203,7 @@ body:not(.observer) #observerBar { display: none; }
   background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14);
   color: #eef0f4; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.82rem;
 }
-.ob-chip.ob-mode { background: #ffbe0b; color: #1a1a1a; border-color: #ffbe0b; }
+.ob-chip.ob-mode { background: var(--brand-yellow); color: #1a1a1a; border-color: var(--brand-yellow); }
 .ob-chip.ob-loc { background: rgba(58, 134, 255, 0.22); border-color: rgba(122, 170, 255, 0.5); }
 .observer-wait .obw-hint { margin-top: 10px; font-size: 1.05rem; font-weight: 700; color: rgba(255, 255, 255, 0.72); }
 
@@ -7866,3 +8250,816 @@ body:not(.observer) #observerBar { display: none; }
 }
 .setup-apply-hint[hidden] { display: none; }
 @keyframes setup-hint-in { from { opacity: 0; transform: translateY(-4px); } }
+/* FLOW-06: the seed-code row hides behind a closed-by-default disclosure. */
+.seed-disclosure summary {
+  cursor: pointer; list-style: none;
+  padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+  background: var(--bg-panel-raised);
+  font-size: 0.85rem; font-weight: 700; color: var(--text-secondary);
+}
+.seed-disclosure summary::before { content: "▸ "; color: var(--text-muted); }
+.seed-disclosure[open] summary::before { content: "▾ "; }
+.seed-disclosure summary::-webkit-details-marker { display: none; }
+.seed-disclosure[open] summary { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.seed-disclosure[open] .seed-row { border: 1px solid var(--border-subtle); border-top: none; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+/* MISS-03: quiet about / version / privacy footer. */
+.setup-about {
+  display: flex; flex-direction: column; gap: 2px;
+  margin: 2px 0 0; padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.72rem; line-height: 1.4; color: var(--text-muted);
+}
+.setup-about .setup-about-ver { font-weight: 800; color: var(--text-secondary); letter-spacing: 0.02em; }
+
+/* ============================================================================================
+   DESIGN-SYSTEM CONSOLIDATION PASS
+   The gameplay board is the source of truth (deep navy, medium radii, restrained borders,
+   chunky display type, compact controls). Everything below folds the settings modal, HUD,
+   round-over, end-session dialog and receipt screen into that ONE system, driven entirely by
+   the :root tokens. Later-in-file = wins the cascade over the older per-screen one-offs.
+   ============================================================================================ */
+
+/* ---------- 1. Shared controls: Secondary (default), Primary, Tertiary(.ghost), Icon ---------- */
+.button,
+.segment,
+.icon-button {
+  min-height: 44px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-md);
+  color: var(--control-ink);
+  background: var(--control-bg);
+  box-shadow: var(--shadow-control);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: transform 120ms ease-out, background 140ms ease, box-shadow 120ms ease, border-color 140ms ease;
+}
+.button:hover,
+.segment:hover,
+.icon-button:hover {
+  transform: translateY(-1px);
+  background: var(--control-bg-hover);
+  box-shadow: var(--shadow-control);
+}
+.button:active,
+.segment:active,
+.icon-button:active {
+  transform: translateY(1px);
+  box-shadow: none;
+  transition-duration: 80ms;
+}
+.button.primary {
+  background: var(--accent-yellow);
+  border-color: rgba(0, 0, 0, 0.35);
+  color: #141720;
+}
+.button.primary:hover { background: #ffdd33; }
+.button.secondary { background: var(--control-bg); color: var(--control-ink); }
+/* Tertiary: transparent, compact. */
+.button.ghost {
+  min-height: 40px;
+  background: transparent;
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+.button.ghost:hover { background: var(--control-bg-hover); color: var(--control-ink); }
+.button.compact { min-height: 36px; }
+/* Icon buttons: square, radius-sm, one size per breakpoint. */
+.icon-button,
+.button.icon-only,
+.button.compact.icon-only {
+  border-radius: var(--radius-sm);
+}
+.topbar-actions .button,
+.topbar-actions select {
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+}
+body:not([data-theme="light"]) .topbar-actions .button,
+body:not([data-theme="light"]) .topbar-actions select,
+body:not([data-theme="light"]) .game-bar-actions .button {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-standard);
+  box-shadow: var(--shadow-control);
+  color: var(--text-primary);
+}
+body:not([data-theme="light"]) .topbar-actions .button:hover,
+body:not([data-theme="light"]) .game-bar-actions .button:hover { background: var(--bg-panel-soft); }
+/* Focus: one restrained ring, only for keyboard focus (no blue glow on pointer clicks). */
+.button:focus:not(:focus-visible),
+.icon-button:focus:not(:focus-visible),
+.segment:focus:not(:focus-visible) { outline: none; }
+.button:focus-visible,
+.icon-button:focus-visible,
+.segment:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-blue) 70%, transparent);
+  outline-offset: 2px;
+}
+
+/* ---------- 2. Panels, backdrops, modal shell ---------- */
+.setup-dialog {
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-xl);
+  background: var(--bg-shell);
+  box-shadow: var(--shadow-modal);
+}
+.setup-dialog[open] { animation: modal-in 180ms ease-out; }
+@keyframes modal-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+.setup-dialog::backdrop,
+.end-confirm {
+  background: rgba(4, 7, 14, 0.72);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.setup-form { padding: var(--space-5); gap: var(--space-3); }
+@media (max-width: 640px) { .setup-form { padding: 18px; } }
+
+/* ---------- 3. Settings modal internals ---------- */
+.setup-form .eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.settings-grid { gap: var(--space-3); }
+.toggle-row,
+.select-row {
+  min-height: 76px;
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-raised);
+}
+.toggle-row small,
+.select-row small { color: var(--text-secondary); font-weight: 600; }
+/* Toggle switch: track + knob (no ON/OFF text), De Stijl blue when on. */
+.toggle-row input[type="checkbox"],
+.sound-panel .sp-row input[type="checkbox"] {   /* VC-04: sound panel reuses the shared switch */
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 52px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-standard);
+  border-radius: 999px;
+  background-color: var(--bg-panel-soft);
+  background-image: radial-gradient(circle 11px at 15px 14px, var(--text-secondary) 0 98%, transparent 100%);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.toggle-row input[type="checkbox"]:checked,
+.sound-panel .sp-row input[type="checkbox"]:checked {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  background-image: radial-gradient(circle 11px at 37px 14px, #fff 0 98%, transparent 100%);
+}
+.sound-panel .sp-row input[type="checkbox"]:disabled { opacity: 0.45; cursor: default; }
+/* Selects: dark custom field, never the browser-white default. */
+.setup-form select,
+.select-row select,
+.setup-mode-row select,
+.sound-panel .sp-track {   /* VC-04: track picker matches the setup dialog's dark select */
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 42px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a4abba' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") right 10px center / 16px no-repeat;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+/* Mode lineup: a proper section panel + equal-width 52px segments, green = selected. */
+.mode-section {
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-raised);
+}
+.mode-section .tier-head strong { font-size: 16px; font-weight: 800; }
+.mode-policy-chip {
+  min-height: 52px;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-soft);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+.mode-policy-chip:hover { transform: translateY(-1px); }
+.mode-policy-chip.is-on {
+  border-color: var(--accent-yellow);
+  background: var(--accent-yellow);
+  color: #14110d;
+  box-shadow: none;
+}
+.mode-policy-chip.is-on b { color: #14110d; }
+.mode-group { border-color: var(--border-subtle); background: var(--bg-panel-soft); border-radius: var(--radius-sm); }
+.mode-check-row { border-color: var(--border-subtle); border-radius: var(--radius-sm); }
+.mode-check-row input { accent-color: var(--accent-green); }
+/* Seed row: mono for the code only; standard icon button for the clipboard. */
+.seed-controls input {
+  min-height: 36px;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel-soft);
+}
+.seed-controls .button {
+  min-height: 36px;
+  width: 36px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+}
+/* Room number: a compact status badge, not a button. */
+.setup-room-code {
+  min-height: 34px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent-yellow);
+  color: #141720;
+  box-shadow: none;
+}
+/* Footer: right-aligned inline on desktop, stacked full-width on phones. */
+.dialog-actions { justify-content: flex-end; gap: var(--space-3); }
+@media (max-width: 640px) {
+  .dialog-actions { flex-direction: column-reverse; align-items: stretch; }
+  .dialog-actions .button { width: 100%; min-height: 52px; }
+}
+
+/* ---------- 4. Round Over: one centred shell built from board language ---------- */
+.round-reveal:not(.team-reveal) {
+  background: rgba(6, 9, 20, 0.78);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  gap: 0;
+  overflow-y: auto;
+}
+.rr-shell {
+  width: min(520px, calc(100vw - 24px));
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-xl);
+  background: var(--bg-panel-raised);
+  box-shadow: var(--shadow-modal);
+  animation: modal-in 180ms ease-out;
+}
+.rr-solo .rr-shell { width: min(760px, calc(100vw - 24px)); }
+.rr-title {
+  font-size: clamp(2rem, 6vw, 2.6rem);
+  transform: none;
+  text-shadow: 0.05em 0.05em 0 var(--accent-red);
+  animation: modal-in 220ms ease-out;
+}
+/* The reveal card = the gameplay CharacterCard (image + fixed name strip, 1px border, radius-md). */
+.rr-cards { gap: clamp(10px, 3vw, 22px); }
+.rr-card { gap: 8px; max-width: 190px; }
+.rr-cardface {
+  display: flex;
+  flex-direction: column;
+  width: clamp(120px, 34vw, 170px);
+  overflow: hidden;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, var(--card-surface), var(--card-surface-2));
+  box-shadow: var(--shadow-panel);
+}
+.rr-card img,
+.rr-cardface img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  box-shadow: none;
+}
+.rr-name {
+  min-height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 2px 6px;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+}
+.rr-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; }
+.rr-epilogue { max-width: 180px; text-align: center; }
+/* VS / X marker: a small bordered token between the two cards. */
+.rr-vs {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-standard);
+  border-radius: 999px;
+  background: var(--bg-panel-soft);
+  color: var(--accent-red);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+/* Solo grids keep their compact card flow inside the shell. */
+.rr-solo .rr-cards { width: 100%; }
+.rr-solo .rr-cardface { width: 100%; }
+.rr-solo .rr-card img { border-radius: 0; }
+/* Actions: primary + secondary, stacked, equal width. */
+.rr-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 340px;
+}
+.round-reveal .rr-next,
+.round-reveal .rr-finish {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  margin: 0;
+  animation: none;
+}
+.round-reveal .rr-finish {
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  color: var(--control-ink);
+  box-shadow: var(--shadow-control);
+  font-size: 0.9rem;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 1;
+}
+.round-reveal .rr-finish:hover { background: var(--control-bg-hover); }
+/* Manual round picker: a grid of mode buttons to choose the next round from, plus a random fallback. */
+.rr-manual .rr-shell { width: min(560px, calc(100vw - 24px)); }
+.rr-pick { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+.rr-pick-label {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.rr-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.round-reveal .rr-mode {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.round-reveal .rr-random {
+  width: 100%;
+  min-height: 46px;
+  background: var(--accent-yellow);
+  border-color: rgba(0, 0, 0, 0.35);
+  color: #141720;
+}
+@media (max-width: 420px) { .rr-mode-grid { grid-template-columns: 1fr; } }
+
+/* ---------- 5. End-session confirm: the shared modal shell ---------- */
+.end-confirm-box {
+  width: min(480px, 92vw);
+  padding: var(--space-5);
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-xl);
+  background: var(--bg-shell);
+  box-shadow: var(--shadow-modal);
+  animation: modal-in 180ms ease-out;
+}
+.ec-title { font-size: 26px; }
+.ec-sub { max-width: 380px; margin-left: auto; margin-right: auto; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--text-secondary); }
+.ec-actions { gap: var(--space-3); }
+@media (max-width: 420px) {
+  .ec-actions { flex-direction: column-reverse; align-items: stretch; }
+  .ec-actions .button { width: 100%; }
+}
+
+/* ---------- 6. Session Ended / receipt: calmer hierarchy, standard controls ---------- */
+.session-end { background: var(--bg-page); }
+.se-credits { opacity: 0.16; filter: blur(2px); }
+.se-stage {
+  background: radial-gradient(80% 60% at 50% 30%, rgba(4, 7, 14, 0.55), rgba(4, 7, 14, 0.25) 70%, rgba(4, 7, 14, 0.45));
+}
+.se-head { margin: 20px 16px 4px; max-height: 200px; }
+.se-title {
+  margin-bottom: 10px;
+  font-size: clamp(2.1rem, 7vw, 2.9rem);
+  text-shadow: 0.05em 0.05em 0 var(--accent-red);
+}
+.se-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-panel-raised);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.rc-window .receipt-paper { box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45); }
+.se-actions {
+  gap: var(--space-3);
+  margin: var(--space-4) 16px calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+}
+.se-actions .button { min-height: 52px; flex: 1 1 220px; max-width: 300px; }
+.summary-page .se-home { margin: 0 0 48px; }
+.summary-page .su-again { min-height: 52px; }
+
+/* ---------- 7. Desktop HUD: aligned edges, chip breathing room, legible helper ---------- */
+.cue-card.is-clickable::after { color: var(--text-muted); opacity: 1; }
+@media (min-width: 861px) {
+  /* Same content edges for the rail and the board below it. */
+  .side-panel { padding: 12px 16px 46px; }
+  /* Active-player chip: 12px inner padding, avatar vertically centred. */
+  .side-panel .secret-card .card-plate { padding: 12px 14px 12px 12px; }
+  /* Sticky-collapsed: keep a one-line question instead of an empty strip (82-96px total). */
+  body.hud-collapsed .side-panel {
+    grid-template-areas: "you cue seats" "you cue actions";
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+    padding-top: 8px;
+  }
+  body.hud-collapsed .side-panel .cue-card { display: block; align-self: center; }
+  body.hud-collapsed .side-panel .cue-card .label,
+  body.hud-collapsed .side-panel .cue-card::after,
+  body.hud-collapsed .side-panel .mystery-result { display: none; }
+  body.hud-collapsed .side-panel .question-prompt {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95rem;
+  }
+  body.hud-collapsed .side-panel .side-actions { align-self: center; }
+}
+
+/* ---------- 8. Mobile gameplay (<=860px): ONE raised panel, dividers not nested boxes ---------- */
+@media (max-width: 860px) {
+  #app { padding: var(--space-3); }
+  .game-side { margin: 0; }
+  .side-panel {
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-raised);
+    box-shadow: var(--shadow-panel);
+    padding: 14px;
+    gap: var(--space-3);
+  }
+  /* Logo: same brand, quieter offsets so it doesn't outshout every other heading. */
+  .side-head { margin: 0; padding: 0 0 2px; }
+  .side-head h1 { font-size: 1.5rem; }
+  .side-head h1 .brand-who { text-shadow: 0.035em 0.04em 0 #1533cc; }
+  .side-head h1 .brand-isit { text-shadow: 0.035em 0.04em 0 #e01b1b; }
+  /* Face card: radius-md + standard border, sitting flush in the panel. */
+  .side-panel .secret-card.character-card {
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    box-shadow: none;
+  }
+  /* Sections divide with hairlines instead of stacking more dark boxes. */
+  .side-panel .cue-card {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: var(--space-3);
+  }
+  /* Player switch: one segmented control, 1px border, no drop-shadow chunk. */
+  .seat-roster.seat-pill {
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    box-shadow: none;
+  }
+  .seat-pill .seat-half + .seat-half { border-left: 1px solid var(--border-subtle); }
+  .seat-pill .seat-swap { border: 1px solid var(--border-standard); background: var(--bg-panel-soft); }
+  /* END ROUND: the standard secondary button, not a double-bordered slab. */
+  body:not([data-theme="light"]) .game-bar-actions .button {
+    border-radius: var(--radius-md);
+    min-height: 48px;
+  }
+  /* LocationCard: fixed frame, standard border, title inset bottom-left over a bottom-only fade. */
+  .location-band,
+  .stage-top .location-band {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+    max-height: 240px;
+    margin-bottom: 0;
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-panel);
+  }
+  .location-overlay { min-height: 0; height: 100%; padding: 14px; }
+  .location-scrim {
+    background: linear-gradient(180deg, rgba(8, 8, 12, 0) 45%, rgba(8, 8, 12, 0.72) 100%);
+  }
+  .location-copy .eyebrow,
+  .location-copy p,
+  .location-stamp { display: none; }
+  .location-copy h2 { margin: 0; font-size: clamp(1.5rem, 6vw, 2rem); }
+  /* Toolbar: directly below the location card, left-aligned, uniform 40px icon buttons. */
+  .stage-top { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; }
+  .topbar-actions {
+    position: static;
+    height: auto;
+    justify-content: flex-start;
+    gap: var(--space-2);
+    padding: 2px 0 0;
+  }
+  .topbar-actions .button,
+  .topbar-actions select {
+    min-height: 40px;
+    border-radius: var(--radius-sm);
+    font-size: 0.72rem;
+  }
+  .topbar-actions .button.icon-only { width: 40px; min-width: 40px; }
+  /* Board: standard card grid gaps + a readable fixed name strip. The board carried a legacy
+     "0 12px" side margin (from when it tucked under a full-bleed banner) that inset it 12px more
+     than the panel / location card - kill it so every surface shares the same 12px page gutter. */
+  .board-wrap { gap: var(--space-3); }
+  .game-stage .character-board {
+    margin: 0;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--border-standard);
+    border-radius: var(--radius-lg);
+  }
+  .card-plate { min-height: 23px; justify-content: center; }
+  .game-layout { gap: var(--space-3); }
+
+  /* Secret (identity) card: the name is the hero. Centre it in the plate and size it up - even in
+     modes like PANTONE that deliberately left-align the small board tiles. */
+  .side-panel .secret-card .card-plate {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 14px;
+  }
+  .side-panel .secret-card .card-plate h3,
+  .side-panel .secret-card.pantone-mode h3 {
+    width: 100%;
+    text-align: center;
+    font-size: 1.35rem;
+    line-height: 1.08;
+    letter-spacing: 0.02em;
+  }
+  .side-panel .secret-card.pantone-mode .card-plate::before { align-self: center; }
+}
+
+/* ---------- 9. Title menu: same pills, slightly lighter voice ---------- */
+.title-screen .ts-step .button,
+.title-screen .ts-opt,
+.title-screen .ts-add-player {
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+}
+
+/* Small screens: the head-to-head stacks vertically with the ✕ token centred between the cards. */
+@media (max-width: 560px) {
+  .round-reveal:not(.team-reveal):not(.rr-solo) .rr-cards { flex-direction: column; }
+}
+
+/* Game Mode / start-mode select is retired for now (the Mode lineup + round picker cover it). */
+.setup-mode-row { display: none; }
+
+/* ---------- 10. Reduced motion stays honoured ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .setup-dialog[open],
+  .rr-shell,
+  .end-confirm-box { animation: none; }
+}
+
+/* ============================================================================================
+   BATCH: De Stijl cleanup + mobile fixes (secret-card dark text, toolbar fill, room code,
+   seat-swap badge, face-hidden flash). Appended last = wins the cascade.
+   ============================================================================================ */
+
+/* Secret (identity) card: it's a dossier, not a board swatch - never inherit PANTONE's dark
+   chip ink, so the name + label read white in dark mode (and dark in light mode). */
+.side-panel .secret-card.pantone-mode,
+.side-panel .secret-card.pantone-mode .card-plate { background: transparent; }
+.side-panel .secret-card.pantone-mode .card-plate h3 { color: var(--text-primary); }
+.side-panel .secret-card.pantone-mode .card-plate::before,
+.side-panel .secret-card.pantone-mode .pt-code,
+.side-panel .secret-card.pantone-mode .pt-name { color: var(--text-secondary); }
+
+/* Room / game code top-right: was near-invisible at opacity .55 on the dark panel. */
+.side-head .room-code { opacity: 1; color: var(--text-secondary); font-weight: 700; }
+
+/* Face-hidden "?" tile: the cover animation briefly showed the card's light base underneath.
+   Dark backing behind the tile + portrait area for the whole hide, so no white ever peeks. */
+.secret-card.secret-hide,
+.secret-card.is-hidden,
+.secret-card.secret-hide .portrait-wrap,
+.secret-card.is-hidden .portrait-wrap,
+.secret-card.secret-hide .secret-portrait,
+.secret-card.is-hidden .secret-portrait { background: #131320; }
+
+@media (max-width: 860px) {
+  /* Balanced vertical rhythm: location -> toolbar -> board all share the same gap. */
+  .game-stage { display: flex; flex-direction: column; gap: 10px; }
+  .stage-top { gap: 10px; }
+  .board-wrap { gap: 10px; }
+  /* Toolbar buttons fill the row: equal-width cells spanning 100% of the board width. */
+  .topbar-actions { display: flex; gap: var(--space-2); }
+  .topbar-actions > *:not([hidden]):not([style*="display: none"]) { flex: 1 1 0; min-width: 0; }
+  .topbar-actions #debugEffectPicker { flex: 0 0 auto; }   /* hidden until debug; don't reserve a cell */
+  .topbar-actions .button,
+  .topbar-actions .sort-wrap,
+  .topbar-actions .sort-wrap select { width: 100%; }
+  .topbar-actions .button.icon-only { width: 100%; min-width: 0; }
+  /* Seat-swap ⇄ badge: keep it above the sliding active (yellow) half so it's never clipped. */
+  .seat-pill .seat-swap { z-index: 4; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
+}
+
+/* ===================== Online reliability UI (banner, join dead-end, host takeover) ===================== */
+.net-banner{
+  position:fixed;top:0;left:0;right:0;z-index:2400;
+  padding:8px 14px;text-align:center;
+  font-family:"Archivo",sans-serif;font-weight:800;font-size:0.82rem;letter-spacing:0.04em;
+  color:#141720;background:var(--accent-yellow);
+  box-shadow:0 4px 14px rgba(0,0,0,0.35);
+}
+.join-deadend{
+  width:100%;margin-top:16px;padding:16px;
+  display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;
+  border:1px solid var(--border-standard);border-radius:var(--radius-lg);
+  background:var(--bg-panel-raised);box-shadow:var(--shadow-panel);
+}
+.join-deadend b{font-size:1.02rem;color:var(--text-primary)}
+.join-deadend span{color:var(--text-secondary);font-size:0.9rem;max-width:34ch}
+.join-deadend .jd-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.host-takeover{
+  position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:2400;
+  width:min(440px,calc(100vw - 24px));
+  display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;
+  padding:16px 18px;border:1px solid var(--border-standard);border-radius:var(--radius-xl);
+  background:var(--bg-shell);box-shadow:var(--shadow-modal);
+  animation:modal-in 180ms ease-out;
+}
+.host-takeover span{font-weight:800;color:var(--text-primary)}
+.host-takeover .button{width:100%;min-height:48px}
+/* MISS-02: host-left-the-lobby banner, shown inside the lobby screen above Leave. */
+.lobby-host-gone{
+  width:min(420px,calc(100vw - 32px));margin:12px auto 0;
+  display:flex;flex-direction:column;gap:4px;text-align:center;
+  padding:12px 16px;border:1px solid var(--accent-red);border-radius:var(--radius-md);
+  background:color-mix(in srgb, var(--accent-red) 16%, transparent);
+  animation:modal-in 180ms ease-out;
+}
+.lobby-host-gone b{font-size:0.95rem;color:#fff}
+.lobby-host-gone span{font-size:0.76rem;font-weight:600;color:rgba(255,255,255,0.82)}
+/* Guest-locked setup: dim the game settings a guest can't change. */
+.setup-form.guest-locked .settings-grid,
+.setup-form.guest-locked .mode-section,
+.setup-form.guest-locked .setup-mode-row,
+.setup-form.guest-locked .seed-row{opacity:0.55}
+.setup-guest-hint{
+  margin:0 0 4px;padding:8px 12px;border-radius:var(--radius-sm);
+  background:color-mix(in srgb,var(--accent-blue) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent-blue) 40%,transparent);
+  color:var(--text-secondary);font-size:0.82rem;font-weight:700;
+}
+
+/* ===================== Win & Loss: guess mechanic ===================== */
+/* The primary action reads "IS IT…?" and glows a touch when it opens the guess. */
+#swapSeatButton.is-guess .er-txt{color:var(--accent-yellow)}
+/* Guess mode: dim the board slightly + invite a tap. */
+body.guess-mode .character-board{outline:2px dashed color-mix(in srgb,var(--accent-yellow) 55%,transparent);outline-offset:4px}
+body.guess-mode .character-card{cursor:crosshair}
+body.guess-mode .character-card:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 8px 22px rgba(0,0,0,.4)}
+.guess-banner{
+  position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:1400;
+  width:min(460px,calc(100vw - 24px));
+  display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;
+  padding:14px 18px;border:1px solid var(--accent-yellow);border-radius:var(--radius-xl);
+  background:var(--bg-shell);box-shadow:var(--shadow-modal);animation:modal-in 180ms ease-out;
+}
+.guess-banner .gb-text{font-weight:800;color:var(--text-primary);font-size:0.95rem}
+.guess-banner .gb-text b{color:var(--accent-yellow);font-size:1.1rem}
+.guess-banner .gb-row{display:flex;gap:8px}
+.guess-confirm{
+  position:fixed;inset:0;z-index:1600;display:grid;place-items:center;padding:18px;
+  background:rgba(4,7,14,.72);backdrop-filter:blur(5px);animation:modal-in 140ms ease-out;
+}
+.gc-box{
+  width:min(360px,92vw);display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:22px;border:1px solid var(--border-standard);border-radius:var(--radius-xl);
+  background:var(--bg-panel-raised);box-shadow:var(--shadow-modal);text-align:center;
+}
+.gc-q{margin:0;font-size:12px;font-weight:700;letter-spacing:0.14em;color:var(--text-secondary)}
+.gc-face{width:130px;height:130px;object-fit:cover;border:1px solid var(--border-standard);border-radius:var(--radius-md)}
+.gc-name{margin:0;font-family:"Archivo",sans-serif;font-weight:900;font-size:1.5rem;color:var(--text-primary)}
+.gc-actions{display:flex;gap:8px;width:100%;margin-top:6px}
+.gc-actions .button{flex:1;min-height:50px}
+/* Reveal winner banner + session scoreboard. */
+.rr-winline{font-family:"Archivo",sans-serif;font-weight:900;font-size:clamp(1.8rem,5.5vw,2.5rem);letter-spacing:-0.01em;text-align:center;color:var(--text-primary);text-shadow:0.045em 0.05em 0 var(--accent-red)}
+.rr-winline b{color:var(--accent-yellow)}
+.rr-winsub{margin:2px 0 0;text-align:center;color:var(--text-secondary);font-size:0.92rem}
+.rr-scoreboard{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;padding:2px 0}
+.rr-score-label{font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)}
+.rr-score-chip{display:inline-flex;gap:5px;align-items:center;padding:4px 10px;border-radius:999px;border:1px solid var(--border-standard);background:var(--bg-panel-soft);font-size:0.82rem;font-variant-numeric:tabular-nums;color:var(--text-secondary)}
+.rr-score-chip b{color:var(--text-primary)}
+/* Guess-count pills in setup. */
+.guess-pills{display:inline-flex;gap:6px;margin-left:auto;flex:0 0 auto}
+.guess-pills .gp{
+  min-width:38px;min-height:38px;padding:0 10px;border-radius:var(--radius-sm);
+  border:1px solid var(--border-standard);background:var(--bg-panel-soft);color:var(--text-primary);
+  font-family:"Archivo",sans-serif;font-weight:900;cursor:pointer;
+}
+.guess-pills .gp.on{background:var(--accent-yellow);border-color:var(--accent-yellow);color:#14110d}
+.guess-count-row.is-off{opacity:0.5;pointer-events:none}
+
+/* ===================== Audit v2 approved batch (see audit-v2-dashboard.html) ===================== */
+/* VC2-06: the Wheel of Fate scrim reads muddy over the light page - commit to navy in light theme
+   so the reel pops and the landing caption stays white-on-dark in both themes. */
+body[data-theme="light"] .roulette-overlay { background: rgba(9, 18, 35, 0.85); }
+/* AES2-03: light-theme ghost toolbar icons were the faintest thing on the board screen. */
+body[data-theme="light"] .topbar-actions .button.ghost { color: var(--text-secondary); }
+/* A11Y2-02: title-screen small print up from 50% white (sub-AA at 0.72rem). */
+.ts-hint { color: rgba(255, 255, 255, 0.72); }
+/* A11Y2-04: guesses-each pills meet the 44px touch floor like the rest of setup. */
+.guess-pills .gp { min-height: 44px; min-width: 48px; }
+/* VC2-04: the skinny-HUD chip name gets the full plate + a notch smaller type before ellipsis. */
+body.hud-collapsed .side-panel .secret-card:not(.is-hidden) .card-plate h3 { font-size: 0.95rem; }
+/* VC2-05: mode corner badges never render on the compact chip at ANY width (desktop already hid
+   them; this extends the rule below 861px). The YGO card exemption keeps its full frame. */
+.side-panel .secret-card:not(.is-hidden):not(.ygo) .portrait-wrap > :not(img) { display: none !important; }
+/* VC2-07: the (gorgeous) YGO secret card no longer eats half a phone screen - full art stays on
+   the board and the reveal. */
+@media (max-width: 860px) {
+  .side-panel .secret-card.character-card.ygo { width: min(150px, 42vw); }
+}
+/* FLOW2-03: the crossed-off-guess warning line in the confirm sheet. */
+.gc-warn { margin: 2px 0 0; font-size: 0.72rem; font-weight: 700; font-style: italic; color: var(--accent-red); }
+/* FUN2-02: FINAL TWO banner - reuses the guess-banner shell, louder accent, auto-dismisses. */
+.final-two-banner { border: 2px solid var(--accent-yellow); animation: modal-in 180ms ease-out; }
+.final-two-banner .gb-text { font-weight: 900; letter-spacing: 0.02em; }
+.final-two-banner.ft-out { opacity: 0; transition: opacity 0.35s ease; }
+/* FUN2-05: earned lore titles stamped on recurring secrets (plain rounds only). */
+.lore-ribbon {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  padding: 2px 4px; text-align: center;
+  font-size: 0.5rem; font-weight: 900; letter-spacing: 0.08em;
+  background: color-mix(in srgb, var(--accent-red) 82%, black);
+  color: #fff; text-transform: uppercase;
+}
+/* APPEAL2-02: tonight's forecast - a 2.6s salt-derived cold open, tap to skip. */
+.forecast-card {
+  position: fixed; inset: 0; z-index: 1290;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 9, 20, 0.82); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+  animation: loreIn 0.3s ease; cursor: pointer;
+}
+.forecast-card.fc-out { opacity: 0; transition: opacity 0.3s ease; }
+.forecast-card .fc-shell {
+  display: flex; flex-direction: column; gap: 8px;
+  width: min(440px, calc(100vw - 40px)); padding: clamp(20px, 5vw, 30px);
+  border: 1px solid var(--border-standard); border-radius: var(--radius-xl);
+  background: var(--bg-panel-raised); box-shadow: var(--shadow-modal);
+  animation: modal-in 220ms ease-out;
+}
+.forecast-card .fc-eyebrow {
+  margin: 0 0 4px; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 0.78rem;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent-yellow);
+}
+body[data-theme="light"] .forecast-card .fc-eyebrow { color: #a07800; }
+.forecast-card .fc-line { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+/* FLOW2-02: help card secondary action spacing (shell + body reuse the manifesto styles). */
+.help-card .hc-manifesto { width: 100%; min-height: 46px; }
+/* AES2-01: the landing's bottom-anchor marquee (tall viewports only, never while the menu is open). */
+.ts-mode-marquee { display: none; }
+@media (min-height: 900px) {
+  .title-screen.title-landing .ts-mode-marquee {
+    display: block; position: absolute; left: 0; right: 0; bottom: 26px; z-index: 1;
+    overflow: hidden; white-space: nowrap; pointer-events: none;
+    font-family: "Archivo", sans-serif; font-weight: 900; font-size: 0.85rem;
+    letter-spacing: 0.14em; color: rgba(255, 255, 255, 0.4);
+  }
+  .title-screen.title-landing .ts-mode-marquee span {
+    display: inline-block; padding-left: 100%;
+    animation: ts-marquee 90s linear infinite;
+  }
+  .title-screen.title-landing.ts-menu-open .ts-mode-marquee { display: none; }
+  @keyframes ts-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+}
+body.low-power .ts-mode-marquee span { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .ts-mode-marquee span { animation: none !important; } }
+/* FLOW2-04: Win & Loss rows in a 3+ SOLO game - visibly parked, with the hint explaining why. */
+.toggle-row.is-unavailable { opacity: 0.5; }
+.toggle-row.is-unavailable input[type="checkbox"],
+.guess-count-row.is-unavailable .gp { pointer-events: none; }

@@ -4,6 +4,7 @@ const traitBook = window.faceGenerator.traitBook;
 const expressions = traitBook.expressions;
 const accessoryChoices = traitBook.accessories;
 const correctionStorageKey = "who-is-that-face-corrections";
+const selectedFaceStorageKey = "who-is-that-last-selected-face";
 const sharedEditor = window.WhoEditorShared || {};
 const titleCase = sharedEditor.titleCase || ((value) => String(value)
   .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -19,22 +20,22 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   ? sharedEditor.fieldsForFaceStudio(traitBook, accessoryChoices)
   : [
   // Face
-  { group: "Face", key: "faceShape", label: "Face Shape", type: "select", options: () => selectOptions(traitBook.faceShapes), fallback: "oval" },
-  { group: "Face", key: "headScaleX", label: "Head Width", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
-  { group: "Face", key: "headScaleY", label: "Head Height", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
-  { group: "Face", key: "neckWidth", label: "Neck Width", min: 0.72, max: 1.38, step: 0.01, fallback: 1 },
-  { group: "Face", key: "neckTaper", label: "Neck Taper", min: -1, max: 1, step: 0.05, fallback: 0 },
-  { group: "Face", key: "neckLength", label: "Neckline Height", min: -8, max: 16, step: 0.5, fallback: 0 },
-  { group: "Face", key: "neckOutline", label: "Neck Outline", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
-  { group: "Face", key: "neckOutlineWidth", label: "Neck Outline Width", min: 0.5, max: 3, step: 0.05, fallback: 1 },
-  { group: "Face", key: "neckTerminationY", label: "Neck Join Depth", min: -6, max: 12, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "faceShape", label: "Face Shape", type: "select", options: () => selectOptions(traitBook.faceShapes), fallback: "oval" },
+  { group: "Structure", key: "headScaleX", label: "Head Width", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
+  { group: "Structure", key: "headScaleY", label: "Head Height", min: 0.85, max: 1.18, step: 0.01, fallback: 1 },
+  { group: "Structure", key: "neckWidth", label: "Neck Width", min: 0.72, max: 1.38, step: 0.01, fallback: 1 },
+  { group: "Structure", key: "neckTaper", label: "Neck Taper", min: -1, max: 1, step: 0.05, fallback: 0 },
+  { group: "Structure", key: "neckLength", label: "Neckline Height", min: -8, max: 16, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "neckOutline", label: "Neck Outline", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
+  { group: "Structure", key: "neckOutlineWidth", label: "Neck Outline Width", min: 0.5, max: 3, step: 0.05, fallback: 1 },
+  { group: "Structure", key: "neckTerminationY", label: "Neck Join Depth", min: -6, max: 12, step: 0.5, fallback: 0 },
   { group: "Face Lines", key: "adamAppleStyle", label: "Adam's Apple", type: "select", options: () => [["off", "Off"], ["soft", "Soft"], ["line", "Line"], ["notch", "Notch"]], fallback: "off" },
   { group: "Face Lines", key: "adamAppleScale", label: "Adam's Apple Size", min: 0.5, max: 1.8, step: 0.05, fallback: 1 },
   { group: "Face Lines", key: "adamAppleOpacity", label: "Adam's Apple Opacity", min: 0, max: 1, step: 0.05, fallback: 0 },
   { group: "Face Lines", key: "adamAppleY", label: "Adam's Apple Y", min: -10, max: 10, step: 0.5, fallback: 0 },
-  { group: "Face", key: "headTilt", label: "Head Tilt", min: -12, max: 12, step: 0.5, fallback: 0 },
-  { group: "Face", key: "headY", label: "Head Position", min: -10, max: 10, step: 1, fallback: 0 },
-  { group: "Face", key: "eyeGap", label: "Eye Gap", min: 40, max: 62, step: 1, fallback: 47 },
+  { group: "Structure", key: "headTilt", label: "Head Tilt", min: -12, max: 12, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "headY", label: "Head Position", min: -10, max: 10, step: 1, fallback: 0 },
+  { group: "Structure", key: "eyeGap", label: "Eye Gap", min: 40, max: 62, step: 1, fallback: 47 },
   // Skin
   { group: "Skin", key: "skin", label: "Skin Tone", type: "select", options: () => selectOptions(traitBook.skinTones), fallback: "fair" },
   { group: "Skin", key: "background", label: "Background", type: "color", fallback: "" },
@@ -115,20 +116,20 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   { group: "Cheeks", key: "blushColor", label: "Blush Colour", type: "color", fallback: "" },
   { group: "Cheeks", key: "blushScale", label: "Blush Size", min: 0.4, max: 2, step: 0.05, fallback: 1 },
   { group: "Cheeks", key: "blushX", label: "Blush Spacing", min: -18, max: 18, step: 0.5, fallback: 0 },
-  { group: "Cheeks", key: "contourOpacity", label: "Cheek Contour", min: 0, max: 1, step: 0.05, fallback: 0 },
-  { group: "Cheeks", key: "contourY", label: "Contour Y", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Cheeks", key: "contourX", label: "Contour Spacing", min: -18, max: 18, step: 0.5, fallback: 0 },
-  { group: "Cheeks", key: "contourWidth", label: "Contour Width", min: 0.55, max: 1.8, step: 0.05, fallback: 1 },
+  { group: "Structure", key: "contourOpacity", label: "Cheek Contour", min: 0, max: 1, step: 0.05, fallback: 0 },
+  { group: "Structure", key: "contourY", label: "Contour Y", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "contourX", label: "Contour Spacing", min: -18, max: 18, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "contourWidth", label: "Contour Width", min: 0.55, max: 1.8, step: 0.05, fallback: 1 },
   // Ears
-  { group: "Ears", key: "earVariant", label: "Ear Shape", type: "select", options: () => selectOptions(traitBook.earVariants), fallback: "round" },
-  { group: "Ears", key: "earScale", label: "Ear Size", min: 0.7, max: 1.3, step: 0.02, fallback: 1 },
-  { group: "Ears", key: "earY", label: "Ear Height", min: -10, max: 10, step: 1, fallback: 0 },
-  { group: "Ears", key: "earX", label: "Ear Group X", min: -12, max: 12, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earLeftX", label: "Left Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earRightX", label: "Right Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earLeftY", label: "Left Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earRightY", label: "Right Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
-  { group: "Ears", key: "earRot", label: "Ear Rotate", min: -20, max: 20, step: 1, fallback: 0 },
+  { group: "Structure", key: "earVariant", label: "Ear Shape", type: "select", options: () => selectOptions(traitBook.earVariants), fallback: "round" },
+  { group: "Structure", key: "earScale", label: "Ear Size", min: 0.7, max: 1.3, step: 0.02, fallback: 1 },
+  { group: "Structure", key: "earY", label: "Ear Height", min: -10, max: 10, step: 1, fallback: 0 },
+  { group: "Structure", key: "earX", label: "Ear Group X", min: -12, max: 12, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earLeftX", label: "Left Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earRightX", label: "Right Ear X", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earLeftY", label: "Left Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earRightY", label: "Right Ear Y", min: -14, max: 14, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "earRot", label: "Ear Rotate", min: -20, max: 20, step: 1, fallback: 0 },
   // Mouth
   { group: "Mouth", key: "mouthStyle", label: "Smile Style", type: "select", options: () => selectOptions(traitBook.mouthStyles), fallback: "warmSmile" },
   { group: "Mouth", key: "smileLips", label: "Smile Lips", type: "select", options: () => [["on", "On"], ["off", "Off"]], fallback: "on" },
@@ -153,14 +154,13 @@ const editorFields = sharedEditor.fieldsForFaceStudio
   { group: "Teeth", key: "teethX", label: "Teeth X", min: -16, max: 16, step: 1, fallback: 0 },
   { group: "Teeth", key: "teethY", label: "Teeth Y", min: -14, max: 14, step: 1, fallback: 0 },
   { group: "Teeth", key: "teethScale", label: "Teeth Size", min: 0.62, max: 1.38, step: 0.02, fallback: 1 },
-  // Jaw
-  { group: "Jaw", key: "jawLength", label: "Jaw Length", min: -0.25, max: 0.4, step: 0.01, fallback: 0 },
-  { group: "Jaw", key: "jawShadowY", label: "Jaw Shadow", min: -6, max: 6, step: 0.5, fallback: 0 },
-  // Chin (per-character, opt-in)
-  { group: "Chin", key: "chinShape", label: "Chin Shape", type: "select", options: () => selectOptions(traitBook.chinShapes), fallback: "none" },
-  { group: "Chin", key: "chinY", label: "Chin Height", min: -16, max: 18, step: 1, fallback: 0 },
-  { group: "Chin", key: "chinWidth", label: "Chin Width", min: 0.6, max: 1.7, step: 0.02, fallback: 1 },
-  { group: "Chin", key: "chinScale", label: "Chin Size", min: 0.5, max: 2, step: 0.02, fallback: 1 },
+  // Jaw / chin structure
+  { group: "Structure", key: "jawLength", label: "Jaw Length", min: -0.25, max: 0.4, step: 0.01, fallback: 0 },
+  { group: "Structure", key: "jawShadowY", label: "Jaw Shadow", min: -6, max: 6, step: 0.5, fallback: 0 },
+  { group: "Structure", key: "chinShape", label: "Chin Shape", type: "select", options: () => selectOptions(traitBook.chinShapes), fallback: "none" },
+  { group: "Structure", key: "chinY", label: "Chin Height", min: -16, max: 18, step: 1, fallback: 0 },
+  { group: "Structure", key: "chinWidth", label: "Chin Width", min: 0.6, max: 1.7, step: 0.02, fallback: 1 },
+  { group: "Structure", key: "chinScale", label: "Chin Size", min: 0.5, max: 2, step: 0.02, fallback: 1 },
   // Clothing
   { group: "Clothing", key: "clothing", label: "Outfit", type: "select", options: () => selectOptions(traitBook.clothing), fallback: "tee" },
   { group: "Clothing", key: "shirt", label: "Clothing Colour", type: "color", fallback: "" },
@@ -213,22 +213,22 @@ if (!editorFields.some((field) => field.key === "neckDebug")) {
   editorFields.splice(
     Math.max(0, editorFields.findIndex((field) => field.key === "headTilt")),
     0,
-    { group: "Face", key: "neckDebug", label: "Neck Debug", type: "select", options: () => [["off", "Off"], ["fill", "Fill"], ["outline", "Outline"], ["all", "All"]], fallback: "off" }
+    { group: "Structure", key: "neckDebug", label: "Neck Debug", type: "select", options: () => [["off", "Off"], ["fill", "Fill"], ["outline", "Outline"], ["all", "All"]], fallback: "off" }
   );
 }
 
 const hotspots = [
-  { label: "Face Shape", group: "Face", left: 2, top: 2, width: 18, height: 10 },
+  { label: "Structure", group: "Structure", left: 2, top: 2, width: 18, height: 10 },
   { label: "Hair", group: "Hair", left: 22, top: 2, width: 56, height: 24 },
-  { label: "Ear", group: "Ears", left: 4, top: 46, width: 14, height: 18 },
-  { label: "Ear", group: "Ears", left: 82, top: 46, width: 14, height: 18 },
+  { label: "Structure", group: "Structure", left: 4, top: 46, width: 14, height: 18 },
+  { label: "Structure", group: "Structure", left: 82, top: 46, width: 14, height: 18 },
   { label: "Brows", group: "Brows", left: 26, top: 36, width: 48, height: 10 },
   { label: "Eyes", group: "Eyes", left: 26, top: 44, width: 48, height: 12 },
   { label: "Nose", group: "Nose", left: 40, top: 52, width: 20, height: 16 },
   { label: "Cheeks", group: "Cheeks", left: 18, top: 54, width: 18, height: 14 },
   { label: "Cheeks", group: "Cheeks", left: 64, top: 54, width: 18, height: 14 },
   { label: "Mouth", group: "Mouth", left: 36, top: 64, width: 28, height: 10 },
-  { label: "Jaw / Beard", group: "Beard", left: 28, top: 72, width: 44, height: 18 },
+  { label: "Structure", group: "Structure", left: 28, top: 72, width: 44, height: 18 },
   { label: "Outfit", group: "Clothing", left: 20, top: 88, width: 60, height: 12 }
 ];
 
@@ -237,15 +237,39 @@ const state = {
   hair: "all",
   accessory: "all",
   search: "",
+  groupBy: "none",
   matrix: false,
-  selectedId: characters[0]?.id || "",
+  selectedId: readSelectedFaceId(),
   selectedExpression: "assigned",
-  activeGroup: "Face",
+  activeGroup: "Structure",
   exportMode: "corrections",
-  corrections: readCorrections(),
+  corrections: cleanStoredCorrections(readCorrections()),
   // Pen tool (draw custom hair). pts: anchors {x,y,hx,hy} in 256-space; hx/hy = outgoing handle.
   pen: { mode: false, pts: [], dragging: -1, color: "", outline: true, lines: true, closed: false }
 };
+
+const rosterGroupOptions = [
+  ["none", "None"],
+  ["skinTone", "Skin Tone"],
+  ["expression", "Expression"],
+  ["accessory", "Accessory"],
+  ["hair", "Hair"],
+  ["backgroundWarmth", "Background Warmth"],
+  ["shirtColor", "Shirt Colour"]
+];
+
+const rosterGroupOrder = {
+  skinTone: ["Fair", "Light", "Medium", "Tan", "Deep"],
+  expression: expressions.map((expression) => titleCase(expression)),
+  backgroundWarmth: ["Cool", "Neutral", "Warm"],
+  shirtColor: ["Black", "Grey", "White", "Brown", "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Pink"]
+};
+
+const editorNavFamilies = [
+  { label: "Base", groups: ["Structure", "Skin", "Lighting", "Face Lines", "Cheeks"] },
+  { label: "Features", groups: ["Brows", "Eyes", "Nose", "Mouth", "Teeth"] },
+  { label: "Styling", groups: ["Hair", "Beard", "Moustache", "Clothing", "Accessory", "Jewellery", "Tattoo", "Animation"] }
+];
 
 const PEN_LOCK_KEY = "who-is-that-pen-locks";
 function readPenLocks() {
@@ -261,12 +285,13 @@ const els = {
   expressionFilter: document.querySelector("#expressionFilter"),
   hairFilter: document.querySelector("#hairFilter"),
   accessoryFilter: document.querySelector("#accessoryFilter"),
+  groupByFilter: document.querySelector("#groupByFilter"),
   searchInput: document.querySelector("#searchInput"),
   matrixToggle: document.querySelector("#matrixToggle"),
   resetButton: document.querySelector("#resetButton"),
   faceGrid: document.querySelector("#faceGrid"),
   resultCount: document.querySelector("#resultCount"),
-  expressionSummary: document.querySelector("#expressionSummary"),
+  rosterMeta: document.querySelector("#rosterMeta"),
   selectedPortrait: document.querySelector("#selectedPortrait"),
   selectedMeta: document.querySelector("#selectedMeta"),
   variantStrip: document.querySelector("#variantStrip"),
@@ -276,10 +301,14 @@ const els = {
   hotspotHint: document.querySelector("#hotspotHint"),
   editorControls: document.querySelector("#editorControls"),
   correctionExport: document.querySelector("#correctionExport"),
+  combinedCorrectionExport: document.querySelector("#combinedCorrectionExport"),
   exportModeLabel: document.querySelector("#exportModeLabel"),
+  combinedExportLabel: document.querySelector("#combinedExportLabel"),
   exportModeCorrections: document.querySelector("#exportModeCorrections"),
   exportModeEdited: document.querySelector("#exportModeEdited"),
   copyExportButton: document.querySelector("#copyExportButton"),
+  copyCombinedExportButton: document.querySelector("#copyCombinedExportButton"),
+  resetAllCorrectionsButton: document.querySelector("#resetAllCorrectionsButton"),
   resetCorrectionButton: document.querySelector("#resetCorrectionButton")
 };
 let portraitRefreshFrame = 0;
@@ -294,6 +323,7 @@ function init() {
   ]);
   fillSelect(els.hairFilter, [["all", "All"], ...optionsFrom("hair")]);
   fillSelect(els.accessoryFilter, [["all", "All"], ...optionsFrom("accessory")]);
+  fillSelect(els.groupByFilter, rosterGroupOptions);
 
   els.expressionFilter.addEventListener("change", () => {
     state.expression = els.expressionFilter.value;
@@ -306,6 +336,10 @@ function init() {
   });
   els.accessoryFilter.addEventListener("change", () => {
     state.accessory = els.accessoryFilter.value;
+    render();
+  });
+  els.groupByFilter.addEventListener("change", () => {
+    state.groupBy = els.groupByFilter.value;
     render();
   });
   els.searchInput.addEventListener("input", () => {
@@ -321,6 +355,8 @@ function init() {
   els.exportModeCorrections?.addEventListener("click", () => setExportMode("corrections"));
   els.exportModeEdited?.addEventListener("click", () => setExportMode("editedCharacters"));
   els.copyExportButton?.addEventListener("click", copyCurrentExport);
+  els.copyCombinedExportButton?.addEventListener("click", copyCombinedExport);
+  els.resetAllCorrectionsButton?.addEventListener("click", clearAllCorrections);
 
   renderHotspots();
   wireLockStageOnce();
@@ -333,12 +369,14 @@ function reset() {
   state.hair = "all";
   state.accessory = "all";
   state.search = "";
+  state.groupBy = "none";
   state.matrix = false;
-  state.selectedId = characters[0]?.id || "";
+  setSelectedFaceId(characters[0]?.id || "");
   state.selectedExpression = "assigned";
   els.expressionFilter.value = state.expression;
   els.hairFilter.value = state.hair;
   els.accessoryFilter.value = state.accessory;
+  els.groupByFilter.value = state.groupBy;
   els.searchInput.value = "";
   els.matrixToggle.checked = false;
   render();
@@ -347,7 +385,7 @@ function reset() {
 function render() {
   const visible = filteredCharacters();
   if (!visible.some((character) => character.id === state.selectedId) && visible[0]) {
-    state.selectedId = visible[0].id;
+    setSelectedFaceId(visible[0].id);
     state.selectedExpression = state.expression;
   }
   renderSummary(visible);
@@ -357,54 +395,37 @@ function render() {
 
 function renderSummary(visible) {
   els.resultCount.textContent = `${visible.length} ${visible.length === 1 ? "face" : "faces"}`;
-  const editedCount = visible.filter((character) => Object.keys(correctionFor(character.id)).length).length;
-  const counts = expressions.map((expression) => [
-    expression,
-    visible.filter((character) => character.traits.expression === expression).length
-  ]);
-  els.expressionSummary.innerHTML = counts
-    .map(([expression, count]) => `<span class="summary-pill">${escapeHtml(expression)} ${count}</span>`)
-    .concat(editedCount ? [`<span class="summary-pill summary-pill-edited">${editedCount} edited</span>`] : [])
-    .join("");
+  const groups = groupedCharacters(visible);
+  const groupLabel = rosterGroupOptions.find(([value]) => value === state.groupBy)?.[1] || "None";
+  els.rosterMeta.textContent = state.groupBy === "none"
+    ? `${state.search ? "Search active" : "Flat roster"}`
+    : `${groupLabel} · ${groups.length} ${groups.length === 1 ? "cluster" : "clusters"}`;
 }
 
 function renderGrid(visible) {
+  const previousRects = captureRosterCardRects();
   els.faceGrid.innerHTML = "";
-  visible.forEach((character) => {
-    const sourceIndex = characters.indexOf(character);
-    const displayTraits = traitsFor(character, selectedExpressionFor(character));
-    const editCount = Object.keys(correctionFor(character.id)).length;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `face-card ${state.matrix ? "matrix-card" : ""}`;
-    button.classList.toggle("is-selected", character.id === state.selectedId);
-    button.classList.toggle("is-edited", editCount > 0);
-    button.addEventListener("click", () => {
-      state.selectedId = character.id;
-      state.selectedExpression = state.expression;
-      renderSelected();
-      document.querySelectorAll(".face-card").forEach((card) => card.classList.remove("is-selected"));
-      button.classList.add("is-selected");
+  const groups = groupedCharacters(visible);
+  els.faceGrid.classList.toggle("is-grouped", state.groupBy !== "none");
+  if (state.groupBy === "none") {
+    groups[0]?.items.forEach((character) => els.faceGrid.appendChild(buildFaceCard(character)));
+  } else {
+    groups.forEach((group) => {
+      const section = document.createElement("section");
+      section.className = "face-group";
+      section.innerHTML = `
+        <div class="face-group-head">
+          <h3>${escapeHtml(group.label)}</h3>
+          <span>${group.items.length}</span>
+        </div>
+        <div class="face-group-grid"></div>
+      `;
+      const grid = section.querySelector(".face-group-grid");
+      group.items.forEach((character) => grid.appendChild(buildFaceCard(character)));
+      els.faceGrid.appendChild(section);
     });
-
-    if (state.matrix) {
-      button.innerHTML = `
-        ${editCount ? `<span class="face-card-edits">${editCount}</span>` : ""}
-        ${expressions.map((expression) => `<img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)} ${escapeHtml(expression)}">`).join("")}
-        <h3>${escapeHtml(character.name)}</h3>
-        <p>${escapeHtml(character.feature)}</p>
-      `;
-    } else {
-      const expression = state.expression === "assigned" ? character.traits.expression : state.expression;
-      button.innerHTML = `
-        ${editCount ? `<span class="face-card-edits">${editCount}</span>` : ""}
-        <img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)}">
-        <h3>${escapeHtml(character.name)}</h3>
-        <p>${escapeHtml(describeCard(displayTraits, expression))}</p>
-      `;
-    }
-    els.faceGrid.appendChild(button);
-  });
+  }
+  animateRosterCards(previousRects);
 }
 
 function renderSelected() {
@@ -412,28 +433,11 @@ function renderSelected() {
   if (!character) return;
   const index = characters.indexOf(character);
   const expression = selectedExpressionFor(character);
-  const correction = correctionFor(character.id);
-  const displayTraits = traitsFor(character, expression);
-  const editCount = Object.keys(correction).length;
-  const groupCount = Object.keys(groupEditCounts(correction)).length;
   els.selectedPortrait.innerHTML = `<img src="${portraitFor(character, index, expression)}" alt="${escapeHtml(character.name)}">`;
   renderLockOverlay(character);
   els.selectedMeta.innerHTML = `
     <div>
-      <p class="meta-label">Selected</p>
       <h2>${escapeHtml(character.name)}</h2>
-    </div>
-    <div class="trait-list">
-      ${traitPill("expression", expression)}
-      ${traitPill("mouth", displayTraits.mouthStyle)}
-      ${traitPill("hair", displayTraits.hair)}
-      ${traitPill("hair color", displayTraits.hairColor)}
-      ${traitPill("face", displayTraits.faceShape)}
-      ${traitPill("skin", displayTraits.skin)}
-      ${traitPill("clothing", displayTraits.clothing)}
-      ${traitPill("accessory", displayTraits.accessory)}
-      ${editCount ? traitPill("edits", editCount) : ""}
-      ${groupCount ? traitPill("groups", groupCount) : ""}
     </div>
   `;
   els.variantStrip.innerHTML = expressions
@@ -457,13 +461,171 @@ function renderSelected() {
 
 function filteredCharacters() {
   return characters.filter((character) => {
-    const displayTraits = { ...character.traits, ...correctionFor(character.id) };
+    const displayTraits = displayTraitsFor(character);
     const matchesHair = state.hair === "all" || displayTraits.hair === state.hair;
     const matchesAccessory = state.accessory === "all" || displayTraits.accessory === state.accessory;
     const haystack = `${character.name} ${character.feature} ${character.role} ${Object.values(displayTraits).join(" ")}`.toLowerCase();
     const matchesSearch = !state.search || haystack.includes(state.search);
     return matchesHair && matchesAccessory && matchesSearch;
   });
+}
+
+function displayTraitsFor(character) {
+  return { ...character.traits, ...correctionFor(character.id) };
+}
+
+function groupedCharacters(visible) {
+  if (state.groupBy === "none") return [{ key: "all", label: "All Faces", items: visible }];
+  const grouped = new Map();
+  visible.forEach((character) => {
+    const traits = displayTraitsFor(character);
+    const group = rosterGroupFor(character, traits);
+    const key = group.key || "other";
+    if (!grouped.has(key)) grouped.set(key, { key, label: group.label, items: [] });
+    grouped.get(key).items.push(character);
+  });
+  return [...grouped.values()]
+    .sort((a, b) => compareRosterGroups(state.groupBy, a.label, b.label))
+    .map((group) => ({
+      ...group,
+      items: group.items.slice().sort((a, b) => a.name.localeCompare(b.name))
+    }));
+}
+
+function rosterGroupFor(character, traits) {
+  switch (state.groupBy) {
+    case "skinTone":
+      return groupBySkinTone(traits);
+    case "expression":
+      return { key: traits.expression || "assigned", label: titleCase(traits.expression || "assigned") };
+    case "accessory":
+      return { key: traits.accessory || "none", label: titleCase(traits.accessory || "none") };
+    case "hair":
+      return { key: traits.hair || "none", label: titleCase(traits.hair || "none") };
+    case "backgroundWarmth":
+      return groupByWarmth(traits.background || character.traits.background || "#a9c4e0");
+    case "shirtColor":
+      return groupByColorFamily(traits.shirt || character.traits.shirt || "#8a8e99");
+    default:
+      return { key: "all", label: "All Faces" };
+  }
+}
+
+function groupBySkinTone(traits) {
+  const toneHex = (traitBook.skinToneHex && traitBook.skinToneHex[traits.skin]) || "#c89070";
+  const { l } = rgbToHsl(...Object.values(hexToRgb(toneHex)));
+  if (l >= 74) return { key: "fair", label: "Fair" };
+  if (l >= 62) return { key: "light", label: "Light" };
+  if (l >= 50) return { key: "medium", label: "Medium" };
+  if (l >= 36) return { key: "tan", label: "Tan" };
+  return { key: "deep", label: "Deep" };
+}
+
+function groupByWarmth(color) {
+  const { h, s } = rgbToHsl(...Object.values(hexToRgb(color)));
+  if (s < 18 || (h >= 45 && h <= 75)) return { key: "neutral", label: "Neutral" };
+  if (h >= 170 && h <= 290) return { key: "cool", label: "Cool" };
+  return { key: "warm", label: "Warm" };
+}
+
+function groupByColorFamily(color) {
+  const { h, s, l } = rgbToHsl(...Object.values(hexToRgb(color)));
+  if (l <= 14) return { key: "black", label: "Black" };
+  if (s <= 12 && l < 82) return { key: "grey", label: "Grey" };
+  if (s <= 10 && l >= 82) return { key: "white", label: "White" };
+  if (h >= 12 && h < 42 && l < 42) return { key: "brown", label: "Brown" };
+  if (h < 16 || h >= 345) return { key: "red", label: "Red" };
+  if (h < 38) return { key: "orange", label: "Orange" };
+  if (h < 62) return { key: "yellow", label: "Yellow" };
+  if (h < 165) return { key: "green", label: "Green" };
+  if (h < 255) return { key: "blue", label: "Blue" };
+  if (h < 315) return { key: "purple", label: "Purple" };
+  if (h < 345) return { key: "pink", label: "Pink" };
+  return { key: "brown", label: "Brown" };
+}
+
+function compareRosterGroups(groupMode, left, right) {
+  const order = rosterGroupOrder[groupMode];
+  if (Array.isArray(order)) {
+    const leftIndex = order.indexOf(left);
+    const rightIndex = order.indexOf(right);
+    if (leftIndex !== -1 || rightIndex !== -1) {
+      if (leftIndex === -1) return 1;
+      if (rightIndex === -1) return -1;
+      return leftIndex - rightIndex;
+    }
+  }
+  return left.localeCompare(right);
+}
+
+function buildFaceCard(character) {
+  const sourceIndex = characters.indexOf(character);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `face-card ${state.matrix ? "matrix-card" : ""}`;
+  button.dataset.id = character.id;
+  button.classList.toggle("is-selected", character.id === state.selectedId);
+  button.addEventListener("click", () => {
+    setSelectedFaceId(character.id);
+    state.selectedExpression = state.expression;
+    renderSelected();
+    document.querySelectorAll(".face-card").forEach((card) => card.classList.remove("is-selected"));
+    button.classList.add("is-selected");
+  });
+
+  if (state.matrix) {
+    button.innerHTML = `
+      ${expressions.map((expression) => `<img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)} ${escapeHtml(expression)}">`).join("")}
+      <h3>${escapeHtml(character.name)}</h3>
+    `;
+  } else {
+    const expression = state.expression === "assigned"
+      ? displayTraitsFor(character).expression
+      : state.expression;
+    button.innerHTML = `
+      <img src="${portraitFor(character, sourceIndex, expression)}" alt="${escapeHtml(character.name)}">
+      <h3>${escapeHtml(character.name)}</h3>
+    `;
+  }
+  return button;
+}
+
+function captureRosterCardRects() {
+  return new Map(
+    [...els.faceGrid.querySelectorAll(".face-card[data-id]")]
+      .map((card) => [card.dataset.id, card.getBoundingClientRect()])
+  );
+}
+
+function animateRosterCards(previousRects) {
+  if (!previousRects.size || prefersReducedMotion()) return;
+  window.requestAnimationFrame(() => {
+    els.faceGrid.querySelectorAll(".face-card[data-id]").forEach((card) => {
+      const before = previousRects.get(card.dataset.id);
+      if (!before) {
+        card.animate(
+          [{ opacity: 0, transform: "scale(0.97)" }, { opacity: 1, transform: "scale(1)" }],
+          { duration: 200, easing: "ease-out" }
+        );
+        return;
+      }
+      const after = card.getBoundingClientRect();
+      const dx = before.left - after.left;
+      const dy = before.top - after.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      card.animate(
+        [
+          { transform: `translate(${dx}px, ${dy}px)` },
+          { transform: "translate(0, 0)" }
+        ],
+        { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" }
+      );
+    });
+  });
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function selectedExpressionFor(character) {
@@ -481,10 +643,6 @@ function traitsFor(character, expression) {
   return { ...character.traits, ...correctionFor(character.id), expression };
 }
 
-function describeCard(traits, expression) {
-  return [expression, traits.mouthStyle, traits.hair, traits.accessory].filter(Boolean).map(titleCase).join(" / ");
-}
-
 function optionsFrom(key) {
   return [...new Set(characters.map((character) => character.traits[key]))]
     .sort((a, b) => a.localeCompare(b))
@@ -495,10 +653,6 @@ function fillSelect(select, options) {
   select.innerHTML = options
     .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
     .join("");
-}
-
-function traitPill(label, value) {
-  return `<span class="trait-pill">${escapeHtml(label)}: ${escapeHtml(titleCase(value))}</span>`;
 }
 
 function escapeHtml(value) {
@@ -605,28 +759,32 @@ function miniSwatchButton(targetId) {
 function renderEditor(character) {
   const correction = correctionFor(character.id);
   if (!editorGroups.includes(state.activeGroup)) state.activeGroup = editorGroups[0];
-  const editedGroupCounts = groupEditCounts(correction);
-  const editedGroups = new Set(Object.keys(editedGroupCounts));
+  const navFamilies = editorNavFamilies
+    .map((family) => ({
+      label: family.label,
+      groups: family.groups.filter((group) => editorGroups.includes(group))
+    }))
+    .filter((family) => family.groups.length);
   const nav = `
-    <div class="editor-summary">
-      <div class="editor-summary-main">
-        <span class="meta-label">Active Group</span>
-        <strong>${escapeHtml(sharedGroupTitle(state.activeGroup))}</strong>
-      </div>
-      <div class="editor-summary-pills">
-        <span class="trait-pill">${Object.keys(correction).length || 0} ${Object.keys(correction).length === 1 ? "override" : "overrides"}</span>
-        <span class="trait-pill">${Object.keys(editedGroupCounts).length || 0} ${Object.keys(editedGroupCounts).length === 1 ? "group" : "groups"}</span>
-      </div>
+    <div class="editor-context">
+      <span class="meta-label">Now Editing</span>
+      <strong>${escapeHtml(sharedGroupTitle(state.activeGroup))}</strong>
     </div>
-    <div class="editor-tabs">
-      ${editorGroups
-        .map((group) => `
-          <button type="button" class="editor-tab ${group === state.activeGroup ? "is-active" : ""} ${editedGroups.has(group) ? "is-edited" : ""}" data-group="${escapeHtml(group)}">
-            <span>${escapeHtml(sharedGroupTitle(group))}</span>
-            ${editedGroupCounts[group] ? `<em class="editor-tab-count">${editedGroupCounts[group]}</em>` : ""}
-          </button>
-        `)
-        .join("")}
+    <div class="editor-nav-bands">
+      ${navFamilies.map((family) => `
+        <section class="editor-nav-family">
+          <span class="editor-nav-label">${escapeHtml(family.label)}</span>
+          <div class="editor-tabs">
+            ${family.groups
+              .map((group) => `
+                <button type="button" class="editor-tab ${group === state.activeGroup ? "is-active" : ""}" data-group="${escapeHtml(group)}">
+                  <span>${escapeHtml(sharedGroupTitle(group))}</span>
+                </button>
+              `)
+              .join("")}
+          </div>
+        </section>
+      `).join("")}
     </div>
   `;
 
@@ -636,10 +794,10 @@ function renderEditor(character) {
     .filter((field) => !(state.activeGroup === "Jewellery" && field.group === "Jewellery"))
     .filter((field) => !field.when || field.when({ ...character.traits, ...correction }))
     .map((field) => {
-    const edited = Object.hasOwn(correction, field.key);
+    const isDraft = Object.hasOwn(correction, field.key);
     const base = baseValueFor(character, field);
     const value = correction[field.key] ?? base;
-    const status = edited ? "edited" : "base";
+    const status = isDraft ? "draft" : "base";
     const control = field.type === "select"
       ? `
         <select id="edit-${escapeHtml(field.key)}" data-key="${escapeHtml(field.key)}" data-kind="select">
@@ -685,10 +843,10 @@ function renderEditor(character) {
         <span class="editor-value">${status}</span>
       `;
     return `
-      <div class="editor-control ${edited ? "is-edited" : ""}" data-group="${escapeHtml(field.group)}" data-field="${escapeHtml(field.key)}">
+      <div class="editor-control ${isDraft ? "is-draft" : ""}" data-group="${escapeHtml(field.group)}" data-field="${escapeHtml(field.key)}">
         <label for="edit-${escapeHtml(field.key)}">${escapeHtml(field.label)}</label>
         ${control}
-        <button type="button" class="editor-reset ${edited ? "" : "is-hidden"}" data-field-reset="${escapeHtml(field.key)}" title="Reset this field to the base value">Reset</button>
+        <button type="button" class="editor-reset ${isDraft ? "" : "is-hidden"}" data-field-reset="${escapeHtml(field.key)}" title="Reset this field to the base value">Reset</button>
       </div>
     `;
   });
@@ -826,23 +984,6 @@ function renderEditor(character) {
   renderCorrectionExport();
 }
 
-function groupEditCounts(correction) {
-  return Object.keys(correction).reduce((acc, key) => {
-    const specialGroups = {
-      hairLocks: "Hair",
-      hairHex: "Hair",
-      beardBlobs: "Beard",
-      tattoos: "Tattoo",
-      jewelleryItems: "Jewellery",
-      castShadowItems: "Lighting"
-    };
-    const group = specialGroups[key] || editorFields.find((field) => field.key === key)?.group;
-    if (!group) return acc;
-    acc[group] = (acc[group] || 0) + 1;
-    return acc;
-  }, {});
-}
-
 function wireInlineSwatchButtons(root) {
   root.querySelectorAll("[data-inline-swatchfor]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -934,6 +1075,15 @@ function clearSelectedCorrection() {
   render();
 }
 
+function clearAllCorrections() {
+  if (!Object.keys(state.corrections).length) return;
+  const ok = window.confirm("Revert all local Face Studio drafts and reload the baked base cast?");
+  if (!ok) return;
+  state.corrections = {};
+  saveCorrections();
+  render();
+}
+
 function baseValueFor(character, field) {
   const raw = character.traits[field.key] ?? field.fallback;
   return field.type === "select" ? raw : normalizeNumber(raw);
@@ -945,9 +1095,7 @@ function renderHotspots() {
     .map((spot, i) => `
       <button type="button" class="portrait-hotspot" data-group="${escapeHtml(spot.group)}"
         style="left:${spot.left}%; top:${spot.top}%; width:${spot.width}%; height:${spot.height}%;"
-        title="${escapeHtml(spot.label)}">
-        <span>${escapeHtml(spot.label)}</span>
-      </button>
+        title="${escapeHtml(spot.label)}" aria-label="${escapeHtml(spot.label)}"></button>
     `)
     .join("");
   els.portraitHotspots.querySelectorAll(".portrait-hotspot").forEach((button) => {
@@ -977,6 +1125,27 @@ function correctionFor(id) {
   return state.corrections[id] || {};
 }
 
+function readSelectedFaceId() {
+  try {
+    const stored = localStorage.getItem(selectedFaceStorageKey) || "";
+    return characters.some((character) => character.id === stored)
+      ? stored
+      : (characters[0]?.id || "");
+  } catch {
+    return characters[0]?.id || "";
+  }
+}
+
+function setSelectedFaceId(id) {
+  state.selectedId = id;
+  try {
+    if (id) localStorage.setItem(selectedFaceStorageKey, id);
+    else localStorage.removeItem(selectedFaceStorageKey);
+  } catch {
+    // Ignore storage issues and keep working in-memory.
+  }
+}
+
 function setCorrection(id, correction) {
   const clean = Object.fromEntries(Object.entries(correction).filter(([, value]) => value !== "" && value !== null && value !== undefined));
   if (Object.keys(clean).length) {
@@ -996,8 +1165,57 @@ function readCorrections() {
   }
 }
 
+function cleanStoredCorrections(raw) {
+  if (!raw || typeof raw !== "object") return {};
+  let changed = false;
+  const cleaned = {};
+  Object.entries(raw).forEach(([id, correction]) => {
+    if (!correction || typeof correction !== "object" || Array.isArray(correction)) {
+      changed = true;
+      return;
+    }
+    const character = characters.find((item) => item.id === id);
+    if (!character) {
+      cleaned[id] = correction;
+      return;
+    }
+    const next = {};
+    Object.entries(correction).forEach(([key, value]) => {
+      if (draftValueMatchesBase(character, key, value)) {
+        changed = true;
+      } else {
+        next[key] = value;
+      }
+    });
+    if (Object.keys(next).length) cleaned[id] = next;
+    else if (Object.keys(correction).length) changed = true;
+  });
+  if (changed || Object.keys(cleaned).length !== Object.keys(raw).length) {
+    if (Object.keys(cleaned).length) localStorage.setItem(correctionStorageKey, JSON.stringify(cleaned));
+    else localStorage.removeItem(correctionStorageKey);
+  }
+  return cleaned;
+}
+
+function draftValueMatchesBase(character, key, value) {
+  const field = editorFields.find((item) => item.key === key);
+  const rawBase = character.traits[key] ?? field?.fallback;
+  if (rawBase === undefined) return false;
+  if (field && !field.type) return numbersEqual(normalizeNumber(value), normalizeNumber(rawBase));
+  return stableComparable(value) === stableComparable(rawBase);
+}
+
+function stableComparable(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value.startsWith("#") ? value.toLowerCase() : value;
+  if (typeof value !== "object") return String(value);
+  if (Array.isArray(value)) return `[${value.map(stableComparable).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${key}:${stableComparable(value[key])}`).join(",")}}`;
+}
+
 function saveCorrections() {
-  localStorage.setItem(correctionStorageKey, JSON.stringify(state.corrections));
+  if (Object.keys(state.corrections).length) localStorage.setItem(correctionStorageKey, JSON.stringify(state.corrections));
+  else localStorage.removeItem(correctionStorageKey);
 }
 
 function setExportMode(mode) {
@@ -1037,22 +1255,35 @@ function currentExportPayload() {
   };
 }
 
+function combinedEditorPastePayload() {
+  return {
+    all: Object.fromEntries(
+      characters.map((character) => [character.id, correctionFor(character.id)])
+    )
+  };
+}
+
 function renderCorrectionExport() {
   const payload = currentExportPayload();
   els.correctionExport.value = JSON.stringify(payload, null, 2);
+  if (els.combinedCorrectionExport) {
+    els.combinedCorrectionExport.value = JSON.stringify(combinedEditorPastePayload(), null, 2);
+  }
   if (els.exportModeLabel) {
-    const editedCount = characters.filter((character) => Object.keys(correctionFor(character.id)).length).length;
     els.exportModeLabel.textContent = state.exportMode === "editedCharacters"
-      ? `Edited Characters (${editedCount})`
-      : "Corrections Export";
+      ? "Bake Export"
+      : "Draft Export";
+  }
+  if (els.combinedExportLabel) {
+    els.combinedExportLabel.textContent = `Combined Editor Paste (${characters.length})`;
   }
   els.exportModeCorrections?.classList.toggle("is-active", state.exportMode === "corrections");
   els.exportModeEdited?.classList.toggle("is-active", state.exportMode === "editedCharacters");
 }
 
-async function copyCurrentExport() {
-  const text = els.correctionExport?.value || "";
-  if (!text) return;
+async function copyTextareaValue(textarea, button) {
+  const text = textarea?.value || "";
+  if (!text || !button) return;
   let copied = false;
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1062,24 +1293,29 @@ async function copyCurrentExport() {
   } catch {
     copied = false;
   }
-  if (!copied && els.correctionExport) {
-    els.correctionExport.focus();
-    els.correctionExport.select();
+  if (!copied && textarea) {
+    textarea.focus();
+    textarea.select();
     try {
       copied = document.execCommand("copy");
     } catch {
       copied = false;
     }
-    els.correctionExport.setSelectionRange(0, 0);
-    els.correctionExport.blur();
+    textarea.setSelectionRange(0, 0);
+    textarea.blur();
   }
-  const button = els.copyExportButton;
-  if (!button) return;
-  const label = copied ? "Copied" : "Copy failed";
-  button.textContent = label;
+  button.textContent = copied ? "Copied" : "Copy failed";
   window.setTimeout(() => {
-    if (els.copyExportButton === button) button.textContent = "Copy";
+    if (document.contains(button)) button.textContent = "Copy";
   }, 1200);
+}
+
+async function copyCurrentExport() {
+  await copyTextareaValue(els.correctionExport, els.copyExportButton);
+}
+
+async function copyCombinedExport() {
+  await copyTextareaValue(els.combinedCorrectionExport, els.copyCombinedExportButton);
 }
 
 function tattooDefaults(character) {
@@ -2204,7 +2440,10 @@ function renderLockOverlay(character) {
     els.lockOverlay.hidden = true;
     els.lockOverlay.innerHTML = "";
     if (els.portraitHotspots) els.portraitHotspots.style.display = "none";
-    if (els.hotspotHint) els.hotspotHint.textContent = "Pen tool active — draw the hair shape on the portrait.";
+    if (els.hotspotHint) {
+      els.hotspotHint.hidden = false;
+      els.hotspotHint.textContent = "Pen tool active — draw the hair shape on the portrait.";
+    }
     renderPenOverlay();
     return;
   }
@@ -2212,11 +2451,12 @@ function renderLockOverlay(character) {
   els.lockOverlay.hidden = !overlayMode;
   if (els.portraitHotspots) els.portraitHotspots.style.display = overlayMode ? "none" : "";
   if (els.hotspotHint) {
+    els.hotspotHint.hidden = !overlayMode;
     els.hotspotHint.textContent = hairMode
       ? "Drag a lock from the palette onto the hair · drag a marker to reposition"
       : beardMode
         ? "Drag the beard blobs on the face · they mirror automatically"
-        : "Click a region on the face to jump to its controls";
+        : "";
   }
   if (!overlayMode) { els.lockOverlay.innerHTML = ""; return; }
   if (beardMode) {

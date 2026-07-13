@@ -5522,7 +5522,7 @@
   }
 
   function clothingNecklineY(traits) {
-    return 189 + neckAnchorOffset(traits);
+    return necklineY(traits);
   }
 
   function neckGeometry(traits) {
@@ -5545,17 +5545,11 @@
     const topRight = 128 + topHalf;
     const joinLeft = 128 - neckJoinHalf;
     const joinRight = 128 + neckJoinHalf;
-    const joinDepth = garment.bare
-      ? 3
-      : collarStyle === "crew"
-        ? 2
-        : collarStyle === "vneck"
-          ? 0
-          : collarStyle === "shirt"
-            ? 1
-            : -1;
+    // The neck geometry should be anatomical and trait-driven; collars adapt to the neck rather
+    // than re-sculpting it. Clothing overlays can still cover or shape the neckline visually.
+    const joinDepth = 2;
     const joinY = shoulderJoinY + joinDepth + terminationOffset;
-    const edgePull = garment.bare ? 0.42 : 0.32;
+    const edgePull = 0.36;
     const neckShape = [
       `M${f(topLeft)} ${f(top)}`,
       `C${f(topLeft + 1)} ${f(top + 24)} ${f(joinLeft - 5)} ${f(joinY - 18)} ${f(joinLeft)} ${f(joinY)}`,
@@ -5563,7 +5557,6 @@
       `C${f(joinRight + 5)} ${f(joinY - 18)} ${f(topRight - 1)} ${f(top + 24)} ${f(topRight)} ${f(top)}`,
       "Z"
     ].join(" ");
-    const openCollar = new Set(["crew", "vneck", "shirt"]);
     return {
       top,
       y,
@@ -5574,8 +5567,7 @@
       garment,
       collarStyle,
       joinY,
-      neckShape,
-      collarOwnsJoin: !garment.bare && !openCollar.has(collarStyle)
+      neckShape
     };
   }
 
@@ -5589,10 +5581,8 @@
       neckJoinHalf,
       terminationOffset,
       garment,
-      collarStyle,
       joinY,
-      neckShape,
-      collarOwnsJoin
+      neckShape
     } = neckGeometry(traits);
     const neckOutlineOn = traits.neckOutline !== "off";
     const neckOutlineWidth = Math.max(0.5, Math.min(3, Number(traits.neckOutlineWidth) || 1));
@@ -5604,24 +5594,12 @@
     const jewelleryItems = Array.isArray(traits.jewelleryItems) ? traits.jewelleryItems : [];
     const hasNeckwear = neckwear.has(traits.accessory) || jewelleryItems.some((item) => neckwear.has(item.type));
     const faceLineMaster = (traits.faceLineOpacity != null && traits.faceLineOpacity !== "") ? Number(traits.faceLineOpacity) : 1;
-    const openOuterContour = collarStyle === "shirt" || traits.clothing === "rugby";
+    const openOuterContour = false;
 
-    const sideVisibleY = collarOwnsJoin ? Math.min(joinY, y - 16) : joinY;
-    const sideVisibleHalf = collarOwnsJoin
-      ? Math.max(13 * width, neckJoinHalf - 6)
-      : openOuterContour
-        ? Math.max(topHalf * 1.02, neckJoinHalf + 4.8)
-        : neckJoinHalf;
-    const contourTail = collarOwnsJoin
-      ? 0
-      : openOuterContour
-        ? Math.max(0, 3.5 + terminationOffset * 0.32)
-        : Math.max(0, (garment.bare ? 7 : (collarStyle === "vneck" ? 5 : 4)) + terminationOffset * 0.45);
-    const modelTail = collarOwnsJoin
-      ? 0
-      : openOuterContour
-        ? Math.max(0, 2.2 + Math.max(0, terminationOffset) * 0.2)
-        : Math.max(0, (garment.bare ? 5 : 3)) + Math.max(0, terminationOffset) * 0.3;
+    const sideVisibleY = joinY;
+    const sideVisibleHalf = neckJoinHalf;
+    const contourTail = Math.max(0, 5.5 + terminationOffset * 0.38);
+    const modelTail = Math.max(0, 3.8 + Math.max(0, terminationOffset) * 0.24);
     const visibleSidePath = (side) => {
       const sign = side === "left" ? -1 : 1;
       if (openOuterContour) {
@@ -5674,13 +5652,13 @@
     const model = debugAll ? "#ffe14a" : shadeColor(skin, 0.82);
     const modelOpacity = debugAll ? ".95" : (hasNeckwear ? ".06" : ".16");
     const centerModelOpacity = debugAll ? ".95" : (hasNeckwear ? ".03" : ".08");
-    const centerY = garment.bare ? Math.min(joinY - 8, y + 16) : Math.min(sideVisibleY + 5, y + 6);
+    const centerY = Math.min(joinY - 5, y + 12);
     const centerHalf = Math.max(12, (sideVisibleHalf - 5));
     const adamStyle = traits.adamAppleStyle || "off";
     const adamScale = Math.max(0.5, Math.min(1.8, Number(traits.adamAppleScale) || 1));
     const adamOpacity = Math.max(0, Math.min(1, Number(traits.adamAppleOpacity) || 0));
     const adamY = Number(traits.adamAppleY) || 0;
-    const adamAllowed = adamStyle !== "off" && adamOpacity > 0.01 && !collarOwnsJoin;
+    const adamAllowed = adamStyle !== "off" && adamOpacity > 0.01;
     const adamLine = debugAll ? "#ff8a00" : shadeColor(skin, 0.7);
     const adamShadow = debugAll ? "#8f00ff" : shadeColor(skin, 0.82);
     const adamBaseY = Math.max(top + 20, Math.min(joinY - 10, top + 38 + adamY));

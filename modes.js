@@ -1,5 +1,12 @@
 // Mystery effect registry and mode-specific rendering/lifecycle hooks.
 // Loaded before app.js in the shared browser-global script stack.
+//
+// ROADMAP NOTE — "ASCII MODE" (future mystery effect, requested alongside FUN-06):
+//   Render the WHOLE board as green-on-black matrix-dot / ASCII portraits instead of the SVG faces.
+//   The receipt already ships a seeded `asciiFace(seed)` in app.js — promote that into a full board
+//   renderer (bigger grid, per-trait glyph choices for hair/beard/eyes, CRT scanline overlay) and
+//   register it as an effect here with a terminal-green boardClass. Pairs with an existing sort or a
+//   new "signal strength" one. Keep it PG-safe. See [[face-studio-roadmap]] for the wider mode queue.
 
 // ---- definitions ----
 const MYSTERY_EFFECT_DEFINITIONS = [
@@ -194,6 +201,12 @@ const MYSTERY_EFFECT_DEFINITIONS = [
     name: "Horny Potter",
     apply: applyHornyPotter,
     exampleQuestion: "Is your person in Slytherin?"
+  },
+  {
+    id: "vibe-labels",
+    name: "Vibe Check",
+    apply: applyVibeLabels,
+    exampleQuestion: "Does your person give 'Would Win the Divorce' energy?"
   }
 ];
 
@@ -205,6 +218,7 @@ const MYSTERY_MODE_META = {
   "prop-panic": { tier: 1, wheelOrder: 10, pgSafe: true, glyph: "☂", teardown: stopPropLoop },
   "ps1-mode": { tier: 1, wheelOrder: 20, pgSafe: true, glyph: "△", teardown: cleanupPs1Mode },
   "face-first": { tier: 1, wheelOrder: 30, pgSafe: true, glyph: "☻" },
+  "vibe-labels": { tier: 1, wheelOrder: 35, pgSafe: true, glyph: "✦" },
   "emotional-audit": { tier: 1, wheelOrder: 40, pgSafe: true, glyph: "♥" },
   "role-reveal": { tier: 1, wheelOrder: 50, pgSafe: true, glyph: "❂" },
   astrology: { tier: 1, wheelOrder: 60, pgSafe: true, glyph: "☽", boardClasses: ["astrology-board"], flash: "#8c5af0" },
@@ -281,6 +295,24 @@ function devModeEnabled(id) {
     return false;
   }
 }
+// FUN-03: small flavour pools + independent per-card hashing = the same line landing on 4 cards at
+// once. spreadAssign deals the pool out like cards so no value repeats until the whole pool is used,
+// yet stays DETERMINISTIC (salt + fixed board order) so online peers render an identical board.
+function spreadAssign(ids, pool, tag) {
+  const out = {};
+  const n = (pool || []).length;
+  if (!n) return out;
+  // Deterministic shuffle of pool indices by salt+tag (Fisher-Yates seeded off stableHash).
+  const order = pool.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = stableHash(`${state.gameSalt}:${tag}:sh:${i}`) % (i + 1);
+    const t = order[i]; order[i] = order[j]; order[j] = t;
+  }
+  // Rotate the start so it isn't always index 0, then walk the board in order.
+  const start = stableHash(`${state.gameSalt}:${tag}:rot`) % n;
+  ids.forEach((id, i) => { out[id] = pool[order[(start + i) % n]]; });
+  return out;
+}
 function playableMysteryEffects() {
   return mysteryEffects.filter((effect) => devModeEnabled(effect.id));
 }
@@ -292,10 +324,10 @@ function deriveWheelTiers() {
     if (!tiers[index]) tiers[index] = [];
     tiers[index].push(effect);
   });
-  return tiers.map((tier, index) => {
-    const ids = [...tier].sort((a, b) => (a.wheelOrder || 999) - (b.wheelOrder || 999) || a.name.localeCompare(b.name)).map((effect) => effect.id);
-    if (index === 0) ids.push(null);
-    return ids;
+  return tiers.map((tier) => {
+    // No No-Effect cell: the ONLY plain round is the forced opener (newGame {first:true}). A "no
+    // effect" landing mid-session is a boring dead round, so the wheel always picks a real mode.
+    return [...tier].sort((a, b) => (a.wheelOrder || 999) - (b.wheelOrder || 999) || a.name.localeCompare(b.name)).map((effect) => effect.id);
   });
 }
 
@@ -530,34 +562,23 @@ function resetNwTicker() {
 // Every few seconds the props go berserk and two random characters trade props - so the answers to
 // "who is holding the X" keep shifting mid-round. That's the panic.
 let propPanicTimer = null;
+// Prop Panic's periodic "PROP SWAP!!" loop was removed (it was never fun). Teardown kept as a no-op
+// so the registry's teardown hook + any pre-render cleanup call still resolve.
 function stopPropLoop() { if (propPanicTimer) { clearInterval(propPanicTimer); propPanicTimer = null; } }
 // Low power mode: skip the continuous animation/repaint loops so a warm phone can cool off. CSS
 // separately pauses the infinite keyframe animations + backdrop blur; this stops the JS-driven ones
 // (rAF repaints, canvas draws, DOM-churning tickers), which are the real battery/heat cost.
-function lowPowerMode() { return !!(state.settings && state.settings.lowPower); }
-function startPropLoop() {
-  if (propPanicTimer || lowPowerMode()) return;
-  propPanicTimer = setInterval(() => {
-    if (state.global.mystery?.id !== "prop-panic") { stopPropLoop(); return; }
-    const asg = state.global.mystery.assignments;
-    const ids = state.board.map((c) => c.id).filter((id) => asg[id]);
-    if (ids.length < 2) return;
-    const a = ids[Math.floor(Math.random() * ids.length)];
-    let b = a;
-    while (b === a) b = ids[Math.floor(Math.random() * ids.length)];
-    // Everyone's prop goes berserk, a PROP SWAP!! flash hits, then the two props trade owners.
-    els.characterBoard.classList.add("prop-berserk");
-    const flash = document.createElement("div");
-    flash.className = "prop-swap-flash";
-    flash.textContent = "PROP SWAP!!";
-    document.body.appendChild(flash);
-    setTimeout(() => {
-      [asg[a], asg[b]] = [asg[b], asg[a]];
-      flash.remove();
-      renderBoard();
-    }, 700);
-  }, 6000);
+// A11Y-03: reduced-motion is honoured by CSS but the JS animation loops only checked the low-power
+// flag. Folding matchMedia here means every existing `!lowPowerMode()` loop guard (heads, sims,
+// habbo, politics drift, canvas redraw) also halts for people who asked the OS for less motion.
+let _reducedMotionMq = null;
+function prefersReducedMotion() {
+  try {
+    if (!_reducedMotionMq && typeof window.matchMedia === "function") _reducedMotionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    return !!(_reducedMotionMq && _reducedMotionMq.matches);
+  } catch (e) { return false; }
 }
+function lowPowerMode() { return !!(state.settings && state.settings.lowPower) || prefersReducedMotion(); }
 
 // ===================== Heads Only mode =====================
 // Formations: each maps (index i, count n, time-seconds t, width w, height h) -> a target {x,y} in px.
@@ -578,10 +599,11 @@ const HEADS_FORMATIONS = [
 let headsAnimRaf = null;
 let headsPos = new Map();      // char id -> {x,y}, kept across re-renders so clicks don't jolt
 let headsStartTs = null;       // persisted so the formation cycle keeps its phase across re-renders
+let headsResizeObs = null;     // ONE reusable observer (was leaked per render)
 function stopHeadsAnim() { if (headsAnimRaf) { cancelAnimationFrame(headsAnimRaf); headsAnimRaf = null; } }
-function resetHeadsAnim() { stopHeadsAnim(); headsPos = new Map(); headsStartTs = null; }
+function resetHeadsAnim() { stopHeadsAnim(); headsPos = new Map(); headsStartTs = null; if (headsResizeObs) { try { headsResizeObs.disconnect(); } catch (e) { /* fine */ } headsResizeObs = null; } }
 
-const HEADS_FORM_NAMES = ["Ring ◯", "Figure-8 ∞", "Grid ▦", "Spiral ✺", "Heart ♥", "Wave 〜"];
+const HEADS_FORM_NAMES = ["RING ◯", "FIGURE-8 ∞", "GRID ▦", "SPIRAL ✺", "HEART ♥", "WAVE 〜"];   // VC2-01: caps like every other segment
 // Safari perf: SVG data-URL images get re-rasterised by WebKit while they move, and a live CSS
 // drop-shadow filter on ~24 animated elements repaints every frame. So each head is rasterised ONCE
 // to a flat PNG with the shadow baked in - Safari then just composites bitmaps.
@@ -625,6 +647,10 @@ function renderHeadsOnlyBoard(player) {
   els.characterBoard.appendChild(layer);
   const list = sortedBoard();
   const n = list.length;
+  // VC-08: expose the head count so CSS can scale the head + label down (and, on the densest boards,
+  // hide the name until a head is hovered/focused) so labels stop overlapping at 24/36-head boards.
+  layer.style.setProperty("--heads-n", n);
+  layer.classList.toggle("heads-dense", n >= 28);
   const heads = list.map((ch) => {
     const m = getMysteryCardData(ch);
     const el = document.createElement("button");
@@ -645,8 +671,12 @@ function renderHeadsOnlyBoard(player) {
   // Board size is read ONCE and refreshed on resize - a getBoundingClientRect() inside the rAF loop
   // forces a synchronous layout every frame, which Safari pays for far more dearly than Chrome.
   let w = layer.clientWidth || 640, h = layer.clientHeight || 520;
+  // ONE observer, disconnected before each re-attach and on teardown - the old code leaked a fresh
+  // ResizeObserver on every board render.
   if (typeof ResizeObserver !== "undefined") {
-    new ResizeObserver(() => { w = layer.clientWidth || 640; h = layer.clientHeight || 520; }).observe(layer);
+    if (headsResizeObs) { try { headsResizeObs.disconnect(); } catch (e) { /* fine */ } }
+    headsResizeObs = new ResizeObserver(() => { w = layer.clientWidth || 640; h = layer.clientHeight || 520; });
+    headsResizeObs.observe(layer);
   }
   const step = (ts) => {
     if (headsStartTs == null) headsStartTs = ts;
@@ -949,7 +979,7 @@ function habboWalk(id, col, row) {
   updateHabboFigSprite(el);                            // swap to the walk frame set
   let i = 0, prevX = habboIso(cur.col, cur.row).x;
   const stepTo = () => {
-    if (el._walk !== token) return;
+    if (el._walk !== token || !el.isConnected) return;   // cancelled, or the board re-rendered under us
     if (i >= path.length) { el.classList.remove("walking"); updateHabboFigSprite(el); return; }   // arrived: stop the gait
     const s = path[i]; const p = habboIso(s.col, s.row);
     // Habbos face the way they're walking - flip at every turn of the L-path.
@@ -992,7 +1022,7 @@ const habboWallpaperCache = new Map();
 function habboLocationBannerSrc() {
   const slug = state.location && state.location.slug;
   if (!slug) return "";
-  return `${LOCATION_ART_DIR}/${slug}_${state.locationVariant || "day"}_banner.png`;
+  return `${LOCATION_ART_DIR}/${slug}_${state.locationVariant || "day"}_banner.jpg`;
 }
 function applyHabboWallpaper(wall) {
   const src = habboLocationBannerSrc();
@@ -1461,7 +1491,11 @@ const FALLBACK_GLYPHS = ["✦", "⚛", "⬢", "✶", "⟁", "⌖", "☯", "⚙",
 // Spin a slot-machine of abstract symbols at the start of a round; it decelerates onto a random mode,
 // flashes chaotically, then reveals + applies it. done(id) fires with the chosen mode id (or null).
 function spinModeRoulette(done) {
-  const modes = playableMysteryEffects().map((e, i) => ({ id: e.id, name: e.name, glyph: e.glyph || FALLBACK_GLYPHS[i % FALLBACK_GLYPHS.length], hue: (i * 47) % 360 }));
+  // BUG2-06: the reel THEATRE is PG-filtered too, not just the landing - no biohazard glyphs
+  // spinning past the kids on the way to something wholesome.
+  const modes = playableMysteryEffects()
+    .filter((e) => wheelPgOk(e.id))
+    .map((e, i) => ({ id: e.id, name: e.name, glyph: e.glyph || FALLBACK_GLYPHS[i % FALLBACK_GLYPHS.length], hue: (i * 47) % 360 }));
   modes.push({ id: null, name: "No Effect", glyph: "∅", hue: 210 });
   // Lands on the no-repeat bag pick (shared via the start message); legacy fallback: salt hash.
   const targetId = state.wheelPick !== undefined ? state.wheelPick : wheelTarget();
@@ -1499,14 +1533,24 @@ function spinModeRoulette(done) {
   });
   // Drive the reveal off a timer (matches the 3.4s spin) rather than transitionend, which can be
   // dropped if the element is laid out late.
-  setTimeout(() => {
-    if (!overlay.isConnected) return;
+  let landed = false, finished = false;
+  const land = (fast) => {
+    if (landed) return; landed = true;
+    if (fast) { strip.style.transition = "transform 260ms ease-out"; strip.style.transform = `translateX(${finalX}px)`; }
     const rev = overlay.querySelector(".roulette-reveal");
     rev.textContent = target.id ? target.name : "NO EFFECT — clean round";
     rev.style.setProperty("--hue", target.hue);
     overlay.classList.add("is-landed", "is-flash");
-    setTimeout(() => { overlay.remove(); done(target.id); }, 1800);
-  }, 4600);
+    const holdT = setTimeout(finish, fast ? 700 : 1800);
+    overlay._skip = () => { clearTimeout(holdT); finish(); };
+  };
+  const finish = () => { if (finished) return; finished = true; overlay.remove(); done(target.id); };
+  // Tap anywhere to cut the ceremony short — snap to the result, then to the round.
+  overlay.style.cursor = "pointer";
+  overlay.addEventListener("click", () => { if (!landed) land(true); else if (overlay._skip) overlay._skip(); else finish(); });
+  overlay.querySelector(".roulette-title").textContent = "Spinning the Wheel of Fate… (tap to skip)";
+  const spinT = setTimeout(() => { if (overlay.isConnected) land(false); }, 4600);
+  overlay._cancelSpin = () => clearTimeout(spinT);
 }
 
 function applyMysteryEffect(effectId) {
@@ -1584,12 +1628,32 @@ function renderSpecialModeBoard(player) {
   return true;
 }
 
+// AES-02: costume webfonts load LAZILY on the first activation of the mode that wears them - they're
+// needed seconds into a round, not at boot. Only Archivo + Space Grotesk (the system faces) load
+// up front. MedievalSharp was loaded and used by nothing; it's gone entirely.
+const MODE_FONT_LINKS = {
+  yugioh: "Cinzel:wght@500;600;700;800;900",         // card-frame serif (also the "elegant" blast word)
+  pixall: "Press+Start+2P",
+  habbo: "Press+Start+2P",                            // camera chrome + pixel labels
+  disguise: "Reem+Kufi:wght@500;600;700"
+};
+const _loadedModeFonts = new Set();
+function ensureModeFont(modeId) {
+  const fam = MODE_FONT_LINKS[modeId];
+  if (!fam || _loadedModeFonts.has(fam)) return;
+  _loadedModeFonts.add(fam);
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${fam}&display=swap`;
+  document.head.appendChild(link);
+}
 function applyModeBoardClasses(board) {
   const effect = currentMysteryEffect();
   board.classList.remove(...MODE_BOARD_CLASSES);
   document.body.classList.remove(...MODE_BODY_CLASSES);
   (effect?.boardClasses || []).forEach((className) => board.classList.add(className));
   (effect?.bodyClasses || []).forEach((className) => document.body.classList.add(className));
+  if (effect) ensureModeFont(effect.id);
 }
 
 function afterDefaultModeBoard(player) {
@@ -3017,16 +3081,25 @@ function applyWoke(effect) {
   const disguiseOk = new Set(
     deterministicOrder(state.board, `${state.gameSalt}:woke:disg`).slice(0, 2).map((c) => c.id)
   );
-  const assignments = {};
+  // BUG2-05 (subset spread): module membership is computed FIRST so the high-visibility per-module
+  // pools (orgy positions, pride titles) can be dealt across their sub-boards without repeats.
+  const modsBy = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:woke:${ch.id}`);
-    // Deterministic shuffle of the module list, then take 2-3 for this character.
     const order = WOKE_MODULES
       .map((m) => [m, stableHash(`${state.gameSalt}:wkmod:${ch.id}:${m}`)])
       .sort((a, b) => a[1] - b[1])
       .map((x) => x[0]);
     let mods = order.slice(0, 2 + (h % 2));
     if (mods.includes("disguise") && !disguiseOk.has(ch.id)) mods = mods.filter((m) => m !== "disguise");
+    modsBy[ch.id] = mods;
+  });
+  const posBy = spreadAssign(state.board.filter((c) => modsBy[c.id].includes("orgy")).map((c) => c.id), positions, "wkPos");
+  const titleBy = spreadAssign(state.board.filter((c) => modsBy[c.id].includes("gay")).map((c) => c.id), PRIDE_TITLES_POOL, "wkTitle");
+  const assignments = {};
+  state.board.forEach((ch) => {
+    const h = stableHash(`${state.gameSalt}:woke:${ch.id}`);
+    const mods = modsBy[ch.id];
     const has = (m) => mods.includes(m);
     const a = { modules: mods };
 
@@ -3036,7 +3109,7 @@ function applyWoke(effect) {
       a.gay = {
         letters: L.letters, key: L.key, color: L.color,
         pronoun: PRIDE_PRONOUNS_POOL[(h >>> 6) % PRIDE_PRONOUNS_POOL.length],
-        title: PRIDE_TITLES_POOL[(h >>> 9) % PRIDE_TITLES_POOL.length]
+        title: titleBy[ch.id] || PRIDE_TITLES_POOL[(h >>> 9) % PRIDE_TITLES_POOL.length]
       };
     }
     a.glow = a.gay ? a.gay.color : glows[h % glows.length];
@@ -3045,7 +3118,7 @@ function applyWoke(effect) {
     if (has("orgy")) {
       const stat = (salt) => 1 + (stableHash(`${state.gameSalt}:wko:${ch.id}:${salt}`) % 10);
       a.orgy = {
-        pos: positions[(h >>> 5) % positions.length],
+        pos: posBy[ch.id] || positions[(h >>> 5) % positions.length],
         bodyCount: 2 + ((h >>> 3) % 187),
         cumToday: (h >>> 5) % 14,
         cumLifetime: 150 + ((h >>> 7) % 9850),
@@ -3120,7 +3193,12 @@ function applyWoke(effect) {
 function applySwipe(effect) {
   const D = window.GameData;
   const lookingFor = D.swipeLookingFor || ["Something casual"];
-  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:sw:${salt}`) % arr.length];
+  // BUG2-05: bios/flags/icks dealt without same-board repeats (pools are 15-ish vs 24-36 cards).
+  const ids = state.board.map((c) => c.id);
+  const bioBy = spreadAssign(ids, D.swipeBios || ["Just vibes."], "swBio");
+  const greenBy = spreadAssign(ids, D.swipeGreenFlags || ["Texts back"], "swG");
+  const redBy = spreadAssign(ids, D.swipeRedFlags || ["Still loves their ex"], "swR");
+  const ickBy = spreadAssign(ids, D.swipeIcks || ["Chases the bus"], "swIck");
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:swipe:${ch.id}`);
@@ -3131,10 +3209,10 @@ function applySwipe(effect) {
       unread: (h >>> 5) % 4 === 0 ? (h >>> 11) % 99 : 0,
       verified: (h >>> 13) % 7 === 0,
       lookingFor: lookingFor[(h >>> 3) % lookingFor.length],
-      bio: pick(D.swipeBios || ["Just vibes."], `${ch.id}:bio`),
-      green: pick(D.swipeGreenFlags || ["Texts back"], `${ch.id}:g`),
-      red: pick(D.swipeRedFlags || ["Still loves their ex"], `${ch.id}:r`),
-      ick: pick(D.swipeIcks || ["Chases the bus"], `${ch.id}:ick`)
+      bio: bioBy[ch.id] || "Just vibes.",
+      green: greenBy[ch.id] || "Texts back",
+      red: redBy[ch.id] || "Still loves their ex",
+      ick: ickBy[ch.id] || "Chases the bus"
     };
   });
   return { id: effect.id, name: effect.name, assignments };
@@ -3152,13 +3230,21 @@ function applyJudgement(effect) {
   };
   // The living are sorted HEAVEN or HELL only (purgatory is now reserved for aborted souls), skewed
   // toward hell. Heaven TIERS track each soul's last Sims net worth - the rich float higher.
-  const bank = simBankGet();
+  // The local Sims "bank" (net worth carried between sessions) differs per device, so ONLINE it would
+  // rank heaven tiers differently on each screen. Online rounds use the salt-hashed wealth for
+  // everyone so both players see an identical board; local sessions keep the fun carry-over.
+  const bank = state.gameMode === "online" ? {} : simBankGet();
   const wealthOf = (ch) => (bank[ch.id] != null ? bank[ch.id] : ((stableHash(`${state.gameSalt}:jdw:${ch.id}`) % 65000) - 5000));
   const verdictOf = {};
   state.board.forEach((ch) => { verdictOf[ch.id] = ["HELL", "HELL", "HELL", "HEAVEN", "HEAVEN"][stableHash(`${state.gameSalt}:judge:${ch.id}`) % 5]; });
   const heavenIds = state.board.filter((c) => verdictOf[c.id] === "HEAVEN").sort((x, y) => wealthOf(y) - wealthOf(x)).map((c) => c.id);
   const heavenTier = {};
   heavenIds.forEach((id, i) => { heavenTier[id] = heavenIds.length <= 1 ? 9 : 9 - Math.round((i / (heavenIds.length - 1)) * 8); });
+  // Deal thoughts + locations without repeats within each verdict group (FUN-03).
+  const heavenBoard = state.board.filter((c) => verdictOf[c.id] === "HEAVEN").map((c) => c.id);
+  const hellBoard = state.board.filter((c) => verdictOf[c.id] === "HELL").map((c) => c.id);
+  const thoughtBy = { ...spreadAssign(heavenBoard, D.judgementThoughts.HEAVEN, "jthH"), ...spreadAssign(hellBoard, D.judgementThoughts.HELL, "jthL") };
+  const locBy = { ...spreadAssign(heavenBoard, D.judgementLocations.HEAVEN, "jlocH"), ...spreadAssign(hellBoard, D.judgementLocations.HELL, "jlocL") };
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:judge:${ch.id}`);
@@ -3176,8 +3262,8 @@ function applyJudgement(effect) {
     }
     assignments[ch.id] = {
       verdict, image, wealth, layer, mega,
-      location: pick(D.judgementLocations, verdict, `${ch.id}:loc`),
-      thought: pick(D.judgementThoughts, verdict, `${ch.id}:th`),
+      location: locBy[ch.id] || pick(D.judgementLocations, verdict, `${ch.id}:loc`),
+      thought: thoughtBy[ch.id] || pick(D.judgementThoughts, verdict, `${ch.id}:th`),
       happiness: Math.min(100, base + ((h >>> 5) % 26)),
       meter2: verdict === "HELL" ? 70 + ((h >>> 7) % 30) : 4 + ((h >>> 7) % 24)
     };
@@ -3201,7 +3287,10 @@ function simBankGet() { try { return JSON.parse(localStorage.getItem(SIM_BANK_KE
 function simBankSet(map) { try { localStorage.setItem(SIM_BANK_KEY, JSON.stringify(map)); } catch (e) { /* storage off */ } }
 function applySims(effect) {
   const D = window.GameData;
-  const pick = (arr, salt) => arr[stableHash(`${state.gameSalt}:sim:${salt}`) % arr.length];
+  // BUG2-05: actions + careers dealt without same-board repeats (simsCareers is 17 vs 24-36 Sims).
+  const ids = state.board.map((c) => c.id);
+  const actBy = spreadAssign(ids, D.simsActions || ["Standing still"], "simA");
+  const jobBy = spreadAssign(ids, D.simsCareers || ["Unemployed"], "simJ");
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:sims:${ch.id}`);
@@ -3211,8 +3300,8 @@ function applySims(effect) {
     const mood = lowest < 25 ? "red" : lowest < 55 ? "yellow" : "green";
     assignments[ch.id] = {
       mood, needs,
-      action: pick(D.simsActions || ["Standing still"], `${ch.id}:a`),
-      career: pick(D.simsCareers || ["Unemployed"], `${ch.id}:job`),
+      action: actBy[ch.id] || "Standing still",
+      career: jobBy[ch.id] || "Unemployed",
       simoleons: (h % 3 === 0 ? -(h % 900) : (h >>> 4) % 99000),
       ...simsPortrait(ch)   // transparent-bg portrait so relief animations move only the person
     };
@@ -3260,6 +3349,7 @@ function simsInteract(A, B) {
   }, 1900);
   setTimeout(() => {
     ov.remove();
+    if (state.global.mystery?.id !== "sims" || state.roundOver) return;   // mode switched / round ended mid-spin
     const H = {
       WOOHOO: () => simsWoohoo(A, B), SLAP: () => simsSlap(A, B, a, b), HUG: () => simsHug(A, B, a, b),
       GOSSIP: () => simsGossip(A, B, a, b), ROB: () => simsRob(A, B, a, b), FIGHT: () => simsFight(A, B, a, b),
@@ -3359,6 +3449,11 @@ function applyHeadsOnly(effect) {
 function applyAstrology(effect) {
   const D = window.GameData;
   const signs = D.astrologySigns || [["Scorpio", "♏", "Water"]];
+  // BUG2-05: horoscopes + red flags are dealt via spreadAssign so the same line never lands on two
+  // cards at once (the live audit caught 'trauma-dumps on strangers' twice on one board).
+  const ids = state.board.map((c) => c.id);
+  const horoBy = spreadAssign(ids, D.astrologyHoroscopes || ["The stars are unclear."], "astroH");
+  const toxicBy = spreadAssign(ids, D.astrologyToxic || ["ghosts everyone"], "astroT");
   const assignments = {};
   state.board.forEach((ch) => {
     const h = stableHash(`${state.gameSalt}:astro:${ch.id}`);
@@ -3369,8 +3464,8 @@ function applyAstrology(effect) {
       sun: { name: sun[0], glyph: sun[1], element: sun[2] },
       moon: moon[1], rising: rising[1],
       element: sun[2],
-      horoscope: (D.astrologyHoroscopes || ["The stars are unclear."])[(h >>> 3) % (D.astrologyHoroscopes || [1]).length],
-      toxic: (D.astrologyToxic || ["ghosts everyone"])[(h >>> 6) % (D.astrologyToxic || [1]).length],
+      horoscope: horoBy[ch.id] || "The stars are unclear.",
+      toxic: toxicBy[ch.id] || "ghosts everyone",
       retro: (h >>> 11) % 3 === 0
     };
   });
@@ -3527,10 +3622,16 @@ function nearestPantone(hex, avoidCodes = []) {
   return best || fallback;
 }
 function applyPantone(effect) {
+  // BUG2-05 (user note): every character gets a UNIQUE swatch. Characters share backgrounds, so
+  // plain nearest-matching stamped the same chip on 3+ cards; walking each pick past the already
+  // -used codes keeps every card its own colour while staying as close as possible to its real bg.
+  // Board order is the deal order on every client, so online peers assign identically.
   const assignments = {};
+  const used = [];
   state.board.forEach((ch) => {
     const bg = (ch.traits && ch.traits.background) || "#cccccc";
-    const p = nearestPantone(bg);
+    const p = nearestPantone(bg, used);
+    used.push(p.c);
     assignments[ch.id] = { code: p.c, name: p.n, hex: p.h };
   });
   return { id: effect.id, name: effect.name, assignments };
@@ -3554,7 +3655,10 @@ function mixPantonePair(A, B) {
   const shift = (ch, ownBg, otherBg, ownSkin, otherSkin, avoidCode) => {
     const baseBg = mixHex(ownBg, otherBg, PANTONE_MIX_T);
     const bg = avoidCode ? baseBg : jitterHex(baseBg, 0.03);
-    const p = nearestPantone(bg, avoidCode ? [avoidCode] : []);
+    // BUG2-05: a mixed pair must also avoid every OTHER card's chip, not just each other's, so the
+    // board-wide one-chip-per-character guarantee survives repeated mixing.
+    const others = asg ? Object.entries(asg).filter(([id]) => id !== ch.id).map(([, a]) => a.code) : [];
+    const p = nearestPantone(bg, avoidCode ? [...others, avoidCode] : others);
     ch.traits = { ...ch.traits, background: bg, skinHex: jitterHex(mixHex(ownSkin, otherSkin, PANTONE_MIX_T), 0.03) };
     delete ch.traits.skin;          // let the mixed hex render instead of the named palette tone
     ch.image = window.faceGenerator.renderPortrait(ch.seed, ch.traits);
@@ -3850,7 +3954,7 @@ function applyLinkedin(effect) {
     let banner;
     if (tier === "power") {
       const slug = LI_BANNER_SLUGS[stableHash(`${state.gameSalt}:li:${ch.id}:bn`) % LI_BANNER_SLUGS.length];
-      banner = { type: "image", power: true, src: `${LOCATION_ART_DIR}/${slug}_day_banner.png` };
+      banner = { type: "image", power: true, src: `${LOCATION_ART_DIR}/${slug}_day_banner.jpg` };
     } else if (tier === "flop") {
       banner = { type: "grey" };
     } else {
@@ -4146,12 +4250,13 @@ function politicsTug(A, B) {
     ov.querySelector(".tug-stage").appendChild(banner);
   }, 2300);
   setTimeout(() => {
+    ov.remove();
+    if (state.global.mystery?.id !== "hidden-agendas" || state.roundOver) return;   // mode switched mid-tug
     const loser = repWins ? dem : rep;
     // The loser swaps party but keeps their home state, mood and (crucially) their unhinged stances.
     asg[loser.id] = { ...asg[loser.id], party: repWins ? "Republican" : "Democrat", converted: true };
     netSend("tug", { loserId: loser.id, party: asg[loser.id].party });
     scheduleSave();
-    ov.remove();
     renderBoard();
   }, 3900);
 }
@@ -4404,6 +4509,7 @@ function propBattle(A, B) {
   setTimeout(() => {
     const loserId = ov._loserId;
     ov.remove();
+    if (state.global.mystery?.id !== "prop-panic" || state.roundOver) return;   // mode switched mid-battle
     if (loserId) toggleEliminated(loserId);   // knock the loser off (or revive if already down)
   }, 2600);
 }

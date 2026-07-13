@@ -2,25 +2,47 @@
 // GAME DATA — editable content (questions, locations, mode flavour). Safe to edit in a
 // separate thread without touching game logic in app.js. Loaded as window.GameData.
 // ===================================================================================
+//
+// THE VOICE (DECK-06) — every prompt added to any deck must pass this:
+//   The game's voice is DARK and CHARACTER-EMBODYING, never whimsical or observational-cute.
+//   A prompt is a dare to PERFORM, not a quip to read out. The reference register:
+//     "Ask me for a divorce as this character."
+//     "Say 'last week I was used as a human fleshlight' — and make it land."
+//   Checklist before landing a prompt:
+//     1. Does it make someone DO something in-body (confess, threaten, apologise, perform)?
+//        Not "observe something funny about the world."
+//     2. Would a slightly cruel friend say it at a party at 11pm, unprompted?
+//     3. Is the darkness in the CONTENT, not in a winking narrator tone? No "aren't we naughty"
+//        framing, no cutesy meta-commentary. The prompt is deadpan; the player supplies the horror.
+//     4. {who} = the reader's hidden character ("your character" on the shared card),
+//        {location} = the round's scene. Use them to weld the dare to the game state.
+//   Heat tiers: mild (round 1 warm-up), medium (round 2+), feral (round 3+, never in PG).
+//
+// SOURCE-FLUENCY RATIO (DECK-07) — themed mode decks (Yu-Gi-Oh, Habbo, Sims…) may use in-jokes
+//   (Ash Blossom, bobba, plumbob), but keep the ratio: for every prompt that NEEDS the source
+//   material, land at least two that are funny with zero fluency. Audit the ratio when adding.
+// ===================================================================================
 window.GameData = {
   // Player question decks ------------------------------------------------------------
+  // The DETECTIVE deck: plain trait questions that actually DIVIDE the board. Sprinkled into the first
+  // couple of rounds so newcomers learn you can just... ask, and cross faces off. Dry, but useful.
   classicPrompts: [
-  "Does your person have facial hair?",
-  "Is your person wearing glasses?",
-  "Does your person have warm-colored hair?",
-  "Would your person be described as smiling?",
-  "Does your person have an accessory near their head?",
-  "Does your person look surprised?",
-  "Does your person look angry?",
-  "Does your person look sad?",
-  "Is your person wearing a hoodie?",
-  "Does your person have a head covering?",
-  "Does your person have long hair?",
-  "Is your person looking directly forward?",
-  "Does your person seem older than thirty?",
-  "Could your person be described as confident?",
-  "Does your person have short hair?",
-  "Is your person wearing a bright color?"
+  "Facial hair — yes or are they getting away with it clean-shaven?",
+  "Glasses? And be honest, not 'they could probably see fine'.",
+  "Warm hair (blonde/ginger/brown) or cool (black/grey)? Pick a side.",
+  "Are they smiling like they mean it?",
+  "Anything on their head — hat, band, flower, questionable choices?",
+  "Long hair, or does it stop before the shoulders?",
+  "Do they look older than thirty, or just tired?",
+  "Are they wearing something loud enough to see from space?",
+  "Pale, medium, or deep skin — where do they land?",
+  "Are they showing teeth, or keeping it a closed-mouth mystery?",
+  "Do they have a fringe/bangs, or is the forehead out and proud?",
+  "Would you describe the vibe as 'confident' or 'witness protection'?",
+  "Earrings, piercings, anything that jingles?",
+  "Are they looking straight at you, or avoiding eye contact like they owe you money?",
+  "Dark clothing, or did they dress for attention?",
+  "Bald, balding, or a full and smug head of hair?"
 ],
 
   // Direct 2nd-person commands: don't describe the person, BE them. Each entry is tagged with a
@@ -55,7 +77,43 @@ window.GameData = {
   { text: "Confess the group-chat screenshot you got caught taking. Full detail.", heat: "feral" },
   { text: "Ask for the divorce. You're doing it at the party, right now, loudly.", heat: "feral" },
   { text: "Blackmail the person to your left with something you just invented.", heat: "feral" },
-  { text: "Tell the table the secret you'd take to the grave — the grave's cancelled.", heat: "feral" }
+  { text: "Tell the table the secret you'd take to the grave — the grave's cancelled.", heat: "feral" },
+  // DECK2-01: base-deck expansion (39 → 60). New settings (workplace, family, funerals, rentals,
+  // neighbours, institutions), wider verbs, no closing-punch tic. Australian-register material is
+  // deliberately NOT here yet — that's a separate curation session (see the prompt-studio note).
+  { text: "Give the house tour, but one room per floor is strictly not explained.", heat: "mild" },
+  { text: "Welcome the new neighbours with a small gift and one rule about the fence.", heat: "mild" },
+  { text: "Leave the world's politest one-star review of the place we're standing in.", heat: "mild" },
+  { text: "Introduce your imaginary business partner. They handle 'the other side' of things.", heat: "mild" },
+  { text: "Announce you're 'between opportunities' at the school reunion, then take one follow-up question.", heat: "mild" },
+  { text: "Give the gym induction for equipment you have clearly never touched.", heat: "mild" },
+  { text: "Read the card on the flowers you sent to the wrong funeral.", heat: "mild" },
+  { text: "Negotiate the bond back from a landlord who has photos of the carpet.", heat: "medium" },
+  { text: "Host the intervention. Halfway through, it becomes clear it's actually for you.", heat: "medium" },
+  { text: "Take questions from the press about the fire at your storage unit.", heat: "medium" },
+  { text: "Deny under oath that you know the person to your left.", heat: "medium" },
+  { text: "Coach the new hire through lying on the timesheet like it's onboarding.", heat: "medium" },
+  { text: "Re-enact the moment security asked you to leave the buffet.", heat: "medium" },
+  { text: "Give your side of the office Christmas party. HR has the other side.", heat: "medium" },
+  { text: "Auction your plus-one's secrets to the table. Opening bid: one drink.", heat: "feral" },
+  { text: "Read the vows you'd prepared for the wedding you weren't invited to.", heat: "feral" },
+  { text: "Walk the table through the insurance claim. The fire was 'electrical'.", heat: "feral" },
+  { text: "Your second phone just rang, out loud. Answer it in front of everyone.", heat: "feral" },
+  { text: "Name the family heirloom you already sold, to whom, and for how much.", heat: "feral" },
+  { text: "You kept the receipts from the affair. Itemise them for the table.", heat: "feral" },
+  { text: "Apologise at the open casket for what you're slipping into it.", heat: "feral" },
+  // DECK-03: a new shape — dares that hook to the CHARACTER you're secretly holding. You perform as
+  // them (so you leak clues), dark and in-body rather than whimsical. {who} resolves to your secret.
+  { text: "Introduce yourself to the room AS {who}. Same energy, worse decisions.", heat: "mild" },
+  { text: "As {who}, order at the bar. The bartender is already worried.", heat: "mild" },
+  { text: "Text your ex a single line, in {who}'s voice. Do not reread it.", heat: "mild" },
+  { text: "As {who}, explain the noise complaint. It was you. It's always you.", heat: "medium" },
+  { text: "Ask me for a divorce, but you're {who} and you mean it this time.", heat: "medium" },
+  { text: "As {who}, deliver the eulogy nobody asked you to give.", heat: "medium" },
+  { text: "Say the worst sentence {who} has ever said out loud. Say it here.", heat: "medium" },
+  { text: "As {who}, confess what you did last week. 'I was used as a human fleshlight' energy.", heat: "feral" },
+  { text: "You're {who} at 3am, and you've just done something unforgivable. Explain.", heat: "feral" },
+  { text: "As {who}, threaten the person to your left. Make it specific.", heat: "feral" }
 ],
 
   // Per-mode question decks (keyed by mystery-effect id) -----------------------------

@@ -1,26 +1,9 @@
-// Custom character editor and saved custom-character storage.
+// Custom character editor. PERF-02: this file is LAZY-LOADED on the first 🎨 click — nothing here
+// runs at boot. The saved-custom-character storage trio (CUSTOM_KEY / loadCustomChars /
+// saveCustomChars / buildCustomCharacter / mergeCustomIntoPool) lives in app.js now, because the
+// boot deal needs the merge synchronously; this file uses those globals (app.js loads first).
 
 // ===================== Custom character editor (persisted to localStorage) =====================
-const CUSTOM_KEY = "whoisit_custom_chars_v1";
-function loadCustomChars() { try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || []; } catch (e) { return []; } }
-function saveCustomChars(list) { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(list)); } catch (e) { /* storage disabled */ } }
-function buildCustomCharacter(data) {
-  const seed = data.seed != null ? data.seed : (95000 + (stableHash(data.id) % 4000));
-  return {
-    id: data.id, name: data.name || "Custom", pronouns: data.pronouns || "they",
-    feature: "a custom-made character", secret: "keeps to themselves", role: data.role || "local witness",
-    image: window.faceGenerator.renderPortrait(seed, data.traits), tags: [], variant: "",
-    traits: data.traits, seed, isCustom: true
-  };
-}
-// Rebuild the custom entries in the playable pool from storage (so saved faces get dealt into games).
-function mergeCustomIntoPool() {
-  if (!window.faceGenerator) return;
-  [generatedCharacters, allCharacters].forEach((arr) => {
-    for (let i = arr.length - 1; i >= 0; i--) if (arr[i].isCustom) arr.splice(i, 1);
-  });
-  loadCustomChars().forEach((d) => { const ch = buildCustomCharacter(d); generatedCharacters.push(ch); allCharacters.push(ch); });
-}
 function upsertCustom(data) {
   const list = loadCustomChars();
   const i = list.findIndex((c) => c.id === data.id);

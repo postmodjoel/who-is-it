@@ -29,6 +29,8 @@ function notePeer(msg) {
     state.onlinePeer = true;
     addLog(`${p.name} reconnected.`);
     if (typeof flashToast === "function") flashToast(`🟢 ${p.name} is back.`);
+    // The returning peer might be the host everyone was about to replace - withdraw the offer.
+    if (msg.clientId === netHostId() && typeof resetHostTakeoverOffer === "function") resetHostTakeoverOffer();
     renderRoom(); updateLobby();
   }
   p.lastSeen = Date.now();
@@ -50,10 +52,38 @@ function startNetHeartbeat() {
     netSend("ping", { pname: state.pname });
     const now = Date.now();
     netPeers.forEach((p) => { if (!p.gone && p.lastSeen && now - p.lastSeen > 13000) peerGone(p, "dropped"); });
+    // Host vanished for a while? The next player in join order gets offered the crown (app.js).
+    if (typeof maybeOfferHostTakeover === "function") maybeOfferHostTakeover();
+    // MISS-02: a guest stuck in a host-less lobby gets a banner + Leave focus instead of waiting forever.
+    if (typeof maybeWarnLobbyHostGone === "function") maybeWarnLobbyHostGone();
   }, 4000);
+}
+// The current room authority: an explicit "hostclaim" winner, else roster slot 0 (the host seat).
+function netHostId() {
+  return state.hostClaimId || ((state.roster && state.roster[0]) || {}).clientId || null;
+}
+// Mid-round connection loss is easy to miss (the roster pill is tiny). After 3s of not-open we put
+// up a slim banner so players know their crossings aren't reaching anyone; it clears on reconnect.
+let netBannerTimer = null;
+function syncNetBanner(s) {
+  clearTimeout(netBannerTimer);
+  const kill = () => document.querySelector(".net-banner")?.remove();
+  if (s === "open" || state.gameMode !== "online") { kill(); return; }
+  netBannerTimer = setTimeout(() => {
+    if (state.netStatus === "open" || state.gameMode !== "online") return;
+    if (!document.querySelector(".net-banner")) {
+      const b = document.createElement("div");
+      b.className = "net-banner";
+      b.setAttribute("role", "status");
+      b.setAttribute("aria-live", "polite");
+      b.textContent = "Reconnecting…";
+      document.body.appendChild(b);
+    }
+  }, 3000);
 }
 function setNetStatus(s) {
   state.netStatus = s;
+  syncNetBanner(s);
   const el = document.querySelector(".or-status");
   if (el && state.gameMode === "online") {
     const text = s === "open"
@@ -157,10 +187,36 @@ function handleNetMsg(msg) {
   if (msg.type === "settings") {
     markPeerOnline();
     if (msg.clientId && msg.clientId === state.clientId) return;
+    // Game settings are HOST-authoritative: ignore a broadcast from anyone who isn't the (possibly
+    // claimed - see "hostclaim") host. Device-local prefs (lowPower) never ride the wire either way.
+    const hostId = netHostId();
+    if (hostId && msg.clientId && msg.clientId !== hostId) return;
+    const { lowPower, ...wireSettings } = msg.settings || {};
     state.settings = typeof normalizeGameSettings === "function"
-      ? normalizeGameSettings({ ...state.settings, ...(msg.settings || {}) })
-      : { ...state.settings, ...(msg.settings || {}) };
+      ? normalizeGameSettings({ ...state.settings, ...wireSettings })
+      : { ...state.settings, ...wireSettings };
     if (els.setupDialog?.open && typeof syncSettingsToForm === "function") syncSettingsToForm();
+    if (typeof scheduleSave === "function") scheduleSave();
+    return;
+  }
+  if (msg.type === "roomfull") {
+    // Host's targeted rejection: the room is at capacity. Offer the couch seat (observer/TV mode).
+    if (msg.for && msg.for !== state.clientId) return;
+    if (typeof showJoinDeadEnd === "function") showJoinDeadEnd("full");
+    return;
+  }
+  if (msg.type === "hostclaim") {
+    // Someone took over hosting (the original host went quiet). Everyone records the new authority;
+    // a RETURNING original host demotes itself instead of fighting for the crown.
+    markPeerOnline();
+    state.hostClaimId = msg.clientId || null;
+    if (state.isHost && msg.clientId && msg.clientId !== state.clientId) {
+      state.isHost = false;
+      if (typeof flashToast === "function") flashToast("👑 Hosting moved on while you were gone.");
+    } else if (msg.clientId && msg.clientId !== state.clientId) {
+      const nm = (netPeers.get(msg.clientId) || {}).name || "A friend";
+      if (typeof flashToast === "function") flashToast(`👑 ${nm} is hosting now.`);
+    }
     if (typeof scheduleSave === "function") scheduleSave();
     return;
   }
@@ -203,6 +259,10 @@ function handleNetMsg(msg) {
         state.playerCount = state.roster.length;
         if (!state.inLobby && typeof addMidGameRosterSeat === "function") addMidGameRosterSeat(index);
         addLog(`${cleanName || "A player"} has arrived.`);
+      } else {
+        // Room's full: tell THEM (nobody else cares) so their lobby can offer the TV couch seat.
+        netSend("roomfull", { for: msg.clientId });
+        return;
       }
     } else if (msg.clientId && cleanName) {
       // Known client updating their name.
@@ -224,6 +284,7 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "snapshot") {
     // Host's authoritative game state, addressed to a (re)connecting client. Everyone else ignores.
+    if (typeof joinAcked === "function") joinAcked();   // a host answered: the room is real
     if (msg.for && msg.for !== state.clientId) return;
     if (state.isHost) return;                        // the host never adopts a snapshot
     const save = msg.save;
@@ -259,6 +320,7 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "lobby") {
     markPeerOnline();
+    if (typeof joinAcked === "function") joinAcked();   // a host answered: the room is real
     if (state.isHost) return;   // host owns the roster; ignore echoes of its own broadcast
     applyRosterFromMsg(msg);
     if (state.inLobby) updateLobby();
@@ -281,12 +343,28 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "start") {
     markPeerOnline();
+    if (typeof joinAcked === "function") joinAcked();
+    // Echo of the round we're already on (e.g. the loser of a tie-break re-adopting): ignore.
+    if (msg.salt && msg.salt === state.gameSalt) return;
+    // Crossing NEXT ROUND race: if WE also just dealt (broadcast within the last 2.5s), both clients
+    // are holding different salts. Deterministic tie-break: the LOWER clientId's deal wins on both
+    // sides. Winner re-broadcasts its start so the loser converges; loser adopts the foreign salt.
+    if (state.lastStartSentAt && Date.now() - state.lastStartSentAt < 2500 && msg.clientId) {
+      if (String(state.clientId || "") < String(msg.clientId)) {
+        netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
+        return;                               // keep OUR deal; the other side adopts it
+      }
+      state.lastStartSentAt = 0;              // we lost the tie-break: adopt theirs below
+    }
     state.settings = typeof normalizeGameSettings === "function"
       ? normalizeGameSettings({ ...state.settings, ...(msg.settings || {}) })
       : { ...state.settings, ...(msg.settings || {}) };
     applyRosterFromMsg(msg);
     state.inLobby = false;
     document.querySelector(".lobby-screen")?.remove();
+    // NET2-03: a first-round start (fresh session) resets the no-repeat prompt memory, matching
+    // startLocalGame - without this an online tab hosting session after session slowly staled.
+    if (msg.first === true) state.seenPrompts = new Set();
     state.gameSalt = msg.salt;
     syncMySeatFromRoster();                    // derive my side from the shared roster + salt
     newGame(msg.salt, { remote: true, effectId: msg.effectId, first: msg.first === true });
@@ -370,11 +448,43 @@ function handleNetMsg(msg) {
     }
     return;
   }
+  if (msg.type === "guess") {
+    // The other side took a (wrong) guess that DIDN'T end the round: keep our guess-counter mirror in
+    // sync and flash it. A winning/round-ending guess arrives as "endround" with an outcome instead.
+    markPeerOnline();
+    if (msg.clientId && msg.clientId === state.clientId) return;
+    if (typeof state.guessesLeft === "object" && typeof msg.seat === "number" && !msg.correct) {
+      state.guessesLeft[msg.seat] = Math.max(0, (state.guessesLeft[msg.seat] ?? (state.settings.maxGuesses || 3)) - 1);
+      if (typeof flashToast === "function") {
+        const nm = typeof seatWinnerName === "function" ? seatWinnerName(msg.seat) : "They";
+        // FUN2-04: same salt+id-hashed taunt as the guesser's own screen - both ends read one joke.
+        const taunt = typeof wrongGuessTaunt === "function" && msg.id ? ` ${wrongGuessTaunt(msg.id)}` : "";
+        flashToast(`❌ ${nm} guessed wrong.${taunt} ${state.guessesLeft[msg.seat]} left.`);
+      }
+    }
+    return;
+  }
   if (msg.type === "endround") {
     markPeerOnline();
     // Show the reveal with a NEXT ROUND button; whoever clicks it deals + broadcasts "start" (and a
     // remote "start" clears this reveal via newGame). No auto-advance, so everyone gets a breather.
-    showRoundReveal(() => newGame());
+    // A resolved Win & Loss round carries an outcome (winner) so both sides show the same result.
+    showRoundReveal(() => newGame(), msg.outcome);
+    return;
+  }
+  if (msg.type === "sessionend") {
+    // NET-05: someone printed the receipt - the night is over for the whole room, not just their
+    // screen. Everyone gets their OWN session-end (stats/lore are per-device anyway). Observers get
+    // it too; `remote` stops the broadcast from echoing around the room forever.
+    markPeerOnline();
+    // NET2-04: a guest can be mid-guess when the host ends the night - clear the guess banner +
+    // body class so no stale guess UI survives under (or after) the receipt.
+    if (typeof exitGuessMode === "function") { try { exitGuessMode(); } catch (e) { /* fine */ } }
+    document.querySelector(".round-reveal")?.remove();
+    if (typeof showSessionEnd === "function" && !document.querySelector(".session-end")) {
+      showSessionEnd({ remote: true });
+    }
+    return;
   }
 }
 // Strip a character down to what another client (or a save file) needs to rebuild them.

@@ -3766,7 +3766,7 @@ function showTitleScreen() {
   // roster at low opacity. CSS only shows it >=900px tall and hides it while the menu is open.
   const marqueeNames = MysteryModes.all().map((e) => e.name.toUpperCase()).join(" · ");
   ov.innerHTML = `
-    <div class="ts-ticker-field" aria-hidden="true">${buildTitleTickerRows(10)}</div>
+    <div class="ts-ticker-field" aria-hidden="true">${buildTitleTickerRows(20)}</div>
     <div class="ts-mode-marquee" aria-hidden="true"><span>${escapeHtml(marqueeNames)} · ${escapeHtml(marqueeNames)} · </span></div>
     <div class="ts-legibility" aria-hidden="true"></div>
     <div class="ts-stage">

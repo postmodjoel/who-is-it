@@ -5579,9 +5579,10 @@ img.pol-mascot {
 }
 .title-screen.title-landing .ts-ticker-field {
   display: grid;
-  grid-template-rows: repeat(10, minmax(0, 1fr));
-  gap: clamp(0.1rem, 0.45vh, 0.42rem);
-  padding: clamp(0.8rem, 2.2vw, 2rem) 0;
+  /* Double density: 20 rows (was 10), tighter gap - twice as much scrolling text behind the hero. */
+  grid-template-rows: repeat(20, minmax(0, 1fr));
+  gap: clamp(0.05rem, 0.25vh, 0.24rem);
+  padding: clamp(0.5rem, 1.4vw, 1.3rem) 0;
   overflow: hidden;
 }
 .title-screen.title-landing .ts-qrow {
@@ -5598,7 +5599,7 @@ img.pol-mascot {
   white-space: nowrap;
   text-transform: uppercase;
   font-family: "Archivo", sans-serif;
-  font-size: clamp(1rem, 1.65vw, 1.9rem);
+  font-size: clamp(0.78rem, 1.2vw, 1.4rem);   /* smaller so 20 rows fit without overlapping */
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1;
@@ -5806,13 +5807,19 @@ img.pol-mascot {
   .title-screen.title-landing.ts-menu-open .ts-poster { transform: translate3d(0, 0, 0) scale(0.7); }
 }
 @media (max-width: 640px) {
-  .title-screen.title-landing .ts-stage { padding: 1.25rem; }
+  /* Phones: the left-aligned desktop layout reads lopsided on a narrow screen, so CENTRE everything
+     (logo + menu) for balanced margins. Desktop/tablet keep the left-aligned hero. */
+  .title-screen.title-landing .ts-stage { padding: 1.25rem; align-items: center; }
+  .title-screen.title-landing .ts-poster-slot,
+  .title-screen.title-landing .ts-actions { margin-left: 0; }
+  .title-screen.title-landing .ts-poster { margin-inline: auto; transform-origin: top center; }
+  .title-screen.title-landing .ts-words { align-items: center; text-align: center; }
   .title-screen.title-landing .ts-ticker-field {
-    grid-template-rows: repeat(8, minmax(0, 1fr));
-    gap: 0.2rem;
-    padding: 0.7rem 0;
+    grid-template-rows: repeat(16, minmax(0, 1fr));   /* double density on phones too */
+    gap: 0.12rem;
+    padding: 0.55rem 0;
   }
-  .title-screen.title-landing .ts-qrow:nth-child(n + 9) { display: none; }
+  .title-screen.title-landing .ts-qrow:nth-child(n + 17) { display: none; }
   .title-screen.title-landing .ts-poster-slot { height: 61vh; min-height: 15rem; }
   .title-screen.title-landing .ts-poster { transform: translate3d(0, 9vh, 0) scale(1); width: min(100%, 30rem); }
   .title-screen.title-landing .ts-who,
@@ -6920,7 +6927,9 @@ body[data-theme="light"] .rr-label.rr-them { color: var(--accent-blue); }
   /* The rail is a SOLID bar (the frosted glass read naff, and blur over the scrolling board costs
      heat). The game logo is dropped in-rail; the board toolbar (sort/settings/etc.) is relocated
      here so it stays reachable when scrolled. */
-  .game-side { z-index: 5; }
+  /* Sticky rail flush to the viewport top when scrolled - the old top:8px left an 8px window that
+     the board scrolled through above the bar. At rest the #app padding still gives it breathing room. */
+  .game-side { z-index: 5; top: 0; }
   /* Solid sticky bar. The rail keeps its proven grid for player/question/end-round/seats; the logo is
      trimmed and the relocated toolbar is pinned as its own strip along the bottom (absolute = immune
      to the grid-area cascade quirks that fought a flow-based placement). padding-bottom reserves it. */

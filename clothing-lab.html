@@ -3,112 +3,123 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Clothing Lab</title>
-    <link rel="stylesheet" href="clothing-lab.css?v=4">
+    <title>Clothing Studio</title>
+    <link rel="stylesheet" href="assets/fonts/fonts.css">
+    <link rel="stylesheet" href="clothing-lab.css?v=6">
   </head>
   <body>
-    <main class="lab-shell">
-      <header class="lab-topbar">
-        <div>
-          <p class="eyebrow">Wardrobe sandbox</p>
-          <h1>Clothing Lab</h1>
+    <main class="studio-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <span class="kicker">WHO? IS IT? / DESIGN TOOLS</span>
+          <h1>Clothing Studio</h1>
         </div>
-        <nav class="topbar-actions" aria-label="Other workbenches">
-          <a class="button" href="face-studio.html">Face Studio</a>
-          <a class="button ghost" href="index.html">Game</a>
+        <nav class="top-actions" aria-label="Design tools">
+          <a class="icon-text-button" href="face-studio.html">Face Studio</a>
+          <a class="icon-button" href="index.html" aria-label="Back to game" title="Back to game">←</a>
         </nav>
       </header>
 
-      <section class="toolbar" aria-label="Clothing lab controls">
-        <label>
-          <span>View</span>
-          <select id="viewFilter">
-            <option value="all">All outfits</option>
-            <option value="new">New concepts</option>
-            <option value="current">Current only</option>
-            <option value="layers">Layerable</option>
-            <option value="unreviewed">Unreviewed</option>
-            <option value="yay">Yay</option>
-            <option value="nay">Nay</option>
-          </select>
-        </label>
-        <label>
-          <span>Under</span>
-          <select id="underLayer"></select>
-        </label>
-        <label>
-          <span>Character</span>
+      <section class="studio-toolbar" aria-label="Clothing Studio toolbar">
+        <label class="select-control">
+          <span>Model</span>
           <select id="characterSelect"></select>
         </label>
-        <label>
-          <span>Body</span>
-          <select id="bodyPreset"></select>
+        <label class="select-control">
+          <span>Category</span>
+          <select id="categoryFilter"></select>
         </label>
-        <label>
-          <span>Skin</span>
-          <select id="skinPreset"></select>
+        <label class="search-control">
+          <span>Find outfit</span>
+          <input id="searchInput" type="search" placeholder="Search clothing">
         </label>
-        <label>
-          <span>Colour</span>
-          <input id="colourInput" type="color" value="#2f7a78">
-        </label>
-        <div id="swatches" class="swatches" aria-label="Colour swatches"></div>
+        <div class="toolbar-spacer"></div>
+        <button id="copyExportButton" class="command-button primary" type="button">Copy changed profiles</button>
+        <button id="resetAllButton" class="command-button danger" type="button">Reset drafts</button>
       </section>
 
-      <section class="lab-layout">
-        <aside class="preview-panel" aria-label="Selected outfit preview">
-          <div id="previewArt" class="preview-art"></div>
-          <div class="preview-meta">
-            <p id="previewStatus" class="status-pill">New concept</p>
-            <h2 id="previewName">Outfit</h2>
-            <p id="previewNotes" class="notes"></p>
-            <div id="previewTags" class="tag-row"></div>
-            <div class="review-actions" aria-label="Review selected outfit">
-              <button id="yayButton" class="review-button yay" type="button">Yay</button>
-              <button id="nayButton" class="review-button nay" type="button">Nay</button>
-              <button id="clearVoteButton" class="review-button clear" type="button">Clear</button>
+      <section class="workspace">
+        <aside class="inspector" aria-label="Selected clothing controls">
+          <div class="selected-heading">
+            <div>
+              <span id="selectedCategory" class="kicker">CORE</span>
+              <h2 id="selectedName">Crew Tee</h2>
+            </div>
+            <div class="step-character" aria-label="Move between outfits">
+              <button id="previousOutfit" class="icon-button" type="button" aria-label="Previous outfit" title="Previous outfit">←</button>
+              <button id="nextOutfit" class="icon-button" type="button" aria-label="Next outfit" title="Next outfit">→</button>
             </div>
           </div>
-          <section class="shape-controls" aria-label="Body shape controls">
-            <label>
-              <span>Shoulders</span>
-              <input id="buildRange" type="range" min="62" max="104" step="1">
-            </label>
-            <label>
-              <span>Slope</span>
-              <input id="slopeRange" type="range" min="0.15" max="0.9" step="0.01">
-            </label>
-            <label>
-              <span>Torso</span>
-              <input id="bodyWidthRange" type="range" min="0.72" max="1.35" step="0.01">
-            </label>
-            <label>
-              <span>Belly</span>
-              <input id="bellyRange" type="range" min="0" max="1" step="0.01">
-            </label>
+
+          <div class="preview-mode" role="group" aria-label="Preview mode">
+            <button type="button" data-preview-mode="adjusted" class="is-active">Adjusted</button>
+            <button type="button" data-preview-mode="split">Split</button>
+            <button type="button" data-preview-mode="baseline">Baseline</button>
+          </div>
+
+          <div id="heroPreview" class="hero-preview"></div>
+
+          <section class="palette-panel" aria-label="Preview palette">
+            <div class="section-title"><h3>Palette</h3><span>Preview only</span></div>
+            <div class="colour-grid">
+              <label><span>Primary</span><input id="primaryColor" type="color"></label>
+              <label><span>Accent</span><input id="accentColor" type="color"></label>
+              <label><span>Under</span><input id="underColor" type="color"></label>
+            </div>
           </section>
-          <label class="spec-box">
-            <span>Selected spec</span>
-            <textarea id="specOutput" readonly spellcheck="false"></textarea>
-          </label>
+
+          <div id="controlSections" class="control-sections"></div>
+
+          <div class="inspector-actions">
+            <button id="resetOutfitButton" class="command-button" type="button">Reset outfit</button>
+            <button id="copyOutfitButton" class="command-button" type="button">Copy outfit profile</button>
+          </div>
         </aside>
 
-        <section class="catalog-panel" aria-label="Outfit catalogue">
-          <div class="catalog-head">
-            <div>
-              <p class="eyebrow">Wardrobe audit</p>
-              <h2 id="catalogTitle">0 outfits</h2>
+        <section class="review-surface">
+          <section class="comparison-section" aria-labelledby="comparisonTitle">
+            <div class="surface-heading">
+              <div>
+                <span class="kicker">FIT CHECK</span>
+                <h2 id="comparisonTitle">Across six bodies</h2>
+              </div>
+              <div class="legend">
+                <span><i class="baseline-dot"></i>Baseline</span>
+                <span><i class="adjusted-dot"></i>Adjusted</span>
+              </div>
             </div>
-            <div id="catalogStats" class="stats-row"></div>
-          </div>
-          <div id="outfitGrid" class="outfit-grid"></div>
+            <div id="comparisonGrid" class="comparison-grid"></div>
+          </section>
+
+          <section class="catalog-section" aria-labelledby="catalogTitle">
+            <div class="surface-heading">
+              <div>
+                <span class="kicker">WARDROBE</span>
+                <h2 id="catalogTitle">All outfits</h2>
+              </div>
+              <div id="catalogStats" class="catalog-stats"></div>
+            </div>
+            <div id="outfitGrid" class="outfit-grid"></div>
+          </section>
+
+          <section class="export-section" aria-labelledby="exportTitle">
+            <div class="surface-heading">
+              <div>
+                <span class="kicker">HANDOFF</span>
+                <h2 id="exportTitle">Changed clothing profiles</h2>
+              </div>
+              <button id="copyBottomExportButton" class="command-button" type="button">Copy</button>
+            </div>
+            <textarea id="exportOutput" readonly spellcheck="false"></textarea>
+          </section>
         </section>
       </section>
     </main>
 
-    <script src="faces-hair.js?v=5"></script>
-    <script src="studio-bakes-import.js?v=1"></script>
-    <script src="face-generator.js?v=9"></script>
-    <script src="clothing-lab.js?v=5"></script>
+    <script src="faces-hair.js?v=207"></script>
+    <script src="studio-bakes-import.js?v=3"></script>
+    <script src="clothing-profiles.js?v=1"></script>
+    <script src="face-generator.js?v=242"></script>
+    <script src="clothing-lab.js?v=6"></script>
   </body>
 </html>

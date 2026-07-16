@@ -12,12 +12,17 @@ const SPECIAL_EXPECTATIONS = {
 
 async function openCleanTitle(page) {
   await page.addInitScript(() => {
-    try { localStorage.removeItem("whoisit_game_v1"); } catch (e) { /* storage may be blocked */ }
+    try {
+      localStorage.removeItem("whoisit_game_v1");
+      localStorage.setItem("whoisit_manifesto_v1", "1");
+      localStorage.setItem("whoisit_onboarded_v1", "1");
+    } catch (e) { /* storage may be blocked */ }
   });
   await page.goto("/");
-  // The landing poster fronts the menu now - LET'S PLAY reveals the local/online step.
+  // The landing poster fronts the menu; choose the classic ruleset before local/online setup.
   const letplay = page.locator(".ts-letplay");
   if (await letplay.isVisible().catch(() => false)) await letplay.click();
+  await page.locator('.ts-ruleset[data-ruleset="whoisit"]').click();
   await expect(page.locator(".ts-local")).toBeVisible();
 }
 
@@ -42,9 +47,10 @@ async function startNamedLocalGame(page, count = 3, solo = true) {
   }, names);
   await expect.poll(() => page.locator(".ts-name-slot").evaluateAll((els) => els.map((el) => el.value))).toEqual(names);
   await page.locator(".ts-names-go").click();
-  const reveal = page.locator(".round-reveal").first();
-  if (await reveal.isVisible().catch(() => false)) await reveal.click();
-  await page.locator(".dimension-warp").evaluateAll((els) => els.forEach((el) => el.remove()));
+  // Dispatch synchronously: the reveal also has an auto-finish timer and can detach midway through
+  // Playwright's actionability checks under a busy exhaustive run.
+  await page.locator(".round-reveal").evaluateAll((els) => els.forEach((el) => { el.click(); el.remove(); }));
+  await page.locator(".dimension-warp, .forecast-card").evaluateAll((els) => els.forEach((el) => el.remove()));
   await expect(page.locator("#characterBoard")).toBeVisible();
   await expect(page.locator("#characterBoard [data-id]").first()).toBeVisible();
 }
@@ -95,7 +101,9 @@ test("mandatory names and solo mode create one seat per player", async ({ page }
   await expect(page.locator(".ts-step-names .ts-team-mode")).toBeVisible();
   await page.locator(".ts-step-names .ts-team-mode-input").uncheck();
   await page.locator(".ts-names-go").click();
-  await expect(page.locator(".ts-name-slot").first()).toHaveClass(/shake/);
+  // The shake is deliberately only 400ms; aria-invalid and the live error are the durable contract.
+  await expect(page.locator(".ts-name-slot").first()).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator(".ts-field-error").first()).toBeVisible();
   const inputs = page.locator(".ts-name-slot");
   await inputs.nth(0).fill("Ada");
   await inputs.nth(1).fill("Bea");
@@ -107,18 +115,17 @@ test("mandatory names and solo mode create one seat per player", async ({ page }
   await expect(page.locator(".seat-half")).toHaveCount(3);
 });
 
-test("local setup game mode picker starts in the chosen mode", async ({ page }) => {
+test("local custom lineup with one mode starts in that chosen mode", async ({ page }) => {
   await openCleanTitle(page);
   await page.locator(".ts-local").click();
   await page.locator(".ts-name-row").first().waitFor();
-  const chosenMode = await page.locator(".ts-step-names .ts-mode-select").evaluate((select) => {
-    const picked = [...select.options].find((option) => option.value);
-    if (!picked) return "";
-    select.value = picked.value;
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-    return picked.value;
-  });
-  expect(chosenMode).not.toBe("");
+  await page.locator('.ts-step-names .mode-policy-chip[data-policy="custom"]').click();
+  const checks = page.locator(".ts-step-names .mode-check:not([disabled])");
+  const modeIds = await checks.evaluateAll((inputs) => inputs.map((input) => input.value));
+  const chosenMode = modeIds[0];
+  expect(chosenMode).toBeTruthy();
+  // The lineup rebuilds after each edit, so use a fresh locator for every checkbox.
+  for (const modeId of modeIds.slice(1)) await page.locator(`.ts-step-names .mode-check[value="${modeId}"]`).uncheck();
   await page.locator(".ts-name-slot").nth(0).fill("Ada");
   await page.locator(".ts-name-slot").nth(1).fill("Bea");
   await page.locator(".ts-names-go").click();
@@ -202,7 +209,7 @@ test("setup dialog hides unsafe mode names in PG custom mode", async ({ page }) 
   await startNamedLocalGame(page, 2, true);
   await page.locator("#setupButton").click();
   await expect(page.locator("#setupDialog")).toBeVisible();
-  await page.locator('.mode-policy-chip[data-policy="custom"]').click();
+  await page.locator('#settingModePolicy .mode-policy-chip[data-policy="custom"]').click();
   const result = await page.evaluate(() => {
     const visible = [...document.querySelectorAll("#settingModes .mode-check-copy b")].map((el) => el.textContent.trim());
     const unsafe = window.MysteryModes.all().filter((effect) => !effect.pgSafe).map((effect) => effect.name);

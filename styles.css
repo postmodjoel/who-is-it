@@ -185,6 +185,7 @@ button:disabled {
 /* Same colours + shadows as the splash: yellow WHO?, white IS IT? with a blue drop. */
 .side-head h1 .brand-who { color: var(--brand-yellow); text-shadow: 0.045em 0.05em 0 #1533cc; }
 .side-head h1 .brand-isit { color: #fffdf7; text-shadow: 0.045em 0.05em 0 #e01b1b; }
+.side-head h1 .brand-doyouthink { display: none !important; }
 .side-head .room-code {
   font-size: 0.72rem;
   opacity: 0.55;
@@ -5639,11 +5640,11 @@ img.pol-mascot {
   padding: clamp(1.25rem, 5vw, 6rem);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
 }
 .title-screen.title-landing .ts-poster-slot,
 .title-screen.title-landing .ts-actions {
-  margin-left: clamp(0rem, 5vw, 4.5rem);
+  margin-left: 0;
 }
 .title-screen.title-landing .ts-poster-slot {
   width: min(1080px, 100%);
@@ -5653,16 +5654,17 @@ img.pol-mascot {
 }
 .title-screen.title-landing .ts-poster {
   width: min(760px, 100%);
+  margin-inline: auto;
   transform: translate3d(0, clamp(10vh, 14vh, 8rem), 0) scale(1);
-  transform-origin: top left;
+  transform-origin: top center;
   transition: transform 320ms cubic-bezier(0.22, 0.82, 0.18, 1);
 }
 .title-screen.title-landing .ts-words {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   line-height: 0.78;
-  text-align: left;
+  text-align: center;
   overflow: visible;
 }
 .title-screen.title-landing .ts-who,
@@ -5681,6 +5683,16 @@ img.pol-mascot {
   color: #fffdf7;
   text-shadow: 0.055em 0.06em 0 #e01b1b;
 }
+.title-screen.title-landing .ts-anthology {
+  width: max-content; max-width: 100%; margin: clamp(1rem, 2.2vh, 1.6rem) auto 0;
+  color: rgba(255,253,247,.84); text-align: center; text-transform: uppercase;
+  font-family: "Archivo", sans-serif; font-size: clamp(.68rem, 1.15vw, .92rem); font-weight: 900;
+  letter-spacing: .28em; line-height: 1;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+.title-screen.title-landing .ts-anthology::before,
+.title-screen.title-landing .ts-anthology::after { content: ""; display: inline-block; width: clamp(1.5rem, 4vw, 3.5rem); height: 2px; margin: 0 .9rem .22em; background: #ffc21a; }
+.title-screen.title-landing.has-ruleset .ts-anthology { opacity: 0; transform: translateY(-6px); }
 .title-screen.title-landing .ts-cta {
   margin-top: clamp(1.4rem, 4vh, 2.8rem);
   opacity: 1;
@@ -5807,8 +5819,7 @@ img.pol-mascot {
   .title-screen.title-landing.ts-menu-open .ts-poster { transform: translate3d(0, 0, 0) scale(0.7); }
 }
 @media (max-width: 640px) {
-  /* Phones: the left-aligned desktop layout reads lopsided on a narrow screen, so CENTRE everything
-     (logo + menu) for balanced margins. Desktop/tablet keep the left-aligned hero. */
+  /* The anthology uses the same centred composition at every width. */
   .title-screen.title-landing .ts-stage { padding: 1.25rem; align-items: center; }
   .title-screen.title-landing .ts-poster-slot,
   .title-screen.title-landing .ts-actions { margin-left: 0; }
@@ -5824,6 +5835,9 @@ img.pol-mascot {
   .title-screen.title-landing .ts-poster { transform: translate3d(0, 9vh, 0) scale(1); width: min(100%, 30rem); }
   .title-screen.title-landing .ts-who,
   .title-screen.title-landing .ts-isit { font-size: clamp(5.8rem, 29vw, 10rem); }
+  .title-screen.title-landing .ts-anthology { font-size: .58rem; letter-spacing: .19em; }
+  .title-screen.title-landing .ts-anthology::before,
+  .title-screen.title-landing .ts-anthology::after { width: 1rem; margin-inline: .45rem; }
   .title-screen.title-landing .ts-letplay,
   .title-screen.title-landing .ts-actions,
   .title-screen.title-landing .ts-step { width: min(100%, 24rem); }
@@ -5963,7 +5977,8 @@ body.low-power .side-you.seat-secret-back { animation: none; }
 .side-head h1 { overflow: hidden; line-height: 0.95; }
 .side-head h1 span { display: block; }
 .side-head h1 .brand-who { animation: brand-slide-l 0.6s cubic-bezier(0.2, 1.2, 0.3, 1) both; }
-.side-head h1 .brand-isit { animation: brand-slide-r 0.6s 0.28s cubic-bezier(0.2, 1.2, 0.3, 1) both; }
+.side-head h1 .brand-isit,
+.side-head h1 .brand-doyouthink { animation: brand-slide-r 0.6s 0.28s cubic-bezier(0.2, 1.2, 0.3, 1) both; }
 @keyframes brand-slide-l { from { transform: translateX(-170%) skewX(12deg); } to { transform: translateX(0) skewX(0); } }
 @keyframes brand-slide-r { from { transform: translateX(170%) skewX(-12deg); } to { transform: translateX(0) skewX(0); } }
 @media (prefers-reduced-motion: reduce) { .side-head h1 span { animation: none; } }
@@ -6037,6 +6052,10 @@ body.low-power .side-you.seat-secret-back { animation: none; }
   .side-panel .secret-card:not(.is-hidden) .card-pronouns,
   .side-panel .secret-card:not(.is-hidden) .card-role,
   .side-panel .secret-card:not(.is-hidden) .li-sheet { display: none !important; }
+  /* The revealed rail portrait is 62px. Give the censored tile the same column so hide/show never
+     makes the entire sticky rail jump vertically. */
+  .side-panel .secret-card.is-hidden:not(.ygo) { grid-template-columns: 62px minmax(0, 1fr); }
+  .side-panel .secret-card.is-hidden:not(.ygo) .portrait-wrap { width: 62px; min-height: 62px; }
 }
 /* Sort select: COMPACT (an icon + down-arrow) at rest, EXPANDS to the labelled dropdown on
    hover/focus. The select's own value text is hidden while compact; a themed glyph sits on top. */

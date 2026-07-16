@@ -1,40 +1,3 @@
-const baseCharacters = [
-  ["alex", "Alex", "he", "baseball cap", "always overexplains", "architect"],
-  ["bella", "Bella", "she", "blonde hair", "keeps old voicemails", "teacher"],
-  ["carlos", "Carlos", "he", "red cap", "never answers unknown numbers", "mechanic"],
-  ["diana", "Diana", "she", "red hair and glasses", "knows every exit", "dentist"],
-  ["ethan", "Ethan", "he", "bow tie", "apologizes too quickly", "accountant"],
-  ["fiona", "Fiona", "she", "purple hat", "has a rehearsed laugh", "barista"],
-  ["george", "George", "he", "grey hair", "keeps emergency cash", "pharmacist"],
-  ["hannah", "Hannah", "she", "green glasses", "changes the subject neatly", "florist"],
-  ["ivan", "Ivan", "he", "blue beanie", "remembers small debts", "electrician"],
-  ["jade", "Jade", "she", "long dark hair", "never sits with her back to a door", "designer"],
-  ["kevin", "Kevin", "he", "moustache", "has a practiced excuse", "chef"],
-  ["luna", "Luna", "she", "white hair", "keeps a very calm face", "librarian"],
-  ["marco", "Marco", "he", "curly hair", "knows when to leave", "bartender"],
-  ["nina", "Nina", "she", "red beanie", "reads the room too well", "photographer"],
-  ["oscar", "Oscar", "he", "dark hair", "has a backup story", "lawyer"],
-  ["penny", "Penny", "she", "pink glasses", "keeps receipts", "nurse"],
-  ["quinn", "Quinn", "they", "green cap", "doesn't blink first", "journalist"],
-  ["rosa", "Rosa", "she", "teal shirt", "says less than they know", "social worker"],
-  ["sam", "Sam", "they", "glasses and beard", "knows every loophole", "engineer"],
-  ["tara", "Tara", "she", "wide-brim hat", "can end a conversation cleanly", "gardener"],
-  ["umar", "Umar", "he", "red cap and beard", "has two phones", "paramedic"],
-  ["violet", "Violet", "she", "purple outfit", "smiles at the wrong time", "therapist"],
-  ["will", "Will", "he", "brown hair", "keeps a spare shirt", "musician"],
-  ["xena", "Xena", "she", "striped shirt", "notices who is lying", "pilot"]
-].map(([id, name, pronouns, feature, secret, role]) => ({
-  id,
-  name,
-  pronouns,
-  feature,
-  secret,
-  role,
-  image: `assets/characters/${id}.png`,
-  tags: makeTags(name, secret, role),
-  variant: ""
-}));
-
 const characterRoles = [
   "architect",
   "teacher",
@@ -231,9 +194,11 @@ const absurdPrompts = window.GameData.absurdPrompts;
 
 const classicPrompts = window.GameData.classicPrompts;
 
-const allCharacters = [...baseCharacters, ...generatedCharacters];
+const allCharacters = [...generatedCharacters];
 
 const state = {
+  ruleset: "whoisit",  // "whoisit" (deduction) or "groupthink" (shared-board consensus)
+  groupthink: null,
   settings: {
     prompts: true,
     mystery: true,
@@ -248,6 +213,7 @@ const state = {
     guessing: true,     // "Win & Loss": end a round by GUESSING the other player, X tries each
     maxGuesses: 3,      // tries per side before you're out (and the other side wins)
     lowPower: false,    // phones running warm: pause continuous animation loops + blur to cool down
+    groupthinkYolo: true, // WHO? DO YOU THINK?: permanent communal cuts + survivor vote
     boardSize: 24
   },
   currentPlayer: 0,
@@ -479,14 +445,17 @@ function loadTheme() {
 // derive the same round from one shared salt), refresh-resume, and shareable SEED codes possible.
 function newGame(seedSalt, opts = {}) {
   state.settings = normalizeGameSettings(state.settings);
+  if (state.ruleset === "groupthink" && window.Groupthink) {
+    return Groupthink.startSession(seedSalt, opts);
+  }
+  state.groupthink = null;
+  document.body.classList.remove("ruleset-groupthink");
   clearMysteryEffectUI();
   // Clear a lingering round-over reveal (e.g. a remote peer dealt the next round before this client
   // clicked NEXT ROUND). The pre-round team reveal is created later and is excluded here.
   document.querySelectorAll(".round-reveal:not(.team-reveal)").forEach((el) => el.remove());
   // Sort choice persists across rounds (rebuildSortOptions drops it only if the new mode can't do it).
-  // The board only draws from the procedurally generated faces. The hand-illustrated PNG
-  // characters (baseCharacters) stay defined as the gold-standard reference but are never dealt
-  // into the playable board.
+  // The board draws from the procedurally generated faces.
   const pool = generatedCharacters;
   const boardSize = Math.min(state.settings.boardSize, pool.length);
   state.gameSalt = seedSalt || `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -529,7 +498,7 @@ function newGame(seedSalt, opts = {}) {
     // Announce the new round to the peer, UNLESS the lobby's START handler already sent it.
     if (!opts.remote && !opts.announced) {
       state.lastStartSentAt = Date.now();   // marks us a live dealer for the crossing-starts tie-break
-      netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
+      netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, ruleset: state.ruleset });
     }
   }
   resetGuessState();
@@ -746,7 +715,9 @@ function rosterForWire() { return (state.roster || []).map((r) => ({ name: r.nam
 // Adopt a roster broadcast by the host and locate myself in it by clientId.
 function applyRosterFromMsg(msg) {
   if (!Array.isArray(msg.roster)) return;
+  if (msg.ruleset === "groupthink" || msg.ruleset === "whoisit") state.ruleset = msg.ruleset;
   if (msg.playMode === "solo" || msg.playMode === "team") state.playMode = msg.playMode;
+  if (state.ruleset === "groupthink") state.playMode = "solo";
   state.roster = msg.roster.map((r) => ({ name: cleanPlayerName(r.name) || "Player", clientId: r.clientId, side: r.side, personaId: r.personaId }));
   state.playerCount = msg.playerCount || state.roster.length;
   const mine = state.roster.findIndex((r) => r.clientId && r.clientId === state.clientId);
@@ -770,15 +741,17 @@ function render() {
   renderBoard();
   renderMystery();
   renderPromptCard();
+  if (state.ruleset === "groupthink" && window.Groupthink) Groupthink.renderPrompt();
   renderOpponentPanel();
   if (state.isObserver) { renderObserverHeader(); fitObserverBoard(); } else document.getElementById("observerBar")?.remove();
   syncActionLabel();
   // First-ever board: the manifesto shows first; the mechanic nudges follow once it's dismissed.
   // Later sessions instead open on the forecast bill (it declines to stack with the manifesto).
-  if (maybeShowManifesto()) { maybeShowOnboarding(); maybeShowForecast(); }
+  if (state.ruleset !== "groupthink" && maybeShowManifesto()) { maybeShowOnboarding(); maybeShowForecast(); }
 }
 // The primary HUD action reads "IS IT…?" in Win & Loss (it opens the guess), else "END ROUND".
 function syncActionLabel() {
+  if (state.ruleset === "groupthink" && window.Groupthink) { Groupthink.syncAction(); return; }
   const txt = document.querySelector("#swapSeatButton .er-txt");
   if (!txt) return;
   const guessing = state.settings.guessing && guessTargetSeat() !== null && !state.isObserver;
@@ -1025,6 +998,7 @@ function renderLocation() {
 }
 
 function renderRoom() {
+  if (state.ruleset === "groupthink" && window.Groupthink) { Groupthink.renderRoom(); return; }
   const online = state.gameMode === "online";
   document.body.classList.toggle("mode-online", online);
   document.body.classList.toggle("mode-solo", rosterSoloMode());
@@ -1111,6 +1085,7 @@ function slideSideHandoff(dir) {
 }
 
 function renderSecret(opts = {}) {
+  if (state.ruleset === "groupthink" && window.Groupthink) { Groupthink.renderSelectionTray(); return; }
   // Observer / TV display has no secret to reveal - it just shows the board neutrally.
   if (state.isObserver) { if (els.secretCard) els.secretCard.innerHTML = ""; return; }
   const player = currentPlayer();
@@ -1238,6 +1213,7 @@ function renderBoard(opts = {}) {
   animateBoardReorder(beforeRects);
 }
 function renderHints() {
+  if (state.ruleset === "groupthink") { els.hintShelf.innerHTML = ""; els.hintShelf.classList.remove("has-hints"); return; }
   ensureSeatArrays(state.players.length || gameSeatCount());
   const hints = state.global.hints[clampSeatIndex(state.currentPlayer)] || [];
   els.hintShelf.classList.toggle("has-hints", hints.length > 0);
@@ -1252,7 +1228,7 @@ function renderMystery() {
 function renderPromptCard() {
   const cueCard = document.querySelector(".cue-card");
   if (!cueCard) return;
-  const show = !!state.settings.prompts;
+  const show = state.ruleset === "groupthink" || !!state.settings.prompts;
   cueCard.hidden = !show;
   cueCard.setAttribute("aria-hidden", show ? "false" : "true");
   if (!show) {
@@ -1357,6 +1333,7 @@ function drawFromPool(pool) {
   return chosen;
 }
 function drawPrompt() {
+  if (state.ruleset === "groupthink" && window.Groupthink) { Groupthink.renderPrompt(); return; }
   if (!state.settings.prompts) {
     els.questionPrompt.textContent = "";
     return;
@@ -1403,6 +1380,7 @@ function wireCueCardClick() {
   cueCard.setAttribute("tabindex", "0");
   cueCard.title = "Click for a new question";
   const reroll = () => {
+    if (state.ruleset === "groupthink" && window.Groupthink) { Groupthink.rerollPrompt(); return; }
     if (!state.settings.prompts) return;
     cueCard.classList.add("is-fading");
     setTimeout(() => {
@@ -1417,6 +1395,7 @@ function wireCueCardClick() {
 }
 
 function triggerMysteryEffect(playerIndex) {
+  if (state.ruleset === "groupthink") return;
   const player = state.players[playerIndex];
   if (!state.settings.mystery || player.mysteryUsed) return;
   player.mysteryUsed = true;
@@ -1485,9 +1464,16 @@ function createCharacterCard(character, player) {
       <div class="card-meta">${mystery.html}</div>
     </div>
   `;
-  card.addEventListener("click", (e) => { if (e.target.closest(".dz-painscale")) return; toggleEliminated(character.id); });
-  wireBreedDnD(card, character.id);
+  if (state.ruleset === "groupthink" && window.Groupthink) Groupthink.decorateCard(card, character);
+  card.addEventListener("click", (e) => { if (e.target.closest(".dz-painscale")) return; activateCharacter(character.id); });
+  if (state.ruleset !== "groupthink") wireBreedDnD(card, character.id);
   return card;
+}
+
+// One primary character action keeps mystery renderers reusable across base rulesets.
+function activateCharacter(id) {
+  if (state.ruleset === "groupthink" && window.Groupthink) { Groupthink.togglePick(id); return; }
+  toggleEliminated(id);
 }
 
 function stableHash(value) {
@@ -1632,6 +1618,7 @@ const aliasNames = [
 
 // Tapping your own player card toggles it hidden/shown (replaces the old eye button).
 function toggleSecretVisible() {
+  if (state.ruleset === "groupthink") return;
   const player = currentPlayer();
   player.secretVisible = !player.secretVisible;
   renderSecret({ motion: player.secretVisible ? "reveal" : "hide" });
@@ -1640,7 +1627,10 @@ if (els.secretCard) els.secretCard.addEventListener("click", toggleSecretVisible
 
 // The arrows button ends the round (you tell each other who you were in person - the reveal shows
 // both secrets, then the next round deals). Seat swapping in local mode is the YOU/B chips.
-els.swapSeatButton.addEventListener("click", endRound);
+els.swapSeatButton.addEventListener("click", () => {
+  if (state.ruleset === "groupthink" && window.Groupthink) Groupthink.lockIn();
+  else endRound();
+});
 
 if (els.copySeedButton) els.copySeedButton.addEventListener("click", () => {
   const code = currentSeedCode();
@@ -1740,6 +1730,13 @@ if (els.debugEffectPicker) {
   els.debugEffectPicker.addEventListener("change", () => {
     const id = els.debugEffectPicker.value;
     els.debugEffectPicker.value = "";
+    if (state.ruleset === "groupthink") {
+      clearMysteryEffectUI();
+      state.wheelPick = null;
+      flashToast("Mystery effects belong to WHO? IS IT?");
+      render();
+      return;
+    }
     if (id.startsWith("profile-")) { applyDebugProfile(id); return; }
     const effect = MysteryModes.byId(id);
     if (!effect) return;
@@ -1975,6 +1972,7 @@ function normalizeGameSettings(raw) {
   next.roundPicker = next.roundPicker === "manual" ? "manual" : "random";
   next.guessing = next.guessing !== false;
   next.maxGuesses = [1, 2, 3, 5].includes(next.maxGuesses) ? next.maxGuesses : 3;
+  next.groupthinkYolo = next.groupthinkYolo !== false;
   return next;
 }
 function hydrateSerializedCharacter(character) {
@@ -2140,6 +2138,14 @@ if (els.settingMaxGuesses) {
 if (els.settingGuessing) els.settingGuessing.addEventListener("change", () => { state.settings.guessing = els.settingGuessing.checked; syncGuessPills(); });
 
 function syncSettingsToForm() {
+  const groupthinkSetup = state.ruleset === "groupthink";
+  els.setupDialog?.classList.toggle("is-groupthink", groupthinkSetup);
+  const setupTitle = els.setupDialog?.querySelector(".dialog-head h2");
+  if (setupTitle) setupTitle.textContent = groupthinkSetup ? "WHO? DO YOU THINK? setup" : "Game setup";
+  const pgHelp = els.settingPG?.closest(".toggle-row")?.querySelector("small");
+  if (pgHelp) pgHelp.textContent = groupthinkSetup
+    ? "Keep the judgement prompts kid-safe. The cards stay plain either way."
+    : "Kid-safe: only wholesome modes, no breeding/woohoo. Nephew-approved.";
   els.settingPrompts.checked = state.settings.prompts;
   if (els.settingMystery) els.settingMystery.checked = true;
   els.settingLocations.checked = state.settings.locations;
@@ -2164,10 +2170,12 @@ function syncSettingsToForm() {
 // The whole round survives a refresh: the salt re-derives the board/effect/secrets, and the save
 // carries what ISN'T derivable - session babies, eliminations, seat, settings.
 const GAME_SAVE_KEY = "whoisit_game_v1";
-// Deleting the save is destructive for EVERY tab sharing this browser profile. Only the tab whose
-// clientId made the save may clear it — a second tab hitting Leave used to nuke the host tab's
-// refresh-resume out from under it.
+const ONLINE_GAME_SAVE_KEY = "whoisit_online_game_v1";
+// Online identity is per-tab, so its refresh snapshot must be per-tab too. A shared localStorage slot
+// let a guest overwrite the host's save; the next host refresh then resumed the guest or fell back to
+// the title. sessionStorage survives reload but remains isolated between the BroadcastChannel tabs.
 function clearOwnSave() {
+  try { sessionStorage.removeItem(ONLINE_GAME_SAVE_KEY); } catch (e) { /* storage gone */ }
   try {
     const raw = localStorage.getItem(GAME_SAVE_KEY);
     if (raw) {
@@ -2184,6 +2192,8 @@ function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveGa
 function buildGameSave() {
   return {
     v: 1,
+    ruleset: state.ruleset === "groupthink" ? "groupthink" : "whoisit",
+    groupthink: state.ruleset === "groupthink" && window.Groupthink ? Groupthink.serialize() : null,
     salt: state.gameSalt,
     settings: state.settings,
     gameMode: state.gameMode || "local",
@@ -2219,15 +2229,25 @@ function buildGameSave() {
 }
 function saveGameState() {
   try {
-    localStorage.setItem(GAME_SAVE_KEY, JSON.stringify(buildGameSave()));
+    const save = buildGameSave();
+    if (save.gameMode === "online") {
+      sessionStorage.setItem(ONLINE_GAME_SAVE_KEY, JSON.stringify(save));
+      // Migrate away the old shared online slot when this tab owns it, while preserving a local game.
+      const legacy = JSON.parse(localStorage.getItem(GAME_SAVE_KEY) || "null");
+      if (legacy?.gameMode === "online" && (!legacy.clientId || legacy.clientId === save.clientId)) localStorage.removeItem(GAME_SAVE_KEY);
+    } else {
+      localStorage.setItem(GAME_SAVE_KEY, JSON.stringify(save));
+    }
   } catch (e) { /* storage full/blocked - play on */ }
 }
 function loadGameSave() {
   // A save is resumable with a salt (a dealt round) OR as a lobby rejoin (online room, no deal yet).
   try {
-    const s = JSON.parse(localStorage.getItem(GAME_SAVE_KEY) || "null");
+    const online = JSON.parse(sessionStorage.getItem(ONLINE_GAME_SAVE_KEY) || "null");
+    const s = online || JSON.parse(localStorage.getItem(GAME_SAVE_KEY) || "null");
     if (!(s && s.v === 1 && (s.salt || (s.inLobby && s.gameMode === "online" && s.roomCode)))) return null;
     if (s.settings) s.settings = normalizeGameSettings(s.settings);
+    s.ruleset = s.ruleset === "groupthink" ? "groupthink" : "whoisit";
     if (!Number.isFinite(s.headsForm)) s.headsForm = 0;
     return s;
   } catch (e) { return null; }
@@ -2369,6 +2389,8 @@ function trapOverlay(el, opts = {}) {
 // touching the round: three lines, the drag-and-drop tell, and a manifesto encore.
 function showHelpCard() {
   document.querySelector(".help-card")?.remove();
+  const groupthink = state.ruleset === "groupthink";
+  const yolo = state.settings.groupthinkYolo !== false;
   const n = state.settings.maxGuesses || 3;
   const ov = document.createElement("div");
   ov.className = "manifesto-card help-card";
@@ -2376,20 +2398,30 @@ function showHelpCard() {
   ov.innerHTML = `
     <div class="mf-shell">
       <p class="mf-eyebrow">HOW IT WORKS</p>
-      <div class="mf-body">
+      <div class="mf-body">${groupthink && yolo ? `
+        <p><b>1.</b> Everyone gets the same prompt and privately picks from one shared cast: three faces at first, then two, then one.</p>
+        <p><b>2.</b> Match another player: that face scores <b>2 points</b>. Match nobody: consolation prize, <b>3 points</b>.</p>
+        <p><b>3.</b> Every selected face hits the communal chopping block. Each player secretly saves one; one clear winner survives, while a tie saves nobody.</p>
+        <p class="mf-kicker">Removed faces vanish for everyone. Below six, you each pick one—and agreement crowns the final survivor.</p>
+      ` : groupthink ? `
+        <p><b>1.</b> Everyone gets the same prompt and privately picks three faces from the full shared cast.</p>
+        <p><b>2.</b> Match another player: that face scores <b>2 points</b>. Match nobody: consolation prize, <b>3 points</b>.</p>
+        <p><b>3.</b> The whole deck returns next round. Nobody is saved, cut, or removed.</p>
+        <p class="mf-kicker">Eight prompts. Thirty reusable faces. Most points—or the strongest two-player sync—wins.</p>
+      ` : `
         <p><b>1.</b> You are a face on their board. They're one on yours. Hide yours.</p>
         <p><b>2.</b> Ask anything. Answer however you dare. Tap faces to cross them off.</p>
         <p><b>3.</b> Sure? Hit <b>IS IT…?</b> — ${n} wrong guess${n === 1 ? "" : "es"} and <em>they</em> win.</p>
         <p class="mf-kicker">Some modes let you <b>drag one face onto another</b>. Consequences occur.</p>
-      </div>
-      <button type="button" class="button ghost hc-manifesto">READ THE MANIFESTO AGAIN</button>
+      `}</div>
+      ${groupthink ? "" : `<button type="button" class="button ghost hc-manifesto">READ THE MANIFESTO AGAIN</button>`}
       <button type="button" class="button primary mf-go">GOT IT</button>
     </div>`;
   document.body.appendChild(ov);
   const close = () => { if (ov._untrap) ov._untrap(); ov.classList.add("mf-out"); setTimeout(() => ov.remove(), 260); };
   ov.querySelector(".mf-go").addEventListener("click", close);
   ov.addEventListener("click", (e) => { if (e.target === ov) close(); });
-  ov.querySelector(".hc-manifesto").addEventListener("click", () => {
+  ov.querySelector(".hc-manifesto")?.addEventListener("click", () => {
     close();
     manifestoDone = false;                       // replay wanted: let it show once more, right now
     try { localStorage.removeItem(MANIFESTO_KEY); } catch (e) { /* fine */ }
@@ -2426,6 +2458,7 @@ function maybeShowForecast() {
   setTimeout(skip, 2600);
 }
 function resumeGame(saved) {
+  state.ruleset = saved.ruleset === "groupthink" ? "groupthink" : "whoisit";
   // A TV/display refresh rejoins the room as a display (never as a seated player).
   if (saved.isObserver && (saved.gameMode || "") === "online" && saved.roomCode) {
     joinRoom(saved.roomCode, "TV", { observe: true });
@@ -2476,6 +2509,10 @@ function resumeGame(saved) {
   state.myRosterIndex = saved.myRosterIndex || 0;
   state.isHost = !!saved.isHost;
   state.headsForm = Number.isFinite(saved.headsForm) ? saved.headsForm : 0;
+  if (state.ruleset === "groupthink" && window.Groupthink) {
+    Groupthink.resume(saved);
+    return;
+  }
   newGame(saved.salt, { resume: true, remote: true });
   const rebuilt = hydrateSavedBoard(saved);
   if (rebuilt.length >= 2) {
@@ -3695,6 +3732,10 @@ function pgToggleMarkup() {
   const on = state.settings.pg;
   return `<button type="button" class="ts-opt ts-pg ${on ? "on" : ""}" aria-pressed="${on}">${tsIcon("pg")}<span class="ts-opt-label">PG mode</span><b class="ts-chip">${on ? "ON" : "OFF"}</b></button>`;
 }
+function yoloToggleMarkup() {
+  const on = state.settings.groupthinkYolo !== false;
+  return `<button type="button" class="ts-opt ts-yolo ${on ? "on" : ""}" aria-pressed="${on}">${tsIcon("dice")}<span class="ts-opt-label ts-yolo-label">YOLO MODE<small>${on ? "PERMANENT CUTS" : "FULL DECK · 8 ROUNDS"}</small></span><b class="ts-chip">${on ? "ON" : "OFF"}</b></button>`;
+}
 // Board size lives inline in the setup step now (no nested settings panel).
 function boardSizeMarkup() {
   const pills = BOARD_SIZES.map((n) => `<button type="button" class="ts-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
@@ -3759,6 +3800,7 @@ function audioToggleMarkup() {
   return row("ts-sound", "sound", "Sound", sfxOn) + row("ts-music", "music", "Music", musicOn);
 }
 function showTitleScreen() {
+  document.title = "WHO? KNOWS?";
   const saved = loadGameSave();
   const ov = document.createElement("div");
   ov.className = "title-screen title-landing";
@@ -3774,8 +3816,9 @@ function showTitleScreen() {
         <div class="ts-poster">
           <div class="ts-words" aria-hidden="true">
             <span class="ts-who">WHO?</span>
-            <span class="ts-isit">IS IT?</span>
+            <span class="ts-isit">KNOWS?</span>
           </div>
+          <p class="ts-anthology">THE DERANGED ANTHOLOGY</p>
           <div class="ts-cta">
             <button type="button" class="button primary ts-letplay">${tsIcon("play")}<span class="ts-lbl">LET'S PLAY</span></button>
             ${saved ? `<button type="button" class="button ghost ts-resume ts-resume-splash">${saved.gameMode === "online"
@@ -3791,6 +3834,31 @@ function showTitleScreen() {
         </div>
       </div>
       <div class="ts-actions">
+        <div class="ts-step ts-step-ruleset" hidden>
+          <div class="ts-ruleset-head">
+            <span>CHOOSE YOUR GAME</span>
+            <small>SAME FACES. DIFFERENT DAMAGE.</small>
+          </div>
+          <div class="ts-ruleset-grid" role="group" aria-label="Choose a game">
+            <button type="button" class="button ts-ruleset ts-ruleset-whoisit" data-ruleset="whoisit" aria-label="Play WHO? IS IT?">
+              <span class="ts-ruleset-logo ts-ruleset-logo-whoisit" aria-hidden="true">
+                <span class="ts-rs-who">WHO?</span>
+                <span class="ts-rs-isit">IS IT?</span>
+              </span>
+              <small>ASK QUESTIONS. CROSS THEM OFF.<br>FIND THE HIDDEN FACE.</small>
+              <span class="ts-ruleset-enter" aria-hidden="true">PLAY THIS <b>→</b></span>
+            </button>
+            <button type="button" class="button ts-ruleset ts-ruleset-groupthink" data-ruleset="groupthink" aria-label="Play WHO? DO YOU THINK?">
+              <span class="ts-ruleset-logo ts-ruleset-logo-groupthink" aria-hidden="true">
+                <span class="ts-rs-who">WHO?</span>
+                <span class="ts-rs-doyouthink">DO YOU THINK?</span>
+              </span>
+              <small>MATCH THE ROOM. SAVE ONE.<br>CUT THE REST.</small>
+              <span class="ts-ruleset-enter" aria-hidden="true">PLAY THIS <b>→</b></span>
+            </button>
+          </div>
+          <button type="button" class="button ghost ts-ruleset-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
+        </div>
         <div class="ts-step ts-step-main" hidden>
           <button type="button" class="button primary ts-local">${tsIcon("local")}<span class="ts-lbl">LOCAL GAME</span></button>
           <button type="button" class="button secondary ts-online">${tsIcon("online")}<span class="ts-lbl">ONLINE GAME</span></button>
@@ -3805,6 +3873,7 @@ function showTitleScreen() {
           <input class="ts-team-mode-input" type="checkbox" checked>
           <b class="ts-chip">ON</b>
         </label>
+        ${yoloToggleMarkup()}
         ${modeLineupMarkup()}
         ${pgToggleMarkup()}
         ${boardSizeMarkup()}
@@ -3836,7 +3905,7 @@ function showTitleScreen() {
   ov.addEventListener("pointerdown", () => { if (window.Sound) { Sound.resume(); Sound.titleLoop(true); } }, { once: true });
   // Every menu tap clicks (PG plays its own richer sound; mode-lineup chips get rebuilt so they play
   // their own click via the delegated handler below).
-  ov.querySelectorAll("button:not(.ts-pg):not(.mode-policy-chip)").forEach((b) => b.addEventListener("click", () => sfx("click")));
+  ov.querySelectorAll("button:not(.ts-pg):not(.ts-yolo):not(.mode-policy-chip)").forEach((b) => b.addEventListener("click", () => sfx("click")));
   // PG toggle(s): the same control appears in the local + host setup steps; one handler keeps every
   // instance in sync. Turning PG ON is free; turning it OFF is gated behind an adults-only riddle.
   const paintPg = () => ov.querySelectorAll(".ts-pg").forEach((b) => {
@@ -3850,6 +3919,19 @@ function showTitleScreen() {
       if (ok) { setPgMode(false); paintPg(); paintStartModes(); repaintLineups(); sfx("coin"); }
       else { setPgMode(true); paintPg(); paintStartModes(); repaintLineups(); sfx("buzzer"); }
     });
+  }));
+  const paintYolo = () => ov.querySelectorAll(".ts-yolo").forEach((button) => {
+    const on = state.settings.groupthinkYolo !== false;
+    button.classList.toggle("on", on);
+    button.setAttribute("aria-pressed", String(on));
+    button.querySelector(".ts-chip").textContent = on ? "ON" : "OFF";
+    button.querySelector(".ts-yolo-label small").textContent = on ? "PERMANENT CUTS" : "FULL DECK · 8 ROUNDS";
+  });
+  ov.querySelectorAll(".ts-yolo").forEach((button) => button.addEventListener("click", () => {
+    state.settings.groupthinkYolo = state.settings.groupthinkYolo === false;
+    savePrefs({ groupthinkYolo: state.settings.groupthinkYolo });
+    paintYolo();
+    sfx("blip");
   }));
   // Inline settings (board size + sound + music) live in the local/host steps, mirrored across both.
   ov.querySelectorAll(".ts-size").forEach((btn) => btn.addEventListener("click", () => {
@@ -3921,24 +4003,31 @@ function showTitleScreen() {
   });
   const openSplash = () => {
     observeMode = false;
-    ov.classList.remove("ts-menu-open");
+    ov.classList.remove("ts-menu-open", "ts-ruleset-open", "has-ruleset");
+    ov.classList.remove("is-groupthink");
+    const posterAnswer = ov.querySelector(".ts-poster .ts-isit");
+    if (posterAnswer) posterAnswer.textContent = "KNOWS?";
     Object.values(steps).forEach((el) => {
       el.hidden = true;
       el.classList.remove("ts-step-enter");
     });
   };
   const steps = {
+    ruleset: ov.querySelector(".ts-step-ruleset"),
     main: ov.querySelector(".ts-step-main"),
     names: ov.querySelector(".ts-step-names"),
     online: ov.querySelector(".ts-step-online"),
     join: ov.querySelector(".ts-step-join")
   };
-  const show = (name) => Object.entries(steps).forEach(([k, el]) => {
-    const active = k === name;
-    ov.classList.add("ts-menu-open");
-    el.hidden = !active;
-    if (active) { el.classList.remove("ts-step-enter"); void el.offsetWidth; el.classList.add("ts-step-enter"); }   // re-trigger the fade-in
-  });
+  const show = (name) => {
+    ov.classList.toggle("ts-ruleset-open", name === "ruleset");
+    Object.entries(steps).forEach(([k, el]) => {
+      const active = k === name;
+      ov.classList.add("ts-menu-open");
+      el.hidden = !active;
+      if (active) { el.classList.remove("ts-step-enter"); void el.offsetWidth; el.classList.add("ts-step-enter"); }   // re-trigger the fade-in
+    });
+  };
   // A11Y-01: validation was a silent visual shake. Now it also writes an inline, announced error line
   // under the field (aria-live) and sets aria-invalid, so screen-reader + no-animation users get it.
   const markInvalid = (el, message) => {
@@ -3966,8 +4055,19 @@ function showTitleScreen() {
     }
     el.focus();
   };
-  ov.querySelector(".ts-letplay").addEventListener("click", () => show("main"));
-  ov.querySelector(".ts-splash-back").addEventListener("click", openSplash);
+  ov.querySelector(".ts-letplay").addEventListener("click", () => show("ruleset"));
+  ov.querySelector(".ts-splash-back").addEventListener("click", () => show("ruleset"));
+  ov.querySelector(".ts-ruleset-back").addEventListener("click", openSplash);
+  ov.querySelectorAll(".ts-ruleset").forEach((button) => button.addEventListener("click", () => {
+    state.ruleset = button.dataset.ruleset === "groupthink" ? "groupthink" : "whoisit";
+    if (state.ruleset === "groupthink") state.playMode = "solo";
+    document.title = state.ruleset === "groupthink" ? "WHO? DO YOU THINK?" : "WHO? IS IT?";
+    ov.classList.add("has-ruleset");
+    ov.classList.toggle("is-groupthink", state.ruleset === "groupthink");
+    const posterAnswer = ov.querySelector(".ts-poster .ts-isit");
+    if (posterAnswer) posterAnswer.textContent = state.ruleset === "groupthink" ? "DO YOU THINK?" : "IS IT?";
+    show("main");
+  }));
   // LOCAL games: no up-front stepper. The names step starts at 2 slots and the host adds/removes
   // players there (2..MAX_PLAYERS). Team Mode appears once there are 3+.
   let localPlayMode = "team";
@@ -3978,7 +4078,7 @@ function showTitleScreen() {
   const slotCount = () => namesList.querySelectorAll(".ts-name-slot").length;
   const refreshNamesUi = () => {
     const n = slotCount();
-    teamToggle.hidden = n <= 2;
+    teamToggle.hidden = state.ruleset === "groupthink" || n <= 2;
     teamToggle.classList.toggle("on", teamInput.checked);
     teamToggle.querySelector("b").textContent = teamInput.checked ? "ON" : "OFF";
     addBtn.disabled = n >= MAX_PLAYERS;
@@ -4020,7 +4120,7 @@ function showTitleScreen() {
     const names = inputs.map((el) => cleanPlayerName(el.value));
     const count = inputs.length;
     close();
-    startLocalGame(count, names, count > 2 ? localPlayMode : "team");
+    startLocalGame(count, names, state.ruleset === "groupthink" ? "solo" : (count > 2 ? localPlayMode : "team"));
   });
   ov.querySelector(".ts-online").addEventListener("click", () => show("online"));
   const nameInput = ov.querySelector(".ts-name-input");
@@ -4102,10 +4202,10 @@ function startLocalGame(count, names, playMode = "team") {
   state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; state.isHost = false;
   state.scoreboard = {};   // fresh session, fresh Win & Loss tally
   state.seenPrompts = new Set();   // fresh session, prompts cycle without repeats
-  state.playMode = playMode === "solo" ? "solo" : "team";
+  state.playMode = state.ruleset === "groupthink" ? "solo" : (playMode === "solo" ? "solo" : "team");
   state.roster = normalizeRoster(count || MIN_PLAYERS, names);
   state.playerCount = state.roster.length;
-  const effectId = normalizedStartModeId(state.settings) || null;
+  const effectId = state.ruleset === "groupthink" ? null : (normalizedStartModeId(state.settings) || null);
   // Progressive lineups ease in with a plain Guess Who round; chaotic/custom lineups already opted
   // into nonsense, so they spin a mode on round one (FLOW-05).
   const skipWarmup = effectiveModePolicy() !== "progressive";
@@ -4123,7 +4223,7 @@ function startOnlineGame(name) {
   state.seenPrompts = new Set();   // NET2-03: fresh session, fresh no-repeat memory (matches local)
   state.hostClaimId = null;
   ensureClientId();
-  state.playMode = "team";
+  state.playMode = state.ruleset === "groupthink" ? "solo" : "team";
   state.pname = cleanPlayerName(name) || "Player 1";
   state.gameSalt = `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   // NET-09 (documented, accepted risk): 4-digit codes can collide — two concurrent hosts have a
@@ -4146,7 +4246,7 @@ function joinRoom(code, name, opts = {}) {
   state.isObserver = !!(opts && opts.observe);
   state.gameMode = "online"; state.isHost = false; state.mySeat = 0; state.inLobby = true;
   ensureClientId();
-  state.playMode = "team";
+  state.playMode = state.ruleset === "groupthink" ? "solo" : "team";
   state.pname = state.isObserver ? "TV" : (cleanPlayerName(name) || "Player 2");
   state.roomCode = code;
   state.roster = [];               // populated from the host's "lobby" broadcast
@@ -4228,6 +4328,9 @@ function maybeOfferHostTakeover() {
     state.isHost = true;
     state.hostClaimId = state.clientId;
     netSend("hostclaim", {});
+    // WHO? DO YOU THINK? has secret parallel ballots. The new host asks each locked client to
+    // resubmit its own ballot so takeover can finish the round without revealing anyone's picks.
+    if (state.ruleset === "groupthink" && window.Groupthink) Groupthink.onHostClaim();
     flashToast("👑 You're the host now.");
     saveGameState();
     b.remove();
@@ -4320,11 +4423,12 @@ window.addEventListener("resize", () => { if (state.isObserver) fitObserverBoard
 function renderObserverHeader() {
   let bar = document.getElementById("observerBar");
   if (!bar) { bar = document.createElement("div"); bar.id = "observerBar"; document.body.appendChild(bar); }
-  const modeName = state.global.mystery ? state.global.mystery.name : "GUESS WHO";
+  const groupthink = state.ruleset === "groupthink";
+  const modeName = groupthink ? `ROUND ${(state.groupthink?.roundIndex || 0) + 1} · ${state.board.length} LEFT` : (state.global.mystery ? state.global.mystery.name : "GUESS WHO");
   const loc = state.location ? state.location.name : "";
   const count = Array.isArray(state.roster) ? state.roster.length : 0;
   bar.innerHTML = `
-    <span class="ob-brand"><b class="ob-who">WHO?</b> <b class="ob-isit">IS IT?</b></span>
+    <span class="ob-brand"><b class="ob-who">WHO?</b> <b class="ob-isit">${groupthink ? "DO YOU THINK?" : "IS IT?"}</b></span>
     <span class="ob-meta">
       ${loc ? `<span class="ob-chip ob-loc">📍 ${escapeHtml(loc)}</span>` : ""}
       <span class="ob-chip ob-mode">${escapeHtml(modeName)}</span>
@@ -4338,7 +4442,7 @@ function renderObserverHeader() {
 function resumeOnlineLobby(saved) {
   state.gameMode = "online"; state.inLobby = true;
   state.isHost = !!saved.isHost;
-  state.playMode = saved.playMode === "solo" ? "solo" : "team";
+  state.playMode = state.ruleset === "groupthink" ? "solo" : (saved.playMode === "solo" ? "solo" : "team");
   state.pname = isValidPlayerName(saved.pname) ? cleanPlayerName(saved.pname) : (state.pname || "Player");
   state.clientId = saved.clientId || ensureClientId();
   state.roomCode = saved.roomCode;
@@ -4381,17 +4485,20 @@ function showLobby() {
   const host = state.isHost;
   const ov = document.createElement("div");
   ov.className = "lobby-screen title-screen";
+  const groupthink = state.ruleset === "groupthink";
+  ov.classList.toggle("is-groupthink", groupthink);
   ov.innerHTML = `
-    <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">IS IT?</span></div>
+    <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">${groupthink ? "DO YOU THINK?" : "IS IT?"}</span></div>
     <p class="lobby-code">ROOM <b>#${escapeHtml(state.roomCode)}</b></p>
     ${host ? lobbyJoinShareMarkup() : ""}
-    ${host ? `<label class="ts-opt ts-team-mode lobby-team-mode ${state.playMode === "solo" ? "" : "on"}">
+    ${host ? `${!groupthink ? `<label class="ts-opt ts-team-mode lobby-team-mode ${state.playMode === "solo" ? "" : "on"}">
       ${tsIcon("team")}<span class="ts-opt-label">Team Mode</span>
       <input class="lobby-team-mode-input" type="checkbox" ${state.playMode === "solo" ? "" : "checked"}>
       <b class="ts-chip">${state.playMode === "solo" ? "OFF" : "ON"}</b>
-    </label>
+    </label>` : ""}
     ${pgToggleMarkup()}
-    ${boardSizeMarkup()}` : ""}
+    ${groupthink ? yoloToggleMarkup() : ""}
+    ${groupthink ? "" : boardSizeMarkup()}` : ""}
     <div class="lobby-players"></div>
     <p class="lobby-status"></p>
     <div class="lobby-actions">
@@ -4425,13 +4532,28 @@ function showLobby() {
       updateLobby();
       saveGameState();
     });
-    // PG + board size are HOST-only room settings (guests inherit them at START via the settings
-    // broadcast). Same controls as the local setup.
+    // PG, YOLO + board size are HOST-only room settings. Guests inherit them from lobby broadcasts
+    // and again at START. Same controls as the local setup.
     const pgBtn = ov.querySelector(".ts-pg");
     const paintPg = () => { if (!pgBtn) return; pgBtn.classList.toggle("on", state.settings.pg); pgBtn.querySelector("b").textContent = state.settings.pg ? "ON" : "OFF"; pgBtn.setAttribute("aria-pressed", String(state.settings.pg)); };
     pgBtn?.addEventListener("click", () => {
       if (!state.settings.pg) { setPgMode(true); paintPg(); sfx("blip"); saveGameState(); return; }
       askAdultGate((ok) => { if (ok) { setPgMode(false); paintPg(); sfx("coin"); } else { setPgMode(true); paintPg(); sfx("buzzer"); } saveGameState(); });
+    });
+    const yoloBtn = ov.querySelector(".ts-yolo");
+    yoloBtn?.addEventListener("click", () => {
+      state.settings.groupthinkYolo = state.settings.groupthinkYolo === false;
+      const on = state.settings.groupthinkYolo;
+      yoloBtn.classList.toggle("on", on);
+      yoloBtn.setAttribute("aria-pressed", String(on));
+      yoloBtn.querySelector(".ts-chip").textContent = on ? "ON" : "OFF";
+      yoloBtn.querySelector(".ts-yolo-label small").textContent = on ? "PERMANENT CUTS" : "FULL DECK · 8 ROUNDS";
+      savePrefs({ groupthinkYolo: on });
+      netSend("settings", { settings: state.settings });
+      broadcastLobby();
+      updateLobby();
+      sfx("blip");
+      saveGameState();
     });
     ov.querySelectorAll(".ts-size").forEach((btn) => btn.addEventListener("click", () => {
       const n = Number(btn.dataset.n);
@@ -4444,14 +4566,21 @@ function showLobby() {
   if (startBtn) startBtn.addEventListener("click", () => {
     state.inLobby = false;
     ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 400);
-    // Finalize the roster to the humans actually present, then deal. The opening online round is
-    // plain Guess Who (no effect, no wheel) for every seat.
+    // Finalize the roster to the humans actually present, then deal. WHO? DO YOU THINK? is plain for
+    // every round; WHO? IS IT? may still begin in a deliberately selected mystery mode.
     state.playerCount = state.roster.length;
     state.wheelPickShared = null;
     syncMySeatFromRoster();
-    const effectId = normalizedStartModeId(state.settings) || null;
-    netSend("start", { salt: state.gameSalt, settings: state.settings, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, effectId, first: !effectId });
-    newGame(state.gameSalt, effectId ? { effectId, announced: true } : { effectId: null, announced: true, first: true });
+    const skipWarmup = state.ruleset !== "groupthink" && effectiveModePolicy() !== "progressive";
+    let effectId = state.ruleset === "groupthink" ? null : (normalizedStartModeId(state.settings) || null);
+    // Match local setup: custom/chaotic lineups have explicitly opted out of the plain opening
+    // round. Pick the authoritative first effect here so every online client receives the same one.
+    if (!effectId && skipWarmup && state.settings.mystery) effectId = wheelTargetFromBag();
+    const first = !effectId && !skipWarmup;
+    netSend("start", { salt: state.gameSalt, settings: state.settings, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, ruleset: state.ruleset, effectId, first });
+    newGame(state.gameSalt, effectId
+      ? { effectId, announced: true }
+      : (first ? { effectId: null, announced: true, first: true } : { announced: true }));
   });
   updateLobby();
 }
@@ -4459,7 +4588,7 @@ function showLobby() {
 function broadcastLobby() {
   if (!state.isHost) return;
   state.playerCount = state.roster.length;
-  netSend("lobby", { roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
+  netSend("lobby", { roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, ruleset: state.ruleset, settings: state.settings });
   if (state.inLobby) scheduleSave();   // the lobby roster survives a host refresh
 }
 function updateLobby() {
@@ -4469,7 +4598,7 @@ function updateLobby() {
   const slots = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, roster.length + (roster.length < MAX_PLAYERS ? 1 : 0)));
   const modeToggle = ov.querySelector(".lobby-team-mode");
   if (modeToggle) {
-    modeToggle.hidden = roster.length <= 2;
+    modeToggle.hidden = state.ruleset === "groupthink" || roster.length <= 2;
     const modeInput = modeToggle.querySelector("input");
     if (modeInput) modeInput.checked = state.playMode !== "solo";
     modeToggle.classList.toggle("on", state.playMode !== "solo");
@@ -4481,7 +4610,9 @@ function updateLobby() {
     return `<div class="lobby-player ${r ? "here" : "empty"}">${r ? `● ${escapeHtml(r.name)}${me ? " (you)" : ""}` : "Share the room code"}</div>`;   // De Stijl: no green ✅ - the blue pill already says "present"
   }).join("");
   const enough = roster.length >= 2;
-  const modeLine = roster.length > 2 ? ` Team Mode ${state.playMode === "solo" ? "OFF" : "ON"}.` : "";
+  const modeLine = state.ruleset === "groupthink"
+    ? ` WHO? DO YOU THINK? · YOLO ${state.settings.groupthinkYolo !== false ? "ON — permanent cuts" : "OFF — full deck"}.`
+    : (roster.length > 2 ? ` Team Mode ${state.playMode === "solo" ? "OFF" : "ON"}.` : "");
   ov.querySelector(".lobby-status").textContent = enough
     ? (state.isHost ? `Ready when you are — press START.${modeLine}` : `Waiting for the host to start…${modeLine}`)
     : `Share room #${state.roomCode} with friends.`;
@@ -4493,7 +4624,7 @@ function updateLobby() {
 // The code packs the salt + settings; pasting it deals the IDENTICAL round (same board, same
 // location, same wheel outcome, same secrets) - assuming both sides have the same character pool.
 function currentSeedCode() {
-  try { return btoa(unescape(encodeURIComponent(JSON.stringify({ s: state.gameSalt, g: state.settings })))).replace(/=+$/, ""); }
+  try { return btoa(unescape(encodeURIComponent(JSON.stringify({ s: state.gameSalt, g: state.settings, r: state.ruleset })))).replace(/=+$/, ""); }
   catch (e) { return ""; }
 }
 function parseSeedCode(code) {
@@ -4516,12 +4647,13 @@ installStaticIcons();
     const src = document.querySelector('script[src*="app.js"]')?.getAttribute("src") || "";
     build = (src.match(/v=(\d+)/) || [])[1] || "";
   } catch (e) { /* fine */ }
-  verEl.textContent = `WHO? IS IT?${build ? ` · build ${build}` : ""}`;
+  verEl.textContent = `WHO? KNOWS?${build ? ` · build ${build}` : ""}`;
 })();
 // Device prefs (board size, sound/music) set from the title-screen settings panel.
 {
   const prefs = loadPrefs();
   if (BOARD_SIZES.includes(prefs.boardSize)) state.settings.boardSize = prefs.boardSize;
+  if (typeof prefs.groupthinkYolo === "boolean") state.settings.groupthinkYolo = prefs.groupthinkYolo;
   if (prefs.lowPower === true) state.settings.lowPower = true;   // device pref, persists across sessions
   applyLowPower();
   placeDesktopToolbar();   // desktop: fold the board toolbar into the sticky rail
@@ -4599,8 +4731,9 @@ function bootFromGameLink(raw) {
   // BUG2-07: a mangled/ancient ?g= link used to fail silently to the title - acknowledge it in voice.
   if (!parsed) { setTimeout(() => { try { flashToast("That game link didn't survive. Deal a fresh universe instead."); } catch (e) { /* pre-UI */ } }, 600); return false; }
   if (parsed.g) state.settings = normalizeGameSettings({ ...state.settings, ...parsed.g });
+  state.ruleset = parsed.r === "groupthink" ? "groupthink" : "whoisit";
   state.gameMode = "local"; state.mySeat = 0; state.inLobby = false; state.isHost = false;
-  state.playMode = "team";
+  state.playMode = state.ruleset === "groupthink" ? "solo" : "team";
   state.roster = normalizeRoster(MIN_PLAYERS, ["Player 1", "Player 2"]);
   state.playerCount = state.roster.length;
   newGame(parsed.s, { first: true });

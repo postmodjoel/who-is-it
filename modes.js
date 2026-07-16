@@ -659,8 +659,9 @@ function renderHeadsOnlyBoard(player) {
     el.dataset.id = ch.id;
     el.style.setProperty("--bob", `${(stableHash(ch.id) % 1000) / 1000 * 3}s`);
     el.innerHTML = `<img src="${m.image || ch.image}" alt=""><span class="float-name">${escapeHtml(displayName(ch))}</span>`;
-    el.addEventListener("click", () => toggleEliminated(ch.id));
-    wireBreedDnD(el, ch.id);
+    if (state.ruleset === "groupthink" && window.Groupthink) Groupthink.decorateCard(el, ch);
+    el.addEventListener("click", () => activateCharacter(ch.id));
+    if (state.ruleset !== "groupthink") wireBreedDnD(el, ch.id);
     layer.appendChild(el);
     // Swap the SVG for a flat pre-shadowed PNG once it's rasterised (Safari perf - see rasterizeHead).
     rasterizeHead(m.image || ch.image, (url) => { const img = el.querySelector("img"); if (img) img.src = url; });
@@ -818,19 +819,24 @@ function renderHabboSelectionUI(focusChat = false) {
   const ch = characterById(habboSelected);
   if (!ch) return;
   const a = state.global.mystery.assignments[ch.id] || {};
-  const banned = currentPlayer().eliminated.has(ch.id);
+  const gtActive = state.ruleset === "groupthink" && window.Groupthink;
+  const gtIndex = state.gameMode === "online" ? (state.mySeat || 0) : clampSeatIndex(state.currentPlayer);
+  const gtPicked = gtActive && (state.groupthink?.picks?.[gtIndex] || []).includes(ch.id);
+  const gtLocked = gtActive && !!state.groupthink?.locked?.[gtIndex];
+  const banned = gtActive ? false : currentPlayer().eliminated.has(ch.id);
+  const readOnly = !!state.isObserver;
   const face = habboFaceSrc(a);   // real Habbo head if we have a sprite, else the generated portrait
   const cam = document.createElement("div");
   cam.id = "habboCam"; cam.className = "hb-cam";
   cam.innerHTML = `<p class="hb-cam-top"><span class="hb-rec">● REC</span><span>ROOM CAM</span></p>`
     + `<div class="hb-cam-screen"><img class="${face ? "hb-real-face" : ""}" src="${face || a.head || ch.image}" alt=""></div>`
     + `<p class="hb-cam-name">${displayName(ch)}</p>`
-    + `<button type="button" class="hb-cam-ban ${banned ? "is-banned" : ""}">${banned ? "UNBAN" : "BAN"}</button>`;
+    + `<button type="button" class="hb-cam-ban ${gtPicked ? "is-banned" : ""}" ${readOnly || gtLocked ? "disabled" : ""}>${readOnly ? "WATCHING" : gtActive ? (gtLocked ? "LOCKED" : gtPicked ? "UNPICK" : "PICK") : banned ? "UNBAN" : "BAN"}</button>`;
   wrap.appendChild(cam);
   // Only the generated-portrait fallback gets pixel-crunched; a real Habbo head is already pixel-art.
   if (!face && a.head) pixelateSrc(a.head, 84, (url) => { const img = cam.querySelector(".hb-cam-screen img"); if (img) img.src = url; }, [0.14, 0.09, 0.72, 0.72]);
-  cam.querySelector(".hb-cam-ban").addEventListener("click", () => banHabbo(ch.id));
-  if (HABBO_HAS_KEYBOARD && !banned) {
+  cam.querySelector(".hb-cam-ban").addEventListener("click", () => gtActive ? activateCharacter(ch.id) : banHabbo(ch.id));
+  if (HABBO_HAS_KEYBOARD && !banned && !readOnly) {
     const bar = document.createElement("div");
     bar.id = "habboChat"; bar.className = "hb-chatbar";
     bar.dataset.forId = ch.id;
@@ -1250,6 +1256,8 @@ function renderHabboBoard(player) {
   els.characterBoard.classList.add("habbo-board");
   els.characterBoard.setAttribute("aria-label", "Habbo Hotel room");
   const list = sortedBoard();
+  const liveIds = new Set(list.map((character) => character.id));
+  habboPos.forEach((value, id) => { if (!liveIds.has(id)) habboPos.delete(id); });
   const room = document.createElement("div");
   room.className = "habbo-room";
   els.characterBoard.appendChild(room);
@@ -1377,6 +1385,9 @@ function renderHabboBoard(player) {
         + `<i class="hb-leg hb-leg-l"></i><i class="hb-leg hb-leg-r"></i></span>`
         + `<span class="hb-shadow"></span>`;
     }
+    // Habbo's avatar is a camera target rather than the direct ballot button. Mirror Groupthink's
+    // selected/locked decoration without disabling the camera interaction itself.
+    if (state.ruleset === "groupthink" && window.Groupthink) Groupthink.decorateCard(el, ch, { preserveInteraction: true });
     el.addEventListener("click", (e) => { e.stopPropagation(); selectHabbo(ch.id); });
     figs.appendChild(el);
     figEls.set(ch.id, el);
@@ -1891,8 +1902,9 @@ function createManorCharacterToken(character, player) {
     <span class="manor-name">${escapeHtml(character.name)}</span>
   `;
   // Tap crosses off; a real drag relocates the suspect. (manordrag flag set by the drag handler.)
-  token.addEventListener("click", () => { if (token.dataset.manordrag) { delete token.dataset.manordrag; return; } toggleEliminated(character.id); });
-  wireManorDnD(token, character.id);
+  if (state.ruleset === "groupthink" && window.Groupthink) Groupthink.decorateCard(token, character);
+  token.addEventListener("click", () => { if (token.dataset.manordrag) { delete token.dataset.manordrag; return; } activateCharacter(character.id); });
+  if (state.ruleset !== "groupthink") wireManorDnD(token, character.id);
   return token;
 }
 // Drag a suspect from one room onto another to move them (repositioning to reason about alibis).
@@ -2222,6 +2234,7 @@ function renderPainScale(pain, cid) {
 // Drag along a pain scale to set that character's pain level - which re-renders their face into the
 // matching expression (agony -> angry ... fine -> happy). Updated in place so the drag isn't broken.
 function setPain(cid, index) {
+  if (state.ruleset === "groupthink") return;
   const a = state.global.mystery?.assignments?.[cid];
   if (!a || a.pain === index) return;
   a.pain = index;

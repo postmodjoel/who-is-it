@@ -3,13 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>WHO? IS IT?</title>
+    <title>WHO? KNOWS?</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23ffbe0b'/%3E%3Ccircle cx='32' cy='24' r='13' fill='%23fffdf7' stroke='%23171512' stroke-width='4'/%3E%3Cpath d='M14 58c2-16 34-16 36 0' fill='%233a86ff' stroke='%23171512' stroke-width='4'/%3E%3C/svg%3E">
     <!-- PERF2-01: the two SYSTEM faces are SELF-HOSTED (assets/fonts, OFL) so boot never round-trips
          to Google on party wifi. AES-02: costume fonts (Cinzel / Press Start 2P / Reem Kufi) are
          still injected by modes.js on the first activation of the mode that wears them. -->
     <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
-    <link rel="stylesheet" href="styles.css?v=254">
+    <link rel="stylesheet" href="styles.css?v=257">
+    <link rel="stylesheet" href="groupthink.css?v=9">
   </head>
   <body>
     <div id="locationBackdrop" class="location-backdrop" aria-hidden="true"></div>
@@ -22,7 +23,7 @@
         <aside class="game-side">
           <div class="side-panel">
             <div class="side-head">
-              <h1><span class="brand-who">WHO?</span><span class="brand-isit">IS IT?</span></h1>
+              <h1><span class="brand-who">WHO?</span><span class="brand-isit">IS IT?</span><span class="brand-doyouthink">DO YOU THINK?</span></h1>
               <span id="roomCode" class="room-code"></span>
             </div>
 
@@ -88,7 +89,7 @@
         </div>
 
         <div class="settings-grid">
-          <label class="toggle-row">
+          <label class="toggle-row gt-irrelevant-setting">
             <span>
               <strong>Questions</strong>
               <small>Show or hide the question card.</small>
@@ -112,7 +113,7 @@
             <input id="settingPG" type="checkbox" checked>
           </label>
 
-          <label class="toggle-row">
+          <label class="toggle-row gt-irrelevant-setting">
             <span>
               <strong>Win &amp; Loss</strong>
               <small>End a round by guessing who the other player is. Guess wrong too many times and they win.</small>
@@ -120,7 +121,7 @@
             <input id="settingGuessing" type="checkbox" checked>
           </label>
 
-          <div class="toggle-row guess-count-row">
+          <div class="toggle-row guess-count-row gt-irrelevant-setting">
             <span>
               <strong>Guesses each</strong>
               <small>How many tries before you're out.</small>
@@ -197,11 +198,13 @@
     </dialog>
 
     <script src="game-data.js?v=207"></script>
-    <script src="studio-bakes-import.js?v=1"></script>
-    <script src="face-generator.js?v=236"></script>
+    <script src="groupthink-data.js?v=2"></script>
+    <script src="studio-bakes-import.js?v=3"></script>
+    <script src="clothing-profiles.js?v=1"></script>
+    <script src="face-generator.js?v=242"></script>
     <script src="faces-hair.js?v=207"></script>
     <script src="sound.js?v=206"></script>
-    <script src="net.js?v=224"></script>
+    <script src="net.js?v=229"></script>
     <script src="breeding.js?v=205"></script>
     <!-- PERF-02: editor.js + vendor-qrcode.js are lazy-loaded by app.js (first 🎨 click / first
          lobby-or-receipt + idle preload). editor-shared.js stays eager: face-generator uses it. -->
@@ -210,7 +213,10 @@
     <script src="habbo-assets.js?v=205"></script>
     <script src="habbo-avatars.js?v=205"></script>
     <script src="habbo-spares.js?v=218"></script>
-    <script src="modes.js?v=227"></script>
-    <script src="app.js?v=248"></script>
+    <script src="modes.js?v=229"></script>
+    <script src="groupthink-rules.js?v=1"></script>
+    <script src="groupthink-lab.js?v=2"></script>
+    <script src="groupthink.js?v=11"></script>
+    <script src="app.js?v=257"></script>
   </body>
 </html>

@@ -18,6 +18,17 @@ window.addEventListener("beforeunload", () => { try { if (net) net.close(); } ca
 // the roster - a refresh comes back on the same persistent clientId); an explicit "bye" = left.
 const netPeers = new Map();   // clientId -> { name, lastSeen, gone }
 let netHeartbeatTimer = null;
+function recordGroupthinkPeerEvent(type, clientId, how) {
+  if (state.ruleset !== "groupthink" || !state.isHost || !window.GroupthinkLab?.enabled()) return;
+  const seat = (state.roster || []).findIndex((entry) => entry.clientId === clientId);
+  GroupthinkLab.event(type, {
+    seat,
+    how: how || null,
+    phase: state.groupthink?.phase || null,
+    roundIndex: state.groupthink?.roundIndex || 0,
+    revision: state.groupthink?.revision || 0
+  });
+}
 function notePeer(msg) {
   if (!msg.clientId || msg.clientId === state.clientId) return;
   const name = typeof cleanPlayerName === "function" ? cleanPlayerName(msg.pname) : String(msg.pname || "").trim();
@@ -26,6 +37,7 @@ function notePeer(msg) {
   if (name) p.name = name;
   if (p.gone) {
     p.gone = false;
+    recordGroupthinkPeerEvent("reconnect", msg.clientId, "message");
     state.onlinePeer = true;
     addLog(`${p.name} reconnected.`);
     if (typeof flashToast === "function") flashToast(`🟢 ${p.name} is back.`);
@@ -35,14 +47,18 @@ function notePeer(msg) {
   }
   p.lastSeen = Date.now();
 }
-function peerGone(p, how) {
+function peerGone(p, how, clientId) {
   if (!p || p.gone) return;
   p.gone = true;
+  recordGroupthinkPeerEvent("disconnect", clientId, how);
   const line = how === "left" ? `${p.name} left the room.` : `${p.name} disconnected — waiting for them to reconnect…`;
   addLog(line);
   if (typeof flashToast === "function") flashToast(how === "left" ? `👋 ${line}` : `🔌 ${line}`);
   // Roster slot is PRESERVED either way - a refreshed player rejoins the same seat.
-  if (![...netPeers.values()].some((x) => !x.gone)) { state.onlinePeer = false; renderRoom(); }
+  if (![...netPeers.values()].some((x) => !x.gone)) state.onlinePeer = false;
+  // Groupthink hosts surface a per-round skip control only after presence has positively marked a
+  // seat gone. Re-rendering here is harmless for classic WHO? IS IT? and keeps its room status fresh.
+  renderRoom();
   updateLobby();
 }
 function startNetHeartbeat() {
@@ -51,7 +67,7 @@ function startNetHeartbeat() {
     if (state.gameMode !== "online" || !net) return;
     netSend("ping", { pname: state.pname });
     const now = Date.now();
-    netPeers.forEach((p) => { if (!p.gone && p.lastSeen && now - p.lastSeen > 13000) peerGone(p, "dropped"); });
+    netPeers.forEach((p, clientId) => { if (!p.gone && p.lastSeen && now - p.lastSeen > 13000) peerGone(p, "dropped", clientId); });
     // Host vanished for a while? The next player in join order gets offered the crown (app.js).
     if (typeof maybeOfferHostTakeover === "function") maybeOfferHostTakeover();
     // MISS-02: a guest stuck in a host-less lobby gets a banner + Leave focus instead of waiting forever.
@@ -61,6 +77,9 @@ function startNetHeartbeat() {
 // The current room authority: an explicit "hostclaim" winner, else roster slot 0 (the host seat).
 function netHostId() {
   return state.hostClaimId || ((state.roster && state.roster[0]) || {}).clientId || null;
+}
+function netPeerGone(clientId) {
+  return !!clientId && !!netPeers.get(clientId)?.gone;
 }
 // Mid-round connection loss is easy to miss (the roster pill is tiny). After 3s of not-open we put
 // up a slim banner so players know their crossings aren't reaching anyone; it clears on reconnect.
@@ -82,7 +101,11 @@ function syncNetBanner(s) {
   }, 3000);
 }
 function setNetStatus(s) {
+  const previous = state.netStatus;
   state.netStatus = s;
+  if (previous && previous !== s && state.ruleset === "groupthink" && window.GroupthinkLab?.enabled()) {
+    GroupthinkLab.event("transport", { status: s, previous, phase: state.groupthink?.phase || null, roundIndex: state.groupthink?.roundIndex || 0 });
+  }
   syncNetBanner(s);
   const el = document.querySelector(".or-status");
   if (el && state.gameMode === "online") {
@@ -164,7 +187,7 @@ function netSend(type, data) {
   if (!net) return;
   // `observe` rides every message so the host's hello handler can tell a TV/observer client from a
   // real player and NOT seat it in the roster.
-  try { net.post({ type, seat: state.mySeat || 0, clientId: state.clientId || "", observe: !!state.isObserver, ...data }); } catch (e) { /* channel closed */ }
+  try { net.post({ type, ...(data || {}), seat: state.mySeat || 0, clientId: state.clientId || "", observe: !!state.isObserver }); } catch (e) { /* channel closed */ }
 }
 function markPeerOnline() {
   if (!state.onlinePeer) {
@@ -180,8 +203,9 @@ function handleNetMsg(msg) {
   // Presence first: any message from another client proves they're alive (and revives them if we
   // thought they'd dropped).
   if (msg.clientId && msg.clientId !== state.clientId) notePeer(msg);
+  if (window.Groupthink && Groupthink.handleNetMessage(msg)) return;
   if (msg.type === "ping") return;
-  if (msg.type === "bye") { peerGone(netPeers.get(msg.clientId), "left"); return; }
+  if (msg.type === "bye") { peerGone(netPeers.get(msg.clientId), "left", msg.clientId); return; }
   if (msg.type === "sfx") { if (window.Sound && typeof msg.name === "string") window.Sound.play(msg.name); return; }
   if (msg.type === "music") { if (window.Sound) { window.Sound.setTrack(Number(msg.track) || 0); window.Sound.setMusic(!!msg.on); } return; }
   if (msg.type === "settings") {
@@ -252,6 +276,12 @@ function handleNetMsg(msg) {
       return;
     }
     if (msg.clientId && !state.roster.some((r) => r.clientId === msg.clientId)) {
+      // GROUPTHINK shrinks one communal cast across a fixed roster. A late player would have no prior
+      // ballots or score/save history, so the match roster closes the moment round one starts.
+      if (!state.inLobby && state.ruleset === "groupthink") {
+        netSend("roomfull", { for: msg.clientId });
+        return;
+      }
       // A new client: register them in the next open slot (up to the cap).
       if (state.roster.length < MAX_PLAYERS) {
         const index = state.roster.length;
@@ -279,7 +309,7 @@ function handleNetMsg(msg) {
       netSend("snapshot", { save });
       if (typeof saveGameState === "function") saveGameState();
     }
-    else netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
+    else netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, ruleset: state.ruleset });
     return;
   }
   if (msg.type === "snapshot") {
@@ -289,13 +319,20 @@ function handleNetMsg(msg) {
     if (state.isHost) return;                        // the host never adopts a snapshot
     const save = msg.save;
     if (!save || !save.salt) return;
+    // A snapshot can replace an entire live game, so verify its sender against the authority encoded
+    // in the snapshot itself (important for a first-time observer whose local roster is still empty).
+    const snapshotHostId = save.hostClaimId || save.roster?.[0]?.clientId || netHostId();
+    if (snapshotHostId && msg.clientId !== snapshotHostId) return;
     // Already fully in this round? Don't re-deal under our own feet unless the host's snapshot has
     // a larger roster/seat set (mid-game join) or a play-mode change we have not adopted.
     if (save.salt === state.gameSalt && state.board.length && !state.inLobby) {
       const incomingRoster = Array.isArray(save.roster) ? save.roster.length : 0;
       const incomingSeats = Array.isArray(save.players) ? save.players.length : 0;
       const playModeChanged = save.playMode && save.playMode !== state.playMode;
-      if (!playModeChanged && incomingRoster <= (state.roster || []).length && incomingSeats <= (state.players || []).length) return;
+      const incomingGtRevision = save.ruleset === "groupthink" ? Math.max(0, Number(save.groupthink?.revision) || 0) : 0;
+      const localGtRevision = state.ruleset === "groupthink" ? Math.max(0, Number(state.groupthink?.revision) || 0) : 0;
+      const groupthinkAdvanced = save.ruleset === "groupthink" && incomingGtRevision > localGtRevision;
+      if (!playModeChanged && !groupthinkAdvanced && incomingRoster <= (state.roster || []).length && incomingSeats <= (state.players || []).length) return;
     }
     markPeerOnline();
     // Adopt the host's game but keep MY identity: locate myself in the shipped roster.
@@ -322,8 +359,14 @@ function handleNetMsg(msg) {
     markPeerOnline();
     if (typeof joinAcked === "function") joinAcked();   // a host answered: the room is real
     if (state.isHost) return;   // host owns the roster; ignore echoes of its own broadcast
+    if (msg.settings) {
+      const { lowPower, ...wireSettings } = msg.settings;
+      state.settings = typeof normalizeGameSettings === "function"
+        ? normalizeGameSettings({ ...state.settings, ...wireSettings })
+        : { ...state.settings, ...wireSettings };
+    }
     applyRosterFromMsg(msg);
-    if (state.inLobby) updateLobby();
+    if (state.inLobby) showLobby();
     return;
   }
   if (msg.type === "sync") {
@@ -351,7 +394,7 @@ function handleNetMsg(msg) {
     // sides. Winner re-broadcasts its start so the loser converges; loser adopts the foreign salt.
     if (state.lastStartSentAt && Date.now() - state.lastStartSentAt < 2500 && msg.clientId) {
       if (String(state.clientId || "") < String(msg.clientId)) {
-        netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode });
+        netSend("start", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, ruleset: state.ruleset });
         return;                               // keep OUR deal; the other side adopts it
       }
       state.lastStartSentAt = 0;              // we lost the tie-break: adopt theirs below
@@ -427,6 +470,7 @@ function handleNetMsg(msg) {
   }
   if (msg.type === "chat") {
     markPeerOnline();
+    if (msg.observe) return;   // TV/observer clients are read-only, including Habbo's bespoke chat.
     // Habbo room chat: the sender already bobba-ized the text, so every client shows the same words.
     if (state.global.mystery?.id === "habbo" && typeof habboSay === "function" && msg.charId && typeof msg.text === "string") {
       habboSay(msg.charId, String(msg.text).slice(0, 90));
@@ -436,6 +480,9 @@ function handleNetMsg(msg) {
   if (msg.type === "mode") {
     markPeerOnline();
     if (msg.clientId && msg.clientId === state.clientId) return;   // our own echo (WS relay path)
+    // WHO? DO YOU THINK? deliberately uses the plain shared card board. A stale classic client or a
+    // debug packet must not be able to inject a mystery renderer into that ruleset.
+    if (state.ruleset === "groupthink") return;
     const eff = MysteryModes.byId(msg.id);
     if (eff) {
       applyMysteryEffect(eff.id);

@@ -436,10 +436,15 @@ function renderSelected() {
   els.selectedPortrait.innerHTML = `<img src="${portraitFor(character, index, expression)}" alt="${escapeHtml(character.name)}">`;
   renderLockOverlay(character);
   els.selectedMeta.innerHTML = `
-    <div>
+    <div class="selected-character-nav">
+      <button class="character-nav-button" type="button" data-character-nav="-1" aria-label="Previous character" title="Previous character">&#8592;</button>
       <h2>${escapeHtml(character.name)}</h2>
+      <button class="character-nav-button" type="button" data-character-nav="1" aria-label="Next character" title="Next character">&#8594;</button>
     </div>
   `;
+  els.selectedMeta.querySelectorAll("[data-character-nav]").forEach((button) => {
+    button.addEventListener("click", () => selectAdjacentCharacter(Number(button.dataset.characterNav)));
+  });
   els.variantStrip.innerHTML = expressions
     .map((item) => {
       const active = item === expression ? "is-active" : "";
@@ -457,6 +462,17 @@ function renderSelected() {
     });
   });
   renderEditor(character);
+}
+
+function selectAdjacentCharacter(direction) {
+  const visible = filteredCharacters();
+  if (!visible.length) return;
+  const currentIndex = visible.findIndex((character) => character.id === state.selectedId);
+  const startIndex = currentIndex === -1 ? 0 : currentIndex;
+  const nextIndex = (startIndex + direction + visible.length) % visible.length;
+  setSelectedFaceId(visible[nextIndex].id);
+  state.selectedExpression = state.expression;
+  render();
 }
 
 function filteredCharacters() {
@@ -748,7 +764,6 @@ function colorWidget(key, shown, set) {
       <input type="text" class="studio-hex" data-hexfor="${escapeHtml(key)}" value="${escapeHtml(hex)}" maxlength="7" spellcheck="false" aria-label="${escapeHtml(key)} hex colour">
       <button type="button" class="studio-swatchbtn" data-swatchfor="${escapeHtml(key)}" title="Palette">◫</button>
     </span>
-    <span class="editor-value">${set ? "manual" : "auto"}</span>
   `;
 }
 
@@ -797,13 +812,11 @@ function renderEditor(character) {
     const isDraft = Object.hasOwn(correction, field.key);
     const base = baseValueFor(character, field);
     const value = correction[field.key] ?? base;
-    const status = isDraft ? "draft" : "base";
     const control = field.type === "select"
       ? `
         <select id="edit-${escapeHtml(field.key)}" data-key="${escapeHtml(field.key)}" data-kind="select">
           ${field.options().map(([optValue, optLabel]) => `<option value="${escapeHtml(optValue)}" ${optValue === value ? "selected" : ""}>${escapeHtml(optLabel)}</option>`).join("")}
         </select>
-        <span class="editor-value">${status}</span>
       `
       : field.type === "color"
       ? (() => {
@@ -814,39 +827,30 @@ function renderEditor(character) {
       : field.type === "text"
       ? `
         <input id="edit-${escapeHtml(field.key)}" type="text" value="${escapeHtml(value || "")}" data-key="${escapeHtml(field.key)}" data-kind="text" placeholder="tattoo text" spellcheck="false">
-        <span class="editor-value">${status}</span>
       `
       : `
-        <span class="editor-range">
+        <span class="editor-stepper">
           <input
             id="edit-${escapeHtml(field.key)}"
-            type="range"
-            min="${field.min}"
-            max="${field.max}"
-            step="${field.step}"
-            value="${escapeHtml(value)}"
-            data-key="${escapeHtml(field.key)}"
-            data-kind="range"
-            data-pair="${escapeHtml(field.key)}"
-          >
-          <input
             class="editor-number"
             type="number"
             step="${field.step}"
             value="${escapeHtml(value)}"
             data-key="${escapeHtml(field.key)}"
-            data-kind="range"
-            data-pair="${escapeHtml(field.key)}"
+            data-kind="number"
             aria-label="${escapeHtml(field.label)} value"
           >
+          <span class="editor-stepper-buttons">
+            <button type="button" data-step-field="${escapeHtml(field.key)}" data-step-direction="1" aria-label="Increase ${escapeHtml(field.label)}" title="Increase">&#9650;</button>
+            <button type="button" data-step-field="${escapeHtml(field.key)}" data-step-direction="-1" aria-label="Decrease ${escapeHtml(field.label)}" title="Decrease">&#9660;</button>
+          </span>
         </span>
-        <span class="editor-value">${status}</span>
       `;
     return `
       <div class="editor-control ${isDraft ? "is-draft" : ""}" data-group="${escapeHtml(field.group)}" data-field="${escapeHtml(field.key)}">
         <label for="edit-${escapeHtml(field.key)}">${escapeHtml(field.label)}</label>
         ${control}
-        <button type="button" class="editor-reset ${isDraft ? "" : "is-hidden"}" data-field-reset="${escapeHtml(field.key)}" title="Reset this field to the base value">Reset</button>
+        <button type="button" class="editor-reset ${isDraft ? "" : "is-hidden"}" data-field-reset="${escapeHtml(field.key)}" aria-label="Reset ${escapeHtml(field.label)} to base" title="Reset to base">&#8634;</button>
       </div>
     `;
   });
@@ -868,22 +872,21 @@ function renderEditor(character) {
       renderLockOverlay(character);
     });
   });
-  els.editorControls.querySelectorAll("[data-kind='range']").forEach((input) => {
+  els.editorControls.querySelectorAll("[data-kind='number']").forEach((input) => {
     input.addEventListener("input", () => {
-      if (input.dataset.pair) {
-        els.editorControls.querySelectorAll(`[data-pair="${cssEscape(input.dataset.pair)}"]`).forEach((peer) => {
-          if (peer === input) return;
-          if (peer.type === "range") {
-            const min = Number(peer.min);
-            const max = Number(peer.max);
-            const val = Number(input.value);
-            if (Number.isFinite(val) && val >= min && val <= max) peer.value = input.value;
-          } else {
-            peer.value = input.value;
-          }
-        });
-      }
+      if (input.value === "" || !Number.isFinite(Number(input.value))) return;
       updateCorrection(character, input.dataset.key, Number(input.value));
+    });
+  });
+  els.editorControls.querySelectorAll("[data-step-field]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.dataset.stepField;
+      const field = editorFields.find((item) => item.key === key);
+      const input = els.editorControls.querySelector(`[data-key="${cssEscape(key)}"][data-kind="number"]`);
+      if (!field || !input) return;
+      const current = Number.isFinite(Number(input.value)) ? Number(input.value) : Number(baseValueFor(character, field));
+      input.value = normalizeNumber(current + (Number(button.dataset.stepDirection) * Number(field.step || 1)));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
     });
   });
   els.editorControls.querySelectorAll("[data-kind='select']").forEach((select) => {
@@ -1076,12 +1079,11 @@ function clearSelectedCorrection() {
 }
 
 function clearAllCorrections() {
-  if (!Object.keys(state.corrections).length) return;
-  const ok = window.confirm("Revert all local Face Studio drafts and reload the baked base cast?");
+  const ok = window.confirm("Reset every face to the baked base set? This removes all local Face Studio changes.");
   if (!ok) return;
   state.corrections = {};
   saveCorrections();
-  render();
+  window.location.reload();
 }
 
 function baseValueFor(character, field) {
@@ -1903,7 +1905,7 @@ function mergedHairFieldMarkup(character, field) {
       ${escapeHtml(field.label)}
       <span class="lock-num-pair">
         <input type="range" min="${field.min}" max="${field.max}" step="${field.step}" value="${escapeHtml(value)}" data-merged-line-num="${field.key}" data-pair="${pair}">
-        <input type="number" min="${field.min}" max="${field.max}" step="${field.step}" value="${escapeHtml(value)}" data-merged-line-num="${field.key}" data-pair="${pair}" aria-label="${escapeHtml(field.label)} value">
+        <input type="number" step="${field.step}" value="${escapeHtml(value)}" data-merged-line-num="${field.key}" data-pair="${pair}" aria-label="${escapeHtml(field.label)} value">
       </span>
       <span class="editor-value">${formatNumber(value)}</span>
     </label>`;
@@ -1972,9 +1974,9 @@ function setMergedInternalLineValue(character, key, value) {
   const baseRaw = character.traits[key];
   const baseValue = Number.isFinite(Number(baseRaw)) ? Number(baseRaw) : spec.fallback;
   const numeric = Number(value);
-  const clamped = normalizeNumber(clamp(Number.isFinite(numeric) ? numeric : spec.fallback, spec.min, spec.max));
-  if (numbersEqual(clamped, baseValue)) delete next[key];
-  else next[key] = clamped;
+  const normalized = normalizeNumber(Number.isFinite(numeric) ? numeric : spec.fallback);
+  if (numbersEqual(normalized, baseValue)) delete next[key];
+  else next[key] = normalized;
   setCorrection(character.id, next);
   refreshPortrait(character);
 }

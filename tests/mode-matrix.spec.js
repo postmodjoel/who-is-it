@@ -8,12 +8,17 @@ import { expect, test } from "@playwright/test";
 
 async function openCleanTitle(page) {
   await page.addInitScript(() => {
-    try { localStorage.removeItem("whoisit_game_v1"); } catch (e) { /* storage may be blocked */ }
+    try {
+      localStorage.removeItem("whoisit_game_v1");
+      localStorage.setItem("whoisit_manifesto_v1", "1");
+      localStorage.setItem("whoisit_onboarded_v1", "1");
+    } catch (e) { /* storage may be blocked */ }
   });
   await page.goto("/");
-  // The landing poster fronts the menu now - LET'S PLAY reveals the local/online step.
+  // The landing poster fronts the menu; choose the classic ruleset before local/online setup.
   const letplay = page.locator(".ts-letplay");
   if (await letplay.isVisible().catch(() => false)) await letplay.click();
+  await page.locator('.ts-ruleset[data-ruleset="whoisit"]').click();
   await expect(page.locator(".ts-local")).toBeVisible();
 }
 
@@ -36,9 +41,8 @@ async function startNamedLocalGame(page, count = 3, solo = true) {
     });
   }, names);
   await page.locator(".ts-names-go").click();
-  const reveal = page.locator(".round-reveal").first();
-  if (await reveal.isVisible().catch(() => false)) await reveal.click();
-  await page.locator(".dimension-warp").evaluateAll((els) => els.forEach((el) => el.remove()));
+  await page.locator(".round-reveal").evaluateAll((els) => els.forEach((el) => { el.click(); el.remove(); }));
+  await page.locator(".dimension-warp, .forecast-card").evaluateAll((els) => els.forEach((el) => el.remove()));
   await expect(page.locator("#characterBoard")).toBeVisible();
   await expect(page.locator("#characterBoard [data-id]").first()).toBeVisible();
 }
@@ -248,24 +252,54 @@ test("breed drag on touch: long-press drag mixes two characters (pantone)", asyn
   await startNamedLocalGame(page, 3, true);
   await applyMode(page, "pantone");
   const performed = await page.evaluate(async () => {
-    const cards = document.querySelectorAll("#characterBoard [data-id]");
-    const a = cards[0], b = cards[1];
-    if (!a || !b || a.getAttribute("draggable") !== "true") return { draggable: false };
-    const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    const cards = [...document.querySelectorAll("#characterBoard [data-id]")];
+    cards[0]?.scrollIntoView({ block: "center", inline: "nearest" });
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const hittablePoint = (card) => {
+      const rect = card.getBoundingClientRect();
+      const points = [
+        [rect.x + rect.width / 2, rect.y + rect.height / 2],
+        [rect.x + 12, rect.y + 12],
+        [rect.right - 12, rect.y + 12],
+        [rect.x + 12, rect.bottom - 12]
+      ];
+      return points.find(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight
+        && document.elementFromPoint(x, y)?.closest("[data-id]") === card);
+    };
+    const visible = cards.map((card) => ({ card, point: hittablePoint(card) })).filter((item) => item.point);
+    const a = visible[0]?.card, b = visible[1]?.card;
+    const start = visible[0]?.point, end = visible[1]?.point;
+    if (!a || !b || !start || !end || a.getAttribute("draggable") !== "true") {
+      return {
+        draggable: false,
+        diagnostics: cards.slice(0, 3).map((card) => {
+          const rect = card.getBoundingClientRect();
+          const x = Math.max(0, Math.min(innerWidth - 1, rect.x + rect.width / 2));
+          const y = Math.max(0, Math.min(innerHeight - 1, rect.y + rect.height / 2));
+          const top = document.elementFromPoint(x, y);
+          return { rect: [rect.x, rect.y, rect.width, rect.height], top: top?.className || top?.tagName || null };
+        })
+      };
+    }
     const t = (x, y, id) => new Touch({ identifier: id, target: a, clientX: x, clientY: y });
-    a.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true, touches: [t(ra.x + 12, ra.y + 12, 9)], targetTouches: [t(ra.x + 12, ra.y + 12, 9)] }));
-    await new Promise((r) => setTimeout(r, 400));      // past the long-press hold
-    const mid = t(rb.x + rb.width / 2, rb.y + rb.height / 2, 9);
+    a.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true, touches: [t(start[0], start[1], 9)], targetTouches: [t(start[0], start[1], 9)] }));
+    await new Promise((r) => setTimeout(r, 500));      // comfortably past the long-press hold under load
+    const mid = t(end[0], end[1], 9);
     a.dispatchEvent(new TouchEvent("touchmove", { bubbles: true, cancelable: true, touches: [mid], targetTouches: [mid] }));
     const dragging = a.classList.contains("dragging");
+    const targeted = document.querySelector(".drop-target")?.dataset.id === b.dataset.id;
+    const before = [a.dataset.id, b.dataset.id].map((id) => characterById(id)?.image);
     a.dispatchEvent(new TouchEvent("touchend", { bubbles: true, cancelable: true, changedTouches: [mid] }));
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 120));
     // Pantone doesn't spawn an overlay - the pair MIX in place (re-tinted + a .pantone-mix pulse).
-    const mixed = !!document.querySelector("#characterBoard .pantone-mix, .breed-overlay, .reel-overlay");
-    return { draggable: true, dragging, mixed };
+    const after = [a.dataset.id, b.dataset.id].map((id) => characterById(id)?.image);
+    const mixed = before.every((image, index) => image !== after[index])
+      && !!document.querySelector("#characterBoard .pantone-mix");
+    return { draggable: true, dragging, targeted, mixed };
   });
-  expect(performed.draggable).toBe(true);
+  expect(performed.draggable, JSON.stringify(performed.diagnostics || {})).toBe(true);
   expect(performed.dragging).toBe(true);
+  expect(performed.targeted).toBe(true);
   expect(performed.mixed).toBe(true);
   await page.evaluate(() => document.querySelectorAll(".breed-overlay, .reel-overlay").forEach((e) => e.remove()));
 });

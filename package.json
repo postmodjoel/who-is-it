@@ -4,7 +4,13 @@
   "type": "module",
   "scripts": {
     "serve:test": "node tools/static-server.mjs",
-    "test:ui": "playwright test"
+    "test:ui": "playwright test",
+    "test:rules": "node --test tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs",
+    "test:balance": "node --test tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && node tools/groupthink-sim.mjs",
+    "test:balance:smoke": "node --test tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && node tools/groupthink-sim.mjs --smoke --gate-only",
+    "test:shared": "node --test tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && playwright test tests/groupthink.spec.js tests/groupthink-online.spec.js tests/groupthink-scale.spec.js tests/groupthink-isolation.spec.js tests/ui.spec.js tests/online.spec.js --project=desktop",
+    "test:exhaustive": "node --test tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && GT_EXHAUSTIVE=1 playwright test --workers=2",
+    "test:gates:apply": "node --test tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && GT_EXHAUSTIVE=1 playwright test --workers=2 && GT_LAYOUT_VALIDATED=1 node tools/groupthink-sim.mjs && node tools/apply-groupthink-decision.mjs --confirm=APPLY_GATED_RULES && playwright test tests/groupthink.spec.js tests/groupthink-online.spec.js tests/groupthink-scale.spec.js tests/groupthink-isolation.spec.js tests/ui.spec.js tests/online.spec.js --project=desktop && GT_EXHAUSTIVE=1 playwright test --workers=2"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0"

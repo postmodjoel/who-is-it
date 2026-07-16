@@ -16,7 +16,13 @@ test.describe("online rooms", () => {
     // These tabs share ONE BrowserContext (so BroadcastChannel works), which also shares localStorage.
     // A refresh now auto-resumes any saved game - so a guest tab would inherit the host's save. Real
     // players are on separate devices; here we clear the leaked save to get a clean title.
-    await page.evaluate(() => { try { localStorage.removeItem("whoisit_game_v1"); } catch (e) { /* fine */ } });
+    await page.evaluate(() => {
+      try {
+        localStorage.removeItem("whoisit_game_v1");
+        localStorage.setItem("whoisit_manifesto_v1", "1");
+        localStorage.setItem("whoisit_onboarded_v1", "1");
+      } catch (e) { /* fine */ }
+    });
     await page.reload();
     await page.evaluate(() => {
       document.querySelector(".title-screen")?.remove();
@@ -24,6 +30,7 @@ test.describe("online rooms", () => {
       showTitleScreen();
     });
     if (await page.locator(".ts-letplay").count()) await page.locator(".ts-letplay").click();
+    await page.locator('.ts-ruleset[data-ruleset="whoisit"]').click();
     await expect(page.locator(".ts-local")).toBeVisible();
   }
   async function hostRoom(page, name) {
@@ -43,7 +50,7 @@ test.describe("online rooms", () => {
     await page.locator(".ts-join-go").click();
   }
   const clearOverlays = (page) => page.evaluate(() => {
-    document.querySelectorAll(".dimension-warp, .team-reveal, .round-reveal, .lobby-screen, .title-screen").forEach((el) => el.remove());
+    document.querySelectorAll(".dimension-warp, .team-reveal, .round-reveal, .lobby-screen, .title-screen, .manifesto-card, .onboard-tips, .forecast-card").forEach((el) => el.remove());
   });
   const gameInfo = (page) => page.evaluate(() => ({
     salt: state.gameSalt,
@@ -73,6 +80,7 @@ test.describe("online rooms", () => {
     for (const page of [host, g1, g2]) {
       await expect(page.locator("#characterBoard [data-id]").first()).toBeVisible({ timeout: 15_000 });
     }
+    await Promise.all([host, g1, g2].map(clearOverlays));
     const [hi, i1, i2] = await Promise.all([host, g1, g2].map(gameInfo));
     expect(hi.playMode).toBe("team");
     expect(i1.salt).toBe(hi.salt);
@@ -173,14 +181,11 @@ test.describe("online rooms", () => {
     await openTitle(host);
     await host.locator(".ts-online").click();
     await host.locator(".ts-name-input").fill("Hera");
-    const chosenMode = await host.locator(".ts-step-online .ts-mode-select").evaluate((select) => {
-      const picked = [...select.options].find((option) => option.value);
-      if (!picked) return "";
-      select.value = picked.value;
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-      return picked.value;
-    });
-    expect(chosenMode).not.toBe("");
+    await host.locator('.ts-step-online .mode-policy-chip[data-policy="custom"]').click();
+    const modeIds = await host.locator(".ts-step-online .mode-check:not([disabled])").evaluateAll((inputs) => inputs.map((input) => input.value));
+    const chosenMode = modeIds[0];
+    expect(chosenMode).toBeTruthy();
+    for (const modeId of modeIds.slice(1)) await host.locator(`.ts-step-online .mode-check[value="${modeId}"]`).uncheck();
     await host.locator(".ts-host").click();
     await expect(host.locator(".lobby-screen")).toBeVisible();
     const code = await host.evaluate(() => state.roomCode);

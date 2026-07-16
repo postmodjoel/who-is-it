@@ -26,6 +26,7 @@ function startOpponentSim() {
 function renderOpponentPanel() {
   const el = els.opponentPanel;
   if (!el) return;
+  if (state.ruleset === "groupthink" && window.Groupthink) { Groupthink.renderStatus(); return; }
   const mine = state.gameMode === "online" ? (state.mySeat || 0) : state.currentPlayer;
   const otherIdx = mine === 0 ? 1 : 0;
   const solo = typeof rosterSoloMode === "function" && rosterSoloMode();

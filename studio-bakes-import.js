@@ -624,3 +624,466 @@ window.WhoStudioBakeImport = {
     "lipLineWidth": 0.55
   }
 };
+
+// Latest full-roster Studio pass. These values came from the combined editor export and are merged
+// over the earlier bake so small structure changes remain part of the actual base cast.
+(function applyLatestStudioPass() {
+  const latest = {
+    "aaron": {
+      "castShadowItems": [
+        { "preset": "sweptLeft", "surface": "both", "sides": "both", "x": 0, "y": 0, "spread": 29, "scaleX": 1, "scaleY": 1.2, "rot": -29, "opacity": 0.45, "softness": 0.6, "darkness": 0.35, "tint": "warm" },
+        { "preset": "beardJaw", "surface": "face", "sides": "one", "x": 11, "y": -21, "spread": 31, "darkness": 1, "tint": "warm", "scaleX": 0.92, "scaleY": 1.08, "rot": 0, "opacity": 0.4, "softness": 0.6 },
+        { "preset": "capBrim", "surface": "face", "sides": "one", "x": -30, "y": -1, "spread": 0, "darkness": 1.15, "tint": "neutral", "scaleX": 1, "scaleY": 1, "rot": 0, "opacity": 1, "softness": 0.75 }
+      ],
+      "hairLocks": [
+        { "lock": "longSideLock", "x": 56, "y": 26, "scale": 0.4, "rot": -111, "lines": false },
+        { "lock": "spikyFringe", "x": 41, "y": 41, "scale": 0.72, "rot": -20, "lines": false },
+        { "lock": "sideSwoop", "x": 67, "y": 32, "scale": 0.42, "rot": -52, "lines": true },
+        { "lock": "curlyForelock", "x": 65, "y": 43, "scale": 0.54, "rot": 13, "lines": true, "line": "#160808" },
+        { "lock": "longSideLock", "x": 69, "y": 47, "scale": 0.56, "rot": -14, "lines": true },
+        { "lock": "curtainBangs", "x": 54, "y": 41, "scale": 0.52, "rot": -7, "lines": false, "outline": "none" }
+      ],
+      "browY": 1, "browScaleX": 0.84, "pupilY": -2.5, "eyeOpen": 0.96,
+      "eyelashThickness": 1.1, "eyeshadowOpacity": 0.65, "eyeshadowColor": "#4dd2ff",
+      "upperEyelidWidth": 2.7, "lowerEyelidWidth": 1.5, "lockBlend": "separate",
+      "neckOutlineWidth": 1.1, "neckTaper": 0.85, "neckWidth": 0.9,
+      "accessoryScale": 0.74, "accessoryY": 16, "accessoryColor": "#b0b0b0",
+      "jewelleryItems": [
+        { "type": "necklace", "side": "left", "color": "#473f29", "color2": "#ff9bb0", "metal": "", "x": 0, "y": 29, "scale": 0.69, "rot": 0, "layer": "behindHair", "arcStart": 27, "arcVisible": 0.7 }
+      ],
+      "eyeY": 5, "eyeScale": 1.06, "irisScale": 0.78, "eyeColor": "#317aaa",
+      "lashes": 0.15, "eyelashDensity": 0.8, "undershadowOpacity": 0.45, "undershadowY": 0,
+      "tattooScale": 0.9, "tattooY": -15, "tattooX": 70, "beardLength": 0.18,
+      "neckTerminationY": 1.5, "hairOutlineWidth": 1.7, "frontHairY": -10
+    },
+    "maya": {
+      "neckWidth": 0.72, "neckTerminationY": 5, "neckLength": 22,
+      "castShadowItems": [
+        { "preset": "sweptLeft", "surface": "face", "sides": "both", "x": 0, "y": 31, "spread": 28, "darkness": 2.45, "tint": "neutral", "scaleX": 1, "scaleY": 1, "rot": -28, "opacity": 0.9, "softness": 1 }
+      ],
+      "lashes": 0.15, "eyelashThickness": 0.7
+    },
+    "naomi": {
+      "bodyWidth": 1.17, "build": 65, "chinY": 0, "chinWidth": 1, "chinScale": 1.02,
+      "jawLength": 0.29, "headY": -17, "neckTerminationY": -6, "neckLength": 10.5,
+      "neckTaper": 2.7, "neckWidth": 0.76
+    },
+    "javier": { "jawLength": -0.09, "neckLength": 5.5, "neckTerminationY": -4 },
+    "tiana": {
+      "chinY": -3, "headY": 1, "headScaleX": 1, "eyeLeftX": -2, "browY": -3,
+      "eyeDart": 0.36, "pupilY": -2.5, "eyelashCoverage": "full", "eyelashThickness": 0.7,
+      "eyelashDensity": 1.8, "headTilt": 1, "build": 60, "bodyWidth": 0.99, "bust": 0.3,
+      "neckTerminationY": -6, "eyeGap": 46, "eyeY": 1.5, "upperEyelidWidth": 2.2,
+      "lowerEyelidWidth": 1.2, "underEyeWidth": 0.85, "eyeX": 1.5, "neckOutlineWidth": 1.1,
+      "neckWidth": 0.5, "neckTaper": 1, "faceShape": "long", "irisScale": 0.78,
+      "eyeColor": "#3a2418", "eyeScale": 1.04, "headScaleY": 1.07, "eyeOpen": 1.12,
+      "lazyEye": 7.5, "lipUpperSize": 0.8, "lipLowerSize": 0.7, "smileLowerLipCurve": -0.7,
+      "lipLineWidth": 0.45, "mouthStyle": "wideSmile", "teethScale": 0.68,
+      "teethStyle": "spaced", "accessoryScale": 0.52, "accessoryX": 1, "accessoryY": 5,
+      "neckLength": -1
+    },
+    "sophia": { "neckLength": 2.5, "neckOutlineWidth": 1.05, "neckWidth": 0.76 },
+    "zeke": { "neckWidth": 0.72, "accessoryY": -2, "neckLength": 6.5, "neckTerminationY": 2.5 },
+    "aisha": { "neckWidth": 0.72, "neckLength": 3.5, "neckTaper": 0.6 },
+    "lucas": { "neckWidth": 0.52, "neckTaper": -0.1, "neckTerminationY": -5, "neckOutlineWidth": 0.9 },
+    "stella": { "neckWidth": 0.72 },
+    "matilda": { "headScaleY": 1.14, "headScaleX": 0.97, "neckLength": 6, "neckTerminationY": 5.5, "neckTaper": 0.05 },
+    "lara": { "neckTerminationY": -2, "neckOutlineWidth": 0.95, "neckWidth": 0.72, "neckLength": 2.5 },
+    "bruno": { "neckLength": -8 },
+    "yara": { "neckLength": 4.5, "neckWidth": 0.75 },
+    "elena": { "neckWidth": 0.77 },
+    "adeline": { "neckOutlineWidth": 0.9, "neckTerminationY": -1.5, "neckWidth": 0.86, "headScaleX": 0.99, "neckTaper": 1, "neckLength": 16 },
+    "ines": { "neckWidth": 0.75, "neckLength": 5, "headScaleX": 0.92 },
+    "tyler": { "neckWidth": 0.72 }
+  };
+
+  Object.entries(latest).forEach(([id, traits]) => {
+    window.WhoStudioBakeImport[id] = { ...(window.WhoStudioBakeImport[id] || {}), ...traits };
+  });
+})();
+
+// Latest Face Studio export. This stays additive so fields omitted from the export
+// continue to inherit the previously baked base-cast design.
+(function applyLatestFaceStudioExport() {
+  const latest = {
+    "naomi": {
+      "neckTaper": 0.6,
+      "neckWidth": 0.78,
+      "headScaleY": 0.96,
+      "neckTerminationY": 0.5,
+      "chinY": 2,
+      "headY": -22
+    },
+    "tiana": {
+      "pupilY": 0,
+      "accessoryScale": 0.36
+    },
+    "stella": {
+      "frontHairY": -9,
+      "neckLength": 20,
+      "neckWidth": 0.5,
+      "headScaleY": 0.93,
+      "neckTaper": 0.3,
+      "neckTerminationY": -6
+    },
+    "niko": {
+      "neckWidth": 0.72,
+      "neckOutlineWidth": 1.25,
+      "neckTerminationY": -5
+    },
+    "eli": {
+      "neckWidth": 0.66
+    },
+    "sanaa": {
+      "neckWidth": 0.5,
+      "headScaleY": 1.05,
+      "headY": -8,
+      "neckLength": 5.5
+    },
+    "milo": {
+      "neckWidth": 0.51
+    },
+    "lara": {
+      "neckWidth": 0.56,
+      "accessoryY": 7,
+      "hair": "bald",
+      "frontHairY": -5,
+      "hairLocks": [
+        {
+          "lock": "longCapLocks",
+          "x": 46,
+          "y": 61,
+          "scale": 1,
+          "rot": 0,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "highPonytail",
+          "x": 45,
+          "y": 38,
+          "scale": 0.7,
+          "rot": -2,
+          "lines": true
+        }
+      ],
+      "clothing": "tee",
+      "build": 76,
+      "shoulderSlope": 0.72,
+      "shirt": "#171512",
+      "skin": "fakeTan",
+      "eyeOpen": 1.42,
+      "irisScale": 0.52,
+      "upperEyelidWidth": 3,
+      "lowerEyelidWidth": 2,
+      "lipLineWidth": 0.95,
+      "eyeScale": 1.1,
+      "accessoryMetal": "gold",
+      "accessoryColor": "#fffdf7",
+      "accessoryScale": 0.6,
+      "lipLower": "wide",
+      "lipUpper": "cupid",
+      "smileLips": "off",
+      "mouthScale": 0.76,
+      "hairColor": "blonde",
+      "hairOutline": "#bc8849",
+      "faceShape": "heart",
+      "earVariant": "round",
+      "earRightX": -4.5,
+      "earX": -1,
+      "earLeftX": 4.5,
+      "background": "#bdaaca",
+      "cheekOpacity": 0.59,
+      "blushColor": "#ff5a72",
+      "cheekY": -2.5,
+      "blushX": 4,
+      "blushScale": 1.4,
+      "faceLineOpacity": 1.3,
+      "adamAppleOpacity": 0.15,
+      "chinShape": "round",
+      "chinWidth": 0.5,
+      "chinScale": 0.78,
+      "chinY": 1,
+      "jawShadowY": -1.5,
+      "contourOpacity": 0.5,
+      "contourX": 1,
+      "contourY": 8.5,
+      "contourWidth": 0.7,
+      "castShadowItems": [
+        {
+          "preset": "sweptRight",
+          "surface": "face",
+          "sides": "both",
+          "x": 0,
+          "y": 0,
+          "spread": 50,
+          "darkness": 2.15,
+          "tint": "neutral",
+          "scaleX": 1,
+          "scaleY": 1,
+          "rot": -50,
+          "opacity": 0.7,
+          "softness": 1.45
+        }
+      ]
+    },
+    "yara": {
+      "neckLength": 6.5,
+      "neckWidth": 0.55
+    },
+    "asher": {
+      "neckWidth": 0.6,
+      "neckLength": 4.5,
+      "headY": -5
+    },
+    "elena": {
+      "neckWidth": 0.65,
+      "neckLength": -1
+    },
+    "lucy": {
+      "neckWidth": 0.57,
+      "neckLength": 19.5,
+      "neckTerminationY": -6,
+      "neckTaper": 0.5,
+      "build": 61,
+      "shoulderSlope": 1.13,
+      "tattoos": [
+        {
+          "text": "ᖛ",
+          "place": "body",
+          "font": "bold",
+          "color": "#23232b",
+          "x": -50,
+          "y": -11,
+          "scale": 0.8,
+          "rot": 0,
+          "skewX": 15,
+          "warp": 0.22,
+          "opacity": 0.65,
+          "layer": "overClothes"
+        }
+      ]
+    },
+    "romeo": {
+      "neckWidth": 0.5
+    },
+    "adeline": {
+      "neckWidth": 0.3
+    },
+    "felix": {
+      "headY": 11
+    },
+    "ines": {
+      "headY": 16,
+      "headTilt": -3.5,
+      "eyeGap": 59,
+      "faceShape": "long"
+    },
+    "priya": {
+      "headScaleY": 1.22,
+      "headY": -16.5,
+      "hair": "bald",
+      "headScaleX": 0.92,
+      "faceShape": "heart",
+      "neckWidth": 0.39,
+      "neckOutlineWidth": 1.2,
+      "earRightX": -23,
+      "earLeftY": 3.5,
+      "earVariant": "lobe",
+      "build": 60,
+      "neckTerminationY": -3,
+      "neckLength": 4.5,
+      "shirt": "#2d5a4e",
+      "clothing": "bare",
+      "shoulderSlope": 0.92,
+      "hairLocks": [
+        {
+          "lock": "rightCascade",
+          "x": 54,
+          "y": 49,
+          "scale": 0.82,
+          "rot": 0,
+          "lines": true,
+          "behind": true
+        },
+        {
+          "lock": "centerPartWaves",
+          "x": 69,
+          "y": 23,
+          "scale": 0.3,
+          "rot": -59,
+          "lines": true
+        }
+      ],
+      "hairColor": "pink",
+      "hairHex": "#58373c",
+      "backHairY": -2,
+      "hairOutlineWidth": 0.9,
+      "neckTaper": 0.15,
+      "jewelleryItems": [
+        {
+          "type": "dropEarrings",
+          "side": "left",
+          "color": "#c152e0",
+          "color2": "#df99ff",
+          "metal": "",
+          "x": 24,
+          "y": 19,
+          "scale": 1.25,
+          "rot": 0,
+          "layer": "behindHair",
+          "arcStart": 0,
+          "arcVisible": 1
+        },
+        {
+          "type": "dropEarrings",
+          "side": "left",
+          "color": "#d6b8d6",
+          "color2": "#a557e5",
+          "metal": "",
+          "x": -4,
+          "y": -18,
+          "scale": 0.79,
+          "rot": 5,
+          "layer": "beforeHead",
+          "arcStart": 0,
+          "arcVisible": 1
+        },
+        {
+          "type": "studs",
+          "side": "left",
+          "color": "#af50e2",
+          "color2": "#ff9bb0",
+          "metal": "",
+          "x": 7,
+          "y": 0,
+          "scale": 1.13,
+          "rot": 0,
+          "layer": "behindHair",
+          "arcStart": 0,
+          "arcVisible": 1
+        },
+        {
+          "type": "hoops",
+          "side": "left",
+          "color": "#e2b84f",
+          "color2": "#ff9bb0",
+          "metal": "",
+          "x": -120,
+          "y": -50,
+          "scale": 0.93,
+          "rot": -152,
+          "layer": "afterMouth",
+          "arcStart": -54,
+          "arcVisible": 0.78
+        }
+      ],
+      "accessory": "scarf",
+      "tattooText": "ﷳ",
+      "tattooFont": "condensed",
+      "tattooScale": 1.05,
+      "tattooOpacity": 0.7,
+      "tattooWarp": 0.18,
+      "tattooX": -33,
+      "tattoos": [
+        {
+          "text": "ﷳ",
+          "place": "body",
+          "font": "condensed",
+          "color": "#23232b",
+          "x": -33,
+          "y": 0,
+          "scale": 1.05,
+          "rot": 0,
+          "skewX": 0,
+          "warp": 0.18,
+          "opacity": 0.7,
+          "layer": "overClothes"
+        },
+        {
+          "text": "ᛋᛋ",
+          "place": "body",
+          "layer": "overClothes",
+          "font": "bold",
+          "color": "#23232b",
+          "x": 48,
+          "y": 0,
+          "scale": 0.65,
+          "rot": -33,
+          "skewX": 0,
+          "warp": 0,
+          "opacity": 1
+        }
+      ],
+      "accessoryColor": "#171512",
+      "accessoryX": -4,
+      "accessoryScale": 0.6,
+      "accessoryY": 30,
+      "beardLength": 0.45,
+      "beardBlobs": [
+        {
+          "dx": 24,
+          "y": 130,
+          "r": 6
+        }
+      ],
+      "beardScale": 0.3,
+      "eyeScale": 1.1,
+      "irisScale": 0.76,
+      "eyeColor": "#2d5a4e",
+      "eyeOpen": 1.57,
+      "upperEyelidWidth": 4.1,
+      "lowerEyelidWidth": 3.2,
+      "lazyEye": 1.5,
+      "animMode": "curious",
+      "blinkRate": 6.5,
+      "pupilY": -2,
+      "lashes": 0.55,
+      "eyeDart": 0.34,
+      "eyelashCoverage": "full",
+      "eyelashDensity": 2.6,
+      "eyeshadowOpacity": 1.25,
+      "cheekOpacity": 0.7,
+      "blushScale": 1.4,
+      "blushColor": "#000000",
+      "cheekY": -15,
+      "blushX": -6.5,
+      "castShadowItems": [
+        {
+          "preset": "capBrim",
+          "surface": "face",
+          "sides": "one",
+          "x": 0,
+          "y": -6,
+          "spread": 0,
+          "darkness": 2,
+          "tint": "neutral",
+          "scaleX": 1,
+          "scaleY": 0.78,
+          "rot": 0,
+          "opacity": 1,
+          "softness": 0.6
+        },
+        {
+          "preset": "sweptLeft",
+          "surface": "face",
+          "sides": "both",
+          "x": 1,
+          "y": 10,
+          "spread": 33,
+          "darkness": 0.85,
+          "tint": "neutral",
+          "scaleX": 1,
+          "scaleY": 1,
+          "rot": 39,
+          "opacity": 1,
+          "softness": 0.95
+        }
+      ]
+    }
+  };
+
+  Object.entries(latest).forEach(([id, traits]) => {
+    window.WhoStudioBakeImport[id] = { ...(window.WhoStudioBakeImport[id] || {}), ...traits };
+  });
+})();

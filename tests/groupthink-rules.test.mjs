@@ -89,6 +89,24 @@ test("one-pick agreement crowns the final survivor", () => {
   assert.deepEqual(result.removedIds, ["b", "c", "d"]);
 });
 
+test("three faces bypass the save vote and require a clear cut before the final two", () => {
+  const agreed = Rules.resolveThreeFaceCut({
+    boardIds: ["a", "b", "c"],
+    picks: [["b"], ["b"]]
+  });
+  assert.equal(agreed.cutId, "b");
+  assert.deepEqual(agreed.removedIds, ["b"]);
+  assert.equal(agreed.automaticCut, true);
+
+  const split = Rules.resolveThreeFaceCut({
+    boardIds: ["a", "b", "c"],
+    picks: [["a"], ["b"]]
+  });
+  assert.equal(split.cutId, null);
+  assert.deepEqual(split.removedIds, []);
+  assert.equal(split.tied, true);
+});
+
 test("board policies and session endings are deterministic", () => {
   assert.equal(Rules.boardSizeForPlayers(12, "all-30"), 30);
   assert.equal(Rules.boardSizeForPlayers(9, "36-at-9"), 36);

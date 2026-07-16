@@ -252,32 +252,41 @@ function simulateSession(config, sessionIndex) {
     }
 
     if (config.yolo) {
-      const candidates = [...new Set(picks.flat())].filter((id) => board.includes(id));
-      const votes = Array.from({ length: playerCount }, (_, seat) => chooseSaveVote({
-        behaviour: config.saveBehaviour,
-        seat,
-        candidates,
-        ownPicks: picks[seat],
-        perception: perceptions[seat],
-        pickCounts: result.counts
-      }));
-      const outcome = Rules.resolveSave({
-        boardIds: board,
-        picks,
-        votes,
-        skipped: Array(playerCount).fill(false),
-        pickCount,
-        savePolicy: config.savePolicy
-      });
+      let outcome;
+      if (board.length === 3) {
+        outcome = Rules.resolveThreeFaceCut({
+          boardIds: board,
+          picks,
+          skipped: Array(playerCount).fill(false)
+        });
+      } else {
+        const candidates = [...new Set(picks.flat())].filter((id) => board.includes(id));
+        const votes = Array.from({ length: playerCount }, (_, seat) => chooseSaveVote({
+          behaviour: config.saveBehaviour,
+          seat,
+          candidates,
+          ownPicks: picks[seat],
+          perception: perceptions[seat],
+          pickCounts: result.counts
+        }));
+        outcome = Rules.resolveSave({
+          boardIds: board,
+          picks,
+          votes,
+          skipped: Array(playerCount).fill(false),
+          pickCount,
+          savePolicy: config.savePolicy
+        });
+        summary.saveRounds += 1;
+        if (outcome.savedId != null) summary.saves += 1;
+        if (outcome.tied) summary.saveTies += 1;
+        if (outcome.insufficientSupport) summary.insufficientSaves += 1;
+        if (outcome.savedId == null) summary.nobodySaved += 1;
+      }
       const removed = new Set(outcome.removedIds);
       const before = board.length;
       board = board.filter((id) => !removed.has(id));
       const removedCount = before - board.length;
-      summary.saveRounds += 1;
-      if (outcome.savedId != null) summary.saves += 1;
-      if (outcome.tied) summary.saveTies += 1;
-      if (outcome.insufficientSupport) summary.insufficientSaves += 1;
-      if (outcome.savedId == null) summary.nobodySaved += 1;
       summary.removed += removedCount;
       summary.removalCounts.push(removedCount);
       if (roundIndex === 0) summary.firstRoundReduction = before ? removedCount / before : 0;

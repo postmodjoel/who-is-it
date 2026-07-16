@@ -104,9 +104,13 @@
       };
     }
 
+    // The lone-wolf consolation scales with the ballot: 3 in three-pick rounds, down to 1 in the
+    // one-pick endgame, so deliberate isolation can never outscore an actual match.
+    const roundPickCount = Math.max(0, ...activePicks.map((list) => list.length));
+    const consolation = Math.min(3, Math.max(1, roundPickCount));
     const roundScores = matchCounts.map((matched, i) => {
       if (cleanSkipped[i]) return 0;
-      let score = matched === 0 ? 3 : matched * 2;
+      let score = matched === 0 ? consolation : matched * 2;
       if (cleanDoubleDowns[i]) {
         if (doubleDownHits[i]) score += 2;
         else if (matched === 0) score = 0;
@@ -135,7 +139,6 @@
     picks = [],
     votes = [],
     skipped = [],
-    pickCount = 3,
     savePolicy = SAVE_POLICIES.current
   } = {}) {
     const board = uniqueStrings(boardIds);
@@ -154,9 +157,10 @@
     const leaders = Object.keys(counts).filter((id) => counts[id] === top);
     const activeCount = activePlayerCount(cleanSkipped, seatCount);
     const support = saveSupport(activeCount, savePolicy);
+    // A save only ever spares the winner; it never executes unpicked faces. The endgame is decided
+    // by the showdown and consensus cuts below, not by a board-wiping rescue.
     const savedId = leaders.length === 1 && top >= support ? leaders[0] : null;
-    let removedIds = candidates.filter((id) => id !== savedId);
-    if (cleanCount(pickCount) === 1 && savedId) removedIds = board.filter((id) => id !== savedId);
+    const removedIds = candidates.filter((id) => id !== savedId);
     return {
       votes: cleanVotes,
       skipped: cleanSkipped,
@@ -170,6 +174,88 @@
       candidates,
       tied: top > 0 && leaders.length > 1,
       insufficientSupport: top > 0 && leaders.length === 1 && top < support
+    };
+  }
+
+  // The consensus cut: the room's clear top nomination is sawed with no save vote. Born as the
+  // three-face transition, it also handles 4-5 face boards when the one-pick ballots are unanimous
+  // (a single candidate would make the save vote forced theatre).
+  function resolveThreeFaceCut({
+    boardIds = [],
+    picks = [],
+    skipped = []
+  } = {}) {
+    const board = uniqueStrings(boardIds);
+    const boardSet = new Set(board);
+    const seatCount = Math.max(picks?.length || 0, skipped?.length || 0);
+    const cleanSkipped = Array.from({ length: seatCount }, (_, i) => !!skipped?.[i]);
+    const cleanPicks = Array.from({ length: seatCount }, (_, i) => cleanSkipped[i]
+      ? []
+      : uniqueStrings(picks?.[i]).filter((id) => boardSet.has(id)));
+    const counts = {};
+    cleanPicks.forEach((list) => list.forEach((id) => { counts[id] = (counts[id] || 0) + 1; }));
+    const top = Math.max(0, ...Object.values(counts));
+    const leaders = Object.keys(counts).filter((id) => counts[id] === top);
+    const activeCount = activePlayerCount(cleanSkipped, seatCount);
+    const support = matchSupport(activeCount);
+    const cutId = board.length >= 3 && leaders.length === 1 && top >= support ? leaders[0] : null;
+    return {
+      votes: Array(seatCount).fill(null),
+      skipped: cleanSkipped,
+      counts,
+      leaders,
+      top,
+      activePlayerCount: activeCount,
+      support,
+      savedId: null,
+      cutId,
+      removedIds: cutId ? [cutId] : [],
+      candidates: uniqueStrings(cleanPicks.flat()),
+      tied: top > 0 && leaders.length > 1,
+      insufficientSupport: top > 0 && leaders.length === 1 && top < support,
+      automaticCut: true
+    };
+  }
+
+  // The final two resolves straight from the ballots — no save vote. Picking has meant condemnation
+  // all game, so it stays that way to the last breath: a clearly supported pick takes the saw and
+  // the other face is crowned; any split or unsupported round feeds both to the saw.
+  function resolveFinalShowdown({
+    boardIds = [],
+    picks = [],
+    skipped = []
+  } = {}) {
+    const board = uniqueStrings(boardIds);
+    const boardSet = new Set(board);
+    const seatCount = Math.max(picks?.length || 0, skipped?.length || 0);
+    const cleanSkipped = Array.from({ length: seatCount }, (_, i) => !!skipped?.[i]);
+    const cleanPicks = Array.from({ length: seatCount }, (_, i) => cleanSkipped[i]
+      ? []
+      : uniqueStrings(picks?.[i]).filter((id) => boardSet.has(id)));
+    const counts = {};
+    cleanPicks.forEach((list) => list.forEach((id) => { counts[id] = (counts[id] || 0) + 1; }));
+    const top = Math.max(0, ...Object.values(counts));
+    const leaders = Object.keys(counts).filter((id) => counts[id] === top);
+    const activeCount = activePlayerCount(cleanSkipped, seatCount);
+    const support = matchSupport(activeCount);
+    const cutId = board.length === 2 && leaders.length === 1 && top >= support ? leaders[0] : null;
+    const crownedId = cutId ? board.find((id) => id !== cutId) || null : null;
+    return {
+      votes: Array(seatCount).fill(null),
+      skipped: cleanSkipped,
+      counts,
+      leaders,
+      top,
+      activePlayerCount: activeCount,
+      support,
+      savedId: crownedId,
+      cutId,
+      crownedId,
+      removedIds: board.length === 2 ? (cutId ? [cutId] : board) : [],
+      candidates: uniqueStrings(cleanPicks.flat()),
+      tied: top > 0 && leaders.length > 1,
+      insufficientSupport: top > 0 && leaders.length === 1 && top < support,
+      finalShowdown: true
     };
   }
 
@@ -189,6 +275,8 @@
     activePlayerCount,
     scoreRound,
     resolveSave,
+    resolveThreeFaceCut,
+    resolveFinalShowdown,
     isSessionComplete
   });
 })(typeof window !== "undefined" ? window : globalThis);

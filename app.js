@@ -401,19 +401,34 @@ function placeDesktopToolbar() {
 }
 if (desktopRailMq) desktopRailMq.addEventListener?.("change", placeDesktopToolbar);
 
-// Desktop: once you scroll into the board, the sticky rail sheds its question row and shrinks to a
-// skinny strip (character + toolbar + seats) so more board is in view. CSS reacts only >=861px.
+// Desktop: compress the sticky rail continuously as the board moves under it. The old implementation
+// flipped one class at 80px and swapped the entire CSS grid, which made the question and controls
+// visibly teleport. A scroll-progress value lets the stable layout interpolate instead.
 function initHudCollapse() {
   let ticking = false;
   const apply = () => {
     ticking = false;
-    document.body.classList.toggle("hud-collapsed", (window.scrollY || window.pageYOffset || 0) > 80);
+    const desktop = !desktopRailMq || desktopRailMq.matches;
+    const scroll = window.scrollY || window.pageYOffset || 0;
+    const progress = desktop ? Math.max(0, Math.min(1, (scroll - 18) / 142)) : 0;
+    const helperProgress = Math.max(0, 1 - (progress * 2.4));
+    const root = document.documentElement;
+    root.style.setProperty("--hud-collapse-progress", progress.toFixed(3));
+    root.style.setProperty("--hud-pad-top", `${12 - (progress * 4)}px`);
+    root.style.setProperty("--hud-helper-height", `${14 * helperProgress}px`);
+    root.style.setProperty("--hud-helper-opacity", String(helperProgress));
+    root.style.setProperty("--hud-helper-shift", `${-4 * progress}px`);
+    root.style.setProperty("--hud-question-size", `${1.34 - (progress * 0.39)}rem`);
+    document.body.classList.toggle("hud-collapsed", desktop && progress >= 0.98);
   };
-  window.addEventListener("scroll", () => {
+  const requestApply = () => {
     if (ticking) return;
     ticking = true;
     requestAnimationFrame(apply);
-  }, { passive: true });
+  };
+  window.addEventListener("scroll", requestApply, { passive: true });
+  window.addEventListener("resize", requestApply, { passive: true });
+  desktopRailMq?.addEventListener?.("change", requestApply);
   apply();
 }
 
@@ -3802,6 +3817,11 @@ function audioToggleMarkup() {
 function showTitleScreen() {
   document.title = "WHO? KNOWS?";
   const saved = loadGameSave();
+  const mysteryModeTotal = MysteryModes.all().length;
+  const discoveredModeCount = loadDiscoveredModes().filter((id) => MysteryModes.all().some((effect) => effect.id === id)).length;
+  const discoveryBadge = discoveredModeCount >= 3
+    ? `<span class="ts-discovery" title="Mystery modes you've unlocked">🎡 ${discoveredModeCount} / ${mysteryModeTotal} modes discovered</span>`
+    : "";
   const ov = document.createElement("div");
   ov.className = "title-screen title-landing";
   // AES2-01: one quiet anchor for the empty lower half on TALL screens - a slow marquee of the mode
@@ -3824,12 +3844,6 @@ function showTitleScreen() {
             ${saved ? `<button type="button" class="button ghost ts-resume ts-resume-splash">${saved.gameMode === "online"
               ? `${tsIcon("online")}<span class="ts-lbl">${saved.inLobby ? "REJOIN LOBBY" : "RESUME"} · #${escapeHtml(saved.roomCode || "?")}</span>`
               : `${tsIcon("resume")}<span class="ts-lbl">RESUME LAST GAME</span>`}</button>` : ""}
-            ${(() => {
-              // APP-02: a tiny discovery chip, but only once you've seen 3+ modes - first-timers see nothing.
-              const total = MysteryModes.all().length;
-              const disc = loadDiscoveredModes().filter((id) => MysteryModes.all().some((e) => e.id === id)).length;
-              return disc >= 3 ? `<p class="ts-discovery" title="Mystery modes you've unlocked">🎡 ${disc} / ${total} modes discovered</p>` : "";
-            })()}
           </div>
         </div>
       </div>
@@ -3846,6 +3860,7 @@ function showTitleScreen() {
                 <span class="ts-rs-isit">IS IT?</span>
               </span>
               <small>ASK QUESTIONS. CROSS THEM OFF.<br>FIND THE HIDDEN FACE.</small>
+              ${discoveryBadge}
               <span class="ts-ruleset-enter" aria-hidden="true">PLAY THIS <b>→</b></span>
             </button>
             <button type="button" class="button ts-ruleset ts-ruleset-groupthink" data-ruleset="groupthink" aria-label="Play WHO? DO YOU THINK?">

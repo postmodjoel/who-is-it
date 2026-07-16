@@ -6309,9 +6309,9 @@ body.low-power .ts-step-enter { animation: none; }
 }
 .title-screen .ts-ico { color: inherit; }
 .title-screen .ts-ico::after { display: none; }              /* separator is the border-right */
-/* APP-02: quiet discovery chip under the splash CTA (only rendered after 3+ modes seen). */
+/* APP-02: quiet discovery chip, rendered only after 3+ classic mystery modes have been seen. */
 .title-screen .ts-discovery {
-  margin: 10px auto 0; padding: 4px 12px; width: max-content; max-width: 100%;
+  display: block; margin: 10px auto 0; padding: 4px 12px; width: max-content; max-width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   font-size: 0.68rem; font-weight: 800; letter-spacing: 0.03em;
@@ -6954,6 +6954,8 @@ body[data-theme="light"] .rr-label.rr-them { color: var(--accent-blue); }
      to the grid-area cascade quirks that fought a flow-based placement). padding-bottom reserves it. */
   .side-panel {
     position: relative;
+    grid-template-areas: "you cue seats" "you cue actions";
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
     background: #12141c;
     border: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -6961,19 +6963,12 @@ body[data-theme="light"] .rr-label.rr-them { color: var(--accent-blue); }
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    padding: 10px 16px 44px;
+    padding: var(--hud-pad-top, 12px) 16px 46px;
   }
   .side-panel .side-head { display: none; }              /* logo trimmed on the in-game rail */
-  /* Scroll-collapse: once you're into the board the rail sheds its question row and drops to a single
-     lean strip — character, END-ROUND, seats + the pinned toolbar. Smooth so it reads as a fold. */
-  .side-panel { transition: padding 0.22s ease; }
-  .side-panel .cue-card { transition: opacity 0.18s ease, max-height 0.22s ease; overflow: hidden; }
-  body.hud-collapsed .side-panel {
-    grid-template-areas: "you actions seats";
-    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
-    padding-top: 6px;
-  }
-  body.hud-collapsed .side-panel .cue-card { display: none; }
+  /* Scroll-collapse is continuous: the composition never swaps grids, so every element has a stable
+     anchor while the helper copy, padding and prompt scale fold away with scroll progress. */
+  .side-panel .cue-card { overflow: hidden; align-self: center; }
   body.low-power .side-panel,
   body.low-power .side-panel .cue-card { transition: none; }
   /* Relocated toolbar: bottom strip of the rail, right-aligned; chips match the seat / end-round chips.
@@ -7016,8 +7011,11 @@ body[data-theme="light"] .rr-label.rr-them { color: var(--accent-blue); }
   }
   /* Hierarchy: the QUESTION is the hero's focal point. */
   .side-panel .question-prompt {
-    font-size: clamp(1.05rem, 1.5vw, 1.34rem);
+    font-size: var(--hud-question-size, 1.34rem);
     line-height: 1.22;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
   }
   .side-panel .cue-card { border-left-color: rgba(255, 255, 255, 0.16); }
@@ -8713,27 +8711,23 @@ body:not([data-theme="light"]) .game-bar-actions .button:hover { background: var
 /* ---------- 7. Desktop HUD: aligned edges, chip breathing room, legible helper ---------- */
 .cue-card.is-clickable::after { color: var(--text-muted); opacity: 1; }
 @media (min-width: 861px) {
-  /* Same content edges for the rail and the board below it. */
-  .side-panel { padding: 12px 16px 46px; }
   /* Active-player chip: 12px inner padding, avatar vertically centred. */
   .side-panel .secret-card .card-plate { padding: 12px 14px 12px 12px; }
-  /* Sticky-collapsed: keep a one-line question instead of an empty strip (82-96px total). */
-  body.hud-collapsed .side-panel {
-    grid-template-areas: "you cue seats" "you cue actions";
-    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
-    padding-top: 8px;
-  }
-  body.hud-collapsed .side-panel .cue-card { display: block; align-self: center; }
-  body.hud-collapsed .side-panel .cue-card .label,
-  body.hud-collapsed .side-panel .cue-card::after,
-  body.hud-collapsed .side-panel .mystery-result { display: none; }
-  body.hud-collapsed .side-panel .question-prompt {
-    white-space: nowrap;
+  .side-panel .cue-card .label,
+  .side-panel .cue-card::after {
+    display: block;
+    max-height: var(--hud-helper-height, 14px);
+    margin-block: 0;
+    opacity: var(--hud-helper-opacity, 1);
     overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 0.95rem;
+    transform: translateY(var(--hud-helper-shift, 0));
   }
-  body.hud-collapsed .side-panel .side-actions { align-self: center; }
+  .side-panel .mystery-result {
+    max-height: calc(var(--hud-helper-height, 14px) * 2);
+    opacity: var(--hud-helper-opacity, 1);
+    overflow: hidden;
+  }
+  .side-panel .side-actions { align-self: center; }
 }
 
 /* ---------- 8. Mobile gameplay (<=860px): ONE raised panel, dividers not nested boxes ---------- */

@@ -115,6 +115,20 @@ test("mandatory names and solo mode create one seat per player", async ({ page }
   await expect(page.locator(".seat-half")).toHaveCount(3);
 });
 
+test("mystery discovery belongs to WHO? IS IT? in the game picker", async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      localStorage.removeItem("whoisit_game_v1");
+      localStorage.setItem("whoisit_discovered_v1", JSON.stringify(["prop-panic", "heads-only", "habbo"]));
+    } catch (error) { /* storage may be blocked */ }
+  });
+  await page.goto("/");
+  await page.locator(".ts-letplay").click();
+  await expect(page.locator(".ts-ruleset-whoisit .ts-discovery")).toContainText("modes discovered");
+  await expect(page.locator(".ts-ruleset-groupthink .ts-discovery")).toHaveCount(0);
+  await expect(page.locator(".ts-poster .ts-discovery")).toHaveCount(0);
+});
+
 test("local custom lineup with one mode starts in that chosen mode", async ({ page }) => {
   await openCleanTitle(page);
   await page.locator(".ts-local").click();

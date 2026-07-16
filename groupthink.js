@@ -108,9 +108,44 @@
       scores: Array(count).fill(0),
       roundScores: Array(count).fill(0),
       syncScore: 0,
+      rerolls: 0,
       history: [],
       baseBoard: []
     };
+  }
+
+  function showIntroSplash() {
+    document.querySelector(".gt-intro-warp")?.remove();
+    const ov = document.createElement("div");
+    ov.className = "dimension-warp gt-intro-warp";
+    ov.innerHTML = `
+      <div class="gt-intro-rays" aria-hidden="true"></div>
+      <div class="gt-intro-noise" aria-hidden="true"></div>
+      <div class="gt-intro-stage">
+        <p class="gt-intro-kicker">EVERYONE SEES THE SAME FACES.</p>
+        <div class="gt-intro-cards" aria-hidden="true">
+          <i><b>?</b><span>YOU</span></i>
+          <i><b>?</b><span>THE ROOM</span></i>
+          <i><b>?</b><span>THEM</span></i>
+        </div>
+        <p class="gt-intro-ask">SO THE REAL QUESTION IS:</p>
+        <div class="gt-intro-logo" aria-label="${DISPLAY_NAME}">
+          <span>WHO?</span><span>DO YOU THINK?</span>
+        </div>
+        <p class="gt-intro-rule">PICK THE FACE. MATCH THE ROOM.</p>
+        <button type="button" class="gt-intro-skip">ENTER THE GROUP CHAT <b>→</b></button>
+      </div>`;
+    document.body.appendChild(ov);
+    try { if (window.Sound?.play) Sound.play("whoosh"); } catch (error) { /* silence is fine */ }
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      ov.classList.add("dw-out");
+      setTimeout(() => ov.remove(), 750);
+    };
+    ov.querySelector(".gt-intro-skip")?.addEventListener("click", finish);
+    setTimeout(finish, motionAllowed() ? 4300 : 1900);
   }
 
   function startSession(seedSalt, opts = {}) {
@@ -164,6 +199,7 @@
       }
     }
     startRound(0, { roundSalt: sessionSalt });
+    if (!opts.resume && !opts.silentEffect) showIntroSplash();
     scheduleSave();
   }
 
@@ -294,6 +330,7 @@
     gt().saveSkipped = Array(state.players.length).fill(false);
     gt().roundScores = Array(state.players.length).fill(0);
     gt().lastResult = null;
+    gt().rerolls = 0;
     const prompt = choosePrompt(config.promptId);
     gt().promptId = prompt?.id || "";
     gt().promptText = prompt?.text || `Pick ${pickWord(gt().pickCount)} people who concern you.`;
@@ -327,7 +364,10 @@
     if (state.gameMode === "online" && !state.isHost) return;
     const pool = promptPool().filter((p) => p.id !== gt().promptId);
     if (!pool.length) return;
-    const next = pool.slice().sort((a, b) => stableHash(`${state.gameSalt}:reroll:${a.id}`) - stableHash(`${state.gameSalt}:reroll:${b.id}`))[0];
+    // Each reroll salts the ranking with its own counter — a fixed salt made the button ping-pong
+    // between the two lowest-hash prompts. Host-only, and the winning promptId is still broadcast.
+    gt().rerolls = (Number(gt().rerolls) || 0) + 1;
+    const next = pool.slice().sort((a, b) => stableHash(`${state.gameSalt}:reroll:${gt().rerolls}:${a.id}`) - stableHash(`${state.gameSalt}:reroll:${gt().rerolls}:${b.id}`))[0];
     gt().promptId = next.id; gt().promptText = next.text;
     const revision = bumpRevision();
     if (state.gameMode === "online") netSend("gt-prompt", { roundIndex: gt().roundIndex, promptId: next.id, revision });
@@ -377,7 +417,20 @@
     els.secretCard.className = `secret-card gt-selection-tray${locked ? " is-locked" : ""}`;
     els.secretCard.removeAttribute("style");
     els.secretCard.style.setProperty("--gt-picks", limit);
-    els.secretCard.innerHTML = `<div class="gt-tray-head"><b>${state.isObserver ? DISPLAY_NAME : "YOUR PICKS"}</b><span>${yoloMode() ? `${state.board.length} still in` : "full deck"}</span></div><div class="gt-tray-slots">${slots}</div><p>${locked ? "LOCKED — waiting for the room" : `${picks.length}/${limit} selected${doubleDownEnabled() ? " · optional ×2" : ""}`}</p>`;
+    // Local pass-the-device rooms label the live ballot by name so whoever is holding the phone
+    // can't accidentally vote as somebody else; online, the ballot is always genuinely yours.
+    const trayOwner = state.isObserver
+      ? DISPLAY_NAME
+      : state.gameMode !== "online" && state.players.length > 1
+        ? `${rosterName(i).toUpperCase()}'S PICKS`
+        : "YOUR PICKS";
+    const trayCast = yoloMode()
+      ? state.board.length === 2 ? "THE FINAL TWO" : `${state.board.length} still in`
+      : "full deck";
+    const trayNote = locked
+      ? "LOCKED — waiting for the room"
+      : `${picks.length}/${limit} selected${doubleDownEnabled() ? " · optional ×2" : ""}${yoloMode() ? " · picks feed the saw" : ""}`;
+    els.secretCard.innerHTML = `<div class="gt-tray-head"><b>${escapeHtml(trayOwner)}</b><span>${trayCast}</span></div><div class="gt-tray-slots">${slots}</div><p>${trayNote}</p>`;
     els.secretCard.querySelectorAll(".gt-double-choice").forEach((button) => button.addEventListener("click", (event) => {
       event.stopPropagation();
       toggleDoubleDown(button.dataset.doubleId);
@@ -426,10 +479,19 @@
     const activeCount = Rules.activePlayerCount(gt()?.skipped || [], state.players.length);
     const support = Rules.matchSupport(activeCount);
     const duo = gt()?.variant === "duo-coop";
+    const round = (gt()?.roundIndex || 0) + 1;
+    // The last boards announce themselves as the climax instead of reading like round N + 1.
     const roundLabel = yoloMode()
-      ? `ROUND ${(gt()?.roundIndex || 0) + 1} · ${state.board.length} FACES LEFT`
-      : `ROUND ${(gt()?.roundIndex || 0) + 1} / ${FULL_DECK_ROUNDS} · FULL DECK`;
-    els.opponentPanel.innerHTML = `<div class="gt-status"><b>${roundLabel}</b><span>${duo ? `SYNC ${gt().syncScore}` : `A MATCH NEEDS ${support} PLAYERS`}</span></div>`;
+      ? state.board.length === 2 ? `ROUND ${round} · THE FINAL TWO`
+        : state.board.length === 3 ? `ROUND ${round} · THE FINAL THREE`
+          : `ROUND ${round} · ${state.board.length} FACES LEFT`
+      : `ROUND ${round} / ${FULL_DECK_ROUNDS} · FULL DECK`;
+    const stakes = yoloMode() && state.board.length === 2
+      ? "AGREE AND THE SAW DECIDES. SPLIT AND IT TAKES BOTH."
+      : yoloMode() && state.board.length === 3
+        ? "A CLEAR CUT OPENS THE FINAL TWO. A TIE SPARES ALL THREE."
+        : duo ? `SYNC ${gt().syncScore}` : `A MATCH NEEDS ${support} PLAYERS`;
+    els.opponentPanel.innerHTML = `<div class="gt-status"><b>${roundLabel}</b><span>${stakes}</span></div>`;
   }
 
   function syncAction() {
@@ -599,12 +661,31 @@
       render(); showResults(result); scheduleSave();
       return;
     }
+    const derived = deriveYoloOutcome(result);
+    if (derived) {
+      commitYoloOutcome(derived);
+      return;
+    }
     gt().phase = "saving";
     gt().saveVotes = Array(state.players.length).fill(null);
     gt().saveSkipped = gt().skipped.slice();
     gt().saveLocked = gt().saveSkipped.slice();
     Lab?.phase("saving", { roundIndex: gt().roundIndex, revision: gt().revision });
     render(); showResults(result); scheduleSave();
+  }
+
+  // YOLO endgames resolve straight from the ballots — asking the room to "save" its own unanimous
+  // nomination is forced theatre. Two faces: the final showdown (the agreed pick takes the saw and
+  // the other is crowned; a split saws both). Three faces: the transition cut. Four or five faces:
+  // only a unanimous single nomination skips the vote — real splits still earn a save ceremony.
+  function deriveYoloOutcome(result) {
+    const boardIds = state.board.map((character) => character.id);
+    if (state.board.length === 2) return Rules.resolveFinalShowdown({ boardIds, picks: result.picks, skipped: result.skipped });
+    if (state.board.length === 3) return Rules.resolveThreeFaceCut({ boardIds, picks: result.picks, skipped: result.skipped });
+    if (gt().pickCount === 1 && new Set((result.picks || []).flat()).size === 1) {
+      return Rules.resolveThreeFaceCut({ boardIds, picks: result.picks, skipped: result.skipped });
+    }
+    return null;
   }
 
   function saveCandidates(result = gt()?.lastResult) {
@@ -665,7 +746,6 @@
       picks: gt().lastResult?.picks || gt().picks,
       votes: gt().saveVotes,
       skipped: gt().saveSkipped,
-      pickCount: pickCount(),
       savePolicy: productionRules.savePolicy
     });
   }
@@ -675,7 +755,7 @@
       || !Array.isArray(outcome.removedIds) || new Set(outcome.removedIds).size !== outcome.removedIds.length) return false;
     const candidates = new Set(saveCandidates());
     if (outcome.savedId != null && (!candidates.has(outcome.savedId) || outcome.removedIds.includes(outcome.savedId))) return false;
-    return outcome.removedIds.every((id) => candidates.has(id) || (pickCount() === 1 && !!outcome.savedId && state.board.some((character) => character.id === id)));
+    return outcome.removedIds.every((id) => candidates.has(id));
   }
 
   function finalizeSave() {
@@ -688,6 +768,11 @@
 
   function applySaveResult(outcome) {
     if (!active() || !outcome || gt().phase !== "saving") return;
+    commitYoloOutcome(outcome);
+  }
+
+  function commitYoloOutcome(outcome) {
+    if (!active() || !outcome || !gt().lastResult) return;
     gt().removed = [...new Set([...(gt().removed || []), ...(outcome.removedIds || [])])];
     syncSurvivorBoard();
     gt().lastResult = { ...gt().lastResult, saveOutcome: clone(outcome), survivorsLeft: state.board.length };
@@ -720,7 +805,16 @@
     const selected = gt().saveVotes?.[i] || null;
     const saveDisabled = state.isObserver || !!gt().saveLocked?.[i];
     const outcome = result.saveOutcome || null;
-    return Object.entries(result.counts).sort((a, b) => b[1] - a[1] || base.findIndex((c) => c.id === a[0]) - base.findIndex((c) => c.id === b[0])).map(([id, count]) => {
+    const showdown = !!outcome?.finalShowdown;
+    const entries = Object.entries(result.counts);
+    // The crowned survivor may never have been picked; give them a zero-count card so the finale
+    // actually shows the winner instead of only the condemned.
+    if (showdown && outcome.crownedId && !(outcome.crownedId in result.counts)) entries.push([outcome.crownedId, 0]);
+    entries.sort((a, b) => b[1] - a[1] || base.findIndex((c) => c.id === a[0]) - base.findIndex((c) => c.id === b[0]));
+    // First-reveal entrance order: ordinary rounds build to the room's top pick (most-picked lands
+    // last); the showdown builds to the crowned face instead.
+    const step = showdown ? 0.55 : Math.min(0.12, 1.8 / Math.max(1, entries.length - 1));
+    return entries.map(([id, count], position) => {
       const ch = characterById(id); if (!ch) return "";
       const voters = result.picks.map((list, i) => list.includes(id) ? rosterName(i) : null).filter(Boolean);
       const matched = count >= result.support;
@@ -729,12 +823,15 @@
       const saved = outcome?.savedId === id;
       const cut = !!outcome?.removedIds?.includes(id);
       const classes = ["gt-result-face", matched ? "is-match" : "", doubledBy.length ? "is-doubled" : "", doubledHit ? "is-double-hit" : "", saving ? "gt-save-face" : "", selected === id ? "is-save-picked" : "", saved ? "is-saved" : "", cut ? "is-cut" : ""].filter(Boolean).join(" ");
-      const tag = outcome ? (saved ? "SAVED" : cut ? "SAWED OFF" : "STILL IN") : (matched ? `${count} PICKED` : "ALONE");
+      const tag = showdown
+        ? id === outcome.crownedId ? "LAST FACE STANDING" : "SAWED OFF"
+        : outcome ? (saved ? "SAVED" : cut ? "SAWED OFF" : "STILL IN") : (matched ? `${count} PICKED` : "ALONE");
       const doubleBadge = doubledBy.length ? `<em class="gt-double-badge">${doubledHit ? "×2 HIT" : "×2 MISS"}</em>` : "";
+      const delay = showdown ? position * step : (entries.length - 1 - position) * step;
       const body = `<img src="${ch.image}" alt=""><b>${escapeHtml(ch.name)}</b><span>${escapeHtml(voters.join(" · "))}</span>${doubleBadge}<i>${tag}</i>`;
       return saving
-        ? `<button type="button" class="${classes}" data-save-id="${escapeHtml(id)}" aria-pressed="${selected === id}" ${saveDisabled ? "disabled" : ""}>${body}</button>`
-        : `<div class="${classes}">${body}</div>`;
+        ? `<button type="button" class="${classes}" style="--gt-face-delay:${delay.toFixed(2)}s" data-save-id="${escapeHtml(id)}" aria-pressed="${selected === id}" ${saveDisabled ? "disabled" : ""}>${body}</button>`
+        : `<div class="${classes}" style="--gt-face-delay:${delay.toFixed(2)}s">${body}</div>`;
     }).join("");
   }
 
@@ -770,9 +867,15 @@
       : state.gameMode === "local" || state.isHost
         ? `<button type="button" class="button primary gt-next">${sessionCompleteAfterRound() ? "FINAL RESULTS" : "NEXT PROMPT →"}</button>`
         : `<p class="gt-wait-host">Waiting for the host…</p>`;
-    const verdict = result.saveOutcome
-      ? `<div class="gt-saw-verdict"><b>${result.saveOutcome.savedId ? `${escapeHtml(characterById(result.saveOutcome.savedId)?.name || "One face")} survived the vote.` : "THE ROOM SPLIT. NOBODY WAS SAVED."}</b><span>${result.saveOutcome.removedIds.length} removed · ${state.board.length} still in</span></div>`
-      : "";
+    let verdict = "";
+    if (result.saveOutcome?.automaticCut) {
+      const cutName = characterById(result.saveOutcome.cutId)?.name || "One face";
+      verdict = result.saveOutcome.cutId
+        ? `<div class="gt-saw-verdict"><b>${escapeHtml(cutName)} was the room's clear cut. FINAL TWO UNLOCKED.</b><span>1 removed · 2 still in</span></div>`
+        : `<div class="gt-saw-verdict"><b>NO CLEAR CUT. ALL THREE SURVIVE.</b><span>The final face-off waits for a shared choice.</span></div>`;
+    } else if (result.saveOutcome) {
+      verdict = `<div class="gt-saw-verdict"><b>${result.saveOutcome.savedId ? `${escapeHtml(characterById(result.saveOutcome.savedId)?.name || "One face")} survived the vote.` : "THE ROOM SPLIT. NOBODY WAS SAVED."}</b><span>${result.saveOutcome.removedIds.length} removed · ${state.board.length} still in</span></div>`;
+    }
     ov.innerHTML = `<div class="gt-results-panel"><p class="gt-results-kicker">${DISPLAY_NAME} · ROUND ${gt().roundIndex + 1}</p><h2>${escapeHtml(formattedPrompt())}</h2><div class="gt-result-faces">${resultCharacterHtml(result)}</div><div class="gt-round-scores">${scoreRows}</div>${verdict}${controls}</div>`;
     document.body.appendChild(ov);
     ov.querySelectorAll(".gt-save-face").forEach((button) => button.addEventListener("click", () => toggleSave(button.dataset.saveId)));

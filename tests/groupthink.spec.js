@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-async function openGroupthink(page, names, { yolo = true } = {}) {
+async function openGroupthink(page, names, { yolo = true, dismissIntro = true } = {}) {
   await page.addInitScript(() => {
     try {
       if (!sessionStorage.getItem("gt-test-cleaned")) {
@@ -44,6 +44,8 @@ async function openGroupthink(page, names, { yolo = true } = {}) {
   await expect(page.locator("#characterBoard [data-id]")).toHaveCount(30);
   await expect.poll(() => page.evaluate(() => state.global.mystery)).toBeNull();
   await expect.poll(() => page.evaluate(() => state.groupthink.effectId)).toBeNull();
+  await expect(page.locator(".gt-intro-warp")).toBeVisible();
+  if (dismissIntro) await page.locator(".gt-intro-skip").click();
 }
 
 async function pick(page, indexes) {
@@ -83,6 +85,65 @@ test("two players score shared picks as one co-op sync total", async ({ page }, 
   await expect(page.locator(".gt-result-face.is-cut")).toHaveCount(2);
   await page.locator(".gt-next").click();
   await expect(page.locator("#characterBoard [data-id]")).toHaveCount(28);
+});
+
+test("Groupthink opens with its own consensus splash", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "opening animation runs once on desktop");
+  await openGroupthink(page, ["Ada", "Bea"], { dismissIntro: false });
+  await expect(page.locator(".gt-intro-kicker")).toHaveText("EVERYONE SEES THE SAME FACES.");
+  await expect(page.locator(".gt-intro-logo")).toContainText("WHO?");
+  await expect(page.locator(".gt-intro-logo")).toContainText("DO YOU THINK?");
+  await expect(page.locator(".gt-intro-cards i")).toHaveCount(3);
+  await page.locator(".gt-intro-skip").click();
+  await expect(page.locator(".gt-intro-warp")).toHaveCount(0);
+});
+
+test("Groupthink splash fits the active viewport", async ({ page }) => {
+  await openGroupthink(page, ["Ada", "Bea"], { dismissIntro: false });
+  const layout = await page.locator(".gt-intro-stage").evaluate((stage) => {
+    const rect = stage.getBoundingClientRect();
+    return {
+      top: rect.top,
+      bottom: rect.bottom,
+      viewport: window.innerHeight,
+      overflow: document.documentElement.scrollWidth - window.innerWidth
+    };
+  });
+  expect(layout.top).toBeGreaterThanOrEqual(-1);
+  expect(layout.bottom).toBeLessThanOrEqual(layout.viewport + 1);
+  expect(layout.overflow).toBeLessThanOrEqual(3);
+  await page.locator(".gt-intro-skip").click();
+});
+
+test("desktop question rail compresses continuously without changing its grid", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "desktop sticky rail regression");
+  await openGroupthink(page, ["Ada", "Bea"]);
+  const sample = () => page.evaluate(() => {
+    const panel = document.querySelector(".side-panel");
+    const style = getComputedStyle(panel);
+    return {
+      progress: Number(getComputedStyle(document.documentElement).getPropertyValue("--hud-collapse-progress")),
+      areas: style.gridTemplateAreas,
+      height: panel.getBoundingClientRect().height,
+      promptSize: parseFloat(getComputedStyle(document.querySelector(".question-prompt")).fontSize),
+      helperOpacity: Number(getComputedStyle(document.querySelector(".cue-card")).getPropertyValue("--hud-helper-opacity") || getComputedStyle(document.documentElement).getPropertyValue("--hud-helper-opacity"))
+    };
+  });
+  const top = await sample();
+  await page.evaluate(() => window.scrollTo(0, 90));
+  await page.waitForTimeout(100);
+  const middle = await sample();
+  await page.evaluate(() => window.scrollTo(0, 220));
+  await page.waitForTimeout(100);
+  const collapsed = await sample();
+  expect(top.progress).toBeLessThan(0.05);
+  expect(middle.progress).toBeGreaterThan(0.2);
+  expect(middle.progress).toBeLessThan(0.8);
+  expect(collapsed.progress).toBeGreaterThan(0.95);
+  expect(new Set([top.areas, middle.areas, collapsed.areas]).size).toBe(1);
+  expect(middle.promptSize).toBeLessThan(top.promptSize);
+  expect(collapsed.promptSize).toBeLessThan(middle.promptSize);
+  expect(middle.height).toBeLessThan(top.height);
 });
 
 test("standard scoring rewards matches and gives the no-match safety net", async ({ page }, testInfo) => {
@@ -138,6 +199,30 @@ test("ballots shrink from three to two to one with the communal cast", async ({ 
   await openGroupthink(page, ["Ada", "Bea"]);
   const limits = await page.evaluate(() => [13, 12, 6, 5, 2].map((count) => window.Groupthink.pickCountForBoard(count)));
   expect(limits).toEqual([3, 2, 2, 1, 1]);
+});
+
+test("three-face agreement cuts one immediately and opens a two-card finale", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "ruleset smoke runs once on desktop");
+  await openGroupthink(page, ["Ada", "Bea"]);
+  await page.evaluate(() => {
+    state.groupthink.baseBoard = state.groupthink.baseBoard.slice(0, 3);
+    state.groupthink.removed = [];
+    Groupthink.startRound(0, { roundSalt: "three-face-cut" });
+  });
+  await expect(page.locator("#characterBoard [data-id]")).toHaveCount(3);
+  await pick(page, [1]);
+  await acceptHandoff(page, "Bea");
+  await pick(page, [1]);
+  await expect(page.locator(".gt-save-face")).toHaveCount(0);
+  await expect(page.locator(".gt-saw-verdict")).toContainText("FINAL TWO UNLOCKED");
+  await expect.poll(() => page.evaluate(() => ({
+    phase: state.groupthink.phase,
+    board: state.board.length,
+    removed: state.groupthink.lastResult.saveOutcome.removedIds.length
+  }))).toEqual({ phase: "results", board: 2, removed: 1 });
+  await page.locator(".gt-next").click();
+  await expect(page.locator("#characterBoard [data-id]")).toHaveCount(2);
+  await expect(page.locator(".gt-selection-tray")).toContainText("0/1 selected");
 });
 
 test("Groupthink setup exposes prompt safety but no mystery-effect controls", async ({ page }, testInfo) => {

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WHO? DID YOU MAKE? — Hair Studio</title>
+  <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+  <link rel="stylesheet" href="hair-studio.css?v=2">
+</head>
+<body>
+  <header class="lab-head">
+    <div><span>WHO? DID YOU MAKE?</span><h1>HAIR STUDIO</h1></div>
+    <p>Combos from your own placements, brand-new pieces from mutation and synthesis. Swipe; the catalogue remembers.</p>
+    <nav class="lab-tabs" role="tablist">
+      <button type="button" class="lab-tab is-active" data-view="combos">RATE COMBOS</button>
+      <button type="button" class="lab-tab" data-view="pieces">RATE PIECES</button>
+      <button type="button" class="lab-tab" data-view="catalogue">CATALOGUE</button>
+    </nav>
+    <div class="lab-actions">
+      <span id="mineMeta"></span>
+      <button id="hairUndo" type="button">⌫ UNDO</button>
+      <button id="hairSkip" type="button">SKIP ↓</button>
+      <button id="hairExport" type="button">EXPORT RATINGS</button>
+      <button id="hairClear" type="button" class="is-danger">CLEAR ALL</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="lab-view" data-view="combos" hidden>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>Combos — your placements, recombined</h2><span id="comboMeta"></span></div>
+        <p>Base style × pieces, sampled from your own authored placements (plus mirrors).
+        <b>← nay</b> · <b>→ yay</b> · swipe on touch · ↓ skip. The fit strip shows the same hair on five heads.</p>
+        <div id="comboReport" class="rate-report"></div>
+        <div id="comboStage" class="rate-stage"></div>
+      </section>
+    </section>
+
+    <section class="lab-view" data-view="pieces" hidden>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>New pieces — mutants &amp; synthesis</h2><span id="pieceMeta"></span></div>
+        <p>Half are mutations of your authored locks (mirror, taper, curl, splice), half are grown from
+        spine grammars. Each is shown solo and in context. Yays join the catalogue as drawn pieces the
+        renderer already understands.</p>
+        <div id="pieceReport" class="rate-report"></div>
+        <div id="pieceStage" class="rate-stage"></div>
+      </section>
+    </section>
+
+    <section class="lab-view" data-view="catalogue" hidden>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>The catalogue — things you don't mind</h2><span id="catMeta"></span></div>
+        <p>Every yay lands here. Cull freely; final picks come later.</p>
+        <h3 class="cat-heading">COMBOS</h3>
+        <div id="catCombos" class="cat-grid"></div>
+        <h3 class="cat-heading">NEW PIECES</h3>
+        <div id="catPieces" class="cat-grid"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="game-data.js?v=207"></script>
+  <script src="studio-bakes-import.js?v=3"></script>
+  <script src="clothing-profiles.js?v=1"></script>
+  <script src="editor-shared.js?v=221"></script>
+  <script src="face-generator.js?v=255"></script>
+  <script src="faces-hair.js?v=209"></script>
+  <script src="hair-studio.js?v=7"></script>
+</body>
+</html>

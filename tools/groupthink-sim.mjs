@@ -117,7 +117,8 @@ function candidateScore({ ownPicks, otherPicks, playerCount, doubleDownEnabled }
   ownPicks.forEach((id) => { counts[id] = (counts[id] || 0) + 1; });
   const support = Rules.matchSupport(playerCount);
   const matches = ownPicks.filter((id) => counts[id] >= support);
-  let score = matches.length ? matches.length * 2 : 3;
+  // Consolation scales with the ballot size, matching scoreRound's live rule.
+  let score = matches.length ? matches.length * 2 : Math.min(3, Math.max(1, ownPicks.length));
   let doubleDownId = null;
   if (doubleDownEnabled && matches.length) {
     doubleDownId = matches[0];
@@ -252,15 +253,23 @@ function simulateSession(config, sessionIndex) {
     }
 
     if (config.yolo) {
+      // Mirrors the browser's deriveYoloOutcome: two faces resolve as the final showdown, three as
+      // the transition cut, and a unanimous one-pick nomination skips the save vote entirely.
       let outcome;
-      if (board.length === 3) {
+      const candidates = [...new Set(picks.flat())].filter((id) => board.includes(id));
+      if (board.length === 2) {
+        outcome = Rules.resolveFinalShowdown({
+          boardIds: board,
+          picks,
+          skipped: Array(playerCount).fill(false)
+        });
+      } else if (board.length === 3 || (pickCount === 1 && candidates.length === 1)) {
         outcome = Rules.resolveThreeFaceCut({
           boardIds: board,
           picks,
           skipped: Array(playerCount).fill(false)
         });
       } else {
-        const candidates = [...new Set(picks.flat())].filter((id) => board.includes(id));
         const votes = Array.from({ length: playerCount }, (_, seat) => chooseSaveVote({
           behaviour: config.saveBehaviour,
           seat,
@@ -274,7 +283,6 @@ function simulateSession(config, sessionIndex) {
           picks,
           votes,
           skipped: Array(playerCount).fill(false),
-          pickCount,
           savePolicy: config.savePolicy
         });
         summary.saveRounds += 1;

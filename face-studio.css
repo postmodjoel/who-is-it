@@ -1121,6 +1121,24 @@ textarea {
 .lock-chip-label { font-size: 0.62rem; color: var(--muted); text-align: center; line-height: 1.1; }
 
 .lock-stack { display: flex; flex-direction: column; gap: 8px; }
+/* unified Hair Designer stack chrome */
+.lock-head-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.mini-button.is-danger { border-color: #c52f28; color: #c52f28; }
+.mini-button.is-danger:hover { background: #c52f28; color: #fff; }
+.stack-marker {
+  font-size: 0.58rem; font-weight: 900; letter-spacing: 0.14em; color: var(--muted);
+  text-align: center; padding: 2px 0; border: 1px dashed var(--line); border-radius: 4px; opacity: 0.75;
+}
+.lock-origin {
+  font-size: 0.56rem; font-weight: 900; letter-spacing: 0.08em; padding: 2px 6px;
+  border: 1.5px solid var(--line); border-radius: 4px; background: #fff; color: #171512; white-space: nowrap;
+}
+.lock-origin.is-base { background: #ffe9a8; }
+.lock-origin.is-drawn { background: #dcecff; }
+.lock-piece-label { font-size: 0.72rem; font-weight: 700; }
+.lock-row.is-base-row { background: #fdf8ea; }
+.lock-row.is-hidden-layer { opacity: 0.55; }
+.lock-marker.is-base { border-style: dashed; background: #ffe9a8; }
 .lock-empty { font-size: 0.8rem; color: var(--muted); margin: 0; }
 .lock-row {
   border: 2px solid var(--line);

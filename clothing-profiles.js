@@ -15,6 +15,10 @@
     detailY: 0,
     detailScaleX: 1,
     detailScaleY: 1,
+    detailLeftX: 0,
+    detailLeftY: 0,
+    detailRightX: 0,
+    detailRightY: 0,
     lineScale: 1
   });
 

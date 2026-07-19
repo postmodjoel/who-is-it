@@ -3075,11 +3075,18 @@ const WOKE_MODULES = ["gay", "orgy", "drugs", "disease", "fertility", "work", "d
 const WOKE_RAINBOW = ["#e40303", "#ff8c00", "#ffd400", "#28a745", "#3a86ff", "#8338ec"];
 function wokeRainbowHair(traits) {
   const base = { hairHex: WOKE_RAINBOW[0] };
-  if (!Array.isArray(traits.hairLocks) || !traits.hairLocks.length) return base;
-  base.hairLocks = traits.hairLocks.map((l, i) => {
+  const dye = (l, i) => {
     const c = WOKE_RAINBOW[i % WOKE_RAINBOW.length];
     return { ...l, fill: c, dark: mixHex(c, "#180418", 0.42), shine: mixHex(c, "#ffffff", 0.42) };
-  });
+  };
+  // materialized compositions carry the authoritative stack — dye its layers too
+  const comp = traits.hairComposition;
+  if (comp && comp.version === 1 && Array.isArray(comp.layers) && comp.layers.length) {
+    base.hairComposition = { ...comp, layers: comp.layers.map(dye) };
+    return base;
+  }
+  if (!Array.isArray(traits.hairLocks) || !traits.hairLocks.length) return base;
+  base.hairLocks = traits.hairLocks.map(dye);
   return base;
 }
 function applyWoke(effect) {
@@ -3187,7 +3194,7 @@ function applyWoke(effect) {
       a.image = has("disguise")
         ? (ch.pronouns === "she"
           ? R({ disguise: true })
-          : R({ hair: "bald", hairLocks: [], beardLength: 0, accessory: "turban", accessoryColor: "#ededee",
+          : R({ hair: "bald", hairLocks: [], hairComposition: null, beardLength: 0, accessory: "turban", accessoryColor: "#ededee",
             accessoryY: 0, accessoryScale: 1,
             clothing: (ch.traits.clothing === "bare" || ch.traits.clothing === "singlet") ? "tee" : ch.traits.clothing,
             shirt: "#f2f2f2" }))
@@ -3714,7 +3721,7 @@ function applyHornyPotter(effect) {
     const gender = hpGenderLabel(ch);
     const smokeDelay = -((h >>> 2) % 800) / 100;   // per-death-eater smoke offset (never in sync)
     if (i === 0) {                                   // the single Dark Lord - pasty repaint on a dark tint
-      const image = tinted(ch, "#101018", "#2b2740", 0.1, 0.5, { hair: "bald", hairLocks: [], accessory: "none", skinHex: "#e6e7de", browThick: 0.15, noseScale: 0.62, lipColor: "#b7a6a6" });
+      const image = tinted(ch, "#101018", "#2b2740", 0.1, 0.5, { hair: "bald", hairLocks: [], hairComposition: null, accessory: "none", skinHex: "#e6e7de", browThick: 0.15, noseScale: 0.62, lipColor: "#b7a6a6" });
       const s = dark[(h >>> 9) % dark.length];
       assignments[ch.id] = { role: "darklord", house: "The Dark Lord", color: "#3a3358", crest: "☇", wand: "Elder, thestral tail-hair core, unyielding", spell: s[0], spellHint: s[1], horcrux: pick(horcruxes, `hx:${ch.id}`), image, gender, smokeDelay };
       return;
@@ -3879,7 +3886,7 @@ function applyDisguise(effect) {
       image = ch.pronouns === "she"
         ? window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, disguise: true, disguiseColor: "#0c0c0f", accessoryColor: "#0b0b0d", shirt: "#0b0b0d" })
         : window.faceGenerator.renderPortrait(ch.seed, {
-          ...ch.traits, hair: "bald", hairLocks: [], beardLength: 0,
+          ...ch.traits, hair: "bald", hairLocks: [], hairComposition: null, beardLength: 0,
           accessory: "turban", accessoryColor: "#eceae2", accessoryY: 0, accessoryScale: 1,
           clothing: (ch.traits.clothing === "bare" || ch.traits.clothing === "singlet") ? "tee" : ch.traits.clothing,
           shirt: "#ededea"
@@ -3898,7 +3905,7 @@ function applyWork(effect) {
   state.board.forEach((ch) => {
     const image = ch.traits && window.faceGenerator
       ? window.faceGenerator.renderPortrait(ch.seed, {
-        ...ch.traits, hair: "bald", hairLocks: [], noBrows: true,
+        ...ch.traits, hair: "bald", hairLocks: [], hairComposition: null, noBrows: true,
         skinHex: "#e9ddd2", cheekOpacity: 0, beardLength: 0,
         build: 40, bodyWidth: 0.66, shoulderSlope: 1, bust: 0    // starved, tiny frail torso (head unchanged)
       })
@@ -4927,6 +4934,7 @@ function applyGayFrogged(effect) {
       hairOutlineMode: c.traits.hairOutlineMode,
       hairOutlineWidth: c.traits.hairOutlineWidth,
       hairLocks: c.traits.hairLocks,
+      hairComposition: c.traits.hairComposition || null,
       frontHairY: c.traits.frontHairY
     }));
     targetOrder.forEach((character, index) => {

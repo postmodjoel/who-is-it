@@ -227,16 +227,6 @@ button:disabled {
 /* The location banner sits across the top of the stage (half height); the action buttons nest into
    its right-hand side so the whole top strip reads as one piece. */
 .stage-top { position: relative; margin: 12px 12px 0; }
-/* AES-04: push the De Stijl identity into the CHROME (not a re-theme). Exactly three accent rules,
-   tokens only, all behind `body.destijl-chrome` so it reverts by removing one class. 1) a primary
-   tricolour hairline under the top bar, 2) a yellow block behind "IS IT?", 3) a De Stijl edge on the
-   sticky rail. */
-body.destijl-chrome .stage-top {
-  border-bottom: 3px solid transparent;
-  border-image: linear-gradient(90deg, var(--accent-yellow) 0 33.3%, var(--accent-blue) 33.3% 66.6%, var(--accent-red) 66.6% 100%) 1;
-}
-body.destijl-chrome .side-head h1 .brand-isit { box-shadow: inset 0 -0.16em 0 var(--accent-yellow); }
-body.destijl-chrome .side-panel { border-left: 3px solid var(--accent-blue); }
 .stage-top .location-band {
   position: relative;
   height: 66px;
@@ -268,7 +258,7 @@ body.destijl-chrome .side-panel { border-left: 3px solid var(--accent-blue); }
 .icon-button {
   min-height: 42px;
   border: 2px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--card-ink);
   background: var(--surface);
   box-shadow: 3px 3px 0 var(--line);
@@ -277,6 +267,39 @@ body.destijl-chrome .side-panel { border-left: 3px solid var(--accent-blue); }
   font-weight: 800;
   letter-spacing: 0.02em;
   transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+/* ===================== Shared game UI foundation =====================
+   Rulesets compose these structural classes and theme only their colour/content. Deliberate physical
+   props (receipts, ballots, butcher sheets, donor slabs) intentionally do not use these classes. */
+.game-shell { width: 100%; }
+.game-shell-layout { gap: var(--space-3); }
+.game-shell-stage { min-width: 0; }
+.game-panel {
+  border-radius: var(--radius-md);
+}
+.game-card {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.game-action-bar {
+  border-radius: var(--radius-sm);
+}
+.game-dialog,
+.game-dialog-panel {
+  border-radius: var(--radius-lg);
+}
+.game-dialog-panel {
+  padding: var(--space-5);
+  background: var(--bg-panel-raised);
+  box-shadow: var(--shadow-modal);
+}
+.game-toolbar {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+[data-ruleset-control].is-capability-hidden,
+[data-ruleset-control][hidden] {
+  display: none !important;
 }
 
 .button:hover,
@@ -5102,6 +5125,8 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
   color: var(--ink);
 }
 .sp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
+.sp-title { display: inline-flex; align-items: center; gap: 8px; }
+.sp-title .control-icon { width: 20px; height: 20px; }
 .sp-x { border: none; background: none; color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .sp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 0.8rem; font-weight: 600; }
 .sp-row select { flex: 0 0 auto; max-width: 55%; padding: 4px 6px; border-radius: 6px; border: 2px solid var(--line); background: var(--surface); color: var(--card-ink); font-weight: 700; }
@@ -5574,7 +5599,7 @@ img.pol-mascot {
 }
 .title-screen.title-landing .ts-ticker-field,
 .title-screen.title-landing .ts-legibility {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
 }
@@ -5637,7 +5662,12 @@ img.pol-mascot {
   position: relative;
   z-index: 2;
   min-height: 100vh;
-  padding: clamp(1.25rem, 5vw, 6rem);
+  min-height: 100svh;
+  padding:
+    max(clamp(1.25rem, 4vw, 4rem), env(safe-area-inset-top))
+    max(clamp(1.25rem, 4vw, 4rem), env(safe-area-inset-right))
+    max(clamp(1.25rem, 4vw, 4rem), env(safe-area-inset-bottom))
+    max(clamp(1.25rem, 4vw, 4rem), env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -5670,7 +5700,7 @@ img.pol-mascot {
 .title-screen.title-landing .ts-who,
 .title-screen.title-landing .ts-isit {
   font-family: "Archivo", sans-serif;
-  font-size: clamp(8rem, 19vw, 20rem);
+  font-size: clamp(7.5rem, 13vw, 13.5rem);
   font-weight: 900;
   letter-spacing: -0.045em;
   animation: none;
@@ -5805,6 +5835,170 @@ img.pol-mascot {
 .title-screen.title-landing .ts-step { width: var(--ts-cta-w); }
 .title-screen.title-landing .ts-step-names,
 .title-screen.title-landing .ts-step-online { width: min(430px, calc(100vw - 2.5rem)); }
+
+/* The anthology ruleset picker is shared application chrome. The themed stylesheets only colour
+   their wordmark variation; they do not own its dimensions, spacing, or responsive behaviour. */
+.title-screen.title-landing.ts-ruleset-open .ts-stage {
+  align-items: center;
+  justify-content: flex-start;
+}
+.title-screen.title-landing.ts-ruleset-open .ts-poster-slot {
+  width: 100%;
+  height: clamp(.75rem, 2svh, 1.5rem);
+  min-height: 0;
+  margin-left: 0;
+}
+.title-screen.title-landing.ts-ruleset-open .ts-poster {
+  opacity: 0;
+  pointer-events: none;
+}
+.title-screen.title-landing.ts-ruleset-open .ts-actions {
+  width: min(1280px, calc(100vw - 3rem));
+  min-height: 0;
+  flex: 1;
+  margin-left: 0;
+  justify-content: center;
+  padding-bottom: clamp(1.25rem, 4svh, 3rem);
+}
+.title-screen.title-landing .ts-step-ruleset {
+  width: 100%;
+  gap: clamp(1.1rem, 2.5svh, 1.8rem);
+}
+.ts-ruleset-head {
+  display: grid;
+  justify-items: center;
+  gap: .35rem;
+  color: #fffdf7;
+  text-align: center;
+}
+.ts-ruleset-head span { font: 900 .76rem/1 Archivo, sans-serif; letter-spacing: .28em; }
+.ts-ruleset-head small { color: #ffd43b; font: 800 .66rem/1 Archivo, sans-serif; letter-spacing: .18em; }
+.ts-ruleset-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(20rem, min(48svh, 29rem));
+  width: 100%;
+}
+.ts-ruleset-grid .ts-ruleset + .ts-ruleset {
+  border-left: 1px solid rgba(255,255,255,.26) !important;
+}
+.title-screen.title-landing .ts-ruleset {
+  position: relative;
+  min-width: 0;
+  min-height: 100%;
+  margin: 0;
+  padding: clamp(1.25rem, 3vw, 2.75rem) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(.9rem, 2.2svh, 1.45rem);
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  color: #fffdf7 !important;
+  box-shadow: none !important;
+  text-align: center;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 180ms ease, background 180ms ease !important;
+}
+.title-screen.title-landing .ts-ruleset::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 180ms ease;
+  pointer-events: none;
+}
+.title-screen.title-landing .ts-ruleset-whoisit::before {
+  background: radial-gradient(circle at 45% 48%, rgba(31,78,220,.24), transparent 68%);
+}
+.title-screen.title-landing .ts-ruleset-groupthink::before {
+  background: radial-gradient(circle at 55% 48%, rgba(224,27,27,.18), transparent 68%);
+}
+.title-screen.title-landing .ts-ruleset:hover,
+.title-screen.title-landing .ts-ruleset:focus-visible { transform: translateY(-4px); }
+.title-screen.title-landing .ts-ruleset:hover::before,
+.title-screen.title-landing .ts-ruleset:focus-visible::before { opacity: 1; }
+.title-screen.title-landing .ts-ruleset:active { transform: translateY(1px); }
+.title-screen.title-landing .ts-ruleset:focus-visible { outline: 3px solid #fffdf7; outline-offset: -5px; }
+.ts-ruleset-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: 1.55em;
+  font-family: Archivo, sans-serif;
+  font-size: clamp(3.25rem, 4vw, 5.75rem);
+  font-weight: 900;
+  line-height: .76;
+  letter-spacing: -.065em;
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1);
+}
+.ts-ruleset:hover .ts-ruleset-logo,
+.ts-ruleset:focus-visible .ts-ruleset-logo { transform: scale(1.035); }
+.ts-rs-who { color: #ffc21a; text-shadow: .055em .06em 0 #1533cc; }
+.ts-rs-isit,
+.ts-rs-doyouthink { color: #fffdf7; text-shadow: .055em .06em 0 #e01b1b; }
+.ts-rs-doyouthink { font-size: .58em; line-height: .92; letter-spacing: -.055em; white-space: nowrap; }
+.ts-ruleset small {
+  margin: 0;
+  width: 100%;
+  max-width: 32ch;
+  min-height: 4.05em;
+  display: grid;
+  grid-template-rows: repeat(3, 1.35em);
+  place-content: center;
+  color: rgba(255,255,255,.72);
+  font: 800 clamp(.68rem, 1vw, .82rem)/1.35 Archivo, sans-serif;
+  letter-spacing: .075em;
+}
+.ts-ruleset small span { display: block; }
+.title-screen.title-landing .ts-ruleset .ts-discovery {
+  display: none;
+}
+.ts-ruleset-enter {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  color: rgba(255,255,255,.48);
+  font: 900 .65rem/1 Archivo, sans-serif;
+  letter-spacing: .18em;
+  transition: color 180ms ease, gap 180ms ease;
+}
+.ts-ruleset-enter b { color: #ffd43b; font: 900 1.15rem/1 Archivo, sans-serif; }
+.ts-ruleset:hover .ts-ruleset-enter,
+.ts-ruleset:focus-visible .ts-ruleset-enter { gap: .95rem; color: #fffdf7; }
+.title-screen.title-landing .ts-step-ruleset .ts-ruleset-back {
+  align-self: center;
+  width: auto;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 .85rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255,255,255,.7);
+  box-shadow: none;
+  font-size: .7rem;
+  letter-spacing: .16em;
+}
+.title-screen.title-landing .ts-step-ruleset .ts-ruleset-back .ts-ico {
+  width: 1.5rem;
+  height: 1.25rem;
+  margin-right: .65rem;
+  padding-right: .65rem;
+  border-right-color: rgba(255,255,255,.25);
+}
+.title-screen.title-landing .ts-step-ruleset .ts-ruleset-back:hover,
+.title-screen.title-landing .ts-step-ruleset .ts-ruleset-back:focus-visible {
+  background: transparent;
+  color: #fffdf7;
+}
 .title-screen.title-landing button:focus-visible,
 .title-screen.title-landing input:focus-visible {
   outline: 3px solid rgba(255, 253, 247, 0.92);
@@ -5820,7 +6014,14 @@ img.pol-mascot {
 }
 @media (max-width: 640px) {
   /* The anthology uses the same centred composition at every width. */
-  .title-screen.title-landing .ts-stage { padding: 1.25rem; align-items: center; }
+  .title-screen.title-landing .ts-stage {
+    padding:
+      max(1.1rem, env(safe-area-inset-top))
+      max(1.1rem, env(safe-area-inset-right))
+      max(1.1rem, env(safe-area-inset-bottom))
+      max(1.1rem, env(safe-area-inset-left));
+    align-items: center;
+  }
   .title-screen.title-landing .ts-poster-slot,
   .title-screen.title-landing .ts-actions { margin-left: 0; }
   .title-screen.title-landing .ts-poster { margin-inline: auto; transform-origin: top center; }
@@ -5834,7 +6035,7 @@ img.pol-mascot {
   .title-screen.title-landing .ts-poster-slot { height: 61vh; min-height: 15rem; }
   .title-screen.title-landing .ts-poster { transform: translate3d(0, 9vh, 0) scale(1); width: min(100%, 30rem); }
   .title-screen.title-landing .ts-who,
-  .title-screen.title-landing .ts-isit { font-size: clamp(5.8rem, 29vw, 10rem); }
+  .title-screen.title-landing .ts-isit { font-size: clamp(4.6rem, 20vw, 6.6rem); }
   .title-screen.title-landing .ts-anthology { font-size: .58rem; letter-spacing: .19em; }
   .title-screen.title-landing .ts-anthology::before,
   .title-screen.title-landing .ts-anthology::after { width: 1rem; margin-inline: .45rem; }
@@ -5843,6 +6044,30 @@ img.pol-mascot {
   .title-screen.title-landing .ts-step { width: min(100%, 24rem); }
   .title-screen.title-landing .ts-step-names,
   .title-screen.title-landing .ts-step-online { width: min(100%, 24rem); }
+  .title-screen.title-landing.ts-ruleset-open .ts-stage { padding-top: max(.8rem, env(safe-area-inset-top)); }
+  .title-screen.title-landing.ts-ruleset-open .ts-poster-slot { height: 0; }
+  .title-screen.title-landing.ts-ruleset-open .ts-actions {
+    width: 100%;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .title-screen.title-landing .ts-step-ruleset { width: 100%; gap: 1rem; }
+  .ts-ruleset-head { gap: .25rem; }
+  .ts-ruleset-grid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
+  .ts-ruleset-grid .ts-ruleset + .ts-ruleset {
+    border-left: 0 !important;
+    border-top: 1px solid rgba(255,255,255,.26) !important;
+  }
+  .title-screen.title-landing .ts-ruleset {
+    min-height: clamp(12.25rem, 27svh, 14.5rem);
+    padding: 1.25rem 1rem !important;
+    gap: .68rem;
+  }
+  .ts-ruleset-logo { font-size: clamp(3rem, 15vw, 4.15rem); }
+  .ts-ruleset small { font-size: .62rem; line-height: 1.35; }
+  .ts-ruleset-enter { font-size: .56rem; }
   .title-screen.title-landing.ts-menu-open .ts-poster-slot { height: 11rem; }
   .title-screen.title-landing.ts-menu-open .ts-poster { transform: translate3d(0, 0, 0) scale(0.72); }
 }
@@ -5917,7 +6142,7 @@ img.pol-mascot {
   display: grid;
   gap: 0;
   border: 2px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: var(--panel);
   color: var(--ink);
   box-shadow: var(--shadow);
@@ -6293,13 +6518,19 @@ body.low-power .ts-step-enter { animation: none; }
   font-size: 0;                                           /* hide the ON/OFF text the JS still sets */
   border: 1px solid rgba(255, 255, 255, 0.22);
   background-color: rgba(255, 255, 255, 0.12);
-  background-image: radial-gradient(circle 10px at 14px 13px, #fffdf7 0 98%, transparent 100%);
-  transition: background-color 160ms ease, border-color 160ms ease;
+  background-image: radial-gradient(circle, #fffdf7 0 9.5px, transparent 10px);
+  background-repeat: no-repeat;
+  background-size: 20px 20px;
+  background-position: 4px center;
+  transition:
+    background-position 220ms cubic-bezier(.2,.8,.2,1),
+    background-color 180ms ease,
+    border-color 180ms ease;
 }
 .title-screen .ts-opt.on .ts-chip {
   background-color: var(--accent-blue);
   border-color: var(--accent-blue);
-  background-image: radial-gradient(circle 10px at 36px 13px, #fffdf7 0 98%, transparent 100%);
+  background-position: 26px center;
 }
 /* --- Shared icon slot + label --- */
 .title-screen .ts-ico {
@@ -6959,7 +7190,7 @@ body[data-theme="light"] .rr-label.rr-them { color: var(--accent-blue); }
     background: #12141c;
     border: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px 14px 0 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -7946,13 +8177,13 @@ body.mode-nw .cue-card {
 .tsp-toggle input { opacity: 0; width: 0; height: 0; }
 .tsp-toggle i {
   position: absolute; inset: 0; border-radius: 999px; border: 2px solid #171512; background: #ddd;
-  transition: background 0.15s ease;
+  transition: background-color 200ms ease, border-color 200ms ease;
 }
 .tsp-toggle i::after {
   content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
-  border-radius: 50%; background: #171512; transition: transform 0.15s ease;
+  border-radius: 50%; background: #171512; transition: transform 220ms cubic-bezier(.2,.8,.2,1);
 }
-.tsp-toggle input:checked + i { background: #35c46a; }
+.tsp-toggle input:checked + i { background: var(--accent-blue); border-color: var(--accent-blue); }
 .tsp-toggle input:checked + i::after { transform: translateX(20px); }
 .tsp-track { max-width: 170px; }
 .tsp-note { margin: 10px 0 0; font-size: 0.66rem; opacity: 0.6; font-style: italic; }
@@ -8431,17 +8662,35 @@ body:not([data-theme="light"]) .game-bar-actions .button:hover { background: var
   border: 1px solid var(--border-standard);
   border-radius: 999px;
   background-color: var(--bg-panel-soft);
-  background-image: radial-gradient(circle 11px at 15px 14px, var(--text-secondary) 0 98%, transparent 100%);
+  background-image: radial-gradient(circle, #fff 0 10.5px, transparent 11px);
+  background-repeat: no-repeat;
+  background-size: 22px 22px;
+  background-position: 4px center;
   cursor: pointer;
-  transition: background-color 160ms ease, border-color 160ms ease;
+  transition:
+    background-position 220ms cubic-bezier(.2,.8,.2,1),
+    background-color 180ms ease,
+    border-color 180ms ease;
 }
 .toggle-row input[type="checkbox"]:checked,
 .sound-panel .sp-row input[type="checkbox"]:checked {
   background-color: var(--accent-blue);
   border-color: var(--accent-blue);
-  background-image: radial-gradient(circle 11px at 37px 14px, #fff 0 98%, transparent 100%);
+  background-position: 26px center;
 }
 .sound-panel .sp-row input[type="checkbox"]:disabled { opacity: 0.45; cursor: default; }
+body.low-power .title-screen .ts-chip,
+body.low-power .toggle-row input[type="checkbox"],
+body.low-power .sound-panel .sp-row input[type="checkbox"],
+body.low-power .tsp-toggle i,
+body.low-power .tsp-toggle i::after { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .title-screen .ts-chip,
+  .toggle-row input[type="checkbox"],
+  .sound-panel .sp-row input[type="checkbox"],
+  .tsp-toggle i,
+  .tsp-toggle i::after { transition: none; }
+}
 /* Selects: dark custom field, never the browser-white default. */
 .setup-form select,
 .select-row select,
@@ -8736,7 +8985,7 @@ body:not([data-theme="light"]) .game-bar-actions .button:hover { background: var
   .game-side { margin: 0; }
   .side-panel {
     border: 1px solid var(--border-standard);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     background: var(--bg-panel-raised);
     box-shadow: var(--shadow-panel);
     padding: 14px;

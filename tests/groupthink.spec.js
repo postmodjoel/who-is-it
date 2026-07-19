@@ -72,11 +72,15 @@ test("two players score shared picks as one co-op sync total", async ({ page }, 
   test.skip(testInfo.project.name !== "desktop", "ruleset smoke runs once on desktop");
   await openGroupthink(page, ["Ada", "Bea"]);
   await expect(page.locator("#questionPrompt")).not.toBeEmpty();
+  await expect(page.locator(".gt-selection-tray")).toContainText("ADA'S PICKS");
+  await expect(page.locator(".gt-selection-tray")).not.toContainText("selected");
+  await expect(page.locator(".gt-selection-tray")).not.toContainText("saw");
   await pick(page, [0, 1, 2]);
   await acceptHandoff(page, "Bea");
   await pick(page, [0, 1, 2]);
   await expect(page.locator(".gt-results")).toBeVisible();
   await expect(page.locator(".gt-sync-result")).toContainText("+6");
+  await expect(page.locator(".gt-save-lock")).toContainText("ADA:");
   await saveCandidate(page, 0);
   await acceptHandoff(page, "Bea");
   await saveCandidate(page, 0);
@@ -172,7 +176,7 @@ test("a refresh resumes the exact Groupthink ballot", async ({ page }, testInfo)
   await expect(page.locator("body")).toHaveClass(/ruleset-groupthink/);
   await expect(page.locator("#questionPrompt")).toHaveText(prompt);
   await expect(page.locator(`#characterBoard [data-id="${firstId}"]`)).toHaveClass(/gt-picked/);
-  await expect(page.locator(".gt-selection-tray")).toContainText("1/3 selected");
+  await expect(page.locator(".gt-selection-tray .gt-tray-face img")).toHaveCount(1);
 });
 
 test("split save votes cut every nominated face from the shared plain-card board", async ({ page }, testInfo) => {
@@ -201,7 +205,7 @@ test("ballots shrink from three to two to one with the communal cast", async ({ 
   expect(limits).toEqual([3, 2, 2, 1, 1]);
 });
 
-test("three-face agreement cuts one immediately and opens a two-card finale", async ({ page }, testInfo) => {
+test("three-face agreement cuts one immediately and the final two resolves with no save vote", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "ruleset smoke runs once on desktop");
   await openGroupthink(page, ["Ada", "Bea"]);
   await page.evaluate(() => {
@@ -222,7 +226,44 @@ test("three-face agreement cuts one immediately and opens a two-card finale", as
   }))).toEqual({ phase: "results", board: 2, removed: 1 });
   await page.locator(".gt-next").click();
   await expect(page.locator("#characterBoard [data-id]")).toHaveCount(2);
-  await expect(page.locator(".gt-selection-tray")).toContainText("0/1 selected");
+  await expect(page.locator(".gt-selection-tray .gt-tray-face")).toHaveCount(1);
+  await expect(page.locator(".gt-selection-tray")).toContainText("1 DESTROYED");
+  await expect(page.locator(".gt-status")).toContainText("THE FINAL TWO");
+
+  // The showdown: both condemn the same face — no save vote, the other face is crowned.
+  const finalists = await page.evaluate(() => state.board.map((character) => character.name));
+  await pick(page, [0]);
+  await acceptHandoff(page, "Bea");
+  await pick(page, [0]);
+  await expect(page.locator(".gt-save-face")).toHaveCount(0);
+  await expect(page.locator(".gt-saw-verdict")).toContainText("LAST FACE STANDING");
+  await expect.poll(() => page.evaluate(() => ({
+    phase: state.groupthink.phase,
+    board: state.board.length
+  }))).toEqual({ phase: "results", board: 1 });
+  const showdown = await page.evaluate(() => ({
+    crownedId: state.groupthink.lastResult.saveOutcome.crownedId,
+    survivorId: state.board[0]?.id
+  }));
+  expect(showdown.crownedId).toBe(showdown.survivorId);
+  await expect(page.locator(".gt-next")).toHaveText("FINAL RESULTS");
+  await page.locator(".gt-next").click();
+  await expect(page.locator(".gt-final-survivor")).toContainText(finalists[1]);
+  await expect(page.locator(".gt-final-runnerup")).toContainText(finalists[0]);
+});
+
+test("prompt rerolls keep producing fresh prompts instead of ping-ponging", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "ruleset smoke runs once on desktop");
+  await openGroupthink(page, ["Ada", "Bea"]);
+  const seen = await page.evaluate(() => {
+    const ids = [state.groupthink.promptId];
+    for (let i = 0; i < 3; i += 1) {
+      window.Groupthink.rerollPrompt();
+      ids.push(state.groupthink.promptId);
+    }
+    return ids;
+  });
+  expect(new Set(seen).size).toBe(seen.length);
 });
 
 test("Groupthink setup exposes prompt safety but no mystery-effect controls", async ({ page }, testInfo) => {

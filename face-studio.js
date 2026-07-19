@@ -1052,6 +1052,17 @@ function updateCorrection(character, key, value) {
 }
 
 function updateEnumCorrection(character, key, value) {
+  if (key === "hair" && !applyHairStyleChange(character, value)) {
+    render(); // restore the previous dropdown value + composition
+    return;
+  }
+  // Choosing the hijab accessory selects the covered look: hair normalizes to bald.
+  if (key === "accessory" && value === "hijab" && effectiveHairStyle(character.id) !== "bald") {
+    if (!applyHairStyleChange(character, "bald")) { render(); return; }
+    const withHair = { ...correctionFor(character.id) };
+    withHair.hair = "bald";
+    setCorrection(character.id, withHair);
+  }
   const field = editorFields.find((item) => item.key === key);
   const fallback = character.traits[key] ?? field?.fallback;
   const next = { ...correctionFor(character.id) };
@@ -1062,6 +1073,29 @@ function updateEnumCorrection(character, key, value) {
   }
   setCorrection(character.id, next);
   render();
+}
+
+// Changing Hair Style with edited base pieces is destructive to those edits: confirm first.
+// On confirm: base layers are replaced by the new preset's fresh layers AT THE BOTTOM, placed
+// layers keep their relative order, and the composition's preset follows the dropdown.
+// Returns false to signal a cancelled change (caller re-renders the old value).
+function applyHairStyleChange(character, value) {
+  const id = character.id;
+  const comp = correctionFor(id).hairComposition;
+  if (!comp || comp.version !== 1 || !Array.isArray(comp.layers)) return true; // derived: swap freely
+  if (baseEditedFor(id)) {
+    const ok = window.confirm("Changing hair style resets its edited base pieces. Placed pieces are kept. Continue?");
+    if (!ok) return false;
+  }
+  const placed = comp.layers.filter((layer) => layer && layer.origin !== "base");
+  const layers = [...freshBaseLayers(value === "hijab" ? "bald" : value), ...placed];
+  const next = { ...correctionFor(id) };
+  next.hairComposition = { version: 1, preset: value, layers };
+  const placedLegacy = placed.map(layerToLegacyInst);
+  if (placedLegacy.length) next.hairLocks = placedLegacy;
+  else delete next.hairLocks;
+  setCorrection(id, next);
+  return true;
 }
 
 function clearFieldCorrection(character, key) {
@@ -1150,6 +1184,14 @@ function setSelectedFaceId(id) {
 
 function setCorrection(id, correction) {
   const clean = Object.fromEntries(Object.entries(correction).filter(([, value]) => value !== "" && value !== null && value !== undefined));
+  // hijab left the hair catalogue: when a legacy hair:"hijab" character is edited and saved,
+  // normalize the record — hair becomes bald, the (conflicting) accessory slot becomes hijab.
+  const ch = characters.find((c) => c.id === id);
+  const effectiveHair = clean.hair ?? (ch && ch.traits && ch.traits.hair);
+  if (effectiveHair === "hijab") {
+    clean.hair = "bald";
+    clean.accessory = "hijab";
+  }
   if (Object.keys(clean).length) {
     state.corrections[id] = clean;
   } else {
@@ -1794,42 +1836,100 @@ function hairOutlineHexFor(character) {
   return shadeHex(hairHexFor(character), 0.52);
 }
 
-function normalizeLockInstance(inst) {
-  if (!inst || typeof inst !== "object") return inst;
-  const next = { ...inst };
-  if (next.internalLine == null && next.outlineForce) next.internalLine = true;
-  delete next.outlineForce;
-  return next;
-}
 
-// Read-only effective locks: a hairLocks correction wins, otherwise fall back to the character's
-// baked-in base locks (so a baked character like Aaron shows its locks in the designer).
-function getLocks(id) {
-  const corr = correctionFor(id).hairLocks;
-  if (Array.isArray(corr)) return corr.map(normalizeLockInstance);
+
+/* ----- The unified stack (Hair Designer). ----- *
+ * The designer edits the character's COMPLETE resolved hair stack — base preset layers at the
+ * bottom, placed/drawn layers above, every row equally editable. Reads resolve through
+ * faceGenerator.resolveHairComposition (legacy hair + hairLocks records need no migration);
+ * the FIRST stack edit materializes corrections[id].hairComposition {version:1, preset, layers}
+ * as the authoritative order, with corrections[id].hairLocks kept in sync with the non-base
+ * layers (legacy shape) for existing consumers. */
+function effectiveTraitsFor(id) {
   const ch = characters.find((c) => c.id === id);
-  const base = ch && ch.traits && ch.traits.hairLocks;
-  return Array.isArray(base) ? base.map(normalizeLockInstance) : [];
+  return { ...((ch && ch.traits) || {}), ...correctionFor(id) };
 }
 
-// For in-place mutation: ensure there's a hairLocks correction (deep-copied from the base on first
-// touch) so editing a baked character never mutates the shared base array.
-function editableLocks(id) {
-  if (!Array.isArray(correctionFor(id).hairLocks)) {
-    setLocks(id, getLocks(id));
-  } else if (correctionFor(id).hairLocks.some((inst) => inst && inst.outlineForce && inst.internalLine == null)) {
-    setLocks(id, correctionFor(id).hairLocks);
+function effectiveHairStyle(id) {
+  const hair = effectiveTraitsFor(id).hair || "bald";
+  return hair === "hijab" ? "bald" : hair;
+}
+
+// The resolved ordered stack (normalized layers, array order = z-order bottom->top).
+function getStack(id) {
+  const resolved = window.faceGenerator.resolveHairComposition
+    ? window.faceGenerator.resolveHairComposition(effectiveTraitsFor(id))
+    : null;
+  return resolved ? resolved.layers : [];
+}
+
+// Convert a normalized layer back into the legacy hairLocks instance shape so external
+// consumers (in-app editor, mining, breeding, exports) keep reading what they always read.
+function layerToLegacyInst(layer) {
+  const inst = {};
+  if (layer.piece === "drawn") {
+    inst.d = layer.d;
+    if (Array.isArray(layer.strokes) && layer.strokes.length) inst.strokes = layer.strokes;
+    if (layer.shade) inst.shade = true;
+    if (layer.x) inst.dx = layer.x;
+    if (layer.y) inst.dy = layer.y;
+  } else {
+    inst.lock = layer.piece.slice(5);
+    inst.x = layer.x;
+    inst.y = layer.y;
+    inst.scale = layer.scaleX;
+    if (layer.scaleY !== layer.scaleX) inst.scaleY = layer.scaleY;
+    inst.rot = layer.rotation;
+    if (layer.mirror) inst.mirror = true;
   }
-  return correctionFor(id).hairLocks;
+  if (layer.zone === "behind") inst.behind = true;
+  if (layer.lines === false) inst.lines = false;
+  if (layer.visible === false) inst.visible = false;
+  ["fill", "outline", "dark", "shine", "line", "internalLineColor"].forEach((key) => {
+    if (layer[key] != null) inst[key] = layer[key];
+  });
+  if (layer.internalLine) inst.internalLine = true;
+  if (layer.internalLineWidth != null) inst.internalLineWidth = layer.internalLineWidth;
+  if (layer.id) inst.id = layer.id;
+  return inst;
 }
 
-function setLocks(id, arr) {
+// Materialize the stack: hairComposition is authoritative, hairLocks mirrors non-base layers.
+function setStack(id, layers) {
   const next = { ...correctionFor(id) };
-  const normalized = Array.isArray(arr) ? arr.map(normalizeLockInstance) : [];
-  if (normalized.length) next.hairLocks = normalized;
+  const clean = (layers || []).filter(Boolean);
+  next.hairComposition = { version: 1, preset: effectiveHairStyle(id), layers: clean };
+  const placed = clean.filter((layer) => layer.origin !== "base").map(layerToLegacyInst);
+  if (placed.length) next.hairLocks = placed;
   else delete next.hairLocks;
   setCorrection(id, next);
 }
+
+function freshBaseLayers(style) {
+  const preset = window.facesHair.getHairPreset ? window.facesHair.getHairPreset(style) : null;
+  return preset ? preset.layers : [];
+}
+
+// Have the base layers been changed / deleted / transformed / recoloured / rezoned / reordered
+// away from the pristine preset? (Gates the style-change confirmation.)
+function baseEditedFor(id) {
+  const comp = correctionFor(id).hairComposition;
+  if (!comp || comp.version !== 1 || !Array.isArray(comp.layers)) return false;
+  const fresh = freshBaseLayers(comp.preset || effectiveHairStyle(id));
+  const currentBase = comp.layers.filter((layer) => layer && layer.origin === "base");
+  if (currentBase.length !== fresh.length) return true;
+  for (let i = 0; i < currentBase.length; i += 1) {
+    if (comp.layers[i] !== currentBase[i]) return true; // no longer contiguous at the bottom
+    const a = { ...currentBase[i], id: "" };
+    const b = { ...fresh[i], id: "" };
+    if (stableComparable(a) !== stableComparable(b)) return true;
+  }
+  return false;
+}
+
+// Legacy aliases used across the designer wiring (same array: the FULL stack now).
+function getLocks(id) { return getStack(id); }
+function setLocks(id, arr) { setStack(id, arr); }
 
 function lockThumb(key) {
   if (!window.facesHair || !window.facesHair.renderLock) return "";
@@ -1838,7 +1938,7 @@ function lockThumb(key) {
 }
 
 function lockDesignerMarkup(character) {
-  const locks = getLocks(character.id);
+  const stack = getStack(character.id);
   const hairHex = hairHexFor(character);
   const outlineHex = hairOutlineHexFor(character);
   const merged = (traitsFor(character, selectedExpressionFor(character)).lockBlend || "merged") === "merged";
@@ -1849,21 +1949,36 @@ function lockDesignerMarkup(character) {
         <span class="lock-chip-label">${escapeHtml(label)}</span>
       </button>`)
     .join("");
-  const stack = locks.length
-    ? locks.map((inst, i) => lockRowMarkup(character, inst, i, locks.length, hairHex, outlineHex, merged)).join("")
-    : `<p class="lock-empty">No locks yet — click a style above, or drag one onto the hair.</p>`;
+  const rows = stack.length
+    ? stack.map((layer, i) => lockRowMarkup(character, layer, i, stack.length, hairHex, outlineHex, merged)).join("")
+    : `<p class="lock-empty">Bald — click a piece above, drag one onto the hair, or Reset base.</p>`;
+  const hasPlaced = stack.some((layer) => layer.origin !== "base");
   return `
     <div class="lock-designer">
       <div class="lock-designer-head">
-        <p class="meta-label">Lock Designer</p>
-        ${locks.length ? `<button type="button" class="mini-button" data-lock-clear>Clear locks</button>` : ""}
+        <p class="meta-label">Hair Designer</p>
+        <span class="lock-head-actions">
+          <button type="button" class="mini-button" data-stack-reset-base title="Restore this style's default base pieces at the bottom">Reset base</button>
+          ${hasPlaced ? `<button type="button" class="mini-button" data-stack-clear-placed title="Remove only placed pieces">Clear placed</button>` : ""}
+          ${stack.length ? `<button type="button" class="mini-button is-danger" data-stack-clear-all title="Remove every hair layer">Clear all hair</button>` : ""}
+        </span>
       </div>
       ${hairDyePanelMarkup(character)}
       <div class="lock-palette">${palette}</div>
-      <div class="lock-stack">${stack}</div>
+      <div class="lock-stack">
+        <div class="stack-marker">BOTTOM — renders first</div>
+        ${rows}
+        <div class="stack-marker">TOP — renders last</div>
+      </div>
       ${merged ? mergedHairPanelMarkup(character) : ""}
     </div>
     ${penDesignerMarkup()}`;
+}
+
+function layerBadge(layer) {
+  if (layer.origin === "base") return `<span class="lock-origin is-base">BASE · ${escapeHtml(String(layer.preset || "").toUpperCase() || "STYLE")}</span>`;
+  if (layer.piece === "drawn") return `<span class="lock-origin is-drawn">DRAWN</span>`;
+  return `<span class="lock-origin">PLACED</span>`;
 }
 
 function hairDyePanelMarkup(character) {
@@ -1981,19 +2096,18 @@ function setMergedInternalLineValue(character, key, value) {
   refreshPortrait(character);
 }
 
-function effectiveInternalLine(inst) {
-  return !!(inst && (inst.internalLine != null ? inst.internalLine : inst.outlineForce));
-}
 
-function lockRowMarkup(character, inst, i, n, hairHex, outlineHex, merged) {
-  // Drawn (pen-tool) locks have no catalog key/transform — show a slimmed row.
-  if (inst.d) return drawnRowMarkup(character, inst, i, hairHex, outlineHex, merged);
+
+function lockRowMarkup(character, layer, i, n, hairHex, outlineHex, merged) {
+  const isDrawn = layer.piece === "drawn";
+  const isBase = layer.origin === "base";
+  const isLock = !isDrawn && !isBase;
   // defHex = the auto colour shown when this part isn't overridden. 'outline' is special: its auto is
   // the global ink, and it has an on/off state (outline === 'none').
   const colorField = (part, defHex, label) => {
-    const off = part === "outline" && inst.outline === "none";
-    const set = inst[part] != null && inst[part] !== "none";
-    const value = set ? inst[part] : defHex;
+    const off = part === "outline" && layer.outline === "none";
+    const set = layer[part] != null && layer[part] !== "none";
+    const value = set ? layer[part] : defHex;
     return `
       <label class="lock-color ${set ? "is-set" : ""} ${off ? "is-off" : ""}">
         <span class="mini-colorrow"><input id="lock-color-${i}-${part}" type="color" value="${escapeHtml(value)}" data-lock-color="${part}">${miniSwatchButton(`lock-color-${i}-${part}`)}</span>
@@ -2001,10 +2115,10 @@ function lockRowMarkup(character, inst, i, n, hairHex, outlineHex, merged) {
         ${set ? `<button type="button" class="lock-color-reset" data-lock-reset="${part}" title="Auto colour">×</button>` : ""}
       </label>`;
   };
-  const internalLineColorField = merged ? (() => {
-    const set = inst.internalLineColor != null && inst.internalLineColor !== "none";
-    const fallback = inst.outline === "none" ? outlineHex : (inst.outline || outlineHex);
-    const value = set ? inst.internalLineColor : fallback;
+  const internalLineColorField = merged && !isDrawn ? (() => {
+    const set = layer.internalLineColor != null && layer.internalLineColor !== "none";
+    const fallback = layer.outline === "none" ? outlineHex : (layer.outline || outlineHex);
+    const value = set ? layer.internalLineColor : fallback;
     return `
       <label class="lock-color ${set ? "is-set" : ""}">
         <span class="mini-colorrow"><input id="lock-color-${i}-internalLineColor" type="color" value="${escapeHtml(value)}" data-lock-color="internalLineColor">${miniSwatchButton(`lock-color-${i}-internalLineColor`)}</span>
@@ -2012,39 +2126,49 @@ function lockRowMarkup(character, inst, i, n, hairHex, outlineHex, merged) {
         ${set ? `<button type="button" class="lock-color-reset" data-lock-reset="internalLineColor" title="Auto colour">×</button>` : ""}
       </label>`;
   })() : "";
-  const internalLineWidth = Number.isFinite(Number(inst.internalLineWidth))
-    ? Number(inst.internalLineWidth)
+  const internalLineWidth = Number.isFinite(Number(layer.internalLineWidth))
+    ? Number(layer.internalLineWidth)
     : DEFAULT_INTERNAL_LINE_WIDTH;
-  const internalLineWidthField = merged ? `
+  const internalLineWidthField = merged && !isDrawn ? `
       <div class="lock-row-subcontrols">
-        <label class="lock-num">Internal thickness <input type="range" min="0.6" max="${MAX_INTERNAL_LINE_WIDTH}" step="0.05" value="${internalLineWidth}" data-lock-num="internalLineWidth" ${effectiveInternalLine(inst) ? "" : "disabled"}><span class="editor-value">${formatNumber(internalLineWidth)}</span></label>
+        <label class="lock-num">Internal thickness <input type="range" min="0.6" max="${MAX_INTERNAL_LINE_WIDTH}" step="0.05" value="${internalLineWidth}" data-lock-num="internalLineWidth" ${layer.internalLine ? "" : "disabled"}><span class="editor-value">${formatNumber(internalLineWidth)}</span></label>
       </div>` : "";
-  const swap = `<select class="lock-swap" data-lock-swap>${LOCK_CATALOG.map((c) => `<option value="${escapeHtml(c.key)}" ${c.key === inst.lock ? "selected" : ""}>${escapeHtml(c.label)}</option>`).join("")}</select>`;
+  const identity = isLock
+    ? `<select class="lock-swap" data-lock-swap>${LOCK_CATALOG.map((c) => `<option value="${escapeHtml(c.key)}" ${`lock:${c.key}` === layer.piece ? "selected" : ""}>${escapeHtml(c.label)}</option>`).join("")}</select>`
+    : `<span class="lock-piece-label">${escapeHtml(isDrawn ? "✏️ Drawn shape" : ((window.facesHair.hairPieces[layer.piece] || {}).label || layer.piece))}</span>`;
+  // position controls: lock pieces are dragged by their marker (% anchor); base + drawn rows get
+  // px-offset sliders (their x/y are portrait-px nudges from the authored position).
+  const offsetFields = !isLock ? `
+        <label class="lock-num">X <input type="range" min="-80" max="80" step="1" value="${layer.x ?? 0}" data-lock-num="x"><span class="editor-value">${formatNumber(layer.x ?? 0)}</span></label>
+        <label class="lock-num">Y <input type="range" min="-80" max="80" step="1" value="${layer.y ?? 0}" data-lock-num="y"><span class="editor-value">${formatNumber(layer.y ?? 0)}</span></label>` : "";
   return `
-    <div class="lock-row" data-index="${i}" data-lock-droprow>
+    <div class="lock-row ${isBase ? "is-base-row" : ""} ${layer.visible === false ? "is-hidden-layer" : ""}" data-index="${i}" data-lock-droprow>
       <div class="lock-row-head">
         <span class="lock-grip" draggable="true" title="Drag to reorder">⠿</span>
         <span class="lock-row-num">${i + 1}</span>
-        ${swap}
-        <button type="button" class="mini-button" data-lock-reset-all title="Reset all colours for this lock">Reset colours</button>
+        ${layerBadge(layer)}
+        ${identity}
+        <button type="button" class="mini-button" data-lock-reset-all title="Reset all colours for this piece">Reset colours</button>
         <button type="button" class="mini-button lock-del" data-lock-act="remove" title="Delete">✕</button>
       </div>
       <div class="lock-row-controls">
-        <label class="lock-num">Size <input type="range" min="0.3" max="2" step="0.02" value="${inst.scale ?? 1}" data-lock-num="scale"><span class="editor-value">${formatNumber(inst.scale ?? 1)}</span></label>
-        <label class="lock-num">Rotate <input type="range" min="-180" max="180" step="1" value="${inst.rot ?? 0}" data-lock-num="rot"><span class="editor-value">${formatNumber(inst.rot ?? 0)}</span></label>
+        <label class="lock-num">Size <input type="range" min="${isLock ? 0.3 : 0.4}" max="${isLock ? 2 : 1.8}" step="0.02" value="${layer.scaleX ?? 1}" data-lock-num="size"><span class="editor-value">${formatNumber(layer.scaleX ?? 1)}</span></label>
+        <label class="lock-num">Rotate <input type="range" min="-180" max="180" step="1" value="${layer.rotation ?? 0}" data-lock-num="rotation"><span class="editor-value">${formatNumber(layer.rotation ?? 0)}</span></label>
+        ${offsetFields}
       </div>
       <div class="lock-row-toggles">
-        <label class="lock-toggle"><input type="checkbox" data-lock-lines ${inst.lines === false ? "" : "checked"}> Lines</label>
-        <label class="lock-toggle"><input type="checkbox" data-lock-mirror ${inst.mirror ? "checked" : ""}> Mirror</label>
-        <label class="lock-toggle"><input type="checkbox" data-lock-outline ${inst.outline === "none" ? "" : "checked"}> Outline</label>
-        ${merged ? `<label class="lock-toggle"><input type="checkbox" data-lock-internal-line ${effectiveInternalLine(inst) ? "checked" : ""}> Internal line</label>` : ""}
-        <label class="lock-toggle"><input type="checkbox" data-lock-behind ${inst.behind ? "checked" : ""}> Behind</label>
+        <label class="lock-toggle"><input type="checkbox" data-lock-visible ${layer.visible === false ? "" : "checked"}> Visible</label>
+        <label class="lock-toggle"><input type="checkbox" data-lock-lines ${layer.lines === false ? "" : "checked"}> Lines</label>
+        <label class="lock-toggle"><input type="checkbox" data-lock-mirror ${layer.mirror ? "checked" : ""}> Mirror</label>
+        <label class="lock-toggle"><input type="checkbox" data-lock-outline ${layer.outline === "none" ? "" : "checked"}> Outline</label>
+        ${merged && !isDrawn ? `<label class="lock-toggle"><input type="checkbox" data-lock-internal-line ${layer.internalLine ? "checked" : ""}> Internal line</label>` : ""}
+        <label class="lock-toggle"><input type="checkbox" data-lock-behind ${layer.zone === "behind" ? "checked" : ""}> Behind</label>
       </div>
       ${internalLineWidthField}
       <div class="lock-row-colors">
         ${colorField("fill", shadeHex(hairHex, 1), "Hair")}
-        ${colorField("dark", shadeHex(hairHex, 0.5), "Shadow")}
-        ${colorField("shine", shadeHex(hairHex, 1.3), "Shine")}
+        ${isDrawn ? "" : colorField("dark", shadeHex(hairHex, 0.5), "Shadow")}
+        ${isDrawn ? "" : colorField("shine", shadeHex(hairHex, 1.3), "Shine")}
         ${colorField("line", shadeHex(hairHex, 0.62), "Lines")}
         ${colorField("outline", outlineHex, "Outline")}
         ${internalLineColorField}
@@ -2052,41 +2176,28 @@ function lockRowMarkup(character, inst, i, n, hairHex, outlineHex, merged) {
     </div>`;
 }
 
-// Slim editor row for a hand-drawn lock: reorder, delete, lines/outline toggles, and a fill swatch.
-function drawnRowMarkup(character, inst, i, hairHex, outlineHex, merged) {
-  const fill = inst.fill || shadeHex(hairHex, 1);
-  return `
-    <div class="lock-row" data-index="${i}" data-lock-droprow>
-      <div class="lock-row-head">
-        <span class="lock-grip" draggable="true" title="Drag to reorder">⠿</span>
-        <span class="lock-row-num">${i + 1}</span>
-        <span class="lock-drawn-tag">✏️ Drawn shape</span>
-        <button type="button" class="mini-button" data-lock-reset-all title="Reset all colours for this lock">Reset colours</button>
-        <button type="button" class="mini-button lock-del" data-lock-act="remove" title="Delete">✕</button>
-      </div>
-      <div class="lock-row-toggles">
-        <label class="lock-toggle"><input type="checkbox" data-lock-lines ${inst.lines === false ? "" : "checked"}> Lines</label>
-        <label class="lock-toggle"><input type="checkbox" data-lock-outline ${inst.outline === "none" ? "" : "checked"}> Outline</label>
-      </div>
-      <div class="lock-row-colors">
-        <label class="lock-color is-set">
-          <span class="mini-colorrow"><input id="drawn-lock-color-${i}-fill" type="color" value="${escapeHtml(fill)}" data-lock-color="fill">${miniSwatchButton(`drawn-lock-color-${i}-fill`)}</span><span>Colour</span>
-        </label>
-        <label class="lock-color ${inst.line ? "is-set" : ""}">
-          <span class="mini-colorrow"><input id="drawn-lock-color-${i}-line" type="color" value="${escapeHtml(inst.line || shadeHex(hairHex, 0.62))}" data-lock-color="line">${miniSwatchButton(`drawn-lock-color-${i}-line`)}</span><span>Lines</span>
-        </label>
-      </div>
-    </div>`;
-}
-
 function wireLockDesigner(character) {
   const root = els.editorControls.querySelector(".lock-designer");
   if (!root) return;
-  const corrLocks = correctionFor(character.id).hairLocks;
-  if (Array.isArray(corrLocks) && corrLocks.some((inst) => inst && inst.outlineForce && inst.internalLine == null)) {
-    setLocks(character.id, corrLocks);
-  }
   wireInlineSwatchButtons(root);
+  // stack-level actions with unambiguous scopes
+  const resetBase = root.querySelector("[data-stack-reset-base]");
+  if (resetBase) resetBase.addEventListener("click", () => {
+    const placed = getStack(character.id).filter((layer) => layer.origin !== "base");
+    setStack(character.id, [...freshBaseLayers(effectiveHairStyle(character.id)), ...placed]);
+    render();
+  });
+  const clearPlaced = root.querySelector("[data-stack-clear-placed]");
+  if (clearPlaced) clearPlaced.addEventListener("click", () => {
+    setStack(character.id, getStack(character.id).filter((layer) => layer.origin === "base"));
+    render();
+  });
+  const clearAll = root.querySelector("[data-stack-clear-all]");
+  if (clearAll) clearAll.addEventListener("click", () => {
+    if (!window.confirm("Remove every hair layer (base and placed)? The head goes bald.")) return;
+    setStack(character.id, []);
+    render();
+  });
   const dye = root.querySelector("[data-hair-dye-color]");
   if (dye) dye.addEventListener("input", () => setHairDye(character, dye.value));
   const clearDye = root.querySelector("[data-hair-dye-clear]");
@@ -2107,8 +2218,6 @@ function wireLockDesigner(character) {
     chip.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/lock", chip.dataset.lock));
     chip.addEventListener("click", () => addLock(character, chip.dataset.lock));
   });
-  const clear = root.querySelector("[data-lock-clear]");
-  if (clear) clear.addEventListener("click", () => { setLocks(character.id, []); render(); });
   root.querySelectorAll(".lock-row").forEach((row) => {
     const idx = Number(row.dataset.index);
     row.querySelectorAll("[data-lock-act]").forEach((btn) => {
@@ -2120,25 +2229,26 @@ function wireLockDesigner(character) {
     row.querySelectorAll("[data-lock-num]").forEach((inp) => {
       inp.addEventListener("input", () => updateLockField(character, idx, inp.dataset.lockNum, Number(inp.value), inp));
     });
+    const visible = row.querySelector("[data-lock-visible]");
+    if (visible) visible.addEventListener("change", () => { setLockProp(character, idx, "visible", visible.checked); render(); });
     const lines = row.querySelector("[data-lock-lines]");
     if (lines) lines.addEventListener("change", () => { setLockProp(character, idx, "lines", lines.checked); render(); });
     const mirror = row.querySelector("[data-lock-mirror]");
-    if (mirror) mirror.addEventListener("change", () => { setLockProp(character, idx, "mirror", mirror.checked || undefined); render(); });
+    if (mirror) mirror.addEventListener("change", () => { setLockProp(character, idx, "mirror", mirror.checked); render(); });
     const behind = row.querySelector("[data-lock-behind]");
-    if (behind) behind.addEventListener("change", () => { setLockProp(character, idx, "behind", behind.checked || undefined); render(); });
+    if (behind) behind.addEventListener("change", () => { setLockProp(character, idx, "zone", behind.checked ? "behind" : "front"); render(); });
     const outline = row.querySelector("[data-lock-outline]");
     if (outline) outline.addEventListener("change", () => {
-      setLockProp(character, idx, "outline", outline.checked ? undefined : "none");
+      setLockProp(character, idx, "outline", outline.checked ? null : "none");
       render();
     });
     const internalLine = row.querySelector("[data-lock-internal-line]");
     if (internalLine) internalLine.addEventListener("change", () => {
-      setLockProp(character, idx, "internalLine", internalLine.checked || undefined);
-      setLockProp(character, idx, "outlineForce", undefined);
+      setLockProp(character, idx, "internalLine", internalLine.checked);
       render();
     });
     const swap = row.querySelector("[data-lock-swap]");
-    if (swap) swap.addEventListener("change", () => { setLockProp(character, idx, "lock", swap.value); render(); });
+    if (swap) swap.addEventListener("change", () => { setLockProp(character, idx, "piece", `lock:${swap.value}`); render(); });
     row.querySelectorAll("[data-lock-color]").forEach((inp) => {
       inp.addEventListener("input", () => setLockColor(character, idx, inp.dataset.lockColor, inp.value, false));
     });
@@ -2263,9 +2373,9 @@ function finishPenPath(character, asSaved) {
 }
 
 function applyDrawnLock(character, inst) {
-  const arr = editableLocks(character.id);
-  arr.push(inst);
-  saveCorrections();
+  const stack = getStack(character.id);
+  stack.push(window.facesHair.normalizeHairLayer(inst));
+  setStack(character.id, stack);
   state.pen.mode = false;
   render();
 }
@@ -2328,56 +2438,65 @@ function wirePenStageOnce() {
 
 function reorderLock(character, from, to) {
   if (from === to || Number.isNaN(from)) return;
-  const locks = getLocks(character.id).slice();
-  if (!locks[from]) return;
-  const [item] = locks.splice(from, 1);
-  locks.splice(to, 0, item);
-  setLocks(character.id, locks);
+  const stack = getStack(character.id);
+  if (!stack[from]) return;
+  const [item] = stack.splice(from, 1);
+  stack.splice(to, 0, item);
+  setStack(character.id, stack);
   render();
 }
 
+// Catalogue click/drag: the new piece joins the TOP of the front zone (appended = renders last).
 function addLock(character, key, x, y) {
-  const locks = getLocks(character.id).slice();
-  locks.push({ lock: key, x: x == null ? 50 : Math.round(x), y: y == null ? 30 : Math.round(y), scale: 1, rot: 0, lines: true });
-  setLocks(character.id, locks);
+  const stack = getStack(character.id);
+  stack.push(window.facesHair.normalizeHairLayer({
+    lock: key,
+    x: x == null ? 50 : Math.round(x),
+    y: y == null ? 30 : Math.round(y),
+    scale: 1, rot: 0, lines: true
+  }));
+  setStack(character.id, stack);
   render();
 }
 
 function lockAction(character, idx, act) {
-  const locks = getLocks(character.id).slice();
-  if (!locks[idx]) return;
-  if (act === "remove") locks.splice(idx, 1);
-  else if (act === "up" && idx < locks.length - 1) [locks[idx], locks[idx + 1]] = [locks[idx + 1], locks[idx]];
-  else if (act === "down" && idx > 0) [locks[idx], locks[idx - 1]] = [locks[idx - 1], locks[idx]];
+  const stack = getStack(character.id);
+  if (!stack[idx]) return;
+  if (act === "remove") stack.splice(idx, 1);
+  else if (act === "up" && idx < stack.length - 1) [stack[idx], stack[idx + 1]] = [stack[idx + 1], stack[idx]];
+  else if (act === "down" && idx > 0) [stack[idx], stack[idx - 1]] = [stack[idx - 1], stack[idx]];
   else return;
-  setLocks(character.id, locks);
+  setStack(character.id, stack);
   render();
 }
 
+function mutateLayer(character, idx, mutate) {
+  const stack = getStack(character.id);
+  if (!stack[idx]) return false;
+  stack[idx] = { ...stack[idx] };
+  mutate(stack[idx]);
+  setStack(character.id, stack);
+  return true;
+}
+
 function setLockProp(character, idx, prop, value) {
-  const locks = editableLocks(character.id);
-  if (!locks[idx]) return;
-  if (value === undefined) delete locks[idx][prop];
-  else locks[idx][prop] = value;
-  saveCorrections();
+  mutateLayer(character, idx, (layer) => { layer[prop] = value; });
 }
 
 function updateLockField(character, idx, field, value, inp) {
-  const locks = editableLocks(character.id);
-  if (!locks[idx]) return;
-  locks[idx][field] = value;
+  const ok = mutateLayer(character, idx, (layer) => {
+    if (field === "size") { layer.scaleX = value; layer.scaleY = value; }
+    else layer[field] = value;
+  });
+  if (!ok) return;
   const span = inp.parentElement.querySelector(".editor-value");
   if (span) span.textContent = formatNumber(value);
-  saveCorrections();
   refreshPortrait(character);
 }
 
 function setLockColor(character, idx, part, value, isReset) {
-  const locks = editableLocks(character.id);
-  if (!locks[idx]) return;
-  if (value == null) delete locks[idx][part];
-  else locks[idx][part] = value;
-  saveCorrections();
+  const ok = mutateLayer(character, idx, (layer) => { layer[part] = value == null ? null : value; });
+  if (!ok) return;
   if (isReset) render();
   else refreshPortrait(character);
 }
@@ -2392,11 +2511,10 @@ function setHairDye(character, value) {
 }
 
 function resetLockColors(character, idx) {
-  const locks = editableLocks(character.id);
-  if (!locks[idx]) return;
-  ["fill", "dark", "shine", "line", "outline", "internalLineColor"].forEach((key) => delete locks[idx][key]);
-  saveCorrections();
-  render();
+  const ok = mutateLayer(character, idx, (layer) => {
+    ["fill", "dark", "shine", "line", "outline", "internalLineColor"].forEach((key) => { layer[key] = null; });
+  });
+  if (ok) render();
 }
 
 // Lightweight: re-render only the selected portrait + lock markers + export (no grid/editor rebuild),
@@ -2469,23 +2587,52 @@ function renderLockOverlay(character) {
     els.lockOverlay.querySelectorAll(".beard-marker").forEach((marker) => wireBeardMarker(marker, character));
     return;
   }
-  const locks = getLocks(character.id);
-  els.lockOverlay.innerHTML = locks
-    .map((inst, i) => ({ inst, i }))
-    // Drawn (pen) locks have no x/y anchor — they're edited from the stack, not via a marker.
-    .filter(({ inst }) => !inst.d)
-    .map(({ inst, i }) => `<button type="button" class="lock-marker ${inst.behind ? "is-behind" : ""}" data-index="${i}" style="left:${inst.x}%; top:${inst.y == null ? 32 : inst.y}%;" title="${escapeHtml(lockLabel(inst.lock))}${inst.behind ? " (behind)" : ""} — drag to move">${i + 1}</button>`)
+  const stack = getStack(character.id);
+  els.lockOverlay.innerHTML = stack
+    .map((layer, i) => ({ layer, i }))
+    .map(({ layer, i }) => {
+      const pos = layerMarkerPos(layer);
+      const label = layer.piece === "drawn" ? "Drawn shape"
+        : layer.origin === "base" ? ((window.facesHair.hairPieces[layer.piece] || {}).label || "Base hair")
+          : lockLabel(layer.piece.slice(5));
+      return `<button type="button" class="lock-marker ${layer.zone === "behind" ? "is-behind" : ""} ${layer.origin === "base" ? "is-base" : ""}" data-index="${i}" style="left:${pos.left}%; top:${pos.top}%;" title="${escapeHtml(label)}${layer.zone === "behind" ? " (behind)" : ""} — drag to move">${i + 1}</button>`;
+    })
     .join("");
   els.lockOverlay.querySelectorAll(".lock-marker").forEach((marker) => wireLockMarker(marker, character));
 }
 
+// Marker anchors by piece family: lock pieces sit at their % centre; base and drawn pieces have
+// px offsets from an authored position, shown from a fixed reference anchor (crown / mid-head).
+function layerMarkerPos(layer) {
+  if (layer.piece.indexOf("lock:") === 0) {
+    return { left: layer.x, top: layer.y == null ? 32 : layer.y };
+  }
+  const refY = layer.origin === "base" ? 62 : 108;
+  return {
+    left: +(((128 + (layer.x || 0)) / 256) * 100).toFixed(2),
+    top: +(((refY + (layer.y || 0)) / 256) * 100).toFixed(2)
+  };
+}
+
+function markerPosToLayerXY(layer, pctX, pctY) {
+  if (layer.piece.indexOf("lock:") === 0) {
+    return { x: Math.round(clamp(pctX, 0, 100)), y: Math.round(clamp(pctY, 0, 100)) };
+  }
+  const refY = layer.origin === "base" ? 62 : 108;
+  return {
+    x: Math.round(clamp((pctX / 100) * 256 - 128, -120, 120)),
+    y: Math.round(clamp((pctY / 100) * 256 - refY, -120, 160))
+  };
+}
+
 function positionLockMarkers(character) {
-  const locks = getLocks(character.id);
+  const stack = getStack(character.id);
   els.lockOverlay.querySelectorAll(".lock-marker").forEach((marker) => {
-    const inst = locks[Number(marker.dataset.index)];
-    if (!inst) return;
-    marker.style.left = `${inst.x}%`;
-    marker.style.top = `${inst.y == null ? 32 : inst.y}%`;
+    const layer = stack[Number(marker.dataset.index)];
+    if (!layer) return;
+    const pos = layerMarkerPos(layer);
+    marker.style.left = `${pos.left}%`;
+    marker.style.top = `${pos.top}%`;
   });
 }
 
@@ -2493,16 +2640,23 @@ function wireLockMarker(marker, character) {
   marker.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     const idx = Number(marker.dataset.index);
-    const inst = editableLocks(character.id)[idx];
-    if (!inst) return;
+    // materialize once so the drag can mutate the stored layer in place; persist on release
+    setStack(character.id, getStack(character.id));
+    const comp = correctionFor(character.id).hairComposition;
+    const layer = comp && comp.layers[idx];
+    if (!layer) return;
     const rect = els.lockOverlay.getBoundingClientRect();
     marker.setPointerCapture(e.pointerId);
     marker.classList.add("is-dragging");
     const move = (ev) => {
-      inst.x = Math.round(clamp(((ev.clientX - rect.left) / rect.width) * 100, 0, 100));
-      inst.y = Math.round(clamp(((ev.clientY - rect.top) / rect.height) * 100, 0, 100));
-      marker.style.left = `${inst.x}%`;
-      marker.style.top = `${inst.y}%`;
+      const pctX = ((ev.clientX - rect.left) / rect.width) * 100;
+      const pctY = ((ev.clientY - rect.top) / rect.height) * 100;
+      const next = markerPosToLayerXY(layer, pctX, pctY);
+      layer.x = next.x;
+      layer.y = next.y;
+      const pos = layerMarkerPos(layer);
+      marker.style.left = `${pos.left}%`;
+      marker.style.top = `${pos.top}%`;
       refreshPortrait(character);
     };
     const up = () => {
@@ -2510,7 +2664,7 @@ function wireLockMarker(marker, character) {
       marker.classList.remove("is-dragging");
       marker.removeEventListener("pointermove", move);
       marker.removeEventListener("pointerup", up);
-      saveCorrections();
+      setStack(character.id, comp.layers);
       render();
     };
     marker.addEventListener("pointermove", move);

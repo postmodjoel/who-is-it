@@ -71,14 +71,34 @@ let babyCounter = 0;
 // A gayby that inherits hairLocks gets EVERY part mirrored + a tiny per-part jitter (scale +/-5%,
 // x/y +/-2%) so siblings don't look identical - just enough variety without breaking the style.
 function jitterGaybyHair(traits) {
-  if (!Array.isArray(traits.hairLocks) || !traits.hairLocks.length) return traits;
-  traits.hairLocks = traits.hairLocks.map((lk) => ({
+  const flip = (lk) => ({
     ...lk,
     mirror: !lk.mirror,
     scale: +((Number(lk.scale) || 1) * (1 + (Math.random() - 0.5) * 0.1)).toFixed(3),
     x: +((Number(lk.x) || 50) + (Math.random() - 0.5) * 4).toFixed(2),
     y: +((Number(lk.y) || 50) + (Math.random() - 0.5) * 4).toFixed(2)
-  }));
+  });
+  // A materialized composition is the authoritative stack: jitter ITS layers (base layers just
+  // mirror) and keep the legacy hairLocks view in sync with the non-base layers.
+  const comp = traits.hairComposition;
+  if (comp && comp.version === 1 && Array.isArray(comp.layers) && comp.layers.length) {
+    const layers = comp.layers.map((layer) => {
+      if (!layer) return layer;
+      if (layer.origin === "base") return { ...layer, mirror: !layer.mirror };
+      const flipped = flip(layer);
+      if (Number.isFinite(Number(layer.scaleX))) {
+        const jitter = 1 + (Math.random() - 0.5) * 0.1;
+        flipped.scaleX = +(Number(layer.scaleX) * jitter).toFixed(3);
+        flipped.scaleY = +((Number(layer.scaleY) || Number(layer.scaleX)) * jitter).toFixed(3);
+      }
+      return flipped;
+    });
+    traits.hairComposition = { ...comp, layers };
+    traits.hairLocks = layers.filter((layer) => layer && layer.origin !== "base");
+    return traits;
+  }
+  if (!Array.isArray(traits.hairLocks) || !traits.hairLocks.length) return traits;
+  traits.hairLocks = traits.hairLocks.map(flip);
   return traits;
 }
 function makeBaby(A, B, gayby) {

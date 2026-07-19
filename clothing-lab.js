@@ -6,6 +6,15 @@
   const DRAFT_KEY = "who-is-that-clothing-profile-drafts-v1";
   const REVIEW_KEY = "who-is-that-clothing-profile-reviews-v1";
   const UI_KEY = "who-is-that-clothing-studio-ui-v1";
+  const collaredLayerStyles = new Set(["labCoat", "rugby", "varsity", "tracksuit", "collared", "blazer", "jacket"]);
+  const clothingLayers = [
+    ["rearCollar", "Rear collar"],
+    ["neck", "Neck"],
+    ["torso", "Torso"],
+    ["frontCollar", "Front collar"],
+    ["details", "Details"],
+    ["overlays", "Overlays"]
+  ];
 
   const controlGroups = [
     ["Garment placement", [
@@ -22,7 +31,9 @@
     ]],
     ["Pattern / details", [
       ["detailX", "Horizontal", 1], ["detailY", "Vertical", 1],
-      ["detailScaleX", "Width", 0.02], ["detailScaleY", "Height", 0.02]
+      ["detailScaleX", "Width", 0.02], ["detailScaleY", "Height", 0.02],
+      ["detailLeftX", "Left stripe X", 1], ["detailLeftY", "Left stripe Y", 1],
+      ["detailRightX", "Right stripe X", 1], ["detailRightY", "Right stripe Y", 1]
     ]],
     ["Line work", [["lineScale", "Line weight", 0.02]]]
   ];
@@ -51,6 +62,8 @@
     category: "All",
     search: "",
     previewMode: storedUi.previewMode || "adjusted",
+    layerView: storedUi.layerView || "composite",
+    layerVisibility: { ...Object.fromEntries(clothingLayers.map(([key]) => [key, true])), ...(storedUi.layerVisibility || {}) },
     drafts: readJson(DRAFT_KEY, {}),
     reviews: readJson(REVIEW_KEY, {}),
     palettes: readJson(`${DRAFT_KEY}-palettes`, {})
@@ -61,6 +74,7 @@
     "selectedCategory", "selectedName", "previousOutfit", "nextOutfit", "heroPreview",
     "primaryColor", "accentColor", "underColor", "controlSections", "resetOutfitButton",
     "copyOutfitButton", "comparisonGrid", "catalogTitle", "catalogStats", "outfitGrid",
+    "layerDiagnostics", "layerVisibility", "fitLegend",
     "exportOutput", "copyBottomExportButton"
   ].map((id) => [id, document.querySelector(`#${id}`)]));
 
@@ -114,7 +128,13 @@
     writeJson(DRAFT_KEY, state.drafts);
     writeJson(REVIEW_KEY, state.reviews);
     writeJson(`${DRAFT_KEY}-palettes`, state.palettes);
-    writeJson(UI_KEY, { selectedId: state.selectedId, characterId: state.characterId, previewMode: state.previewMode });
+    writeJson(UI_KEY, {
+      selectedId: state.selectedId,
+      characterId: state.characterId,
+      previewMode: state.previewMode,
+      layerView: state.layerView,
+      layerVisibility: state.layerVisibility
+    });
   }
 
   function traitsFor(styleId, preset, adjusted) {
@@ -134,6 +154,10 @@
       tattoos: [],
       clothingTuningBaseline: !adjusted
     };
+    if (collaredLayerStyles.has(styleId)) {
+      traits.clothingLayerView = state.layerView;
+      traits.clothingLayerVisibility = state.layerVisibility;
+    }
     if (adjusted) traits.clothingTuning = effectiveProfile(styleId);
     return traits;
   }
@@ -157,21 +181,42 @@
   }
 
   function renderComparison() {
+    const adjusted = state.previewMode !== "baseline";
     els.comparisonGrid.innerHTML = bodyPresets.map((preset) => `
       <article class="fit-card">
         <div class="fit-images">
-          <img src="${portrait(state.selectedId, preset, false)}" alt="${escapeHtml(preset.label)} baseline">
-          <img src="${portrait(state.selectedId, preset, true)}" alt="${escapeHtml(preset.label)} adjusted">
+          <img src="${portrait(state.selectedId, preset, adjusted)}" alt="${escapeHtml(preset.label)} ${adjusted ? "adjusted" : "baseline"}">
         </div>
         <div class="fit-meta"><strong>${escapeHtml(preset.label)}</strong><span>${escapeHtml(preset.note)}</span></div>
       </article>
     `).join("");
+    const viewLabel = state.layerView === "layerMap" ? "Layer Map" : state.layerView === "occlusion" ? "Occlusion" : "Composite";
+    els.fitLegend.innerHTML = `<span><i class="${adjusted ? "adjusted-dot" : "baseline-dot"}"></i>${adjusted ? "Adjusted" : "Baseline"}</span><span>${viewLabel}</span>`;
+  }
+
+  function renderLayerDiagnostics() {
+    const supported = collaredLayerStyles.has(state.selectedId);
+    els.layerDiagnostics.hidden = !supported;
+    document.querySelectorAll("[data-layer-view]").forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.layerView === state.layerView);
+    });
+    els.layerVisibility.innerHTML = clothingLayers.map(([key, label]) => `
+      <label class="layer-toggle">
+        <input type="checkbox" data-layer-visible="${key}" ${state.layerVisibility[key] === false ? "" : "checked"}>
+        <span>${escapeHtml(label)}</span>
+      </label>
+    `).join("");
   }
 
   function controlMarkup() {
-    const groups = state.selectedId === "bare"
+    const baseGroups = state.selectedId === "bare"
       ? controlGroups.filter(([, fields]) => fields.some(([key]) => key.startsWith("garment") || key === "lineScale"))
       : controlGroups;
+    const groups = baseGroups.map(([group, fields]) => [
+      group,
+      fields.filter(([key]) => !key.startsWith("detailLeft") && !key.startsWith("detailRight")
+        || state.selectedId === "tracksuit")
+    ]);
     return groups.map(([group, fields], groupIndex) => `
       <details class="control-group" ${groupIndex < 2 ? "open" : ""}>
         <summary>${escapeHtml(group)}</summary>
@@ -204,6 +249,7 @@
     els.underColor.value = palette.under;
     if (refreshControls) els.controlSections.innerHTML = controlMarkup();
     document.querySelectorAll("[data-preview-mode]").forEach((button) => button.classList.toggle("is-active", button.dataset.previewMode === state.previewMode));
+    renderLayerDiagnostics();
     renderHero();
   }
 
@@ -322,6 +368,22 @@
       state.previewMode = button.dataset.previewMode;
       persist();
       renderInspector(false);
+      renderComparison();
+    });
+    els.layerDiagnostics.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-layer-view]");
+      if (!button) return;
+      state.layerView = button.dataset.layerView;
+      persist();
+      renderAll();
+    });
+    els.layerVisibility.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-layer-visible]");
+      if (!input) return;
+      state.layerVisibility[input.dataset.layerVisible] = input.checked;
+      persist();
+      renderHero();
+      renderComparison();
     });
     els.previousOutfit.addEventListener("click", () => {
       const index = styles.findIndex((item) => item.id === state.selectedId);

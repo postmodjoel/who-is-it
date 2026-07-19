@@ -100,6 +100,49 @@
   .loadmore{width:100%;padding:11px;border-radius:10px;border:1px dashed var(--line2);
     background:none;color:var(--ink2);font-weight:800;cursor:pointer;margin:4px 0 14px}
   button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .studio-tabs{display:flex;gap:7px;margin-top:10px}
+  .studio-tab{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);border-radius:9px;
+    padding:7px 11px;font-weight:900;font-size:11px;letter-spacing:.04em;cursor:pointer}
+  .studio-tab.on{background:var(--yellow);border-color:var(--yellow);color:#121212}
+  [data-studio-view][hidden]{display:none!important}
+  .gt-studio{padding-top:16px}
+  .gt-toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .gt-toolbar select,.gt-toolbar button{background:var(--panel);color:var(--ink);border:1px solid var(--line2);
+    border-radius:8px;padding:7px 9px;font-weight:800;font-size:12px}
+  .gt-toolbar button{cursor:pointer}.gt-toolbar button.on{background:var(--blue);border-color:var(--blue)}
+  .gt-progress{color:var(--ink2);font-size:12px;margin-left:auto}
+  .swipe-stage{max-width:760px;margin:0 auto}
+  .swipe-deck{display:grid;grid-template-columns:90px minmax(0,1fr) 90px;gap:14px;align-items:center}
+  .swipe-action{height:92px;border-radius:18px;border:2px solid var(--line2);background:var(--panel);
+    color:var(--ink);font-weight:900;font-size:13px;cursor:pointer}
+  .swipe-action b{display:block;font-size:27px}.swipe-action.nay:hover{border-color:var(--red)}
+  .swipe-action.yay:hover{border-color:var(--yellow)}.swipe-action.maybe:hover{border-color:var(--blue)}
+  .swipe-card-well{min-height:270px;display:grid;place-items:center;position:relative}
+  .swipe-card{width:100%;min-height:250px;background:var(--raised);border:2px solid var(--line2);
+    border-radius:22px;box-shadow:var(--shadow);padding:24px;display:flex;flex-direction:column;
+    justify-content:space-between;touch-action:none;user-select:none;cursor:grab;transition:transform .17s,opacity .17s}
+  .swipe-card.dragging{transition:none;cursor:grabbing}
+  .swipe-card.fling-left{transform:translateX(-130%) rotate(-12deg);opacity:0}
+  .swipe-card.fling-right{transform:translateX(130%) rotate(12deg);opacity:0}
+  .swipe-card.fling-up{transform:translateY(-75%) scale(.9);opacity:0}
+  .swipe-meta{display:flex;gap:7px;flex-wrap:wrap}.swipe-meta span{font-size:10px;font-weight:900;
+    letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line2);border-radius:999px;padding:2px 7px}
+  .swipe-text{font-size:clamp(23px,4vw,38px);font-weight:900;line-height:1.12;margin:26px 0}
+  .swipe-id{font:11px ui-monospace,Menlo,monospace;color:var(--mut)}
+  .maybe-row{text-align:center;margin:10px 0}.maybe-row .swipe-action{height:auto;padding:9px 24px}
+  .feedback{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}
+  .reason-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+  .reason-chip{border:1px solid var(--line2);background:var(--raised);color:var(--ink2);border-radius:999px;
+    padding:5px 9px;font-size:10px;font-weight:900;cursor:pointer}.reason-chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .feedback-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.feedback input[type=text]{width:100%;
+    background:var(--raised);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .rewrite-toggle{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:900;margin-top:9px}
+  .gt-empty{text-align:center;padding:55px 16px;color:var(--ink2)}
+  @media(max-width:640px){
+    .swipe-deck{grid-template-columns:1fr 1fr}.swipe-card-well{grid-column:1/-1;grid-row:1}.swipe-action{height:64px}
+    .feedback-grid{grid-template-columns:1fr}.gt-progress{width:100%;margin-left:0}
+  }
+  @media(prefers-reduced-motion:reduce){.swipe-card{transition:none!important}}
 </style>
 </head>
 <body>
@@ -114,9 +157,26 @@
     <select id="fHeat"><option value="">Heat — all</option><option>mild</option><option>medium</option><option>feral</option></select>
     <select id="fFlag"><option value="">Flags — all</option><option value="punch">Punch-tic ending</option><option value="long">Over 14 words</option><option value="verb">Confess/Explain opener</option><option value="any">Any flag</option><option value="none">No flags</option></select>
   </div>
+  <div class="studio-tabs" role="tablist">
+    <button class="studio-tab on" type="button" data-tab="library">ALL PROMPTS</button>
+    <button class="studio-tab" type="button" data-tab="groupthink">WHO? DO YOU THINK? SWIPE</button>
+  </div>
 </div></header>
 
 <main class="wrap">
+  <section class="gt-studio" data-studio-view="groupthink" hidden>
+    <div class="gt-toolbar">
+      <select id="gtQueue" aria-label="Prompt queue"><option value="unrated">UNRATED</option><option value="maybe">MAYBES</option><option value="nay">NAYS</option><option value="rated">ALL RATED</option></select>
+      <select id="gtSource" aria-label="Source filter"><option value="">SOURCE — ALL</option><option value="base">BASE</option><option value="locations">LOCATIONS</option></select>
+      <select id="gtHeat" aria-label="Heat filter"><option value="">HEAT — ALL</option><option value="mild">MILD</option><option value="medium">MEDIUM</option><option value="feral">FERAL</option></select>
+      <select id="gtPg" aria-label="PG safety filter"><option value="">PG — ALL</option><option value="safe">PG SAFE</option><option value="unsafe">NOT PG SAFE</option></select>
+      <button id="gtRestart" type="button">RESTART FILTER</button>
+      <button id="gtUndo" type="button">⌫ UNDO</button>
+      <span class="gt-progress" id="gtProgress"></span>
+    </div>
+    <div id="gtStage" class="swipe-stage"></div>
+  </section>
+  <div data-studio-view="library">
   <details class="box" open><summary>Taste profile — what Claude should learn</summary><div class="bd">
     <p class="hint">Free text, your words. This travels with every export so regenerated prompts aim at YOUR taste, and it keeps growing — add to it whenever a prompt crystallises what you love or hate.</p>
     <div class="taste">
@@ -144,14 +204,18 @@
     <button onclick="resetFilters()">Clear filters</button>
   </div>
   <textarea id="out" readonly aria-label="Export output"></textarea>
+  </div>
 </main>
 
 <script src="game-data.js?v=207"></script>
+<script src="groupthink-data.js?v=1"></script>
 <script>
 const KEY="whoisit_prompt_studio_v1";
 const $=s=>document.querySelector(s);
-let store={verdicts:{},taste:{likes:"",hates:""},patch:null,patchDecisions:{}};
+let store={version:2,verdicts:{},groupthink:{},taste:{likes:"",hates:""},patch:null,patchDecisions:{}};
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s&&s.verdicts)store=s;}catch(e){}
+store.version=2;store.verdicts=store.verdicts||{};store.groupthink=store.groupthink||{};
+store.taste=store.taste||{likes:"",hates:""};store.patchDecisions=store.patchDecisions||{};
 function save(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}}
 
 function fnv(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36);}
@@ -301,13 +365,20 @@ function exportForClaude(){
     if(!r)return;
     verdicts.push({deck:it.deck,original:it.text,...(r.v?{verdict:r.v}:{}),...(r.edit?{edited:r.edit}:{}),...(r.heat?{heat:r.heat}:{}),...(r.note?{note:r.note}:{})});
   });
+  const groupthink=GT_ALL.flatMap(it=>{
+    const r=store.groupthink[it.id];if(!r||!r.verdict)return[];
+    return[{id:it.id,source:it.source,original:it.text,heat:it.heat||"mild",pgSafe:it.pgSafe!==false,
+      verdict:r.verdict,reasons:r.reasons||[],...(r.note?{note:r.note}:{}),
+      ...(r.replacement?{authoredReplacement:r.replacement}:{}),rewriteRequested:!!r.rewrite}];
+  });
   const payload={
-    studio:"whoisit-prompt-studio-v1",
+    studio:"whoisit-prompt-studio-v2",
     exported:new Date().toISOString(),
-    instructions:"You wrote these prompts; I have now judged them. KEEP = untouchable calibration set - new prompts must sit comfortably beside these. KILL = delete or completely rework. WEAK = rework in place. Edits are mine and FINAL - apply them verbatim. Use the taste profile to draft replacements/additions in my voice (see the game-data.js voice header + framework). Return a patch as JSON {changes:[{deck, action:'replace'|'remove'|'add', match:'<original text>', text?, heat?}]} for me to review in the studio - do NOT touch game-data.js until I hand back the accepted patch.",
+    instructions:"For standard decks: KEEP is calibration, KILL means remove/rework, WEAK means rework, and authored edits are final. For groupthink: YAY is calibration to preserve, MAYBE is promising but unresolved, NAY means remove or substantially rework, authoredReplacement is FINAL, and rewriteRequested asks for alternatives grounded in the full Yay/Nay evidence. Return JSON {changes:[...]}. Standard changes use deck/match/text/heat. Groupthink changes use target:'groupthink', source:'base'|'locations', action:'replace'|'remove'|'add', id, text?, heat?, pgSafe?; replace retains its ID unless newId is supplied and add requires a unique ID. Do not edit files until I return the accepted patch.",
     taste:store.taste,
-    stats:{total:ALL.length,rated:verdicts.filter(v=>v.verdict).length,edited:verdicts.filter(v=>v.edited).length},
-    verdicts
+    stats:{total:ALL.length,rated:verdicts.filter(v=>v.verdict).length,edited:verdicts.filter(v=>v.edited).length,
+      groupthinkTotal:GT_ALL.length,groupthinkRated:groupthink.length},
+    verdicts,groupthink
   };
   show(JSON.stringify(payload,null,2));
 }
@@ -318,8 +389,32 @@ function loadPatch(){
   let p;
   try{p=JSON.parse($("#patchIn").value)}catch(e){alert("That's not valid JSON: "+e.message);return}
   if(!p||!Array.isArray(p.changes)){alert("Expected {changes:[…]}");return}
+  const errors=validatePatch(p.changes);
+  if(errors.length){alert("Patch rejected:\n"+errors.join("\n"));return}
   store.patch=p;store.patchDecisions={};save();
   renderPatch();
+}
+function validatePatch(changes){
+  const errors=[];const ids=new Set(GT_ALL.map(x=>x.id));const added=new Set();
+  changes.forEach((c,i)=>{
+    if(c.target!=="groupthink")return;
+    const n=i+1;
+    if(!["replace","remove","add"].includes(c.action))errors.push(`#${n}: invalid action`);
+    if(!["base","locations"].includes(c.source))errors.push(`#${n}: source must be base or locations`);
+    if(!c.id||typeof c.id!=="string")errors.push(`#${n}: groupthink id is required`);
+    if(c.action!=="add"&&c.id&&!ids.has(c.id))errors.push(`#${n}: unknown id "${c.id}"`);
+    if(c.action==="add"){
+      if(ids.has(c.id)||added.has(c.id))errors.push(`#${n}: duplicate id "${c.id}"`);
+      if(!c.text||typeof c.text!=="string")errors.push(`#${n}: add requires text`);
+      added.add(c.id);
+    }
+    if(c.action==="replace"&&(!c.text||typeof c.text!=="string"))errors.push(`#${n}: replace requires text`);
+    if(c.action!=="remove"&&c.heat&&!["mild","medium","feral"].includes(c.heat))errors.push(`#${n}: invalid heat`);
+    if(c.action!=="remove"&&"pgSafe" in c&&typeof c.pgSafe!=="boolean")errors.push(`#${n}: pgSafe must be boolean`);
+    if(c.newId&&(typeof c.newId!=="string"||ids.has(c.newId)||added.has(c.newId)))errors.push(`#${n}: newId must be unique`);
+    if(c.newId)added.add(c.newId);
+  });
+  return errors;
 }
 function renderPatch(){
   const box=$("#patchList");box.innerHTML="";
@@ -330,8 +425,8 @@ function renderPatch(){
     const el=document.createElement("div");
     el.className="patchrow";el.dataset.a=c.action;
     el.innerHTML=`<span class="pa">${(c.action||"?").toUpperCase()}</span>
-      <span class="pt">${c.action!=="add"?`<span class="from">${escapeHtml(c.match||"")}</span>`:""}${c.action!=="remove"?escapeHtml(c.text||"")+(c.heat?` <em style="color:var(--mut)">(${c.heat})</em>`:""):""}
-      <em style="color:var(--mut);font-size:11px;display:block">${escapeHtml(c.deck||"")}</em></span>
+      <span class="pt">${c.action!=="add"?`<span class="from">${escapeHtml(c.match||c.id||"")}</span>`:""}${c.action!=="remove"?escapeHtml(c.text||"")+(c.heat?` <em style="color:var(--mut)">(${c.heat})</em>`:""):""}
+      <em style="color:var(--mut);font-size:11px;display:block">${escapeHtml(c.target==="groupthink"?`groupthink · ${c.source||""} · ${c.id||""}`:(c.deck||""))}</em></span>
       <button class="acc ${d===true?"on":""}">ACCEPT</button>
       <button class="rej ${d===false?"off":""}">REJECT</button>`;
     el.querySelector(".acc").addEventListener("click",()=>{store.patchDecisions[i]=store.patchDecisions[i]===true?undefined:true;save();renderPatch();});
@@ -345,11 +440,136 @@ function exportAcceptedPatch(){
   const changes=p.changes.filter((c,i)=>store.patchDecisions[i]===true);
   const rejected=p.changes.filter((c,i)=>store.patchDecisions[i]===false).length;
   const undecided=p.changes.length-changes.length-rejected;
-  show(JSON.stringify({studio:"whoisit-prompt-studio-v1",acceptedPatch:true,
-    note:`${changes.length} accepted, ${rejected} rejected, ${undecided} left undecided (NOT included). Apply exactly these to game-data.js.`,
+  show(JSON.stringify({studio:"whoisit-prompt-studio-v2",acceptedPatch:true,
+    note:`${changes.length} accepted, ${rejected} rejected, ${undecided} left undecided (NOT included). Apply standard changes to game-data.js and groupthink changes to groupthink-data.js.`,
     changes},null,2));
 }
 if(store.patch)renderPatch();
+
+// ---- WHO? DO YOU THINK? swipe studio ----
+const GT_DATA=window.GameData.groupthinkPrompts||{base:[],locations:[]};
+const GT_ALL=["base","locations"].flatMap(source=>(GT_DATA[source]||[]).map(p=>({...p,source})));
+const GT_REASONS=["BORING","TOO VAGUE","TOO DARK","TOO SAFE","TOO LONG","REPETITIVE","GOOD IDEA / BAD WORDING","DOESN’T FIT THE GAME"];
+let gtQueue="unrated",gtIndex=0,gtSkipped=new Set(),gtLast=null,gtBusy=false;
+let gtDraft={reasons:[],note:"",replacement:"",rewrite:false};
+
+function gtRecord(id){return store.groupthink[id]||null}
+function gtFilters(it){
+  if($("#gtSource").value&&it.source!==$("#gtSource").value)return false;
+  if($("#gtHeat").value&&(it.heat||"mild")!==$("#gtHeat").value)return false;
+  if($("#gtPg").value==="safe"&&it.pgSafe===false)return false;
+  if($("#gtPg").value==="unsafe"&&it.pgSafe!==false)return false;
+  return true;
+}
+function gtQueueItems(){
+  return GT_ALL.filter(it=>{
+    if(!gtFilters(it)||gtSkipped.has(it.id))return false;
+    const v=gtRecord(it.id)?.verdict;
+    if(gtQueue==="unrated")return !v;
+    if(gtQueue==="rated")return !!v;
+    return v===gtQueue;
+  });
+}
+function gtCurrent(){
+  const list=gtQueueItems();
+  if(gtIndex>=list.length)gtIndex=Math.max(0,list.length-1);
+  return list[gtIndex]||null;
+}
+function gtDraftFrom(it){
+  const r=it&&gtRecord(it.id);
+  gtDraft={reasons:r?.reasons?.slice()||[],note:r?.note||"",replacement:r?.replacement||"",rewrite:!!r?.rewrite};
+}
+function gtSaveDraft(){
+  const it=gtCurrent();if(!it)return;
+  const r=store.groupthink[it.id]||(store.groupthink[it.id]={});
+  r.reasons=gtDraft.reasons.slice();r.note=gtDraft.note.trim();r.replacement=gtDraft.replacement.trim();r.rewrite=!!gtDraft.rewrite;
+  ["reasons","note","replacement"].forEach(k=>{if(!r[k]||!r[k].length)delete r[k]});
+  if(!r.verdict&&!r.rewrite&&!r.reasons&&!r.note&&!r.replacement)delete store.groupthink[it.id];
+  save();
+}
+function gtCommit(verdict,fling){
+  if(gtBusy)return;const it=gtCurrent();if(!it)return;
+  const advanceInPlace=gtQueue==="rated"||gtQueue===verdict;
+  const previous=gtRecord(it.id)?JSON.parse(JSON.stringify(gtRecord(it.id))):null;
+  gtSaveDraft();store.groupthink[it.id]=store.groupthink[it.id]||{};store.groupthink[it.id].verdict=verdict;save();
+  gtLast={id:it.id,previous,skipped:false};const card=$("#gtCard");
+  const advance=()=>{const n=gtQueueItems().length;gtIndex=advanceInPlace&&n?Math.min(gtIndex+1,n-1):0;gtDraftFrom(gtCurrent());renderGt()};
+  if(card){gtBusy=true;card.classList.add(fling);setTimeout(()=>{gtBusy=false;advance()},170)}
+  else advance()
+}
+function gtSkip(){
+  const it=gtCurrent();if(!it||gtBusy)return;gtSaveDraft();gtSkipped.add(it.id);
+  gtLast={id:it.id,previous:gtRecord(it.id)?JSON.parse(JSON.stringify(gtRecord(it.id))):null,skipped:true};
+  gtIndex=0;gtDraftFrom(gtCurrent());renderGt();
+}
+function gtUndo(){
+  if(!gtLast)return;
+  if(gtLast.skipped)gtSkipped.delete(gtLast.id);
+  if(gtLast.previous)store.groupthink[gtLast.id]=gtLast.previous;else delete store.groupthink[gtLast.id];
+  save();gtIndex=Math.max(0,gtQueueItems().findIndex(x=>x.id===gtLast.id));gtLast=null;gtDraftFrom(gtCurrent());renderGt();
+}
+function gtRestart(){
+  gtIndex=0;gtSkipped.clear();gtLast=null;gtDraftFrom(gtCurrent());renderGt();
+}
+function renderGt(){
+  const items=gtQueueItems(),it=gtCurrent(),rated=GT_ALL.filter(x=>gtRecord(x.id)?.verdict).length;
+  $("#gtProgress").textContent=`${rated}/${GT_ALL.length} rated · ${items.length} in this queue${gtSkipped.size?` · ${gtSkipped.size} skipped`:""}`;
+  $("#gtUndo").disabled=!gtLast;
+  if(!it){$("#gtStage").innerHTML=`<div class="gt-empty"><h2>QUEUE CLEARED</h2><p>${gtQueue==="unrated"?"Every matching prompt has a verdict. Review Maybes or export your pass.":"No prompts match this queue and filter."}</p></div>`;return}
+  const old=gtRecord(it.id);
+  $("#gtStage").innerHTML=`
+    <div class="swipe-deck">
+      <button class="swipe-action nay" type="button" aria-label="Nay"><b>✕</b>← NAY</button>
+      <div class="swipe-card-well"><article class="swipe-card" id="gtCard" tabindex="0" aria-label="Prompt: ${escapeHtml(it.text)}">
+        <div class="swipe-meta"><span>${it.source}</span><span>${it.heat||"mild"}</span><span>${it.pgSafe===false?"not pg safe":"pg safe"}</span>${old?.verdict?`<span>was ${old.verdict}</span>`:""}</div>
+        <div class="swipe-text">${escapeHtml(it.text)}</div><div class="swipe-id">${escapeHtml(it.id)}</div>
+      </article></div>
+      <button class="swipe-action yay" type="button" aria-label="Yay"><b>★</b>YAY →</button>
+    </div>
+    <div class="maybe-row"><button class="swipe-action maybe" type="button" aria-label="Maybe"><b>?</b> MAYBE ↑</button></div>
+    <div class="feedback">
+      <div class="reason-chips">${GT_REASONS.map(r=>`<button type="button" class="reason-chip ${gtDraft.reasons.includes(r)?"on":""}" data-reason="${escapeHtml(r)}">${escapeHtml(r)}</button>`).join("")}</div>
+      <div class="feedback-grid"><input id="gtNote" type="text" maxlength="280" placeholder="direction / why (optional)" value="${escapeHtml(gtDraft.note)}">
+      <input id="gtReplacement" type="text" maxlength="500" placeholder="your replacement — treated as final" value="${escapeHtml(gtDraft.replacement)}"></div>
+      <label class="rewrite-toggle"><input id="gtRewrite" type="checkbox" ${gtDraft.rewrite?"checked":""}> CLAUDE REWRITE — suggest alternatives from my ratings</label>
+    </div>`;
+  bindGt();
+}
+function bindGt(){
+  $("#gtStage .nay").addEventListener("click",()=>gtCommit("nay","fling-left"));
+  $("#gtStage .yay").addEventListener("click",()=>gtCommit("yay","fling-right"));
+  $("#gtStage .maybe").addEventListener("click",()=>gtCommit("maybe","fling-up"));
+  $("#gtStage").querySelectorAll(".reason-chip").forEach(b=>b.addEventListener("click",()=>{
+    const r=b.dataset.reason;gtDraft.reasons=gtDraft.reasons.includes(r)?gtDraft.reasons.filter(x=>x!==r):[...gtDraft.reasons,r];b.classList.toggle("on");gtSaveDraft();
+  }));
+  $("#gtNote").addEventListener("input",e=>{gtDraft.note=e.target.value;gtSaveDraft()});
+  $("#gtReplacement").addEventListener("input",e=>{gtDraft.replacement=e.target.value;gtSaveDraft()});
+  $("#gtRewrite").addEventListener("change",e=>{gtDraft.rewrite=e.target.checked;gtSaveDraft()});
+  const card=$("#gtCard");card.addEventListener("click",e=>{if(e.detail&&Math.abs(Number(card.dataset.drag)||0)<8)gtCommit("maybe","fling-up")});
+  card.addEventListener("pointerdown",down=>{
+    const sx=down.clientX,sy=down.clientY;let dx=0,dy=0;card.classList.add("dragging");card.setPointerCapture?.(down.pointerId);
+    const move=e=>{dx=e.clientX-sx;dy=e.clientY-sy;card.dataset.drag=Math.max(Math.abs(dx),Math.abs(dy));card.style.transform=`translate(${dx}px,${Math.min(0,dy)}px) rotate(${dx/20}deg)`};
+    const up=()=>{card.removeEventListener("pointermove",move);card.removeEventListener("pointerup",up);card.removeEventListener("pointercancel",up);card.classList.remove("dragging");card.style.transform="";
+      if(Math.abs(dx)>70)gtCommit(dx>0?"yay":"nay",dx>0?"fling-right":"fling-left");else if(dy < -70)gtCommit("maybe","fling-up");};
+    card.addEventListener("pointermove",move);card.addEventListener("pointerup",up);card.addEventListener("pointercancel",up);
+  });
+}
+document.querySelectorAll(".studio-tab").forEach(tab=>tab.addEventListener("click",()=>{
+  document.querySelectorAll(".studio-tab").forEach(x=>x.classList.toggle("on",x===tab));
+  document.querySelectorAll("[data-studio-view]").forEach(x=>x.hidden=x.dataset.studioView!==tab.dataset.tab);
+  document.querySelector(".filters").style.display=tab.dataset.tab==="library"?"flex":"none";
+  if(tab.dataset.tab==="groupthink"){gtDraftFrom(gtCurrent());renderGt()}
+}));
+$("#gtQueue").addEventListener("change",e=>{gtQueue=e.target.value;gtRestart()});
+["gtSource","gtHeat","gtPg"].forEach(id=>$("#"+id).addEventListener("change",gtRestart));
+$("#gtRestart").addEventListener("click",gtRestart);$("#gtUndo").addEventListener("click",gtUndo);
+document.addEventListener("keydown",e=>{
+  if($('[data-studio-view="groupthink"]').hidden||e.target.matches("input,textarea,select"))return;
+  if(e.key==="ArrowLeft"){e.preventDefault();gtCommit("nay","fling-left")}
+  else if(e.key==="ArrowRight"){e.preventDefault();gtCommit("yay","fling-right")}
+  else if(e.key==="ArrowUp"){e.preventDefault();gtCommit("maybe","fling-up")}
+  else if(e.key==="ArrowDown"){e.preventDefault();gtSkip()}
+});
 
 renderList();
 </script>

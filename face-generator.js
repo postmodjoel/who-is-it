@@ -215,7 +215,7 @@
   // Long flowing wavy hair (Luna's gold standard): a wide voluminous back mass plus a front layer
   // with a soft centre part, a crown that shows forehead, and two long locks that frame the face and
   // fall past the shoulders with a gently scalloped (wavy) outer edge. Strand lines are added by
-  // renderHairHighlights (clipped to the front layer). Replaces the borrowed faces.js "female1"
+  // the compositor piece "base:longWaves". Replaces the borrowed faces.js "female1"
   // silhouette, which rendered as a blunt-banged bob.
   // Back mass: tapers from a high rounded crown, falls down both sides past the shoulders (to the
   // canvas bottom) with a gently waved outer edge — wider up top than at the ends, never a closed oval.
@@ -329,6 +329,7 @@
     necklineY: 0, neckWidthScale: 1, necklineDepthScale: 1,
     collarX: 0, collarY: 0, collarScaleX: 1, collarScaleY: 1,
     detailX: 0, detailY: 0, detailScaleX: 1, detailScaleY: 1,
+    detailLeftX: 0, detailLeftY: 0, detailRightX: 0, detailRightY: 0,
     lineScale: 1
   };
 
@@ -360,13 +361,106 @@
     const tuning = clothingTuningFor(traits);
     const anchorY = clothingNecklineY(traits);
     const lineScale = traitNumber(tuning.lineScale, 1);
-    return `<g class='fa-clothing-tuned' transform='${clothingTransform(tuning, "garment", anchorY)}'>${scaleClothingStrokes(markup, lineScale)}</g>`;
+    // Overall width is a layout input: it widens the bib and moves the straps/buttons instead of
+    // stretching every shape and stroke. The semantic width is consumed in renderCollarContent.
+    const transformTuning = traits.clothing === "overalls"
+      ? { ...tuning, garmentScaleX: 1 }
+      : tuning;
+    return `<g class='fa-clothing-tuned' transform='${clothingTransform(transformTuning, "garment", anchorY)}'>${scaleClothingStrokes(markup, lineScale)}</g>`;
   }
 
   function tuneClothingPart(markup, traits, part) {
     if (!markup) return "";
     const tuning = clothingTuningFor(traits);
-    return `<g class='fa-clothing-${part}' transform='${clothingTransform(tuning, part, clothingNecklineY(traits))}'>${markup}</g>`;
+    // Overall clearance and collar width are also consumed as geometry. Keep X/Y and vertical
+    // tuning here, but prevent a second horizontal scale from distorting the finished pieces.
+    const transformTuning = traits.clothing === "overalls" && part === "collar"
+      ? { ...tuning, neckWidthScale: 1, collarScaleX: 1 }
+      : tuning;
+    return `<g class='fa-clothing-${part}' transform='${clothingTransform(transformTuning, part, clothingNecklineY(traits))}'>${markup}</g>`;
+  }
+
+  const layeredCollaredStyles = new Set(["labCoat", "rugby", "varsity", "tracksuit", "collared", "blazer", "jacket"]);
+  const clothingPartNames = ["rearCollar", "torso", "frontCollar", "details", "overlays"];
+  const clothingDiagnosticColors = {
+    rearCollar: "#ff3ea5",
+    neck: "#63e6be",
+    torso: "#35a7ff",
+    frontCollar: "#ffd43b",
+    details: "#b197fc",
+    overlays: "#ff922b"
+  };
+
+  function clothingAnchors(traits) {
+    const tuning = clothingTuningFor(traits);
+    const geometry = neckGeometry(traits);
+    const collarX = traitNumber(tuning.collarX, 0);
+    const collarY = traitNumber(tuning.collarY, 0);
+    const widthScale = traitNumber(tuning.neckWidthScale, 1) * traitNumber(tuning.collarScaleX, 1);
+    const heightScale = traitNumber(tuning.necklineDepthScale, 1) * traitNumber(tuning.collarScaleY, 1);
+    const centerX = 128 + collarX;
+    const necklineY = clothingNecklineY(traits) + collarY;
+    const neckHalf = Math.max(10, geometry.neckJoinHalf * widthScale);
+    const shoulderHalf = Math.max(neckHalf + 8, (traitNumber(traits.build, 82) * 0.58));
+    return {
+      centerX,
+      necklineY,
+      neckHalf,
+      rearHalf: neckHalf + 7,
+      lapelHalf: neckHalf + 12,
+      shoulderHalf,
+      depth: Math.max(0.55, heightScale),
+      leftNeck: centerX - neckHalf,
+      rightNeck: centerX + neckHalf,
+      leftShoulder: centerX - shoulderHalf,
+      rightShoulder: centerX + shoulderHalf
+    };
+  }
+
+  function clothingDiagnosticDefs(traits) {
+    const mode = traits.clothingLayerView || "composite";
+    if (mode === "composite") return "";
+    return Object.entries(clothingDiagnosticColors).map(([part, color]) => {
+      if (mode === "occlusion") {
+        return `<filter id='clothing-diag-${part}' x='-20%' y='-20%' width='140%' height='140%'>
+          <feMorphology in='SourceAlpha' operator='dilate' radius='1.2' result='expanded'/>
+          <feComposite in='expanded' in2='SourceAlpha' operator='out' result='edge'/>
+          <feFlood flood-color='${color}' result='colour'/>
+          <feComposite in='colour' in2='edge' operator='in'/>
+        </filter>`;
+      }
+      return `<filter id='clothing-diag-${part}' x='-10%' y='-10%' width='120%' height='120%'>
+        <feFlood flood-color='${color}' result='colour'/>
+        <feComposite in='colour' in2='SourceAlpha' operator='in' result='mapped'/>
+        <feComponentTransfer in='mapped'>
+          <feFuncA type='table' tableValues='0 1'/>
+        </feComponentTransfer>
+      </filter>`;
+    }).join("");
+  }
+
+  function clothingPartVisible(traits, part) {
+    return traits.clothingLayerVisibility?.[part] !== false;
+  }
+
+  function clothingDiagnosticAttribute(traits, part) {
+    return (traits.clothingLayerView || "composite") === "composite"
+      ? ""
+      : ` filter='url(#clothing-diag-${part})'`;
+  }
+
+  function clothingPartGroup(part, markup, traits) {
+    if (!markup || !clothingPartVisible(traits, part)) return "";
+    const tuning = clothingTuningFor(traits);
+    const lineScale = traitNumber(tuning.lineScale, 1);
+    const mode = traits.clothingLayerView || "composite";
+    const diagnostic = clothingDiagnosticAttribute(traits, part);
+    const prefix = part === "torso" ? "garment" : part === "details" || part === "overlays" ? "detail" : "";
+    const partTransform = prefix ? clothingTransform(tuning, prefix, clothingNecklineY(traits)) : "";
+    const transform = `translate(0 256) scale(1 1.13) translate(0 -256) ${partTransform}`.trim();
+    let content = scaleClothingStrokes(markup, lineScale);
+    if (mode !== "composite") content = content.replace(/\sopacity='[^']*'/g, " opacity='1'");
+    return `<g class='fa-clothing-part fa-clothing-part-${part}' data-clothing-part='${part}' transform='${transform}'${diagnostic}>${content}</g>`;
   }
 
   // Preset metals for metal jewellery (chain, etc.).
@@ -703,6 +797,10 @@
       <path d='M67 101c33-20 88-20 122 0' fill='none' stroke='${ink}' stroke-width='2.4' stroke-linecap='round'/>
       <path d='M122 92c4 3 6 6 6 10' fill='none' stroke='rgba(255,255,255,.36)' stroke-width='2' stroke-linecap='round'/>
     `,
+    // Headscarf: the front face-framing strokes render through the accessory pipeline; the scarf
+    // cloth behind the head is inserted directly in composePortrait's hair-behind layer (the
+    // accessory buckets all render in front of it).
+    hijab: (traits) => renderHijabFront(traits),
     flowerClip: () => `
       <circle cx='175' cy='101' r='5.2' fill='#ff69a6' stroke='#171512' stroke-width='1.9'/>
       <circle cx='185' cy='101' r='5.2' fill='#ff69a6' stroke='#171512' stroke-width='1.9'/>
@@ -4610,20 +4708,20 @@
     return Number.isFinite(n) ? n : fallback;
   }
 
-  // Hair-strand tones, contrast-aware: on dark hair the texture reads as LIGHTER strands (jade/rosa
-  // refs), but shadeColor can't lighten near-black, so blend toward a cool grey instead. On medium/
-  // light hair a darker lowlight reads best (kevin/penny refs).
-  function hairStrandTones(hair) {
-    const n = parseInt(hair.replace("#", ""), 16);
-    const lum = 0.299 * ((n >> 16) & 0xff) + 0.587 * ((n >> 8) & 0xff) + 0.114 * (n & 0xff);
-    if (lum < 90) {
-      return { low: mixColor(hair, "#8b8e99", 0.55), hi: mixColor(hair, "#c2c5cf", 0.5) };
-    }
-    return { low: shadeColor(hair, 0.66), hi: shadeColor(hair, 1.2) };
-  }
+
 
   function normalizeLegacyTraits(source) {
     const traits = { ...source };
+    // hijab left the hair catalogue: legacy hair:"hijab" renders as effective bald hair plus an
+    // effective hijab accessory WITHOUT mutating the stored record (this copy is render-local).
+    // A conflicting head accessory loses to the hijab; independent accessories (glasses etc.)
+    // keep their slot and the hijab renders additionally via effectiveHijab.
+    if (traits.hair === "hijab") {
+      traits.hair = "bald";
+      const headwear = ["none", "cap", "capBack", "beanie", "beret", "headband", "flowerClip", "bucketHat", "sunHat", "turban", "hijab"];
+      if (!traits.accessory || headwear.includes(traits.accessory)) traits.accessory = "hijab";
+      else traits.effectiveHijab = true;
+    }
     if (traits.accessory === "beard") {
       if (traits.beardLength == null) {
         const profileLen = { trimShort: 0.3, chinCurtain: 0.45, boxedFull: 0.72, roundedHeavy: 0.9, roundedFull: 0.62 };
@@ -4655,19 +4753,17 @@
     const hair = (traits.hairHex || hairColors[traits.hairColor]);
     const expression = expressions[traits.expression];
     const faceShape = warpJaw(faceShapes[traits.faceShape], getProfile(traits).jawLength);
-    const hairStyle = hairStyles[traits.hair] || hairStyles.messy;
     const outfit = clothing[traits.clothing];
+    const clothingParts = renderCollaredClothingParts(traits, seed);
     const bodyTattooOnSkin = traits.headOnly ? "" : renderTattoo(traits, "body", "onSkin");
     const bodyTattooBeforeClothes = outfit && outfit.bare ? "" : bodyTattooOnSkin;
     const bodyTattooAfterClothes = outfit && outfit.bare ? bodyTattooOnSkin : "";
     const accessorySvg = renderAccessory(traits, faceShape);
     const jewellerySvg = renderJewellery(traits, faceShape);
-    // Styles mapped to faces.js silhouettes render as one piece on top of the face; the rest keep
-    // this project's original back/front hair.
-    const useFacesHair = typeof window !== "undefined" && window.facesHair && window.facesHair.has(traits.hair);
-    const facesHairSvg = useFacesHair
-      ? `<g transform='translate(0 ${Number(traits.frontHairY) || 0})'>${window.facesHair.render(traits.hair, `url(#hair-${seed})`, hairOutlineFor(traits), { ...hairStrandTones(hair), hairHex: hair, seed, outlineScale: hairOutlineScale(traits) })}</g>`
-      : "";
+    // All hair renders through the unified compositor (resolveHairComposition/renderHairComposition):
+    // the head is bald plus an ordered stack of pieces per zone. The hijab is headwear, not hair —
+    // normalizeLegacyTraits maps legacy hair:"hijab" records to an effective accessory.
+    const hijabActive = traits.accessory === "hijab" || traits.effectiveHijab === true;
     const svg = `
       <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'>
         <defs>
@@ -4681,24 +4777,36 @@
             <stop offset='0.6' stop-color='${hair}'/>
             <stop offset='1' stop-color='${shadeColor(hair, 0.86)}'/>
           </linearGradient>
+          ${clothingDiagnosticDefs(traits)}
         </defs>
         ${traits.headOnly ? "" : `<rect width='256' height='256' fill='${traits.background}'/>`}
         ${animCSS(traits, seed)}
         <g class='fa-hair-behind-layer'>
           ${traits.noHead ? "" : headGroup(traits, `
-            ${renderHairLocks(traits, seed, hair, true)}
-            ${useFacesHair ? "" : renderBackHair(hairStyle, `url(#hair-${seed})`, traits)}
+            ${hijabActive ? renderHijabBack(traits) : ""}
+            ${renderHairComposition(traits, seed, hair, "behind")}
           `)}
-          ${renderDrawnLocks(traits, seed, hair, true)}
         </g>
-        ${traits.headOnly ? "" : `<g class='fa-neck-fill-layer'>${renderNeckBase(traits, skin, "fill")}</g>`}
-        ${traits.headOnly ? "" : renderNeckCastShadow(seed, skin, traits)}
+        ${traits.headOnly ? "" : (clothingParts
+          ? clothingPartGroup("rearCollar", clothingParts.rearCollar, traits)
+          : "")}
+        ${traits.headOnly || !clothingPartVisible(traits, "neck") ? "" : `<g class='fa-neck-layer' data-clothing-part='neck'${clothingDiagnosticAttribute(traits, "neck")}>
+          ${renderNeckBase(traits, skin, "fill")}
+          ${renderNeckCastShadow(seed, skin, traits)}
+          ${renderNeckBase(traits, skin, "lines")}
+        </g>`}
         ${bodyTattooBeforeClothes}
-        ${traits.headOnly ? "" : renderClothing(outfit, traits, seed)}
+        ${traits.headOnly ? "" : (clothingParts
+          ? clothingPartGroup("torso", clothingParts.torso, traits)
+          : renderClothing(outfit, traits, seed))}
         ${traits.headOnly ? "" : renderBodyCastShadow(seed, skin, traits)}
+        ${traits.headOnly || !clothingParts ? "" : `
+          ${clothingPartGroup("frontCollar", clothingParts.frontCollar, traits)}
+          ${clothingPartGroup("details", clothingParts.details, traits)}
+          ${clothingPartGroup("overlays", clothingParts.overlays, traits)}
+        `}
         ${bodyTattooAfterClothes}
-        ${traits.headOnly ? "" : renderNeckBase(traits, skin, "lines")}
-        ${traits.headOnly ? "" : renderCollar(traits)}
+        ${traits.headOnly || clothingParts ? "" : renderCollar(traits)}
         ${traits.headOnly ? "" : renderTattoo(traits, "body", "overClothes")}
         ${traits.headOnly ? "" : (accessorySvg.beforeHead || "")}
         ${traits.headOnly ? "" : (jewellerySvg.beforeHead || "")}
@@ -4717,7 +4825,6 @@
           ${renderBeardBlobs(traits, seed)}
           ${accessorySvg.behindHair || ""}
           ${jewellerySvg.behindHair || ""}
-          ${useFacesHair ? "" : renderFrontHair(hairStyle, `url(#hair-${seed})`, traits) + renderHairHighlights(hairStyle, hair, traits, seed)}
           ${traits.noBrows ? "" : `<g class='fa-brow'>${renderBrows(expression, traits)}</g>`}
           ${renderEyes(expression, traits)}
           ${renderNose(seed, traits)}
@@ -4728,65 +4835,22 @@
           ${/* Blush comes solely from renderFaceModeling's cheekOpacity (the studio Blush control).
                The old expression-based renderCheeks() blush was a second layer that doubled up on
                happy/surprised faces, so it's no longer drawn. */ ""}
-          ${/* faces.js hair sits ON TOP of the face features (like the reference art) so swept hair
-               overlaps the brow/cheek/temple instead of the brow & blush poking through it */ ""}
-          ${useFacesHair ? facesHairSvg : ""}
-          ${renderHairLocks(traits, seed, hair, false)}
+          ${/* hair sits ON TOP of the face features (like the reference art) so swept hair
+               overlaps the brow/cheek/temple instead of the brow & blush poking through it.
+               The front zone of the unified composition renders base + placed + drawn pieces
+               as one ordered stack. */ ""}
+          ${hijabActive && traits.accessory !== "hijab" ? renderHijabFront(traits) : ""}
+          ${renderHairComposition(traits, seed, hair, "front")}
           ${accessorySvg.afterMouth}
           ${jewellerySvg.afterMouth || ""}
           ${traits.disguise ? renderDisguise(traits) : ""}
         `)}
-        ${traits.headOnly ? "" : renderDrawnLocks(traits, seed, hair, false)}
       </svg>
     `;
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   }
 
-  // Freely-placed decorative hair locks (the studio Lock Designer writes traits.hairLocks). Each is
-  // themed to the hair colour and drawn on top of the hair, in array order = z-order (last = front).
-  // behind=true renders the locks flagged `behind` in the portrait's pre-neck layer; behind=false
-  // renders the rest on top of the hair. Index stays stable across both passes so each lock keeps a
-  // unique gradient/clip seed.
-  function renderHairLocks(traits, seed, hair, behind) {
-    const locks = traits.hairLocks;
-    if (!Array.isArray(locks) || !locks.length) return "";
-    if (!(typeof window !== "undefined" && window.facesHair && window.facesHair.renderLock)) return "";
-    const items = locks
-      .map((inst, i) => ({ inst, i }))
-      // Drawn (pen-tool) locks carry a raw `d` in portrait space and are rendered at top level by
-      // renderDrawnLocks (outside the head group), so they're skipped in these in-head passes.
-      .filter(({ inst }) => !inst.d && Boolean(inst.behind) === Boolean(behind));
-    if (!items.length) return "";
 
-    if (!window.facesHair.renderLockPart) {
-      const outline = hairOutlineFor(traits);
-      return items
-        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: outline, seed: `${seed}-l${i}`, outlineScale: hairOutlineScale(traits) }))
-        .join("");
-    }
-
-    // lockBlend chooses the construction: "merged" (default) fuses all locks into ONE mass with a
-    // single rim outline - contiguous, no ghost seams through overlaps. "separate" is the classic
-    // per-lock render (each lock keeps its own outline + dark/shine shading) - some styles (Olivia's
-    // cascades) read better with the locks individually articulated. Editor-facing toggle.
-    if (traits.lockBlend === "separate") {
-      return items
-        .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: hairOutlineFor(traits), seed: `${seed}-l${i}`, outlineScale: hairOutlineScale(traits) }))
-        .join("");
-    }
-
-    const outlineScale = hairOutlineScale(traits);
-    const layer = behind ? "behind" : "front";
-    // rim = the standard merged outer silhouette. Separately, selected locks can draw their own
-    // masked internal lines on top while the outside contour stays a single merged shape.
-    const rimItems = items.filter(({ inst }) => lockOutlineEnabled(inst));
-    const rim = visibleStroke(hairOutlineFor(traits)) && rimItems.length
-      ? renderHairLockRim(rimItems, seed, hair, hairOutlineFor(traits), layer, (behind ? 2.1 : 2.7) * outlineScale, outlineScale)
-      : "";
-    const fill = renderHairLockPartGroup(items, seed, hair, resolvedHairOutlineColor(traits), "fill", null, outlineScale);
-    const internalLines = renderHairLockInteriorLines(items, seed, hair, layer, traits, outlineScale);
-    return `${rim}${fill}${internalLines}`;
-  }
 
   function renderHairLockPartGroup(items, seed, hair, outline, mode, extraCtx, outlineScale = 1) {
     return items
@@ -4801,9 +4865,9 @@
       .join("");
   }
 
-  function renderHairLockRim(items, seed, hair, outline, layer, radius, outlineScale = 1) {
+  function renderHairLockRim(items, seed, hair, outline, layer, radius, outlineScale = 1, renderGroup = renderHairLockPartGroup) {
     if (!visibleStroke(outline)) return "";
-    const mass = renderHairLockPartGroup(items, seed, hair, outline, "mass", { massFill: "#000" }, outlineScale);
+    const mass = renderGroup(items, seed, hair, outline, "mass", { massFill: "#000" }, outlineScale);
     if (!mass) return "";
     const id = `hairlock-rim-${String(seed).replace(/[^a-zA-Z0-9_-]/g, "_")}-${layer}`;
     return `
@@ -4821,19 +4885,127 @@
     `;
   }
 
-  // Pen-tool hair: locks whose `d` is a raw path drawn in portrait (256x256) coordinates. They stay
-  // outside the head transform so the studio's screen->256 mapping is exact, but still split into
-  // true behind/front passes like catalogue locks.
-  function renderDrawnLocks(traits, seed, hair, behind = false) {
-    const locks = traits.hairLocks;
-    if (!Array.isArray(locks) || !locks.length) return "";
-    if (!(typeof window !== "undefined" && window.facesHair && window.facesHair.renderLock)) return "";
+
+
+  /* ===================== Unified hair compositor: orchestration ===================== *
+   * Every portrait is a bald head plus one ordered stack of hair pieces. Base styles resolve to
+   * preset layers (bottom of the stack); placed/drawn hairLocks append above them; a versioned
+   * traits.hairComposition overrides the derived stack entirely. Each zone (behind/front) renders
+   * as ONE composition: mass union -> single morphology rim -> fills bottom-to-top -> details ->
+   * masked interior seams. lockBlend:"separate" routes through the same stack with per-piece
+   * articulation. */
+
+  function resolveHairComposition(traits) {
+    const fh = typeof window !== "undefined" ? window.facesHair : null;
+    if (!fh || !fh.getHairPreset) return null;
+    const comp = traits.hairComposition;
+    const styleKey = traits.hair || "bald";
+    let layers = null;
+    let preset = styleKey;
+    let materialized = false;
+    if (comp && typeof comp === "object" && comp.version === 1 && Array.isArray(comp.layers)) {
+      // the materialized stack is authoritative (empty is valid: renders bald)
+      preset = typeof comp.preset === "string" ? comp.preset : styleKey;
+      layers = comp.layers.map((l) => fh.normalizeHairLayer(l)).filter(Boolean);
+      materialized = true;
+    }
+    if (!layers) {
+      // derive: preset base layers (unknown preset -> bald, placed layers preserved), then legacy
+      // hairLocks as placed layers in stored order. Unsupported composition versions land here too.
+      const presetDef = fh.getHairPreset(preset) || fh.getHairPreset("bald");
+      preset = presetDef && fh.getHairPreset(preset) ? preset : "bald";
+      const baseLayers = presetDef ? presetDef.layers : [];
+      const placed = (Array.isArray(traits.hairLocks) ? traits.hairLocks : [])
+        .map((l) => fh.normalizeHairLayer(l)).filter(Boolean);
+      layers = baseLayers.concat(placed);
+    }
+    // stable unique ids: derive missing ones from origin+piece+position, repair duplicates
+    // deterministically by suffixing.
+    const seen = new Set();
+    layers.forEach((l, i) => {
+      let id = l.id || `${l.origin}:${l.piece}:${i}`;
+      while (seen.has(id)) id += "+";
+      seen.add(id);
+      l.id = id;
+    });
+    return { preset, layers, materialized };
+  }
+
+  // Drawn (pen-tool) pieces are authored in un-framed portrait coordinates and used to render
+  // outside the head transform. Inside the compositor they join the zone stack, wrapped in the
+  // exact inverse of headGroup's frame so their on-screen position is unchanged.
+  function inverseHeadTransform(traits) {
+    const tilt = Number(traits.headTilt) || 0;
+    const hx = Number(traits.headX) || 0;
+    const hy = (Number(traits.headY) || 0) + HEAD_FRAME_LIFT;
+    const inv = (1 / HEAD_FRAME_SCALE).toFixed(5);
+    return `translate(128 150) scale(${inv}) rotate(${(-tilt).toFixed(3)}) translate(-128 -150) translate(${(-hx).toFixed(2)} ${(-hy).toFixed(2)})`;
+  }
+
+  // Zone items: normalized visible layers of one zone, in stack order, with base layers
+  // inheriting the zone's hair offset (front: frontHairY, behind: backHairY).
+  function compositionItems(resolved, traits, zone) {
+    const frontY = Number(traits.frontHairY) || 0;
+    const backY = Number(traits.backHairY) || 0;
+    return resolved.layers
+      .map((layer, i) => ({ inst: layer, i }))
+      .filter(({ inst }) => inst.visible !== false && inst.zone === zone)
+      .map(({ inst, i }) => {
+        if (inst.origin !== "base") return { inst, i };
+        const dy = zone === "front" ? frontY : backY;
+        return dy ? { inst: { ...inst, y: inst.y + dy }, i } : { inst, i };
+      });
+  }
+
+  // Group renderer for the composition (same contract as renderHairLockPartGroup, so the rim and
+  // interior-line machinery is shared): renders one part mode for every item, wrapping drawn
+  // pieces in the inverse head frame so all masses share one coordinate space.
+  function makeCompositionGroup(traits) {
+    const inverse = inverseHeadTransform(traits);
+    return function compositionGroup(items, seed, hair, outline, mode, extraCtx, outlineScale = 1) {
+      return items
+        .map(({ inst, i }) => {
+          const body = window.facesHair.renderHairPiecePart(inst, {
+            hair,
+            fill: `url(#hair-${seed})`,
+            ink: outline,
+            seed: `${seed}-hc${i}`,
+            outlineScale,
+            ...(extraCtx || {})
+          }, mode);
+          if (!body) return "";
+          return inst.piece === "drawn" ? `<g transform='${inverse}'>${body}</g>` : body;
+        })
+        .join("");
+    };
+  }
+
+  function renderHairComposition(traits, seed, hair, zone) {
+    const resolved = resolveHairComposition(traits);
+    if (!resolved || !resolved.layers.length) return "";
+    const items = compositionItems(resolved, traits, zone);
+    if (!items.length) return "";
+    const group = makeCompositionGroup(traits);
+    const outlineScale = hairOutlineScale(traits);
     const outline = hairOutlineFor(traits);
-    return locks
-      .map((inst, i) => ({ inst, i }))
-      .filter(({ inst }) => Boolean(inst.d) && Boolean(inst.behind) === Boolean(behind))
-      .map(({ inst, i }) => window.facesHair.renderLock(inst, { hair, fill: `url(#hair-${seed})`, ink: outline, seed: `${seed}-d${i}`, outlineScale: hairOutlineScale(traits) }))
-      .join("");
+
+    if (traits.lockBlend === "separate") {
+      // per-piece articulation, same stack and zones, same generic renderer
+      return group(items, seed, hair, outline, "full", null, outlineScale);
+    }
+
+    // merged: one exterior contour per connected same-zone mass
+    const rimItems = items.filter(({ inst }) => inst.outline !== "none");
+    const rim = visibleStroke(outline) && rimItems.length
+      ? renderHairLockRim(rimItems, seed, hair, outline, `hc-${zone}`, (zone === "behind" ? 2.1 : 2.7) * outlineScale, outlineScale, group)
+      : "";
+    const fills = group(items, seed, hair, resolvedHairOutlineColor(traits), "fill", null, outlineScale);
+    // details stay clipped to their owning piece (base overlays, drawn strand strokes); classic
+    // catalogue locks deliberately skip dark/shine in merged mode (overlap ghosting).
+    const detailItems = items.filter(({ inst }) => inst.piece.indexOf("lock:") !== 0);
+    const details = group(detailItems, seed, hair, outline, "detail", null, outlineScale);
+    const seams = renderHairLockInteriorLines(items, seed, hair, `hc-${zone}`, traits, outlineScale, group);
+    return `${rim}${fills}${details}${seams}`;
   }
 
   // Scales/moves the whole head (skin, ears, hair, brows, eyes, nose, mouth, accessories) as one
@@ -4853,13 +5025,18 @@
     return `<g transform='translate(${cx} ${cy}) scale(${f(rx)} ${f(ry)}) translate(${-cx} ${-cy})'>${markup}</g>`;
   }
 
+  // Global framing constants: shrink the head and lift it up so the portrait isn't "head-heavy".
+  // Shared by headGroup and by the hair compositor's inverse transform for drawn (pen-tool) hair
+  // pieces, whose raw paths are authored in un-framed portrait coordinates.
+  const HEAD_FRAME_SCALE = 0.86;
+  const HEAD_FRAME_LIFT = -16;
+
   function headGroup(traits, content) {
-    // Global framing: shrink the head and lift it up so the portrait isn't "head-heavy".
     // The reference art frames the head in roughly the top ~60% with a clear neck and
     // shoulders below; ours used to fill almost the whole frame with the chin touching the
     // collar. FRAME_SCALE/FRAME_LIFT pull every head back to reveal neck + body.
-    const FRAME_SCALE = 0.86;
-    const FRAME_LIFT = -16;
+    const FRAME_SCALE = HEAD_FRAME_SCALE;
+    const FRAME_LIFT = HEAD_FRAME_LIFT;
     const scaleX = FRAME_SCALE;
     const scaleY = FRAME_SCALE;
     const x = Number(traits.headX) || 0;
@@ -5108,12 +5285,150 @@
     return safe[stableHash(`${text}:${place}`) % safe.length];
   }
 
+  function renderCollaredClothingParts(traits, seed) {
+    const style = traits.clothing;
+    if (!layeredCollaredStyles.has(style)) return null;
+    const garment = clothing[style] || clothing.tee;
+    const anchors = clothingAnchors(traits);
+    const a = anchors;
+    const primary = garment.layer
+      ? (traits.outerwearColor || garment.defaultColor || traits.shirt || "#2f7a78")
+      : (traits.shirt || garment.defaultColor || "#2f7a78");
+    const under = traits.underShirt || traits.baseShirt || garment.under || traits.shirt || "#2f7a78";
+    const accent = traits.clothingAccent || garment.accent || shadeColor(primary, 1.18);
+    const low = shadeColor(primary, 0.76);
+    const high = shadeColor(primary, 1.12);
+    const y = a.necklineY;
+    const d = a.depth;
+    const rearTop = y - 10 * d;
+    const rearBottom = y + 8 * d;
+    const rearFill = style === "labCoat" || style === "collared" || style === "blazer"
+      ? shadeColor(primary, 0.84)
+      : shadeColor(primary, 0.7);
+    const rearCollar = style === "labCoat"
+      ? `
+        <path d='M${a.leftNeck - 5} ${rearBottom}L${a.leftNeck - 6} ${y - 5 * d}
+          Q${a.leftNeck - 2} ${y - 9 * d} ${a.leftNeck + 2} ${y - 3 * d}
+          L${a.leftNeck + 2} ${rearBottom}Z' fill='${rearFill}'/>
+        <path d='M${a.rightNeck + 5} ${rearBottom}L${a.rightNeck + 6} ${y - 5 * d}
+          Q${a.rightNeck + 2} ${y - 9 * d} ${a.rightNeck - 2} ${y - 3 * d}
+          L${a.rightNeck - 2} ${rearBottom}Z' fill='${rearFill}'/>
+      `
+      : `
+        <path d='M${a.centerX - a.rearHalf} ${rearBottom}
+          L${a.centerX - a.rearHalf + 3} ${rearTop}
+          Q${a.centerX} ${y - 17 * d} ${a.centerX + a.rearHalf - 3} ${rearTop}
+          L${a.centerX + a.rearHalf} ${rearBottom}
+          Q${a.centerX} ${y + 2 * d} ${a.centerX - a.rearHalf} ${rearBottom}Z'
+          fill='${rearFill}' stroke='${shadeColor(rearFill, 0.68)}' stroke-width='1.8' stroke-linejoin='round'/>
+      `;
+
+    const torsoFill = style === "labCoat" || style === "varsity" || style === "blazer" ? primary : primary;
+    let torso = `
+      <path d='${shoulderFillPath(traits)}' fill='${torsoFill}'/>
+      <path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>
+    `;
+    if (style === "labCoat" || style === "blazer") {
+      torso += `<path d='M${a.centerX - a.neckHalf + 5} ${y + 7}
+        Q${a.centerX} ${y + 21 * d} ${a.centerX + a.neckHalf - 5} ${y + 7}
+        L${a.centerX + 11} 256H${a.centerX - 11}Z' fill='${under}'/>`;
+    }
+
+    let frontCollar = "";
+    if (style === "labCoat" || style === "blazer") {
+      const leftOuter = a.centerX - a.lapelHalf;
+      const rightOuter = a.centerX + a.lapelHalf;
+      const lapelLow = style === "labCoat" ? shadeColor(primary, 0.91) : shadeColor(primary, 0.82);
+      frontCollar = `
+        <path d='M${a.leftNeck} ${y - 2 * d}L${a.centerX - 7} ${y + 7 * d}
+          L${a.centerX} ${y + 11 * d}L${a.centerX - 11} ${y + 22 * d}
+          L${a.centerX - 6} ${y + 43 * d}L${leftOuter} ${y + 15 * d}Z'
+          fill='${style === "labCoat" ? shadeColor(primary, 0.98) : shadeColor(primary, 1.04)}'/>
+        <path d='M${a.rightNeck} ${y - 2 * d}L${a.centerX + 7} ${y + 7 * d}
+          L${a.centerX} ${y + 11 * d}L${a.centerX + 11} ${y + 22 * d}
+          L${a.centerX + 6} ${y + 43 * d}L${rightOuter} ${y + 15 * d}Z'
+          fill='${lapelLow}'/>
+        <path d='M${a.leftNeck} ${y - 2 * d}L${a.centerX - 7} ${y + 7 * d}
+          L${a.centerX} ${y + 11 * d}L${a.centerX - 11} ${y + 22 * d}L${a.centerX - 6} ${y + 43 * d}
+          M${a.rightNeck} ${y - 2 * d}L${a.centerX + 7} ${y + 7 * d}
+          L${a.centerX} ${y + 11 * d}L${a.centerX + 11} ${y + 22 * d}L${a.centerX + 6} ${y + 43 * d}'
+          fill='none' stroke='${ink}' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'/>
+        ${style === "labCoat" ? `
+          <path d='M${a.leftNeck - 1} ${y + d}L${leftOuter} ${y + 15 * d}L${a.centerX - 7} ${y + 41 * d}
+            M${a.rightNeck + 1} ${y + d}L${rightOuter} ${y + 15 * d}L${a.centerX + 7} ${y + 41 * d}'
+            fill='none' stroke='${shadeColor(primary, 0.7)}' stroke-width='1.15'
+            stroke-linecap='round' stroke-linejoin='round' opacity='.48'/>
+        ` : ""}
+      `;
+    } else if (style === "collared") {
+      frontCollar = `
+        <path d='M${a.leftNeck} ${y - 1}L${a.centerX - 3} ${y + 8 * d}L${a.centerX - 12} ${y + 25 * d}L${a.centerX - a.neckHalf - 5} ${y + 8 * d}Z'
+          fill='${shadeColor(primary, 1.08)}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+        <path d='M${a.rightNeck} ${y - 1}L${a.centerX + 3} ${y + 8 * d}L${a.centerX + 12} ${y + 25 * d}L${a.centerX + a.neckHalf + 5} ${y + 8 * d}Z'
+          fill='${shadeColor(primary, 0.94)}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
+      `;
+    } else {
+      const bandFill = style === "rugby" ? "#f2efe7" : low;
+      frontCollar = `
+        <path d='M${a.centerX - a.rearHalf} ${y - 2 * d}
+          Q${a.centerX} ${y + 10 * d} ${a.centerX + a.rearHalf} ${y - 2 * d}
+          L${a.centerX + a.rearHalf} ${y + 10 * d}
+          Q${a.centerX} ${y + 21 * d} ${a.centerX - a.rearHalf} ${y + 10 * d}Z'
+          fill='${bandFill}' stroke='${ink}' stroke-width='2.3' stroke-linejoin='round'/>
+      `;
+    }
+
+    let details = "";
+    if (style === "labCoat") {
+      details = `
+        <path d='M${a.centerX} ${y + 12 * d}V256' stroke='${shadeColor(primary, 0.78)}' stroke-width='2'/>
+        <rect x='${a.centerX + 17}' y='${y + 43 * d}' width='24' height='13' rx='2' fill='${shadeColor(accent, 0.88)}' stroke='${ink}' stroke-width='1.5'/>
+      `;
+    } else if (style === "rugby") {
+      const stripes = Array.from({ length: 5 }, (_, index) => `<rect x='20' y='${y + 22 + index * 18}' width='216' height='9' fill='${index % 2 ? shadeColor(primary, 0.82) : accent}' opacity='.9'/>`).join("");
+      details = clothingClip(seed, traits, "parts-rugby", stripes);
+    } else if (style === "varsity") {
+      details = `
+        <path d='M${a.leftShoulder} ${y + 7}C${a.leftShoulder - 7} ${y + 28} ${a.leftShoulder - 12} ${y + 58} ${a.leftShoulder - 15} 256
+          M${a.rightShoulder} ${y + 7}C${a.rightShoulder + 7} ${y + 28} ${a.rightShoulder + 12} ${y + 58} ${a.rightShoulder + 15} 256'
+          fill='none' stroke='${accent}' stroke-width='11' stroke-linecap='round'/>
+        <path d='M${a.centerX} ${y + 10}V256' stroke='${ink}' stroke-width='2.4'/>
+      `;
+    } else if (style === "tracksuit") {
+      details = `
+        <path d='M${a.leftShoulder} ${y + 8}C${a.centerX - 37} ${y + 20} ${a.centerX - 21} ${y + 40} ${a.centerX - 13} ${y + 62}
+          M${a.rightShoulder} ${y + 8}C${a.centerX + 37} ${y + 20} ${a.centerX + 21} ${y + 40} ${a.centerX + 13} ${y + 62}'
+          fill='none' stroke='${accent}' stroke-width='5' stroke-linecap='round'/>
+        <path d='M${a.centerX} ${y + 9}V256' stroke='${ink}' stroke-width='2.5'/>
+      `;
+    } else if (style === "collared") {
+      details = `${miniButtons(a.centerX, y + 28, 4, 15, accent)}<path d='M${a.centerX} ${y + 11}V256' stroke='${shadeColor(primary, 0.72)}' stroke-width='1.8'/>`;
+    } else if (style === "jacket") {
+      details = `<path d='M${a.centerX} ${y + 9}V256' stroke='${ink}' stroke-width='2.6'/>${miniButtons(a.centerX + 6, y + 30, 4, 15, accent)}`;
+    } else if (style === "blazer") {
+      details = `<rect x='${a.centerX + 20}' y='${y + 44}' width='24' height='12' rx='2' fill='${accent}' stroke='${ink}' stroke-width='1.5'/>`;
+    }
+
+    const overlays = `
+      <path d='M${a.centerX - 43} ${y + 38}Q${a.centerX - 51} ${y + 72} ${a.centerX - 48} 256
+        L${a.centerX - 44} 256Q${a.centerX - 47} ${y + 72} ${a.centerX - 40} ${y + 38}Z
+        M${a.centerX + 43} ${y + 38}Q${a.centerX + 51} ${y + 72} ${a.centerX + 48} 256
+        L${a.centerX + 44} 256Q${a.centerX + 47} ${y + 72} ${a.centerX + 40} ${y + 38}Z'
+        fill='${low}' opacity='.08'/>
+    `;
+    return { rearCollar, torso, frontCollar, details, overlays };
+  }
+
   function renderClothing(outfit, traits, seed) {
     const garment = clothing[traits.clothing] || clothing.tee;
     if (garment.custom) return tuneClothingMarkup(renderCustomClothing(traits, seed, garment), traits);
     const skin = traits.skinHex || skinTones[traits.skin] || "#c89070";
     const c = traits.shirt;
-    const fill = garment.bare ? skin : c;       // bare/singlet show skin shoulders, not the shirt
+    const fill = garment.bare
+      ? skin
+      : traits.clothing === "overalls"
+        ? (traits.underShirt || traits.baseShirt || shadeColor(c, 1.38))
+        : c;       // bare/singlet show skin shoulders; overalls sit over a separate shirt
     const lo = shadeColor(fill, 0.84);
     const sh = Number(traits.build) || 82;
     // A single soft chest-shadow arc near the neck for depth (no hard arm/torso seam lines - those
@@ -5209,8 +5524,20 @@
       const stripes = Array.from({ length: 7 }, (_, i) => `<rect x='24' y='${(y + 9 + i * 18).toFixed(1)}' width='208' height='10' fill='${i % 2 ? shadeColor(c, 0.82) : accent}' opacity='${i % 2 ? ".78" : ".95"}'/>`).join("");
       return customBodyFill(traits, c, `
         ${clothingClip(seed, traits, "rugby", stripes)}
-        <path d='M101 ${y - 1} Q128 ${y + 12} 155 ${y - 1} L160 ${y + 11} Q128 ${y + 28} 96 ${y + 11} Z' fill='#f2efe7' stroke='${ink}' stroke-width='2.3' stroke-linejoin='round'/>
-        <path d='M112 ${y + 1} L128 ${y + 20} L144 ${y + 1}' fill='none' stroke='${shadeColor(c, 0.52)}' stroke-width='2.1' stroke-linejoin='round'/>
+        ${clothingClip(seed, traits, "rugby-depth", `
+          <path d='M24 ${y + 2}C55 ${y + 6} 72 ${y + 28} 82 256H24Z
+            M232 ${y + 2}C201 ${y + 6} 184 ${y + 28} 174 256H232Z'
+            fill='${lo}' opacity='.12'/>
+          <path d='M72 ${y + 9}Q128 ${y + 25} 184 ${y + 9}'
+            fill='none' stroke='${hi}' stroke-width='2.2' stroke-linecap='round' opacity='.16'/>
+        `)}
+        <path d='M101 ${y - 1}Q128 ${y + 10} 155 ${y - 1}L158 ${y + 9}
+          Q128 ${y + 19} 98 ${y + 9}Z'
+          fill='#f2efe7' stroke='${ink}' stroke-width='2.3' stroke-linejoin='round'/>
+        <path d='M101 ${y + 6}Q128 ${y + 15}155 ${y + 6}' fill='none'
+          stroke='${shadeColor("#f2efe7", 0.78)}' stroke-width='2' opacity='.7'/>
+        <path d='M128 ${y + 13}V${y + 31}' fill='none'
+          stroke='${shadeColor(c, 0.52)}' stroke-width='2.1' stroke-linecap='round'/>
       `);
     }
     if (style === "scrubs") {
@@ -5232,10 +5559,24 @@
       `);
     }
     if (style === "tracksuit") {
+      const leftStripe = `<path d='M78 ${y + 4}C92 ${y + 15} 105 ${y + 28} 115 ${y + 51}'
+        fill='none' stroke='${accent}' stroke-width='5' stroke-linecap='round'/>`;
+      const rightStripe = `<path d='M178 ${y + 4}C164 ${y + 15} 151 ${y + 28} 141 ${y + 51}'
+        fill='none' stroke='${accent}' stroke-width='5' stroke-linecap='round'/>`;
       return customBodyFill(traits, c, `
+        ${clothingClip(seed, traits, "tracksuit-depth", `
+          <path d='M24 ${y + 2}C57 ${y + 7} 78 ${y + 29} 91 256H24Z
+            M232 ${y + 2}C199 ${y + 7} 178 ${y + 29} 165 256H232Z'
+            fill='${lo}' opacity='.14'/>
+          <path d='M75 ${y + 8}Q128 ${y + 27} 181 ${y + 8}'
+            fill='none' stroke='${hi}' stroke-width='2.3' stroke-linecap='round' opacity='.18'/>
+        `)}
         <path d='M98 ${y - 3} Q128 ${y + 11} 158 ${y - 3} L158 ${y + 14} Q128 ${y + 31} 98 ${y + 14} Z' fill='${lo}' stroke='${ink}' stroke-width='2.5' stroke-linejoin='round'/>
+        <path d='M104 ${y + 5}Q128 ${y + 17} 152 ${y + 5}' fill='none'
+          stroke='${hi}' stroke-width='1.8' stroke-linecap='round' opacity='.42'/>
         <path d='M128 ${y + 8}V256' stroke='${ink}' stroke-width='2.7'/>
-        <path d='M78 ${y + 4}C92 ${y + 15} 105 ${y + 28} 115 ${y + 51}M178 ${y + 4}C164 ${y + 15} 151 ${y + 28} 141 ${y + 51}' fill='none' stroke='${accent}' stroke-width='5' stroke-linecap='round'/>
+        ${tuneClothingPart(leftStripe, traits, "detailLeft")}
+        ${tuneClothingPart(rightStripe, traits, "detailRight")}
       `);
     }
     if (style === "kurta") {
@@ -5280,7 +5621,7 @@
       ? `<path d='${shoulderFillPath(traits)}' fill='${outer}'/><path d='${shoulderOuterStrokePath(traits)}' fill='none' stroke='${ink}' stroke-width='${stroke.contour}' stroke-linejoin='round' stroke-linecap='round'/>${openCentre}`
       : "";
     const details = tuneClothingPart(
-      tuneClothingPart(renderLayerDetails(style, traits, outer, under, accent, lo, hi), traits, "detail"),
+      tuneClothingPart(renderLayerDetails(style, traits, seed, outer, under, accent, lo, hi), traits, "detail"),
       traits,
       "collar"
     );
@@ -5292,7 +5633,7 @@
     `;
   }
 
-  function renderLayerDetails(style, traits, c, under, accent, lo, hi) {
+  function renderLayerDetails(style, traits, seed, c, under, accent, lo, hi) {
     const y = clothingNecklineY(traits);
     const centreZip = `<path d='M128 ${y + 8}V256' stroke='${ink}' stroke-width='2.5' stroke-linecap='round'/>`;
     if (style === "flannel") {
@@ -5314,7 +5655,14 @@
     }
     if (style === "varsity") {
       return `
+        <path d='M24 ${y + 2}C53 ${y + 5} 76 ${y + 27} 96 256H24Z
+          M232 ${y + 2}C203 ${y + 5} 180 ${y + 27} 160 256H232Z'
+          fill='${lo}' opacity='.16'/>
+        <path d='M75 ${y + 7}Q128 ${y + 24} 181 ${y + 7}'
+          fill='none' stroke='${hi}' stroke-width='2.3' stroke-linecap='round' opacity='.18'/>
         <path d='M72 ${y + 2}C89 ${y + 10} 101 ${y + 36} 111 256M184 ${y + 2}C167 ${y + 10} 155 ${y + 36} 145 256' fill='none' stroke='${accent}' stroke-width='12' stroke-linecap='round' opacity='.95'/>
+        <path d='M77 ${y + 5}C91 ${y + 16} 101 ${y + 39} 110 256M179 ${y + 5}C165 ${y + 16} 155 ${y + 39} 146 256'
+          fill='none' stroke='${shadeColor(accent, 0.78)}' stroke-width='2.1' stroke-linecap='round' opacity='.58'/>
         <path d='M99 ${y + 5}Q128 ${y + 18}157 ${y + 5}M89 239H167' fill='none' stroke='${accent}' stroke-width='2.2' stroke-linecap='round'/>
         ${centreZip}
         <text x='101' y='${y + 50}' font-size='20' font-weight='900' fill='${accent}' stroke='${ink}' stroke-width='0.7'>W</text>
@@ -5322,10 +5670,9 @@
     }
     if (style === "bomber") {
       return `
-        <path d='M93 ${y - 1}Q128 ${y + 15}163 ${y - 1}L163 ${y + 13}Q128 ${y + 30}93 ${y + 13}Z' fill='${lo}' stroke='${ink}' stroke-width='2.5'/>
         <path d='M83 240H173V256H83Z' fill='${lo}' stroke='${ink}' stroke-width='2.3'/>
         ${centreZip}
-        <g stroke='${accent}' stroke-width='1.4' opacity='.8'><path d='M95 ${y + 5}H161M88 247H168'/></g>
+        <path d='M88 247H168' stroke='${accent}' stroke-width='1.4' opacity='.8'/>
       `;
     }
     if (style === "cardigan") {
@@ -5348,10 +5695,34 @@
       `;
     }
     if (style === "labCoat") {
+      const fabricGradient = `lab-fabric-${seed}`.replace(/[^a-z0-9_-]/gi, "-");
       return `
-        <path d='M101 ${y - 3}L128 ${y + 12}L119 ${y + 57}L94 ${y + 22}Z' fill='${c}' stroke='${ink}' stroke-width='2.3'/>
-        <path d='M155 ${y - 3}L128 ${y + 12}L137 ${y + 57}L162 ${y + 22}Z' fill='${c}' stroke='${ink}' stroke-width='2.3'/>
-        <rect x='145' y='${y + 43}' width='24' height='13' rx='2' fill='${accent}' stroke='${ink}' stroke-width='1.5'/>
+        <defs>
+          <linearGradient id='${fabricGradient}' x1='0' y1='0' x2='1' y2='0'>
+            <stop offset='0' stop-color='${lo}' stop-opacity='.42'/>
+            <stop offset='.27' stop-color='${c}' stop-opacity='.08'/>
+            <stop offset='.5' stop-color='${hi}' stop-opacity='.22'/>
+            <stop offset='.73' stop-color='${c}' stop-opacity='.08'/>
+            <stop offset='1' stop-color='${lo}' stop-opacity='.42'/>
+          </linearGradient>
+        </defs>
+        <path d='${shoulderFillPath(traits)}' fill='url(#${fabricGradient})'/>
+        <path d='M101 ${y + 5}Q128 ${y + 18} 155 ${y + 5}'
+          fill='none' stroke='${lo}' stroke-width='5.5' stroke-linecap='round' opacity='.2'/>
+        <path d='M103 ${y + 7}L106 ${y - 4}Q128 ${y + 3} 150 ${y - 4}L153 ${y + 7}
+          Q128 ${y + 16} 103 ${y + 7}Z'
+          fill='${shadeColor(c, 0.84)}'/>
+        <path d='M101 ${y - 1}L121 ${y + 7}L128 ${y + 11}L117 ${y + 21}L122 ${y + 42}L96 ${y + 15}Z'
+          fill='${shadeColor(c, 0.96)}'/>
+        <path d='M155 ${y - 1}L135 ${y + 7}L128 ${y + 11}L139 ${y + 21}L134 ${y + 42}L160 ${y + 15}Z'
+          fill='${shadeColor(c, 0.88)}'/>
+        <path d='M101 ${y - 1}L121 ${y + 7}L128 ${y + 11}L117 ${y + 21}L122 ${y + 42}
+          M155 ${y - 1}L135 ${y + 7}L128 ${y + 11}L139 ${y + 21}L134 ${y + 42}'
+          fill='none' stroke='${ink}' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'/>
+        <path d='M96 ${y + 15}Q82 ${y + 10} 69 ${y + 11}M160 ${y + 15}Q174 ${y + 10} 187 ${y + 11}'
+          fill='none' stroke='${lo}' stroke-width='1.5' stroke-linecap='round' opacity='.3'/>
+        <rect x='145' y='${y + 43}' width='24' height='13' rx='2' fill='${shadeColor(accent, 0.88)}' stroke='${ink}' stroke-width='1.5'/>
+        <path d='M148 ${y + 46}H166' stroke='${shadeColor(accent, 1.18)}' stroke-width='1.2' opacity='.65'/>
         <path d='M128 ${y + 12}V256' stroke='${shadeColor(c, 0.8)}' stroke-width='2'/>
       `;
     }
@@ -5400,38 +5771,47 @@
 
   function renderLayerNeck(style, traits, c, under, accent, lo, hi) {
     const y = clothingNecklineY(traits);
-    const left = `M68 ${y + 8} C87 ${y - 4} 110 ${y - 2} 123 ${y + 8} L116 ${y + 22} C101 ${y + 12} 83 ${y + 13} 68 ${y + 24} Z`;
-    const right = `M188 ${y + 8} C169 ${y - 4} 146 ${y - 2} 133 ${y + 8} L140 ${y + 22} C155 ${y + 12} 173 ${y + 13} 188 ${y + 24} Z`;
-    if (style === "raincoat" || style === "bomber") {
+    const mirror = (markup) => `<g transform='matrix(-1 0 0 1 256 0)'>${markup}</g>`;
+    const collarFlap = (fill) => {
+      const left = `M126 ${y + 5} L106 ${y - 1} L108 ${y + 13} L121 ${y + 27} L128 ${y + 10} Z`;
       return `
-        <path d='M93 ${y + 2} Q128 ${y + 19} 163 ${y + 2} L159 ${y + 17} Q128 ${y + 34} 97 ${y + 17} Z' fill='${c}' stroke='${ink}' stroke-width='2.4' stroke-linejoin='round'/>
-        <path d='M101 ${y + 7} Q128 ${y + 20} 155 ${y + 7}' fill='none' stroke='${lo}' stroke-width='2.2' stroke-linecap='round'/>
+        <path d='${left}' fill='${fill}' stroke='${ink}' stroke-width='2.2' stroke-linejoin='round'/>
+        ${mirror(`<path d='${left}' fill='${fill}' stroke='${ink}' stroke-width='2.2' stroke-linejoin='round'/>`)}
       `;
+    };
+    const ribbedBand = (fill, lowlight, tall = false) => {
+      const top = y - (tall ? 5 : 2);
+      const bottom = y + (tall ? 13 : 9);
+      return `
+        <path d='M104 ${top} Q128 ${y + 8} 152 ${top} L151 ${bottom} Q128 ${y + 20} 105 ${bottom} Z'
+          fill='${fill}' stroke='${ink}' stroke-width='2.3' stroke-linejoin='round'/>
+        <path d='M110 ${y + 3} Q128 ${y + 11} 146 ${y + 3}'
+          fill='none' stroke='${lowlight}' stroke-width='1.7' stroke-linecap='round' opacity='.65'/>
+      `;
+    };
+
+    if (style === "flannel") {
+      return collarFlap(c);
+    }
+    if (style === "denim") {
+      return `${collarFlap(c)}
+        <path d='M111 ${y + 5}L121 ${y + 19}M145 ${y + 5}L135 ${y + 19}'
+          fill='none' stroke='${accent}' stroke-width='1.4' stroke-linecap='round' opacity='.75'/>`;
+    }
+    if (style === "varsity") {
+      return ribbedBand(c, accent);
+    }
+    if (style === "raincoat" || style === "bomber") {
+      return ribbedBand(c, lo, style === "raincoat");
     }
     if (style === "labCoat") {
-      const lapelL = `M96 ${y - 4} L127 ${y + 8} L118 ${y + 32} L92 ${y + 16} Z`;
-      const lapelR = `M160 ${y - 4} L129 ${y + 8} L138 ${y + 32} L164 ${y + 16} Z`;
-      return `
-        <path d='${left}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
-        <path d='${right}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
-        <path d='${lapelL}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
-        <path d='${lapelR}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
-        <path d='M121 ${y + 15} L128 ${y + 34} L135 ${y + 15}' fill='none' stroke='${under}' stroke-width='3' stroke-linejoin='round'/>
-      `;
+      // The coat lapels already live in renderLayerDetails. A second collar here used to create
+      // shoulder-wide white wings and doubled the neckline.
+      return "";
     }
-    if (style === "securityVest") {
-      return `
-        <path d='${left}' fill='${accent}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
-        <path d='${right}' fill='${accent}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
-      `;
-    }
-    if (style === "sweaterVest" || style === "apron" || style === "pinafore") return "";
-    return `
-      <path d='${left}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
-      <path d='${right}' fill='${c}' stroke='${ink}' stroke-width='2.1' stroke-linejoin='round'/>
-      <path d='M108 ${y + 3} L128 ${y + 23} L148 ${y + 3}' fill='none' stroke='${ink}' stroke-width='2.2' stroke-linejoin='round' opacity='.88'/>
-      <path d='M76 ${y + 15} C94 ${y + 8} 106 ${y + 9} 118 ${y + 17} M180 ${y + 15} C162 ${y + 8} 150 ${y + 9} 138 ${y + 17}' fill='none' stroke='${hi}' stroke-width='1.3' stroke-linecap='round' opacity='.35'/>
-    `;
+    // Cardigan, sweater vest, apron, pinafore, hi-vis and leather already define their visible
+    // opening in renderLayerDetails. Leaving this empty avoids a decorative second neckline.
+    return "";
   }
 
   // Bust hint as a central Y: two curved branches sweeping in from each breast to a fork, then a
@@ -5888,15 +6268,32 @@
       `;
     }
     if (style === "overalls") {
-      // bib panel + two rounded straps over the shoulders
+      const tuning = clothingTuningFor(traits);
+      const widthFactor = 1
+        + (traitNumber(tuning.garmentScaleX, 1) - 1)
+        + (traitNumber(tuning.neckWidthScale, 1) - 1)
+        + (traitNumber(tuning.collarScaleX, 1) - 1);
+      const spread = (widthFactor - 1) * 24;
+      const x = (base, amount = 1) => (base + spread * amount).toFixed(2);
+      const bib = shadeColor(c, 0.92);
+      const leftStrap = `M${x(108, -0.72)} ${y + 24} L${x(94, -1)} ${y + 1} L${x(101, -0.92)} ${y - 4} L${x(119, -0.55)} ${y + 24} Z`;
+      const bibLeft = x(105, -0.72);
+      const bibRight = x(151, 0.72);
+      const bibBottomLeft = x(98, -0.9);
+      const bibBottomRight = x(158, 0.9);
+      const leftButton = x(111, -0.68);
+      const rightButton = x(145, 0.68);
       return `
-        <path d='M104 ${y + 6} Q128 ${y + 16} 152 ${y + 6} L152 ${y + 52} L104 ${y + 52} Z' fill='${c}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
-        <path d='M104 ${y + 8} C 92 ${y - 2} 80 ${y - 4} 70 ${y + 2}' fill='none' stroke='${c}' stroke-width='10' stroke-linecap='round'/>
-        <path d='M152 ${y + 8} C 164 ${y - 2} 176 ${y - 4} 186 ${y + 2}' fill='none' stroke='${c}' stroke-width='10' stroke-linecap='round'/>
-        <path d='M104 ${y + 8} C 92 ${y - 2} 80 ${y - 4} 70 ${y + 2}' fill='none' stroke='${ink}' stroke-width='2' stroke-linecap='round' opacity='.6'/>
-        <path d='M152 ${y + 8} C 164 ${y - 2} 176 ${y - 4} 186 ${y + 2}' fill='none' stroke='${ink}' stroke-width='2' stroke-linecap='round' opacity='.6'/>
-        <circle cx='112' cy='${y + 16}' r='2.2' fill='${hi}' stroke='${ink}' stroke-width='1.4'/>
-        <circle cx='144' cy='${y + 16}' r='2.2' fill='${hi}' stroke='${ink}' stroke-width='1.4'/>
+        <path d='${leftStrap}' fill='${c}' stroke='${ink}' stroke-width='2.2' stroke-linejoin='round'/>
+        ${mirror(`<path d='${leftStrap}' fill='${c}' stroke='${ink}' stroke-width='2.2' stroke-linejoin='round'/>`)}
+        <path d='M${bibLeft} ${y + 20} Q128 ${y + 27} ${bibRight} ${y + 20} L${bibBottomRight} 256 H${bibBottomLeft} Z'
+          fill='${bib}' stroke='${ink}' stroke-width='${stroke.feature}' stroke-linejoin='round'/>
+        <path d='M${bibLeft} ${y + 30} Q128 ${y + 36} ${bibRight} ${y + 30}'
+          fill='none' stroke='${lo}' stroke-width='1.7' stroke-linecap='round' opacity='.65'/>
+        <rect x='115' y='${y + 39}' width='26' height='18' rx='2'
+          fill='${shadeColor(c, 0.84)}' stroke='${ink}' stroke-width='1.6'/>
+        <circle cx='${leftButton}' cy='${y + 24}' r='2.5' fill='${hi}' stroke='${ink}' stroke-width='1.3'/>
+        <circle cx='${rightButton}' cy='${y + 24}' r='2.5' fill='${hi}' stroke='${ink}' stroke-width='1.3'/>
       `;
     }
 
@@ -6501,89 +6898,7 @@
     return out;
   }
 
-  function renderHairHighlights(style, hair, traits, seed) {
-    // Base-hair strand lines disabled by request - they read as stringy on the base silhouette. The
-    // per-lock line texture (renderLock) is kept. Early return leaves the smooth shape only.
-    return "";
-    if (!style.front || style.covered) return "";
-    // Internal strand lines are the defining feature of the reference hair (penny/kevin/jade): a
-    // mostly-smooth shape carried by many fine flowing lines in tones of the hair colour.
-    let inner = "";
-    if (style.longFlow) {
-      // Long waves: fine lines fanning from the centre part, flowing down through both locks, each a
-      // gentle S-wave following the silhouette. Clipped to the front layer so they stay on the hair.
-      const dark = shadeColor(hair, 0.8);
-      const lite = shadeColor(hair, 1.14);
-      const N = 7;
-      let marks = "";
-      for (const side of [-1, 1]) {
-        for (let k = 0; k < N; k++) {
-          const t = k / (N - 1);
-          const topX = 128 + side * (6 + t * 56), topY = 86 - t * 42;
-          const botX = 128 + side * (52 + t * 22), botY = 236 + t * 16;
-          const m1x = topX + side * ((botX - topX) * 0.28) - side * 10, m1y = topY + (botY - topY) * 0.34;
-          const m2x = topX + side * ((botX - topX) * 0.6) + side * 9, m2y = topY + (botY - topY) * 0.66;
-          const lit = k % 3 === 0;
-          marks += `<path d='${catmull([[topX, topY], [m1x, m1y], [m2x, m2y], [botX, botY]], false)}' fill='none' stroke='${lit ? lite : dark}' stroke-width='${lit ? 1.6 : 2}' stroke-linecap='round' opacity='${lit ? 0.5 : 0.62}'/>`;
-        }
-      }
-      const part = `<path d='M127 50Q128 70 127 86' fill='none' stroke='${dark}' stroke-width='1.6' stroke-linecap='round' opacity='.5'/>`;
-      const sheen = `<path d='M98 58Q128 46 158 58' fill='none' stroke='${lite}' stroke-width='2.4' stroke-linecap='round' opacity='.5'/>`;
-      inner = marks + part + sheen;
-    } else if (style.texture === "curls" || style.texture === "coils") {
-      const dark = shadeColor(hair, 0.64);
-      const lite = shadeColor(hair, 1.22);
-      const tight = style.texture === "coils";
-      // flowing strands sweeping down from the crown (not a dot grid) - reads as hair texture
-      const count = tight ? 9 : 7;
-      let marks = "";
-      for (let i = 0; i < count; i++) {
-        const j = Math.sin(i * 12.9898) * 43758.5453;
-        const jit = (j - Math.floor(j) - 0.5) * 6;
-        const x = 66 + (i / (count - 1)) * 116 + jit;
-        const y = 60 + ((i % 2) ? 5 : 0) + Math.abs(jit) * 0.4;
-        const curve = tight
-          ? `q-5 9 -1 17 q4 8 -1 15`
-          : `q-3 12 2 22 q5 9 -1 17`;
-        marks += `<path d='M${x.toFixed(1)} ${y.toFixed(1)} ${curve}' fill='none' stroke='${dark}' stroke-width='1.5' stroke-linecap='round' opacity='.45'/>`;
-      }
-      const sheen = `<path d='M84 ${tight ? 70 : 72}q22 -9 46 -3' fill='none' stroke='${lite}' stroke-width='2.6' stroke-linecap='round' opacity='.5'/>`;
-      inner = marks + sheen;
-    } else if (style.texture === "locs") {
-      inner = "<path d='M76 87v55M99 68v70M123 61v71M148 65v72M171 82v60' fill='none' stroke='rgba(255,255,255,.12)' stroke-width='2.4' stroke-linecap='round'/>";
-    } else {
-      // Smooth styles: many fine hair-toned strands following the sweep, plus one soft sheen.
-      const dark = shadeColor(hair, 0.74);
-      const lite = shadeColor(hair, 1.18);
-      let sweep = -8; // default = side-swept (messy and most fronts sweep one way)
-      let span = { topY: 62, botY: 92, xL: 82, xR: 176 };
-      if (style.sidePart) {
-        sweep = -11;
-        span = { topY: 60, botY: 98, xL: 80, xR: 180 };
-      } else if (style.bun || style === hairStyles.bob || style === hairStyles.longWaves) {
-        sweep = 0; // centre part: fan outward
-        span = { topY: 60, botY: 100, xL: 78, xR: 178 };
-      } else if (style === hairStyles.cropped) {
-        sweep = -6;
-        span = { topY: 70, botY: 90, xL: 84, xR: 172 };
-      }
-      const strands = flowStrands(dark, sweep, span, style === hairStyles.cropped ? 7 : 9);
-      const sheenY = span.topY + 8;
-      const sheen = `<path d='M${(span.xL + 10).toFixed(0)} ${sheenY}q24 -8 48 -2' fill='none' stroke='${lite}' stroke-width='2.4' stroke-linecap='round' opacity='.42'/>`;
-      const bun = style.bun ? `<path d='M115 47c10-7 24-7 34 0' fill='none' stroke='${lite}' stroke-width='2.4' stroke-linecap='round' opacity='.4'/>` : "";
-      inner = strands + sheen + bun;
-    }
-    if (!inner) return "";
-    // Clip every strand/highlight to the hair silhouette so none can escape onto skin or float off
-    // into the background as loose threads. Clip to the back blob (the full hair shape); fall back to
-    // the front shape only if back isn't a real path.
-    // Long waves clip to the front layer (crown + locks) so strands don't fall on the forehead that
-    // the wide back blob would otherwise cover; other styles clip to the full back silhouette.
-    const clipShape = style.longFlow ? style.front : (style.back && style.back[0] === "M" ? style.back : style.front);
-    if (!clipShape || clipShape[0] !== "M") return inner;
-    const clipId = `hairclip-${seed}`;
-    return `<defs><clipPath id='${clipId}'><path d='${clipShape}'/></clipPath></defs><g clip-path='url(#${clipId})'>${inner}</g>`;
-  }
+
 
   // Default hair outline: a deep shade of the hair colour itself (not the global navy ink) - hair
   // reads as hair, and beards borrow the same tone so they match. Explicit hairOutline still wins.
@@ -6648,10 +6963,10 @@
     };
   }
 
-  function renderHairLockInteriorLines(allItems, seed, hair, layer, traits, outlineScale = 1) {
+  function renderHairLockInteriorLines(allItems, seed, hair, layer, traits, outlineScale = 1, renderGroup = renderHairLockPartGroup) {
     const internalItems = allItems.filter(({ inst }) => lockInternalLineEnabled(inst));
     if (!internalItems.length) return "";
-    const allMass = renderHairLockPartGroup(allItems, seed, hair, "#fff", "mass", { massFill: "#fff" }, outlineScale);
+    const allMass = renderGroup(allItems, seed, hair, "#fff", "mass", { massFill: "#fff" }, outlineScale);
     if (!allMass) return "";
     const settings = mergedInternalLineSettings(traits);
     const safeSeed = String(seed).replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -6679,7 +6994,7 @@
       .map((item, idx) => {
         const otherItems = allItems.filter((candidate) => candidate !== item);
         if (!otherItems.length) return "";
-        const otherMass = renderHairLockPartGroup(otherItems, seed, hair, "#fff", "mass", { massFill: "#fff" }, outlineScale);
+        const otherMass = renderGroup(otherItems, seed, hair, "#fff", "mass", { massFill: "#fff" }, outlineScale);
         if (!otherMass) return "";
         const overlapMaskId = `hairlock-overlap-${safeSeed}-${layer}-${idx}`;
         const overlapFilterId = `${overlapMaskId}-dilate`;
@@ -6703,7 +7018,7 @@
         const width = Number.isFinite(Number(item.inst && item.inst.internalLineWidth))
           ? Math.max(0.2, Math.min(20, Number(item.inst.internalLineWidth)))
           : 5.5;
-        const seam = renderHairLockPartGroup([item], `${seed}-internal-${layer}-${item.i}-${idx}`, hair, color, "seam", {
+        const seam = renderGroup([item], `${seed}-internal-${layer}-${item.i}-${idx}`, hair, color, "seam", {
           seam: color,
           seamWidth: width,
           seamOpacity: settings.opacity,
@@ -6729,132 +7044,39 @@
     return Math.max(0.55, Math.min(1.75, (0.9 + (avg - 1) * 0.55) * outlineWidth));
   }
 
-  function renderBackHair(style, hair, traits) {
-    if (!style.back) return "";
-    const fill = style.covered ? traits.shirt : hair;
-    const strokeWidth = (style.sidePart ? 4 : 4.3) * hairOutlineScale(traits);
-    const y = Number(traits.backHairY) || 0;
-    const hi = hairOutlineFor(traits);
-    return `<g transform='translate(0 ${y})'><path d='${style.back}' fill='${fill}' stroke='${hi}' stroke-width='${strokeWidth}' stroke-linejoin='round'/>${renderHairTexture(style, hair, traits)}</g>`;
+  /* ---- Hijab: headwear, not hair. Preserves the covered-style look: scarf cloth behind the
+   * head (colour follows the shirt unless an accessory colour is set), face-framing strokes in
+   * front. Legacy hair:"hijab" records map here via normalizeLegacyTraits without mutation of
+   * the stored record. backHairY/frontHairY offsets are honoured for legacy alignment. ---- */
+  const HIJAB_BACK_D = "M54 92c18-33 45-49 74-49s56 16 74 49v118H54V92Z";
+  function hijabClothColor(traits) {
+    return (visibleStroke(traits.accessoryColor) && traits.accessoryColor) || traits.shirt || "#8d95a6";
   }
-
-  function renderFrontHair(style, hair, traits) {
-    if (!style.front) return "";
+  function renderHijabBack(traits) {
+    const y = Number(traits.backHairY) || 0;
+    const hi = hairOutlineFor(traits, { force: false });
+    const stroke = visibleStroke(hi) ? hi : "none";
+    return `<g transform='translate(0 ${y})'><path d='${HIJAB_BACK_D}' fill='${hijabClothColor(traits)}' stroke='${stroke}' stroke-width='${(4.3 * hairOutlineScale(traits)).toFixed(2)}' stroke-linejoin='round'/></g>`;
+  }
+  function renderHijabFront(traits) {
+    const y = Number(traits.frontHairY) || 0;
     const hi = hairOutlineFor(traits);
     const hs = hairOutlineScale(traits);
-    const y = Number(traits.frontHairY) || 0;
-    const wrap = (svg) => y ? `<g transform='translate(0 ${y})'>${svg}</g>` : svg;
-    if (style.covered) {
-      return wrap(`
-        <path d='M73 104c11-31 32-47 55-47s44 16 55 47v98' fill='none' stroke='${hi}' stroke-width='${(3.8 * hs).toFixed(2)}' stroke-linecap='round' stroke-linejoin='round'/>
-        <path d='M76 132c-3 23-2 48 2 70M180 132c3 23 2 48-2 70' fill='none' stroke='rgba(24,21,18,.18)' stroke-width='2.2' stroke-linecap='round'/>
-        <path d='M90 204c17 16 59 16 76 0' fill='none' stroke='rgba(255,255,255,.18)' stroke-width='4' stroke-linecap='round'/>
-      `);
-    }
-    if (style.sidePart) {
-      if (traits.hairProfile === "sweptSilver") {
-        return wrap(`
-          <path d='M57 121c14-53 53-79 93-70 30 6 47 26 52 56-37-6-67-2-92 13-15-5-33-5-53 1Z' fill='${hair}' stroke='${hi}' stroke-width='${(4 * hs).toFixed(2)}' stroke-linejoin='round'/>
-        `);
-      }
-      if (traits.hairProfile === "softSidePart") {
-        return wrap(`
-          <path d='M60 118c17-48 58-70 100-56 23 8 37 25 42 50-20-6-38-6-53-1-10 3-18 8-28 17-9-7-20-10-33-10-9 0-18 1-28 4Z' fill='${hair}' stroke='${hi}' stroke-width='${(4 * hs).toFixed(2)}' stroke-linejoin='round'/>
-        `);
-      }
-      return wrap(`
-        <path d='M62 120c18-49 56-72 97-58 22 7 36 23 43 48-43-12-84-9-140 10Z' fill='${hair}' stroke='${hi}' stroke-width='${(4 * hs).toFixed(2)}' stroke-linejoin='round'/>
-      `);
-    }
-    if (style.bun) {
-      if (traits.hairProfile === "softBun") {
-        return wrap(`
-          <circle cx='128' cy='55' r='17' fill='${hair}' stroke='${ink}' stroke-width='3.8'/>
-          <path d='M70 116c18-39 49-56 84-46 18 5 33 20 42 45-10-6-20-9-31-9-13 0-25 6-37 18-10-10-21-15-33-15-8 0-17 2-25 7Z' fill='${hair}' stroke='${ink}' stroke-width='4' stroke-linejoin='round'/>
-          <path d='M82 111c6 9 8 17 7 25M174 111c-6 9-8 17-7 25' fill='none' stroke='rgba(24,21,18,.18)' stroke-width='2' stroke-linecap='round'/>
-        `);
-      }
-      return wrap(`
-        <circle cx='128' cy='52' r='21' fill='${hair}' stroke='${ink}' stroke-width='3.9'/>
-        <path d='M63 113c21-49 84-55 128 1-37-13-89-13-128-1Z' fill='${hair}' stroke='${ink}' stroke-width='3.9' stroke-linejoin='round'/>
-        <path d='M88 100c25-8 56-8 82 0' fill='none' stroke='rgba(24,21,18,.22)' stroke-width='2.2' stroke-linecap='round'/>
-      `);
-    }
-    if (style.longFlow) {
-      // Long flowing waves: the front layer is the same for every character (the per-character
-      // hairProfile fringes below were authored for the old short longWaves and no longer apply).
-      return wrap(`<path d='${style.front}' fill='${hair}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>`);
-    }
-    if (style === hairStyles.longWaves && traits.hairProfile === "curtainWaves") {
-      return wrap(`
-        <path d='M60 115c17-54 55-77 94-61 17 7 31 21 40 43-18-6-34-6-47-1-7 3-12 8-18 19-6-11-11-16-18-19-14-6-29-6-51 2Z' fill='${hair}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>
-      `);
-    }
-    if (style === hairStyles.longWaves && traits.hairProfile === "centerPartWaves") {
-      return wrap(`
-        <path d='M58 116c15-54 53-76 93-61 16 6 29 20 38 41-16-4-30-3-42 2-8 3-13 8-19 18-6-10-11-15-19-18-12-5-26-5-42-2-4 20-6 40-9 59' fill='${hair}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>
-        <path d='M119 77c5-4 13-4 18 0' fill='none' stroke='rgba(24,21,18,.26)' stroke-width='2.2' stroke-linecap='round'/>
-      `);
-    }
-    if (style === hairStyles.longWaves && traits.hairProfile === "shoulderWaves") {
-      return wrap(`
-        <path d='M60 120c15-47 46-68 86-57 24 7 39 25 46 53-13-7-24-10-35-10-11 0-21 3-29 10-9-7-19-10-31-10-11 0-22 3-35 10 0 18-4 36-11 54' fill='${hair}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>
-      `);
-    }
-    if (style === hairStyles.bob && traits.hairProfile === "choppyBob") {
-      return wrap(`
-        <path d='M62 119c17-45 51-66 92-52 22 8 35 27 38 57-17-10-31-13-44-8-8 3-14 8-20 15-6-8-13-13-22-16-13-5-27-4-44 4Z' fill='${hair}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>
-      `);
-    }
-    if (style === hairStyles.bob && traits.hairProfile === "sleekBob") {
-      return wrap(`
-        <path d='M63 116c16-43 51-62 92-49 22 7 35 25 39 54-15-8-28-11-40-10-10 1-18 5-26 12-8-7-16-11-26-12-12-1-25 2-39 10Z' fill='${hair}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>
-      `);
-    }
-    if (style === hairStyles.bob && traits.hairProfile === "chinBob") {
-      return wrap(`
-        <path d='M67 117c16-41 48-59 86-47 21 6 34 22 39 47-11-7-22-10-34-10-12 0-22 4-30 11-9-7-18-11-29-11-11 0-22 3-32 10Z' fill='${hair}' stroke='${ink}' stroke-width='4.05' stroke-linejoin='round'/>
-      `);
-    }
-    if (style === hairStyles.bob && traits.hairProfile === "softBob") {
-      return wrap(`
-        <path d='M65 117c15-40 47-58 85-47 20 6 33 22 39 48-12-8-24-11-36-11-11 0-21 4-30 10-9-6-18-10-28-10-11 0-21 3-30 10Z' fill='${hair}' stroke='${ink}' stroke-width='4.05' stroke-linejoin='round'/>
-      `);
-    }
-    if (style === hairStyles.curls && traits.hairProfile === "ringletLift") {
-      return wrap(`
-        <path d='M55 112c14-58 58-81 103-58 21 10 36 30 41 61-19-8-34-11-46-8-9 2-16 7-25 19-10-12-18-17-28-19-13-3-28 0-45 5Z' fill='${hair}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>
-      `);
-    }
-    if (style === hairStyles.cropped && traits.hairProfile === "crownLift") {
-      return wrap(`
-        <path d='M63 103c20-58 88-59 129 5-21-7-39-8-58-2-8 2-13 7-18 14-6-7-12-11-21-14-10-3-21-4-32-3Z' fill='${hair}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>
-      `);
-    }
-    if (style === hairStyles.cropped && traits.hairProfile === "softCrop") {
-      return wrap(`
-        <path d='M68 106c19-41 79-46 116 3-16-4-31-4-46 0-10 3-17 8-22 14-8-6-16-10-25-13-8-2-16-3-23-4Z' fill='${hair}' stroke='${ink}' stroke-width='4' stroke-linejoin='round'/>
-      `);
-    }
-    if (style === hairStyles.messy && traits.hairProfile === "softSweep") {
-      return wrap(`
-        <path d='M58 110c18-47 52-66 95-52 22 7 37 24 44 50-15-6-30-8-44-4-14 4-24 11-34 17-12 3-24 2-34-3-8-4-16-6-27-8Z' fill='${hair}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>
-      `);
-    }
-    const fill = style.covered ? traits.shirt : hair;
-    return wrap(`<path d='${style.front}' fill='${fill}' stroke='${ink}' stroke-width='4.1' stroke-linejoin='round'/>`);
+    const frame = visibleStroke(hi)
+      ? `<path d='M73 104c11-31 32-47 55-47s44 16 55 47v98' fill='none' stroke='${hi}' stroke-width='${(3.8 * hs).toFixed(2)}' stroke-linecap='round' stroke-linejoin='round'/>`
+      : "";
+    return `<g transform='translate(0 ${y})'>
+      ${frame}
+      <path d='M76 132c-3 23-2 48 2 70M180 132c3 23 2 48-2 70' fill='none' stroke='rgba(24,21,18,.18)' stroke-width='2.2' stroke-linecap='round'/>
+      <path d='M90 204c17 16 59 16 76 0' fill='none' stroke='rgba(255,255,255,.18)' stroke-width='4' stroke-linecap='round'/>
+    </g>`;
   }
 
-  function renderHairTexture(style, hair, traits) {
-    // curls/coils texture is now drawn as front strand lines in renderHairHighlights
-    if (style.texture === "locs") {
-      return "<path d='M70 84v103M89 69v124M109 60v137M128 58v139M147 60v137M168 72v120M187 88v98' fill='none' stroke='rgba(255,255,255,.12)' stroke-width='2.8' stroke-linecap='round'/><path d='M77 90c4-2 9-2 13 0M117 79c4-2 9-2 13 0M156 82c4-2 9-2 13 0' fill='none' stroke='rgba(24,21,18,.12)' stroke-width='1.6' stroke-linecap='round'/>";
-    }
-    if (style.covered) {
-      return "";
-    }
-    return "";
-  }
+
+
+
+
+
 
   // Per-character brow shapes (thickness / arch / length). Filled brows that vary like the
   // reference art, instead of one identical thin stroke on everyone.
@@ -7422,7 +7644,7 @@
     const render = accessories[traits.accessory] || accessories.none;
     const output = tintAccessory(render(traits, faceShape), traits);
     const transformed = transformAccessory(output, traits, "accessory");
-    const headwear = ["cap", "beanie", "beret", "headband", "flowerClip", "bucketHat", "sunHat"].includes(traits.accessory);
+    const headwear = ["cap", "beanie", "beret", "headband", "flowerClip", "bucketHat", "sunHat", "hijab"].includes(traits.accessory);
     const facial = ["beard", "moustache"].includes(traits.accessory);
     // The backwards cap must sit on top of the (faces.js) hair so the crown covers it and only the
     // side hair pokes out below - drawn before the hair it would be hidden entirely.
@@ -7789,13 +8011,18 @@
   window.faceGenerator = {
     createCharacters,
     renderPortrait: composePortrait,
+    // Unified hair compositor: the resolved ordered stack (base preset layers + placed/drawn
+    // layers, or the materialized hairComposition override). Readers that need the REAL rendered
+    // stack call this instead of reading traits.hairLocks directly.
+    resolveHairComposition,
     traitBook: {
       skinTones,
       hairColors,
       faceShapes: Object.keys(faceShapes),
       expressions: Object.keys(expressions),
       mouthStyles: Object.keys(mouthLabels),
-      hairStyles: Object.keys(hairStyles),
+      // hijab is headwear now (accessory "hijab"); legacy hair:"hijab" records still load.
+      hairStyles: Object.keys(hairStyles).filter((key) => key !== "hijab"),
       clothing: Object.keys(clothing),
       accessories: Object.keys(accessories).filter((value) => value !== "beard"),
       earVariants: ["round", "attached", "narrow", "lobe"],

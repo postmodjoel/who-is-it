@@ -78,15 +78,50 @@ test("save resolution distinguishes winners, ties and insufficient support", () 
   assert.equal(insufficient.insufficientSupport, true);
 });
 
-test("one-pick agreement crowns the final survivor", () => {
+test("a save spares its winner without executing the unpicked board", () => {
   const result = Rules.resolveSave({
     boardIds: ["a", "b", "c", "d"],
-    picks: [["a"], ["a"]],
-    votes: ["a", "a"],
-    pickCount: 1
+    picks: [["a"], ["b"]],
+    votes: ["a", "a"]
   });
   assert.equal(result.savedId, "a");
-  assert.deepEqual(result.removedIds, ["b", "c", "d"]);
+  assert.deepEqual(result.removedIds, ["b"]);
+});
+
+test("a unanimous one-pick nomination cuts with no save vote", () => {
+  const result = Rules.resolveThreeFaceCut({
+    boardIds: ["a", "b", "c", "d"],
+    picks: [["a"], ["a"], ["a"]]
+  });
+  assert.equal(result.cutId, "a");
+  assert.deepEqual(result.removedIds, ["a"]);
+  assert.equal(result.automaticCut, true);
+});
+
+test("the final showdown saws the agreed pick and crowns the other face", () => {
+  const agreed = Rules.resolveFinalShowdown({
+    boardIds: ["a", "b"],
+    picks: [["a"], ["a"]]
+  });
+  assert.equal(agreed.cutId, "a");
+  assert.equal(agreed.crownedId, "b");
+  assert.equal(agreed.savedId, "b");
+  assert.deepEqual(agreed.removedIds, ["a"]);
+  assert.equal(agreed.finalShowdown, true);
+
+  const split = Rules.resolveFinalShowdown({
+    boardIds: ["a", "b"],
+    picks: [["a"], ["b"]]
+  });
+  assert.equal(split.crownedId, null);
+  assert.deepEqual(split.removedIds.slice().sort(), ["a", "b"]);
+  assert.equal(split.tied, true);
+});
+
+test("lone-wolf consolation scales with the ballot size", () => {
+  assert.deepEqual(Rules.scoreRound({ picks: [["a"], ["a"], ["b"]] }).roundScores, [2, 2, 1]);
+  assert.deepEqual(Rules.scoreRound({ picks: [["a", "b"], ["a", "c"], ["d", "e"]] }).roundScores, [2, 2, 2]);
+  assert.deepEqual(Rules.scoreRound({ picks: [["a", "b", "c"], ["a", "d", "e"], ["f", "g", "h"]] }).roundScores, [2, 2, 3]);
 });
 
 test("three faces bypass the save vote and require a clear cut before the final two", () => {

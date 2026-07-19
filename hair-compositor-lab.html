@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hair Compositor Lab</title>
+  <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+  <style>
+    :root { color-scheme: dark; font-family: Archivo, sans-serif; background: #0d1018; color: #f9f5e9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0 0 60px; }
+    header { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 16px; background: rgba(13,16,24,.96); border-bottom: 2px solid rgba(255,255,255,.25); }
+    header h1 { margin: 0; font-size: 1rem; letter-spacing: .04em; }
+    header .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    header button { min-height: 34px; padding: 6px 10px; border: 2px solid rgba(255,255,255,.4); background: transparent; color: #f9f5e9; font: inherit; font-weight: 900; font-size: .64rem; letter-spacing: .06em; cursor: pointer; }
+    header button.is-active { background: #ffd43b; color: #11131a; border-color: #f9f5e9; }
+    header #labMeta { font-size: .62rem; opacity: .7; }
+    main { padding: 14px 16px; }
+    .grid-block { margin-bottom: 26px; }
+    .grid-block > h2 { margin: 0 0 8px; font-size: .72rem; letter-spacing: .14em; color: #ffd43b; }
+    .cell-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: flex-start; }
+    .cell-row > b { flex: 0 0 92px; font-size: .62rem; letter-spacing: .08em; padding-top: 30px; }
+    figure.cell { margin: 0; display: grid; gap: 2px; justify-items: center; }
+    figure.cell img { width: 96px; aspect-ratio: 1; border: 1px solid #3a3f4e; background: #fff; display: block; }
+    figure.cell.wide img { border-color: #ffd43b; }
+    figure.cell figcaption { max-width: 100px; font-size: .5rem; font-weight: 700; text-align: center; opacity: .72; line-height: 1.25; overflow-wrap: break-word; }
+    #perfOut { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: .72rem; background: #171b26; border: 1px solid #3a3f4e; padding: 12px; max-width: 720px; }
+    .lab-note { font-size: .66rem; opacity: .65; max-width: 76ch; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>HAIR COMPOSITOR LAB</h1>
+    <nav class="tabs">
+      <button type="button" class="is-active" data-tab="baseline">BASELINE GRID</button>
+      <button type="button" data-tab="overlap">OVERLAP GRID</button>
+      <button type="button" data-tab="perf">PERF</button>
+      <button type="button" data-tab="debug">COMPOSITOR DEBUG</button>
+    </nav>
+    <span id="labMeta"></span>
+  </header>
+  <main>
+    <section data-tab="baseline">
+      <p class="lab-note">Every advertised hair style × head/outline/colour variants, rendered through
+      whatever renderer is currently loaded. Deterministic seeds; captions are the cell keys.</p>
+      <div id="baselineGrid"></div>
+    </section>
+    <section data-tab="overlap" hidden>
+      <p class="lab-note">Per style: alone · + overlapping placed piece · + disconnected placed piece ·
+      + behind piece. The compositor gates read off this grid: one rim per connected same-zone group,
+      detached islands keep their own contour, no buried base outline under overlaps.</p>
+      <div id="overlapGrid"></div>
+    </section>
+    <section data-tab="perf" hidden>
+      <p class="lab-note">Renders the full baseline matrix 3× and reports the median, worst style,
+      and SVG size for a typical base + two-piece portrait.</p>
+      <button type="button" id="runPerf" style="min-height:38px;border:2px solid #f9f5e9;background:#ffd43b;color:#11131a;font:inherit;font-weight:900;padding:8px 12px;cursor:pointer">RUN PERF</button>
+      <pre id="perfOut"></pre>
+    </section>
+    <section data-tab="debug" hidden>
+      <p class="lab-note" id="debugNote">Compositor debug matrix (mass / rim / separate / composite) —
+      appears once the unified compositor is loaded.</p>
+      <div id="debugGrid"></div>
+    </section>
+  </main>
+  <script src="game-data.js?v=207"></script>
+  <script src="studio-bakes-import.js?v=3"></script>
+  <script src="clothing-profiles.js?v=1"></script>
+  <script src="editor-shared.js?v=221"></script>
+  <script src="face-generator.js?v=255"></script>
+  <script src="faces-hair.js?v=209"></script>
+  <script src="hair-compositor-lab.js?v=2"></script>
+</body>
+</html>

@@ -171,6 +171,36 @@ physically behind the overlay). **Fix:** list unlocked names in the save control
 | Reroll salt | Rerolls feel fresh | reroll 3× in one round | Playwright: three distinct prompts (pool ≥ 4) | none |
 | Stakes line / stagger / waiting-names | Clarity/drama up, no confusion | smoke | selector/copy assertions | comedy timing of stagger |
 
+## Outcome (implemented 2026-07-16)
+
+Joel accepted every suggestion except the impatient-saw escalation (F4 — declined; three-face ties
+still spare all three indefinitely). Shipped in this pass:
+
+- **Final-two showdown** — `resolveFinalShowdown` in the rules; `deriveYoloOutcome` dispatch in the
+  browser and sim. Agreement saws the pick and crowns the other face ("X takes the saw. Y IS THE
+  LAST FACE STANDING."); a split saws both. No save phase at two faces.
+- **No insta-crown** — `resolveSave` never removes unpicked faces. A unanimous one-pick board (4–5
+  faces) instead resolves as an automatic consensus cut ("unanimous cut. NO VOTE NEEDED.").
+- **Consolation scales with pick count** (3/2/1) in `scoreRound` + the sim's `candidateScore`.
+- **Finale staging** — "THE FINAL THREE"/"THE FINAL TWO" status labels with stakes lines; the tray
+  cast label reads "THE FINAL TWO" at two faces.
+- **Actor naming in local rooms** — tray reads "ADA'S PICKS"; save button reads "ADA: SAVE X" /
+  "ADA — PICK A SURVIVOR" (save-button prefix uses `ADA:` form).
+- **Reroll counter salt** — rerolls no longer ping-pong; each reroll re-ranks with its own counter.
+- **Saw stakes line** — YOLO tray footer appends "picks feed the saw".
+- **Staggered reveal** — first reveal only; faces land least→most picked, crowned face lands last;
+  `prefers-reduced-motion` disables it.
+- **Waiting-on names** — online save controls list who hasn't locked (first 4 + overflow count).
+- **Runner-up on the receipt** — "SECOND PLACE: … — SAWED AT THE LAST" under the survivor, or
+  "THE FINAL CUTS: …" on an empty finale.
+
+Verified live in the browser (rules probes: 17/17 assertions incl. all pre-existing suite cases;
+full UI journey 5→4→3→2→crown and the split→empty-finale path; full-deck mode untouched; classic
+WHO? IS IT? boots clean with the mystery engine working afterwards). Node was unavailable on this
+machine, so `npm run test:rules` / Playwright / the sim gates still need a local run — the specs
+were updated to match (`groupthink-rules.test.mjs`, `groupthink.spec.js` incl. a new reroll test
+and the extended endgame test).
+
 ## Also noted (no action urged)
 
 - `tests/*" 2".js` Finder-duplicate files are back on disk (untracked/ignored, inert to both

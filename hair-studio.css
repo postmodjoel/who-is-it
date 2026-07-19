@@ -1,0 +1,87 @@
+/* Hair Studio — same lab chrome as genetics-lab.css, plus fit strips + catalogue. */
+:root { color-scheme: dark; font-family: Archivo, sans-serif; background: #0d1018; color: #f9f5e9; }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(circle at top, #183052, #0d1018 42%); }
+button { font: inherit; }
+button { min-height: 40px; padding: 9px 12px; border: 2px solid #f9f5e9; background: #ffd43b; color: #11131a; font-weight: 900; cursor: pointer; }
+.lab-head { position: sticky; top: 0; z-index: 10; display: grid; grid-template-columns: 1fr auto; gap: 10px 18px; align-items: center; padding: 14px clamp(14px, 3vw, 40px); background: rgba(13,16,24,.94); border-bottom: 2px solid rgba(255,255,255,.25); backdrop-filter: blur(12px); }
+.lab-head span { color: #ffd43b; font-size: .68rem; font-weight: 900; letter-spacing: .18em; }
+.lab-head h1 { margin: 2px 0 0; font-size: clamp(1.4rem, 2.6vw, 2.4rem); line-height: .86; letter-spacing: -.05em; }
+.lab-head p { max-width: 42ch; margin: 0; opacity: .7; font-size: .74rem; }
+.lab-tabs { display: flex; flex-wrap: wrap; gap: 7px; grid-column: 1 / -1; }
+.lab-tab { background: transparent; color: #f9f5e9; border-color: rgba(255,255,255,.4); font-size: .68rem; letter-spacing: .08em; }
+.lab-tab.is-active { background: #ffd43b; color: #11131a; border-color: #f9f5e9; }
+.lab-actions { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-end; align-items: center; }
+.lab-actions #mineMeta { font-size: .62rem; opacity: .75; }
+.lab-actions .is-danger { background: #fff; }
+main { display: grid; gap: 18px; width: min(1200px, calc(100% - 24px)); margin: 20px auto 60px; }
+.lab-view { display: grid; gap: 18px; min-width: 0; }
+.lab-view[hidden] { display: none; }
+.lab-panel { padding: clamp(12px, 2vw, 22px); background: #f3ede1; color: #171512; border: 3px solid #171512; box-shadow: 7px 7px 0 #2861d0; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.panel-head h2 { margin: 0; font-size: 1rem; letter-spacing: .08em; text-transform: uppercase; }
+.panel-head span, .lab-panel > p { font-size: .68rem; opacity: .62; }
+.lab-panel > p b { opacity: 1; }
+
+/* the swipe deck (same feel as the lab RATE tab) */
+.rate-report { margin-top: 12px; }
+.rate-hint { font-size: .68rem; font-weight: 700; opacity: .65; }
+.rate-report-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; padding: 10px; border: 2px solid #171512; background: #fffdf7; }
+.rate-report-cols > div { display: grid; gap: 4px; align-content: start; }
+.rate-report-cols b { font-size: .56rem; letter-spacing: .16em; color: #c52f28; }
+.rate-report-cols span { font-size: .66rem; font-weight: 700; }
+.rate-report-cols i { font-style: normal; font-weight: 900; color: #2861d0; }
+.rate-report-cols em { font-style: normal; font-size: .56rem; opacity: .55; }
+.rate-stage { display: grid; gap: 12px; justify-items: center; margin-top: 16px; }
+.rate-deck { display: flex; align-items: center; gap: clamp(10px, 3vw, 28px); }
+.rate-card-well { display: grid; gap: 8px; width: min(300px, 62vw); }
+.rate-swipe-card {
+  border: 3px solid #171512; background: #fff; box-shadow: 6px 6px 0 #2861d0;
+  cursor: grab; touch-action: none; user-select: none; transition: transform 120ms ease;
+}
+.rate-swipe-card:active { cursor: grabbing; }
+.rate-swipe-card img { display: block; width: 100%; aspect-ratio: .84; object-fit: cover; pointer-events: none; }
+.rate-swipe-card small { display: block; padding: 5px 7px; border-top: 2px solid #171512; font-size: .56rem; font-weight: 900; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rate-swipe-card.is-flung-left { transform: translateX(-130%) rotate(-14deg); opacity: 0; transition: transform 170ms ease-in, opacity 170ms ease-in; }
+.rate-swipe-card.is-flung-right { transform: translateX(130%) rotate(14deg); opacity: 0; transition: transform 170ms ease-in, opacity 170ms ease-in; }
+.fit-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.fit-strip figure { margin: 0; display: grid; gap: 2px; justify-items: center; min-width: 0; }
+.fit-strip img { display: block; width: 100%; aspect-ratio: .84; object-fit: cover; border: 2px solid #171512; background: #fff; }
+.fit-strip figcaption { font-size: .5rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; opacity: .65; }
+.rate-big {
+  display: grid; place-items: center; gap: 2px; width: clamp(74px, 10vw, 96px); aspect-ratio: 1;
+  border: 3px solid #171512; background: #fff; color: #171512; font-size: 1.7rem; font-weight: 900; cursor: pointer;
+}
+.rate-big span { font-size: .52rem; letter-spacing: .1em; }
+.rate-big.is-nay:hover { background: #c52f28; color: #fff; }
+.rate-big.is-yay:hover { background: #19734c; color: #fff; }
+.rate-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.rate-tag { min-height: 32px; padding: 5px 10px; background: #fff; color: #171512; border: 2px solid #171512; font-size: .6rem; font-weight: 900; cursor: pointer; }
+.rate-tag.is-on { background: #ffd43b; }
+.rate-note {
+  width: min(460px, 100%); min-height: 40px; padding: 8px 12px; border: 2px solid #171512;
+  background: #fff; color: #171512; font: inherit; font-size: .82rem;
+}
+
+/* catalogue */
+.cat-heading { margin: 18px 0 8px; font-size: .62rem; letter-spacing: .18em; color: #c52f28; }
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 9px; }
+.cat-card { position: relative; margin: 0; min-width: 0; border: 2px solid #171512; background: #fff; }
+.cat-card img { display: block; width: 100%; aspect-ratio: .84; object-fit: cover; }
+.cat-card figcaption { padding: 5px 6px 7px; font-size: .54rem; font-weight: 900; line-height: 1.3; overflow-wrap: break-word; }
+.cat-card figcaption em { font-style: italic; font-weight: 700; opacity: .6; }
+.cat-cull {
+  position: absolute; top: 4px; right: 4px; z-index: 2; min-height: 0; width: 24px; height: 24px;
+  display: grid; place-items: center; padding: 0; border: 2px solid #171512; background: #fff; color: #171512; font-size: .7rem;
+}
+.cat-cull:hover { background: #c52f28; border-color: #c52f28; color: #fff; }
+
+@media (max-width: 900px) {
+  .lab-head { position: static; grid-template-columns: 1fr; }
+  .lab-actions { justify-content: flex-start; }
+  .rate-report-cols { grid-template-columns: 1fr; }
+  /* card on its own row, verdict buttons underneath — side-by-side doesn't fit a phone */
+  .rate-deck { width: 100%; flex-wrap: wrap; justify-content: center; }
+  .rate-card-well { flex-basis: 100%; max-width: 300px; order: -1; }
+  .rate-big { width: 74px; font-size: 1.3rem; }
+}

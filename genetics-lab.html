@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WHO? DID YOU MAKE? — Genetics Lab</title>
+  <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+  <link rel="stylesheet" href="genetics-lab.css?v=7">
+</head>
+<body>
+  <header class="lab-head">
+    <div><span>WHO? DID YOU MAKE?</span><h1>GENETICS LAB</h1></div>
+    <p>Build forward. Test backward. Visible phenotype only—never race or ethnicity.</p>
+    <nav class="lab-tabs" role="tablist">
+      <button type="button" class="lab-tab is-active" data-view="draft">FLESH DRAFT</button>
+      <button type="button" class="lab-tab" data-view="stress">STRESS</button>
+      <button type="button" class="lab-tab" data-view="rate">RATE</button>
+      <button type="button" class="lab-tab" data-view="pool">SYNTHETIC FOUNDER POOL</button>
+      <button type="button" class="lab-tab" data-view="authored">AUTHORED LINEAGE</button>
+      <button type="button" class="lab-tab" data-view="legacy">LEGACY FULL TREE</button>
+    </nav>
+    <div class="lab-actions">
+      <span id="seedLabel"></span>
+      <button id="rerollSeed" type="button">REROLL SEED</button>
+      <button id="exportRound" type="button">EXPORT ROUND JSON</button>
+      <label>IMPORT ROUND<input id="importRound" type="file" accept="application/json"></label>
+    </div>
+  </header>
+
+  <main>
+    <section class="lab-view" data-view="draft" hidden>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>Commission sampler — WHO? DID YOU MAKE?</h2><span id="draftMeta"></span></div>
+        <p>Each player secretly needs six parts from six distinct donors; sampling forces every player into 2–4 contested parts (the ceiling grows at 5–6 seats). Badges show how many commissions want each part.</p>
+        <div class="draft-controls">
+          <label>PLAYERS <select id="draftPlayers"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+          <label>DONORS <select id="draftSource"><option value="cast">THE CAST</option><option value="strangers">STRANGERS</option></select></label>
+        </div>
+        <div id="draftBoard" class="draft-board"></div>
+        <div id="draftRecipes" class="draft-recipes"></div>
+      </section>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>Bot draft sims</h2><span id="simSummary">not run yet</span></div>
+        <p>Greedy chases its recipe, spite steals contested parts, random flails. The skill gradient and seat advantage below are the "is it a game?" acceptance numbers.</p>
+        <button id="runSims" type="button">RUN 200 SIMS</button>
+        <div id="simReport" class="sim-report"></div>
+      </section>
+    </section>
+
+    <section class="lab-view" data-view="stress" hidden>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>Face-engine stress board</h2><span id="stressMeta"></span></div>
+        <p>Deterministic worst-cases for the renderer: single parts on the mannequin, strip states, extras collisions, and wide-spread synthetic extremes. If something looks broken here, it can happen in a round.</p>
+        <div id="stressGrid" class="stress-grid"></div>
+      </section>
+    </section>
+
+    <section class="lab-view" data-view="rate" hidden>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>Rate the algorithm</h2><span id="rateMeta"></span></div>
+        <p>One face at a time. Type a note or tap reason chips if you like, then <b>← nay</b> or
+        <b>→ yay</b> (swipe on touch). ↓ skips, ⌫ button undoes. The deck deals itself forever;
+        the report turns your taste into tuning instructions.</p>
+        <div class="rate-controls">
+          <button id="rateUndo" type="button">⌫ UNDO</button>
+          <button id="rateSkip" type="button">SKIP ↓</button>
+          <button id="rateExport" type="button">EXPORT RATINGS</button>
+          <button id="rateClear" type="button" class="is-danger">CLEAR ALL</button>
+        </div>
+        <div id="rateReport" class="rate-report"></div>
+        <div id="rateStage" class="rate-stage"></div>
+      </section>
+    </section>
+
+    <section class="lab-view" data-view="pool" hidden>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>24 generated strangers → the 8 most distinct</h2><span>Highlighted cards make the round's board</span></div>
+        <p>Every founder is a loosely jittered base face plus three or four pushed signature features. Selection is greedy maximin on registry-weighted phenotype distance.</p>
+        <div id="poolGrid" class="pool-grid"></div>
+      </section>
+    </section>
+
+    <section class="lab-view" data-view="authored" hidden>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>1. Author a bloodline</h2><span>Tap a founder to place it; tap again to remove</span></div>
+        <div id="authorBoard" class="author-board"></div>
+        <div id="authorCouples" class="author-couples"></div>
+      </section>
+      <section class="lab-grid">
+        <section class="lab-panel">
+          <div class="panel-head"><h2>2. Trait provenance</h2><span id="inspectName"></span></div>
+          <div id="nodePicker" class="node-picker"></div>
+          <div id="traitInspector" class="trait-inspector"></div>
+        </section>
+        <section class="lab-panel">
+          <div class="panel-head"><h2>3. All 210 possible answers</h2><span id="fairnessSummary"></span></div>
+          <div id="fairnessTable" class="fairness-table"></div>
+        </section>
+      </section>
+    </section>
+
+    <section class="lab-view" data-view="legacy" hidden>
+      <section class="lab-panel">
+        <div class="panel-head"><h2>Legacy 15-node tree (engine stress view)</h2><span>Eight diverse base-cast founders bred three generations deep</span></div>
+        <div id="legacyTree" class="lab-tree"></div>
+        <div class="panel-head"><h2>Trait provenance</h2><span id="legacyInspectName"></span></div>
+        <div id="legacyInspector" class="trait-inspector"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="game-data.js?v=207"></script>
+  <script src="studio-bakes-import.js?v=3"></script>
+  <script src="clothing-profiles.js?v=1"></script>
+  <script src="editor-shared.js?v=221"></script>
+  <script src="face-generator.js?v=255"></script>
+  <script src="faces-hair.js?v=209"></script>
+  <script src="genetics-rules.js?v=7"></script>
+  <script src="make-rules.js?v=7"></script>
+  <script src="genetics-lab.js?v=9"></script>
+</body>
+</html>

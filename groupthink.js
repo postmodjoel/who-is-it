@@ -23,6 +23,7 @@
   const doubleDownEnabled = () => productionRules.doubleDown && gt()?.variant !== "duo-coop";
   const pickWord = (count) => count === 1 ? "one" : count === 2 ? "two" : "three";
   const currentRevision = () => Math.max(0, Number(gt()?.revision) || 0);
+  let animatedPickId = null;
 
   function labConfig(seed, playerCount, boardSize) {
     return {
@@ -384,10 +385,15 @@
       picks.splice(at, 1);
       if (gt().doubleDowns[i] === id) gt().doubleDowns[i] = null;
     }
-    else if (picks.length < pickCount()) picks.push(id);
+    else if (picks.length < pickCount()) {
+      picks.push(id);
+      animatedPickId = id;
+    }
     else { flashToast(`${pickWord(pickCount()).replace(/^./, (c) => c.toUpperCase())} means ${pickWord(pickCount())}. Unpick somebody first.`); sfx("buzzer"); return; }
     sfx(at >= 0 ? "revive" : "blip");
-    renderBoard(); renderSelectionTray(); syncActionLabel(); scheduleSave();
+    renderBoard();
+    animatedPickId = null;
+    renderSelectionTray(); syncActionLabel(); scheduleSave();
   }
 
   function decorateCard(card, character, opts = {}) {
@@ -396,6 +402,7 @@
     const picks = gt().picks[i] || [];
     const order = picks.indexOf(character.id);
     card.classList.toggle("gt-picked", order >= 0);
+    card.classList.toggle("gt-pick-enter", order >= 0 && animatedPickId === character.id);
     card.classList.toggle("gt-ballot-locked", !!gt().locked[i]);
     if (!opts.preserveInteraction) card.disabled = !!gt().locked[i] || gt().phase !== "selecting";
     if (order >= 0) card.insertAdjacentHTML("beforeend", `<span class="gt-pick-number">${order + 1}</span>`);
@@ -411,10 +418,10 @@
     const slots = Array.from({ length: limit }, (_, n) => {
       const ch = characterById(picks[n]);
       if (!ch) return `<span class="gt-tray-face is-empty"><i>?</i></span>`;
-      if (!doubleDownEnabled()) return `<span class="gt-tray-face"><img src="${ch.image}" alt=""><b>${escapeHtml(ch.name)}</b></span>`;
-      return `<button type="button" class="gt-tray-face gt-double-choice${doubled === ch.id ? " is-doubled" : ""}" data-double-id="${escapeHtml(ch.id)}" aria-pressed="${doubled === ch.id}" ${locked ? "disabled" : ""}><img src="${ch.image}" alt=""><b>${escapeHtml(ch.name)}</b><i>${doubled === ch.id ? "×2" : "DOUBLE?"}</i></button>`;
+      if (!doubleDownEnabled()) return `<span class="gt-tray-face"><img src="${ch.image}" alt="${escapeHtml(ch.name)}"></span>`;
+      return `<button type="button" class="gt-tray-face gt-double-choice${doubled === ch.id ? " is-doubled" : ""}" data-double-id="${escapeHtml(ch.id)}" aria-label="${escapeHtml(ch.name)}${doubled === ch.id ? ", doubled" : ", double this pick"}" aria-pressed="${doubled === ch.id}" ${locked ? "disabled" : ""}><img src="${ch.image}" alt=""><i>${doubled === ch.id ? "×2" : "2×"}</i></button>`;
     }).join("");
-    els.secretCard.className = `secret-card gt-selection-tray${locked ? " is-locked" : ""}`;
+    els.secretCard.className = `secret-card game-panel gt-selection-tray${locked ? " is-locked" : ""}`;
     els.secretCard.removeAttribute("style");
     els.secretCard.style.setProperty("--gt-picks", limit);
     // Local pass-the-device rooms label the live ballot by name so whoever is holding the phone
@@ -424,13 +431,9 @@
       : state.gameMode !== "online" && state.players.length > 1
         ? `${rosterName(i).toUpperCase()}'S PICKS`
         : "YOUR PICKS";
-    const trayCast = yoloMode()
-      ? state.board.length === 2 ? "THE FINAL TWO" : `${state.board.length} still in`
-      : "full deck";
-    const trayNote = locked
-      ? "LOCKED — waiting for the room"
-      : `${picks.length}/${limit} selected${doubleDownEnabled() ? " · optional ×2" : ""}${yoloMode() ? " · picks feed the saw" : ""}`;
-    els.secretCard.innerHTML = `<div class="gt-tray-head"><b>${escapeHtml(trayOwner)}</b><span>${trayCast}</span></div><div class="gt-tray-slots">${slots}</div><p>${trayNote}</p>`;
+    const destroyed = yoloMode() ? (gt()?.removed?.length || 0) : 0;
+    const trayTally = destroyed ? `<span>${destroyed} DESTROYED</span>` : "";
+    els.secretCard.innerHTML = `<div class="gt-tray-head"><b>${escapeHtml(trayOwner)}</b>${trayTally}</div><div class="gt-tray-slots">${slots}</div>`;
     els.secretCard.querySelectorAll(".gt-double-choice").forEach((button) => button.addEventListener("click", (event) => {
       event.stopPropagation();
       toggleDoubleDown(button.dataset.doubleId);
@@ -450,6 +453,7 @@
   function renderRoom() {
     if (!active()) return;
     document.title = DISPLAY_NAME;
+    window.applyRulesetChrome?.(RULESET);
     const online = state.gameMode === "online";
     document.body.classList.toggle("mode-online", online);
     document.body.classList.add("mode-solo", "ruleset-groupthink");
@@ -487,7 +491,7 @@
           : `ROUND ${round} · ${state.board.length} FACES LEFT`
       : `ROUND ${round} / ${FULL_DECK_ROUNDS} · FULL DECK`;
     const stakes = yoloMode() && state.board.length === 2
-      ? "AGREE AND THE SAW DECIDES. SPLIT AND IT TAKES BOTH."
+      ? "AGREE AND ONE IS DESTROYED. SPLIT AND BOTH ARE DESTROYED."
       : yoloMode() && state.board.length === 3
         ? "A CLEAR CUT OPENS THE FINAL TWO. A TIE SPARES ALL THREE."
         : duo ? `SYNC ${gt().syncScore}` : `A MATCH NEEDS ${support} PLAYERS`;
@@ -579,7 +583,7 @@
     if (app) app.inert = true;
     const ov = document.createElement("div");
     ov.className = "gt-handoff";
-    ov.innerHTML = `<div><p>PASS THE DEVICE TO</p><h2>${escapeHtml(rosterName(next))}</h2><button type="button" class="button primary">I'M ${escapeHtml(rosterName(next).toUpperCase())}</button></div>`;
+    ov.innerHTML = `<div class="game-dialog-panel"><p>PASS THE DEVICE TO</p><h2>${escapeHtml(rosterName(next))}</h2><button type="button" class="button primary">I'M ${escapeHtml(rosterName(next).toUpperCase())}</button></div>`;
     document.body.appendChild(ov);
     ov.querySelector("button").addEventListener("click", () => {
       state.currentPlayer = next;
@@ -822,10 +826,10 @@
       const doubledHit = doubledBy.some((seat) => !!result.doubleDownHits?.[seat]);
       const saved = outcome?.savedId === id;
       const cut = !!outcome?.removedIds?.includes(id);
-      const classes = ["gt-result-face", matched ? "is-match" : "", doubledBy.length ? "is-doubled" : "", doubledHit ? "is-double-hit" : "", saving ? "gt-save-face" : "", selected === id ? "is-save-picked" : "", saved ? "is-saved" : "", cut ? "is-cut" : ""].filter(Boolean).join(" ");
+      const classes = ["game-card", "gt-result-face", matched ? "is-match" : "", doubledBy.length ? "is-doubled" : "", doubledHit ? "is-double-hit" : "", saving ? "gt-save-face" : "", selected === id ? "is-save-picked" : "", saved ? "is-saved" : "", cut ? "is-cut" : ""].filter(Boolean).join(" ");
       const tag = showdown
-        ? id === outcome.crownedId ? "LAST FACE STANDING" : "SAWED OFF"
-        : outcome ? (saved ? "SAVED" : cut ? "SAWED OFF" : "STILL IN") : (matched ? `${count} PICKED` : "ALONE");
+        ? id === outcome.crownedId ? "LAST FACE STANDING" : "DESTROYED"
+        : outcome ? (saved ? "SAVED" : cut ? "DESTROYED" : "STILL IN") : (matched ? `${count} PICKED` : "ALONE");
       const doubleBadge = doubledBy.length ? `<em class="gt-double-badge">${doubledHit ? "×2 HIT" : "×2 MISS"}</em>` : "";
       const delay = showdown ? position * step : (entries.length - 1 - position) * step;
       const body = `<img src="${ch.image}" alt=""><b>${escapeHtml(ch.name)}</b><span>${escapeHtml(voters.join(" · "))}</span>${doubleBadge}<i>${tag}</i>`;
@@ -842,12 +846,12 @@
     ov.className = "gt-results";
     const duo = gt().variant === "duo-coop";
     const scoreRows = duo
-      ? `<div class="gt-sync-result"><span>ROUND SYNC</span><b>+${result.roundSync}</b><small>${result.skipped?.some(Boolean) ? "PLAYER SKIPPED · NO SCORE" : result.matchCounts[0] === pickCount() ? "SHARED BRAIN CELL" : result.matchCounts[0] === 0 ? "TOTAL OPPOSITES" : `${result.matchCounts[0]} MATCH${result.matchCounts[0] === 1 ? "" : "ES"}`}</small></div>`
+      ? `<div class="game-panel gt-sync-result"><span>ROUND SYNC</span><b>+${result.roundSync}</b><small>${result.skipped?.some(Boolean) ? "PLAYER SKIPPED · NO SCORE" : result.matchCounts[0] === pickCount() ? "SHARED BRAIN CELL" : result.matchCounts[0] === 0 ? "TOTAL OPPOSITES" : `${result.matchCounts[0]} MATCH${result.matchCounts[0] === 1 ? "" : "ES"}`}</small></div>`
       : result.roundScores.map((score, i) => {
         const doubled = result.doubleDowns?.[i];
         const doubleNote = doubled ? (result.doubleDownHits?.[i] ? " · ×2 HIT" : " · ×2 MISSED") : "";
         const note = result.skipped?.[i] ? "SKIPPED · NO POINTS" : result.matchCounts[i] === 0 ? "LONE WOLF" : `${result.matchCounts[i]} MATCH${result.matchCounts[i] === 1 ? "" : "ES"}`;
-        return `<div class="gt-score-row"><span>${escapeHtml(rosterName(i))}</span><b>+${score}</b><small>${note}${doubleNote}</small></div>`;
+        return `<div class="game-panel gt-score-row"><span>${escapeHtml(rosterName(i))}</span><b>+${score}</b><small>${note}${doubleNote}</small></div>`;
       }).join("");
     const saving = gt().phase === "saving";
     const i = state.isObserver ? 0 : playerIndex();
@@ -860,23 +864,44 @@
     const skipControls = disconnectedSaveSeats.length
       ? `<div class="gt-save-skip-row">${disconnectedSaveSeats.map(({ roster, seat }) => `<button type="button" class="button ghost gt-save-skip" data-seat="${seat}">CONTINUE WITHOUT ${escapeHtml(roster.name.toUpperCase())}</button>`).join("")}</div>`
       : "";
+    // Local rooms prefix the live voter's name (the device may still be in the last picker's
+    // hands); online rooms list who the reveal is waiting on, since the roster rail sits behind
+    // this overlay.
+    const voterPrefix = state.gameMode !== "online" && state.players.length > 1 && !state.isObserver
+      ? `${escapeHtml(rosterName(i).toUpperCase())}: `
+      : "";
+    const waitingNames = state.gameMode === "online" && saving
+      ? (state.roster || []).map((r, seat) => (!gt().saveLocked?.[seat] && !gt().saveSkipped?.[seat] ? r.name : null)).filter(Boolean)
+      : [];
+    const waitingNote = waitingNames.length
+      ? `<small class="gt-save-waiting">WAITING ON ${escapeHtml(waitingNames.slice(0, 4).join(" · "))}${waitingNames.length > 4 ? ` +${waitingNames.length - 4}` : ""}</small>`
+      : "";
     const controls = saving
       ? state.isObserver
-        ? `<p class="gt-wait-host">The room is choosing one face to save…</p>`
-        : `<div class="gt-save-controls"><p><b>SAVE ONE FROM THE SAW.</b> One clear winner survives. A tie saves nobody.</p><button type="button" class="button primary gt-save-lock" ${selected && !saveLocked ? "" : "disabled"}>${saveLocked ? `SAVE LOCKED · ${gt().saveLocked.filter(Boolean).length}/${gt().saveLocked.length}` : selected ? `SAVE ${escapeHtml(selectedName.toUpperCase())}` : "PICK A SURVIVOR"}</button>${skipControls}</div>`
+        ? `<p class="gt-wait-host">The room is choosing one face to save…</p>${waitingNote}`
+        : `<div class="game-panel game-action-bar gt-save-controls"><p><b>SAVE ONE.</b> The rest are destroyed. A tie saves nobody.</p><button type="button" class="button primary gt-save-lock" ${selected && !saveLocked ? "" : "disabled"}>${saveLocked ? `SAVE LOCKED · ${gt().saveLocked.filter(Boolean).length}/${gt().saveLocked.length}` : selected ? `${voterPrefix}SAVE ${escapeHtml(selectedName.toUpperCase())}` : `${voterPrefix}PICK A SURVIVOR`}</button>${waitingNote}${skipControls}</div>`
       : state.gameMode === "local" || state.isHost
         ? `<button type="button" class="button primary gt-next">${sessionCompleteAfterRound() ? "FINAL RESULTS" : "NEXT PROMPT →"}</button>`
         : `<p class="gt-wait-host">Waiting for the host…</p>`;
     let verdict = "";
-    if (result.saveOutcome?.automaticCut) {
+    if (result.saveOutcome?.finalShowdown) {
+      const crownedName = characterById(result.saveOutcome.crownedId)?.name;
+      const cutName = characterById(result.saveOutcome.cutId)?.name || "One face";
+      verdict = result.saveOutcome.crownedId
+        ? `<div class="game-panel gt-saw-verdict"><b>${escapeHtml(cutName)} WAS DESTROYED. ${escapeHtml((crownedName || "One face").toUpperCase())} IS THE LAST FACE STANDING.</b><span>the room agreed</span></div>`
+        : `<div class="game-panel gt-saw-verdict"><b>THE ROOM SPLIT. BOTH WERE DESTROYED.</b><span>nobody survives</span></div>`;
+    } else if (result.saveOutcome?.automaticCut) {
       const cutName = characterById(result.saveOutcome.cutId)?.name || "One face";
       verdict = result.saveOutcome.cutId
-        ? `<div class="gt-saw-verdict"><b>${escapeHtml(cutName)} was the room's clear cut. FINAL TWO UNLOCKED.</b><span>1 removed · 2 still in</span></div>`
-        : `<div class="gt-saw-verdict"><b>NO CLEAR CUT. ALL THREE SURVIVE.</b><span>The final face-off waits for a shared choice.</span></div>`;
+        ? state.board.length === 2
+          ? `<div class="game-panel gt-saw-verdict"><b>${escapeHtml(cutName)} WAS DESTROYED. FINAL TWO UNLOCKED.</b><span>1 destroyed · 2 still in</span></div>`
+          : `<div class="game-panel gt-saw-verdict"><b>${escapeHtml(cutName)} WAS DESTROYED. NO VOTE NEEDED.</b><span>1 destroyed · ${state.board.length} still in</span></div>`
+        : `<div class="game-panel gt-saw-verdict"><b>NO CLEAR CUT. ${state.board.length === 3 ? "ALL THREE SURVIVE" : "EVERYBODY SURVIVES"}.</b><span>The final face-off waits for a shared choice.</span></div>`;
     } else if (result.saveOutcome) {
-      verdict = `<div class="gt-saw-verdict"><b>${result.saveOutcome.savedId ? `${escapeHtml(characterById(result.saveOutcome.savedId)?.name || "One face")} survived the vote.` : "THE ROOM SPLIT. NOBODY WAS SAVED."}</b><span>${result.saveOutcome.removedIds.length} removed · ${state.board.length} still in</span></div>`;
+      verdict = `<div class="game-panel gt-saw-verdict"><b>${result.saveOutcome.savedId ? `${escapeHtml(characterById(result.saveOutcome.savedId)?.name || "One face")} survived the vote.` : "THE ROOM SPLIT. NOBODY WAS SAVED."}</b><span>${result.saveOutcome.removedIds.length} destroyed · ${state.board.length} still in</span></div>`;
     }
-    ov.innerHTML = `<div class="gt-results-panel"><p class="gt-results-kicker">${DISPLAY_NAME} · ROUND ${gt().roundIndex + 1}</p><h2>${escapeHtml(formattedPrompt())}</h2><div class="gt-result-faces">${resultCharacterHtml(result)}</div><div class="gt-round-scores">${scoreRows}</div>${verdict}${controls}</div>`;
+    if (firstReveal) ov.classList.add("is-first-reveal");
+    ov.innerHTML = `<div class="game-panel gt-results-panel"><p class="gt-results-kicker">${DISPLAY_NAME} · ROUND ${gt().roundIndex + 1}</p><h2>${escapeHtml(formattedPrompt())}</h2><div class="gt-result-faces">${resultCharacterHtml(result)}</div><div class="gt-round-scores">${scoreRows}</div>${verdict}${controls}</div>`;
     document.body.appendChild(ov);
     ov.querySelectorAll(".gt-save-face").forEach((button) => button.addEventListener("click", () => toggleSave(button.dataset.saveId)));
     ov.querySelector(".gt-save-lock")?.addEventListener("click", lockSave);
@@ -989,11 +1014,18 @@
       : ordered.map((x, rank) => `<div class="gt-final-row"><i>${rank + 1}</i><span>${escapeHtml(rosterName(x.i))}</span><b>${x.score}</b></div>`).join("");
     const award = pair ? `${rosterName(pair.a)} + ${rosterName(pair.b)} shared ${pair.n} picks` : "The room survived";
     const survivor = state.board[0] || null;
+    // The final cut earns a line on the receipt: second place if somebody won, a memorial if not.
+    const finalCuts = yoloMode()
+      ? (gt().history[gt().history.length - 1]?.removedIds || []).map((id) => characterById(id)?.name).filter(Boolean)
+      : [];
+    const runnerUp = finalCuts.length
+      ? `<small class="gt-final-runnerup">${survivor ? "SECOND PLACE" : "THE FINAL LOSSES"}: ${escapeHtml(finalCuts.join(" · "))} — DESTROYED AT THE LAST</small>`
+      : "";
     const survivorHtml = !yoloMode()
       ? `<div class="gt-final-survivor is-empty"><span>THE FULL DECK SURVIVED</span><b>${state.board.length} FACES. ZERO CASUALTIES.</b></div>`
       : survivor
-        ? `<div class="gt-final-survivor"><span>THE LAST FACE STANDING</span><img src="${survivor.image}" alt=""><b>${escapeHtml(survivor.name)}</b></div>`
-        : `<div class="gt-final-survivor is-empty"><span>THE LAST FACE STANDING</span><b>NOBODY. YOU SAWED OFF EVERYONE.</b></div>`;
+        ? `<div class="gt-final-survivor"><span>THE LAST FACE STANDING</span><img src="${survivor.image}" alt=""><b>${escapeHtml(survivor.name)}</b>${runnerUp}</div>`
+        : `<div class="gt-final-survivor is-empty"><span>THE LAST FACE STANDING</span><b>NOBODY. EVERYONE WAS DESTROYED.</b>${runnerUp}</div>`;
     const canRestart = state.gameMode === "local" || state.isHost;
     ov.innerHTML = `<div class="gt-receipt"><p>THE ROOM HAS SPOKEN</p><h1 class="gt-final-logo"><span>WHO?</span><span>DO YOU THINK?</span></h1><small>SESSION RECEIPT · ${gt().history.length} ROUNDS</small>${survivorHtml}<div class="gt-final-scores">${scores}</div><div class="gt-final-award"><span>STRONGEST PSYCHIC CONNECTION</span><b>${escapeHtml(award)}</b></div><div class="gt-final-actions">${canRestart ? `<button type="button" class="button primary gt-again">PLAY AGAIN</button>` : `<span class="gt-wait-host">Waiting for the host…</span>`}<button type="button" class="button gt-menu">MAIN MENU</button></div></div>`;
     document.body.appendChild(ov);

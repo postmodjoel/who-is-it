@@ -317,7 +317,7 @@ function breedCharacters(aId, bId) {
       renderBoard();
       state.justBorn = null;
       if (typeof addLog === "function") addLog(`${A.name} + ${B.name} bred ${baby.name}!`);
-    }, () => abortBaby(baby, A, B))));
+    }, () => abortBaby(baby, A, B), { mode, assignment: asg[baby.id] })));
     return;
   }
 
@@ -351,7 +351,10 @@ function breedCharacters(aId, bId) {
       if (typeof addLog === "function") addLog(`${A.name} married into ${home ? home.name : "the family"} — ${baby.name} branches off!`);
       renderBoard();
       state.justBorn = null;
-    }, () => abortBaby(baby, A, B))));
+    }, () => abortBaby(baby, A, B), {
+      mode,
+      family: (state.global.mystery.clusters || []).find((c) => c.id === fb.clusterId)?.name || "the family"
+    })));
     return;
   }
 
@@ -394,7 +397,7 @@ function breedCharacters(aId, bId) {
         renderBoard();
       });
     }
-  }, () => abortBaby(baby, A, B))), { woohoo });
+  }, () => abortBaby(baby, A, B), { mode, assignment: diseaseBaby || agendaBaby })), { woohoo });
 }
 // A transparent-background portrait + the original backdrop colour, so Sims relief animations can
 // move JUST the person while the card background holds still.
@@ -404,24 +407,85 @@ function simsPortrait(ch) {
     return { image: window.faceGenerator.renderPortrait(ch.seed, { ...ch.traits, background: "transparent" }), bg: ch.traits.background };
   } catch (e) { return {}; }
 }
+// The offer is the one place where the freshly generated person can be read before the decision.
+// Always show reel identity plus the data that this special effect has already generated for them.
+function babyOfferDetails(baby, preview) {
+  preview = preview || {};
+  const mode = preview.mode || state.global.mystery?.id;
+  const a = preview.assignment || state.global.mystery?.assignments?.[baby.id] || null;
+  const rows = [];
+  const add = (label, value, wide) => {
+    if (value == null || value === "") return;
+    rows.push({ label, value: String(value), wide: !!wide });
+  };
+  const identity = baby.identity || baby.wokeIdentity || {};
+  add("Pronouns", identity.pronouns || (baby.pronouns === "he" ? "he/him" : baby.pronouns === "she" ? "she/her" : "they/them"));
+  add("Gender", identity.gender);
+  add("Kink", identity.kink);
+  add("Ethnicity", baby.wokeIdentity?.ethnicity);
+  add("Role", baby.role);
+
+  if (mode === "fertility" && a) {
+    add("Sperm", a.cum);
+    add("Eggs", a.barren ? "BARREN" : a.eggs);
+    add("Ready in", `${a.hrs}h ${a.mins}m`);
+  } else if (mode === "disease" && a) {
+    add("Conditions", (a.diseases || []).map((d) => `${d.tier} ${d.name}`).join(" · "), true);
+    add("Medication", (a.meds || []).join(" · ") || "none", true);
+    add("Pain", Number.isFinite(a.pain) ? `${a.pain + 1}/5` : "");
+  } else if (mode === "hidden-agendas" && a) {
+    add("Party", a.party);
+    add("Home state", a.state);
+    add("New thinking", a.newThinking ? `FOR ${a.newThinking}` : "none yet", true);
+  } else if (mode === "sims" && a) {
+    add("Mood", a.mood);
+    add("Needs", a.needs ? `Hunger ${a.needs.hunger} · Social ${a.needs.social} · Fun ${a.needs.fun}` : "", true);
+    add("Career", a.career);
+  } else if (mode === "family-tree-disaster") {
+    add("Family", preview.family);
+  } else if (mode === "drugs" && baby.isCrack) {
+    add("Special effect", baby.isGayby ? "Crack gayby" : "Crack baby");
+  }
+  add("Parents", (baby.parents || []).join(" + "), true);
+  return rows.map((row) => `<div class="ka-detail${row.wide ? " ka-detail-wide" : ""}" data-baby-field="${escapeHtml(row.label.toLowerCase().replace(/\s+/g, "-"))}"><dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd></div>`).join("");
+}
+
 // After a baby is born the players decide its fate: KEEP adds it to the board, ABORT... doesn't.
 // PG mode is wholesome - the baby is simply KEPT, no abort option is ever offered.
-function offerKeepOrAbort(baby, keep, abort) {
+function offerKeepOrAbort(baby, keep, abort, preview) {
   if (state.settings.pg) { keep(); return; }
   const ov = document.createElement("div");
   ov.className = "keep-abort";
+  ov.setAttribute("role", "dialog");
+  ov.setAttribute("aria-modal", "true");
+  ov.setAttribute("aria-labelledby", "ka-baby-name");
   ov.innerHTML = `<div class="ka-box">
       <p class="ka-q">A ${baby.isCrack ? (baby.isGayby ? "CRACK GAYBY" : "CRACK BABY") : baby.isGayby ? "GAYBY" : "baby"} has arrived…</p>
-      <img class="ka-face" src="${baby.image}" alt="">
-      <p class="ka-name">${escapeHtml(baby.name)}</p>
+      <img class="ka-face" src="${baby.image}" alt="Portrait of ${escapeHtml(baby.name)}">
+      <p class="ka-name" id="ka-baby-name">${escapeHtml(baby.name)}</p>
+      <dl class="ka-details">${babyOfferDetails(baby, preview)}</dl>
+      <p class="ka-status" aria-live="polite"></p>
       <div class="ka-btns">
         <button type="button" class="button primary ka-keep">👶 KEEP</button>
         <button type="button" class="button secondary ka-abort">🚫 ABORT</button>
       </div>
     </div>`;
   document.body.appendChild(ov);
-  ov.querySelector(".ka-keep").addEventListener("click", () => { ov.remove(); keep(); });
-  ov.querySelector(".ka-abort").addEventListener("click", () => { ov.remove(); abort(); });
+  requestAnimationFrame(() => ov.classList.add("is-ready"));
+  const buttons = [...ov.querySelectorAll("button")];
+  let resolving = false;
+  const settle = (choice, callback) => {
+    if (resolving) return;
+    resolving = true;
+    buttons.forEach((button) => { button.disabled = true; });
+    ov.classList.add(choice === "keep" ? "is-keeping" : "is-aborting");
+    ov.querySelector(".ka-status").textContent = choice === "keep" ? "Joining the family…" : "Fading from this timeline…";
+    const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(() => { ov.remove(); callback(); }, reduced ? 40 : 520);
+  };
+  ov.querySelector(".ka-keep").addEventListener("click", () => settle("keep", keep));
+  ov.querySelector(".ka-abort").addEventListener("click", () => settle("abort", abort));
+  ov.querySelector(".ka-keep").focus();
 }
 const ABORT_LINES = [
   "was terminated. Only the strongest survive.",

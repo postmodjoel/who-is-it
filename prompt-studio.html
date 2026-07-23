@@ -110,6 +110,7 @@
   .gt-toolbar select,.gt-toolbar button{background:var(--panel);color:var(--ink);border:1px solid var(--line2);
     border-radius:8px;padding:7px 9px;font-weight:800;font-size:12px}
   .gt-toolbar button{cursor:pointer}.gt-toolbar button.on{background:var(--blue);border-color:var(--blue)}
+  .gt-toolbar button.gt-export{background:var(--yellow);border-color:var(--yellow);color:#121212}
   .gt-progress{color:var(--ink2);font-size:12px;margin-left:auto}
   .swipe-stage{max-width:760px;margin:0 auto}
   .swipe-deck{display:grid;grid-template-columns:90px minmax(0,1fr) 90px;gap:14px;align-items:center}
@@ -172,6 +173,7 @@
       <select id="gtPg" aria-label="PG safety filter"><option value="">PG — ALL</option><option value="safe">PG SAFE</option><option value="unsafe">NOT PG SAFE</option></select>
       <button id="gtRestart" type="button">RESTART FILTER</button>
       <button id="gtUndo" type="button">⌫ UNDO</button>
+      <button id="gtExport" type="button" class="gt-export">⬇ EXPORT FOR CLAUDE</button>
       <span class="gt-progress" id="gtProgress"></span>
     </div>
     <div id="gtStage" class="swipe-stage"></div>
@@ -203,12 +205,12 @@
     <button onclick="dumpRaw()">🆘 Dump raw (rescue)</button>
     <button onclick="resetFilters()">Clear filters</button>
   </div>
-  <textarea id="out" readonly aria-label="Export output"></textarea>
   </div>
+  <textarea id="out" readonly aria-label="Export output"></textarea>
 </main>
 
 <script src="game-data.js?v=207"></script>
-<script src="groupthink-data.js?v=1"></script>
+<script src="groupthink-data.js?v=3"></script>
 <script>
 const KEY="whoisit_prompt_studio_v1";
 const $=s=>document.querySelector(s);
@@ -563,6 +565,7 @@ document.querySelectorAll(".studio-tab").forEach(tab=>tab.addEventListener("clic
 $("#gtQueue").addEventListener("change",e=>{gtQueue=e.target.value;gtRestart()});
 ["gtSource","gtHeat","gtPg"].forEach(id=>$("#"+id).addEventListener("change",gtRestart));
 $("#gtRestart").addEventListener("click",gtRestart);$("#gtUndo").addEventListener("click",gtUndo);
+$("#gtExport").addEventListener("click",()=>{gtSaveDraft();exportForClaude();$("#out").scrollIntoView({behavior:"smooth",block:"center"})});
 document.addEventListener("keydown",e=>{
   if($('[data-studio-view="groupthink"]').hidden||e.target.matches("input,textarea,select"))return;
   if(e.key==="ArrowLeft"){e.preventDefault();gtCommit("nay","fling-left")}

@@ -26,10 +26,47 @@
   const uniqueStrings = (values) => [...new Set((values || []).filter((value) => typeof value === "string"))];
   const cleanCount = (value) => Math.max(0, Math.floor(Number(value) || 0));
 
+  // Two independent pressures decide the ballot size, and the TIGHTER one always wins.
+  //
+  // Board pressure is the endgame ramp: as faces get sawn off, three picks out of five would be a
+  // formality, so the ballot narrows to keep every pick expensive.
   function pickCountForBoard(boardCount, yolo = true) {
     if (!yolo) return 3;
     const count = cleanCount(boardCount);
     return count < 6 ? 1 : count <= 12 ? 2 : 3;
+  }
+
+  // Crowd pressure is the consensus ramp. With twelve players picking three each, almost every face
+  // on the board collects a vote and "consensus" stops meaning anything - the round becomes mush.
+  // Fewer picks in a big room forces everyone onto the obvious answer, which IS the fantasy of the
+  // game. A duo gets three picks because two ballots need surface area to overlap at all.
+  function pickCountForPlayers(playerCount) {
+    const count = cleanCount(playerCount);
+    if (count <= 2) return 3;
+    if (count <= 6) return 2;
+    return 1;
+  }
+
+  // The resolved ballot size. A prompt may pin its own count (superlatives like "The worst person."
+  // are single-pick by construction), but nothing may ever exceed the board's ceiling - you cannot
+  // be asked to pick more faces than exist, and never the whole board.
+  function pickCountFor({ boardCount = 0, playerCount = 0, yolo = true, promptPicks = null } = {}) {
+    const board = cleanCount(boardCount);
+    const ceiling = board > 1 ? Math.min(3, board - 1) : 1;
+    const pinned = cleanCount(promptPicks);
+    if (pinned) return Math.max(1, Math.min(pinned, ceiling));
+    if (!yolo) return Math.max(1, Math.min(3, ceiling));
+    return Math.max(1, Math.min(pickCountForBoard(board, true), pickCountForPlayers(playerCount), ceiling));
+  }
+
+  // Prompt text is authored plural. `{n}` becomes the number word, and a prompt may carry a `solo`
+  // rewrite for the one-pick ballot where plural grammar collapses ("The racists." -> "The racist.").
+  function promptTextFor(prompt, count) {
+    if (!prompt) return "";
+    const n = Math.max(1, cleanCount(count) || 1);
+    const word = n === 1 ? "one" : n === 2 ? "two" : "three";
+    const source = n === 1 && prompt.solo ? prompt.solo : prompt.text;
+    return String(source || "").replace(/\{n\}/g, word);
   }
 
   function matchSupport(activePlayerCount) {
@@ -104,10 +141,12 @@
       };
     }
 
-    // The lone-wolf consolation scales with the ballot: 3 in three-pick rounds, down to 1 in the
-    // one-pick endgame, so deliberate isolation can never outscore an actual match.
-    const roundPickCount = Math.max(0, ...activePicks.map((list) => list.length));
-    const consolation = Math.min(3, Math.max(1, roundPickCount));
+    // The lone-wolf consolation is a FLAT floor of 1, not a ballot-scaled 3/2/1. A match always pays
+    // 2, so any floor >= 2 either lets deliberate isolation beat a single match (old 3-pick floor) or
+    // makes matching once score the same as matching nothing (old 2-pick floor) - both measured to
+    // wreck score separation (scoring-health dimensions C and D, 2026-07-22). A flat 1 stays strictly
+    // below a single match at every ballot size while never scoring a round at zero.
+    const consolation = 1;
     const roundScores = matchCounts.map((matched, i) => {
       if (cleanSkipped[i]) return 0;
       let score = matched === 0 ? consolation : matched * 2;
@@ -269,6 +308,9 @@
     BOARD_POLICIES,
     PRODUCTION,
     pickCountForBoard,
+    pickCountForPlayers,
+    pickCountFor,
+    promptTextFor,
     matchSupport,
     saveSupport,
     boardSizeForPlayers,

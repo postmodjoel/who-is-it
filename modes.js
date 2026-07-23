@@ -2453,9 +2453,22 @@ function showLastWords(charId) {
   // whole subtree - so a bubble parented to the card would be greyed out and unreadable (worst on the
   // pitch-black Disguise tiles). Park it on <body> with fixed positioning over the card instead, fully
   // outside the filtered element. Ephemeral (3.2s), so not following mid-scroll is fine.
+  // Centre the bubble over the card, but CLAMP so a card in an edge column never pushes the (fixed,
+  // translateX(-50%)) bubble off-screen where its words would be cropped.
+  // A fixed element with only `left` set shrink-to-fits against the space from `left` to the viewport
+  // edge, so an edge card would collapse the bubble to one-word-per-line. So: measure its natural
+  // (max-width-capped, wrapped) width at left:0 where the whole viewport is available, LOCK that width
+  // so the final offset can't reshrink it, then centre-and-clamp.
   const place = () => {
     const r = el.getBoundingClientRect();
-    bub.style.left = `${Math.round(r.left + r.width / 2)}px`;
+    bub.style.width = "";
+    bub.style.left = "0px";
+    const w = bub.offsetWidth;
+    bub.style.width = `${w}px`;
+    const margin = 8, half = w / 2;
+    const centreX = r.left + r.width / 2;
+    const clampedX = Math.max(margin + half, Math.min(window.innerWidth - margin - half, centreX));
+    bub.style.left = `${Math.round(clampedX)}px`;
     bub.style.top = `${Math.round(r.top + 8)}px`;
   };
   bub.style.position = "fixed";
@@ -3438,16 +3451,17 @@ function simsRob(A, B, a, b) {
 function simsWoohoo(A, B) {
   const gayby = sameSex(A, B);
   const baby = makeBaby(A, B, gayby);
-  playBirthAnimation(A.image, B.image, baby, true, () => offerKeepOrAbort(baby, () => {
+  const babySim = { mood: "green", needs: { hunger: 92, social: 95, bladder: 70, fun: 98 }, action: "Being a fresh newborn", career: "Unemployed", simoleons: 0, ...simsPortrait(baby) };
+  playBirthAnimation(A.image, B.image, baby, true, () => babyIdentityReels(baby, "sims", () => offerKeepOrAbort(baby, () => {
     state.board.push(baby);
-    if (state.global.mystery) state.global.mystery.assignments[baby.id] = { mood: "green", needs: { hunger: 92, social: 95, bladder: 70, fun: 98 }, action: "Being a fresh newborn", career: "Unemployed", simoleons: 0, ...simsPortrait(baby) };
+    if (state.global.mystery) state.global.mystery.assignments[baby.id] = babySim;
     if (baby.isGayby) persistGayby(baby);
     netAnnounceBaby(baby); scheduleSave();
     state.justBorn = baby.id;
     if (typeof addLog === "function") addLog(`${A.name} + ${B.name} woohoo'd — baby ${baby.name}!`);
     renderBoard();
     state.justBorn = null;
-  }, () => abortBaby(baby, A, B)), { woohoo: true });
+  }, () => abortBaby(baby, A, B), { mode: "sims", assignment: babySim })), { woohoo: true });
 }
 
 // HEADS ONLY: no cards at all - just every character's floating head (+ name) drifting around the

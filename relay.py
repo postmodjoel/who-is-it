@@ -27,6 +27,10 @@ WS_MAGIC = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 rooms = {}
 rooms_lock = threading.Lock()
+# Several player threads can fan frames into the same recipient at once. WebSocket frames must not
+# interleave on the byte stream, and socket.send() is allowed to write only a prefix of a large
+# state snapshot, so all writes are serialized and use sendall().
+ws_send_lock = threading.Lock()
 
 
 def recv_headers(conn):
@@ -52,7 +56,7 @@ def recv_headers(conn):
 # ---------- static file serving ----------
 
 def send_http(conn, status, body=b"", ctype="text/plain; charset=utf-8", extra=""):
-    conn.send((
+    conn.sendall((
         f"HTTP/1.1 {status}\r\n"
         f"Content-Type: {ctype}\r\n"
         f"Content-Length: {len(body)}\r\n"
@@ -85,7 +89,7 @@ def serve_static(conn, request):
 
 def ws_accept(conn, key):
     accept = base64.b64encode(hashlib.sha1((key + WS_MAGIC).encode()).digest()).decode()
-    conn.send((
+    conn.sendall((
         "HTTP/1.1 101 Switching Protocols\r\n"
         "Upgrade: websocket\r\nConnection: Upgrade\r\n"
         f"Sec-WebSocket-Accept: {accept}\r\n\r\n"
@@ -105,6 +109,7 @@ def read_frame(conn):
     head = read_exact(2)
     if not head:
         return None
+    fin = bool(head[0] & 0x80)
     opcode = head[0] & 0x0F
     masked = head[1] & 0x80
     length = head[1] & 0x7F
@@ -128,7 +133,7 @@ def read_frame(conn):
         return None
     if masked:
         payload = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
-    return opcode, payload
+    return fin, opcode, payload
 
 
 def make_frame(payload, opcode=0x1):
@@ -156,25 +161,53 @@ def serve_ws(conn, request, headers, addr):
     with rooms_lock:
         rooms.setdefault(room, set()).add(conn)
     print(f"+ {addr[0]} joined room {room} ({len(rooms[room])} in room)", flush=True)
+    fragmented_opcode = None
+    fragments = []
+    fragmented_length = 0
     try:
         while True:
             frame = read_frame(conn)
             if frame is None:
                 break
-            opcode, payload = frame
+            fin, opcode, payload = frame
             if opcode == 0x8:
                 break
             if opcode == 0x9:
-                conn.send(make_frame(payload, 0xA))
+                with ws_send_lock:
+                    conn.sendall(make_frame(payload, 0xA))
                 continue
-            if opcode not in (0x1, 0x2):
+            if opcode == 0xA:
                 continue
-            out = make_frame(payload, opcode)
+            if opcode in (0x1, 0x2):
+                if fragmented_opcode is not None:
+                    break
+                if fin:
+                    message_opcode, message = opcode, payload
+                else:
+                    fragmented_opcode = opcode
+                    fragments = [payload]
+                    fragmented_length = len(payload)
+                    continue
+            elif opcode == 0x0 and fragmented_opcode is not None:
+                fragments.append(payload)
+                fragmented_length += len(payload)
+                if fragmented_length > 2_000_000:
+                    break
+                if not fin:
+                    continue
+                message_opcode, message = fragmented_opcode, b"".join(fragments)
+                fragmented_opcode = None
+                fragments = []
+                fragmented_length = 0
+            else:
+                break
+            out = make_frame(message, message_opcode)
             with rooms_lock:
                 peers = [c for c in rooms.get(room, ()) if c is not conn]
             for peer in peers:
                 try:
-                    peer.send(out)
+                    with ws_send_lock:
+                        peer.sendall(out)
                 except OSError:
                     pass
     except OSError:

@@ -97,6 +97,89 @@
     body: ["clothing", "shirt", "tattooText", "tattooPlace", "tattooFont", "tattooColor", "tattooX", "tattooY", "tattooScale", "tattooRot", "tattooSkewX", "tattooWarp", "tattooOpacity", "tattooLayer"]
   };
 
+  // Registry traits describe anatomy; these lower-weight entries cover conspicuous rendered
+  // furniture that travels with a part. This keeps the percentage aligned with what players see
+  // without letting lipstick, glasses or a shirt outweigh the underlying feature geometry.
+  const VISIBLE_SCORE_ENTRIES = {
+    skull: [
+      { key: "blushColor", mode: "color", weight: 0.25 },
+      { key: "tattooText", mode: "categorical", weight: 0.25 },
+      { key: "tattooColor", mode: "color", weight: 0.2 }
+    ],
+    eyes: [
+      { key: "lashes", mode: "number", min: 0, max: 2, weight: 0.3 },
+      { key: "eyeshadowOpacity", mode: "number", min: 0, max: 1, weight: 0.25 },
+      { key: "eyeshadowColor", mode: "color", weight: 0.25 },
+      { key: "accessory", mode: "categorical", weight: 0.35 },
+      { key: "accessoryColor", mode: "color", weight: 0.2 }
+    ],
+    nose: [
+      { key: "accessory", mode: "categorical", weight: 0.3 },
+      { key: "accessoryMetal", mode: "color", weight: 0.15 }
+    ],
+    mouth: [
+      { key: "lipColor", mode: "color", weight: 1.1 },
+      { key: "mouthStyle", mode: "categorical", weight: 0.45 },
+      { key: "teethStyle", mode: "categorical", weight: 0.45 },
+      { key: "teethGap", mode: "number", min: 0, max: 12, weight: 0.25 },
+      { key: "beardLength", mode: "number", min: 0, max: 1, weight: 0.5 },
+      { key: "moustacheScale", mode: "number", min: 0, max: 2, weight: 0.35 }
+    ],
+    hair: [
+      { key: "hair", mode: "categorical", weight: 1 },
+      { key: "accessory", mode: "categorical", weight: 0.35 },
+      { key: "accessoryColor", mode: "color", weight: 0.2 }
+    ],
+    body: [
+      { key: "clothing", mode: "categorical", weight: 0.8 },
+      { key: "shirt", mode: "color", weight: 0.9 },
+      { key: "accessory", mode: "categorical", weight: 0.35 },
+      { key: "accessoryColor", mode: "color", weight: 0.2 }
+    ]
+  };
+
+  // Human-readable slices of the exact weighted scorer above. Every anatomy-registry entry and
+  // visible extra belongs to one factor, so the reveal can explain a percentage without inventing
+  // a second, approximate scoring system.
+  const SCORE_FACTORS = {
+    skull: [
+      { id: "shape", label: "SHAPE", groups: ["headFrame", "headTilt", "jawChin", "faceShape"] },
+      { id: "skin", label: "SKIN", groups: ["skin"] },
+      { id: "ears", label: "EARS", groups: ["ears", "earRot", "earAsym"] },
+      { id: "details", label: "DETAILS", extras: ["blushColor", "tattooText", "tattooColor"] }
+    ],
+    eyes: [
+      { id: "shape", label: "SHAPE", groups: ["eyeCore", "lazyEye", "pupil", "eyelids"] },
+      { id: "position", label: "POSITION", groups: ["eyePlacement", "eyeAsym"] },
+      { id: "colour", label: "COLOUR", groups: ["eyeColor"] },
+      { id: "brows", label: "BROWS", groups: ["browCore", "browAngle", "browAsym"] },
+      { id: "style", label: "STYLE", extras: ["lashes", "eyeshadowOpacity", "eyeshadowColor", "accessory", "accessoryColor"] }
+    ],
+    nose: [
+      { id: "shape", label: "SHAPE", keys: ["noseScale", "noseLength", "noseWidth", "noseTip"] },
+      { id: "position", label: "POSITION", keys: ["noseY"] },
+      { id: "accessory", label: "ACCESSORY", extras: ["accessory", "accessoryMetal"] }
+    ],
+    mouth: [
+      { id: "shape", label: "SHAPE", groups: ["mouth"], extras: ["mouthStyle"] },
+      { id: "colour", label: "COLOUR", extras: ["lipColor"] },
+      { id: "teeth", label: "TEETH", extras: ["teethStyle", "teethGap"] },
+      { id: "facial-hair", label: "FACIAL HAIR", extras: ["beardLength", "moustacheScale"] }
+    ],
+    hair: [
+      { id: "style", label: "STYLE", groups: ["hairline"], extras: ["hair"] },
+      { id: "texture", label: "TEXTURE", groups: ["hairTexture"] },
+      { id: "colour", label: "COLOUR", groups: ["hairColorGroup"] },
+      { id: "headwear", label: "HEADWEAR", extras: ["accessory", "accessoryColor"] }
+    ],
+    body: [
+      { id: "build", label: "BUILD", groups: ["body", "neck"] },
+      { id: "clothing", label: "CLOTHING", extras: ["clothing"] },
+      { id: "colour", label: "COLOUR", extras: ["shirt"] },
+      { id: "accessory", label: "ACCESSORY", extras: ["accessory", "accessoryColor"] }
+    ]
+  };
+
   function castDonorFrom(character) {
     const node = Genetics.normalizeFounder(character);
     const source = character.traits || {};
@@ -219,14 +302,74 @@
     return { ...donor, phenotype: node.phenotype, traits: node.traits };
   }
 
-  function partSimilarity(phenoA, phenoB, part) {
+  function visibleTraitSimilarity(entry, valueA, valueB) {
+    if (entry.mode === "color") {
+      if (!/^#[0-9a-f]{6}$/i.test(String(valueA || "")) || !/^#[0-9a-f]{6}$/i.test(String(valueB || ""))) return 0;
+      return 1 - Math.max(0, Math.min(1, Genetics.colorDistance(valueA, valueB) / 62));
+    }
+    if (entry.mode === "categorical") return String(valueA ?? "") === String(valueB ?? "") ? 1 : 0;
+    const range = entry.max - entry.min;
+    const a = Number.isFinite(Number(valueA)) ? Number(valueA) : entry.min;
+    const b = Number.isFinite(Number(valueB)) ? Number(valueB) : entry.min;
+    return 1 - Math.max(0, Math.min(1, Math.abs(a - b) / range));
+  }
+
+  function similaritySignal(similarity) {
+    if (similarity >= 0.9) return "+++";
+    if (similarity >= 0.72) return "++";
+    if (similarity >= 0.48) return "+";
+    return "—";
+  }
+
+  function partSimilarityBreakdown(left, right, part) {
+    const phenoA = left?.phenotype || left || {};
+    const phenoB = right?.phenotype || right || {};
     let score = 0;
     let weight = 0;
-    ENTRIES_BY_PART[part].forEach((entry) => {
-      score += Genetics.traitSimilarity(entry, phenoA, phenoB) * entry.weight;
+    const definitions = SCORE_FACTORS[part] || [];
+    const factors = new Map(definitions.map((factor) => [factor.id, { ...factor, score: 0, weight: 0 }]));
+    const factorFor = (entry, source) => definitions.find((factor) => source === "extra"
+      ? (factor.extras || []).includes(entry.key)
+      : (factor.keys || []).includes(entry.key) || (factor.groups || []).includes(entry.group));
+    const add = (entry, similarity, source) => {
+      score += similarity * entry.weight;
       weight += entry.weight;
+      const definition = factorFor(entry, source);
+      if (!definition) return;
+      const factor = factors.get(definition.id);
+      factor.score += similarity * entry.weight;
+      factor.weight += entry.weight;
+    };
+    ENTRIES_BY_PART[part].forEach((entry) => {
+      add(entry, Genetics.traitSimilarity(entry, phenoA, phenoB), "anatomy");
     });
-    return weight ? score / weight : 0;
+    const extrasA = left?.extras?.[part] || {};
+    const extrasB = right?.extras?.[part] || {};
+    (VISIBLE_SCORE_ENTRIES[part] || []).forEach((entry) => {
+      const a = extrasA[entry.key];
+      const b = extrasB[entry.key];
+      if (a === undefined && b === undefined) return;
+      add(entry, visibleTraitSimilarity(entry, a, b), "extra");
+    });
+    const similarity = weight ? score / weight : 0;
+    return {
+      similarity,
+      weight: +weight.toFixed(3),
+      factors: [...factors.values()].filter((factor) => factor.weight > 0).map((factor) => {
+        const factorSimilarity = factor.score / factor.weight;
+        return {
+          id: factor.id,
+          label: factor.label,
+          similarity: +factorSimilarity.toFixed(3),
+          weight: +factor.weight.toFixed(3),
+          signal: similaritySignal(factorSimilarity)
+        };
+      })
+    };
+  }
+
+  function partSimilarity(left, right, part) {
+    return partSimilarityBreakdown(left, right, part).similarity;
   }
 
   // ---------------------------------------------------------------------------
@@ -422,6 +565,30 @@
     return round;
   }
 
+  // Live Build has no turn cursor: every player may fill an empty personal slot at any time.
+  // The online host calls this function serially, making the donor-part uniqueness check atomic.
+  function legalLiveClaims(round, playerIndex) {
+    if (!Number.isInteger(playerIndex) || playerIndex < 0 || playerIndex >= round.recipes.length) return [];
+    const slots = claimsOf(round, playerIndex);
+    const taken = new Set(round.claims.map((claim) => `${claim.donorId}:${claim.part}`));
+    const legal = [];
+    PART_ORDER.forEach((part) => {
+      if (slots[part]) return;
+      round.donors.forEach((donor) => {
+        if (!taken.has(`${donor.id}:${part}`)) legal.push({ donorId: donor.id, part });
+      });
+    });
+    return legal;
+  }
+
+  function applyLiveClaim(round, playerIndex, donorId, part) {
+    if (!legalLiveClaims(round, playerIndex).some((claim) => claim.donorId === donorId && claim.part === part)) {
+      throw new Error("That live claim is no longer available");
+    }
+    round.claims.push({ pickIndex: round.claims.length, playerIndex, donorId, part });
+    return round;
+  }
+
   // ---------------------------------------------------------------------------
   // Scoring + reveal annotations.
   // ---------------------------------------------------------------------------
@@ -434,7 +601,8 @@
       const claimedId = slots[part];
       if (!claimedId) return { part, label: PART_LABELS[part], wantedId, claimedId: null, exact: false, similarity: 0, points: 0 };
       if (claimedId === wantedId) return { part, label: PART_LABELS[part], wantedId, claimedId, exact: true, similarity: 1, points: EXACT_POINTS };
-      const similarity = partSimilarity(donorsById[claimedId].phenotype, donorsById[wantedId].phenotype, part);
+      const breakdown = partSimilarityBreakdown(donorsById[claimedId], donorsById[wantedId], part);
+      const similarity = breakdown.similarity;
       return {
         part,
         label: PART_LABELS[part],
@@ -442,6 +610,7 @@
         claimedId,
         exact: false,
         similarity: +similarity.toFixed(3),
+        factors: breakdown.factors,
         points: substitutionPoints(similarity)
       };
     });
@@ -502,7 +671,7 @@
     const donorsById = Object.fromEntries(round.donors.map((donor) => [donor.id, donor]));
     let best = null;
     legal.forEach((claim) => {
-      const similarity = partSimilarity(donorsById[claim.donorId].phenotype, donorsById[recipe[claim.part]].phenotype, claim.part);
+      const similarity = partSimilarity(donorsById[claim.donorId], donorsById[recipe[claim.part]], claim.part);
       if (!best || similarity > best.similarity) best = { ...claim, similarity };
     });
     return best;
@@ -556,6 +725,8 @@
     assembleCreature,
     strippedDonor,
     partSimilarity,
+    partSimilarityBreakdown,
+    similaritySignal,
     buildCommissions,
     contestedCounts,
     snakeOrder,
@@ -569,6 +740,8 @@
     takenBy,
     legalClaims,
     applyClaim,
+    legalLiveClaims,
+    applyLiveClaim,
     scoreCommission,
     annotateThefts,
     scoreRound,

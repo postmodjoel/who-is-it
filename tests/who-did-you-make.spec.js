@@ -12,9 +12,13 @@ async function openDraft(page, names = ["Ada", "Bea"]) {
   await page.goto("/");
   await page.locator(".ts-letplay").click();
   await expect(page.locator(".ts-ruleset")).toHaveCount(3);
-  await page.locator('.ts-ruleset[data-ruleset="whodidyoumake"]').click();
+  // Focus carousel: a tap on an off-centre card only recentres it; the centred card is what launches.
+  const wdymCard = page.locator('.ts-ruleset[data-ruleset="whodidyoumake"]');
+  await wdymCard.click();
+  await expect(wdymCard).toHaveClass(/is-focus/);
+  await wdymCard.click();
   await expect(page).toHaveTitle("WHO? DID YOU MAKE?");
-  await expect(page.locator(".ts-step-main .ts-online")).toBeDisabled();
+  await expect(page.locator(".ts-step-main .ts-online")).toBeEnabled();
   await page.locator(".ts-local").click();
   for (let index = 2; index < names.length; index += 1) await page.locator(".ts-add-player").click();
   const inputs = page.locator(".ts-name-slot");
@@ -24,18 +28,28 @@ async function openDraft(page, names = ["Ada", "Bea"]) {
   await expect(page.locator(".wdym-handoff")).toBeVisible();
 }
 
-async function passCommissions(page, playerCount = 2) {
-  for (let index = 0; index < playerCount; index += 1) {
-    await expect(page.locator(".wdym-handoff")).toBeVisible();
-    await page.locator(".wdym-seen").click();
-  }
+async function passCommissions(page) {
+  await expect(page.locator(".wdym-handoff")).toBeVisible();
+  if (await page.locator(".wdym-study-open").isVisible()) await page.locator(".wdym-study-open").click();
+  await page.locator(".wdym-seen").click();
   await expect(page.locator(".wdym-draft")).toBeVisible();
+}
+
+async function renderedAnatomy(donor) {
+  return donor.locator(".wdym-donor-portrait img").evaluate((img) => {
+    const svg = decodeURIComponent(img.getAttribute("src") || "");
+    return [...new Set([...svg.matchAll(/data-anatomy-part='([^']+)'/g)].map((match) => match[1]))];
+  });
 }
 
 // One scripted pick: read the round state, claim either the picker's own recipe part
 // (strategy "greedy"), a rival's wanted part ("steal", falling back to greedy), or the
 // first legal claim ("first").
 async function scriptedPick(page, strategy) {
+  if (await page.locator(".wdym-handoff").isVisible()) {
+    if (await page.locator(".wdym-study-open").isVisible()) await page.locator(".wdym-study-open").click();
+    await page.locator(".wdym-seen").click();
+  }
   const move = await page.evaluate((mode) => {
     const M = window.MakeRules;
     const round = state.whodidyoumake.rounds[state.whodidyoumake.roundIndex];
@@ -77,8 +91,12 @@ test("a full flesh-draft round: commissions, snake draft, part stamps, butcher's
   await expect(page.locator(".wdym-up-next")).toBeVisible();
   await expect(page.locator(".cue-card")).toBeHidden();   // visual mode: no question furniture
   await expect(page.locator(".wdym-donor-chips i")).toHaveCount(0);   // clean cards until something is taken
-  await scriptedPick(page, "greedy");
+  const firstMove = await scriptedPick(page, "greedy");
+  await passCommissions(page);
   await expect(page.locator(".wdym-donor-chips i")).toHaveCount(1);   // the claim ledger appears
+  const strippedDonor = page.locator(`.wdym-donor[data-donor="${firstMove.donorId}"]`);
+  await expect(strippedDonor).toHaveAttribute("data-removed-parts", firstMove.part);
+  expect(await renderedAnatomy(strippedDonor)).not.toContain(firstMove.part);
 
   await finishDraft(page);
   // The stage runs worst-build-first so the round climbs toward its winner.
@@ -91,6 +109,12 @@ test("a full flesh-draft round: commissions, snake draft, part stamps, butcher's
   await expect(page.locator(".wdym-sources")).toHaveCount(2);   // built-from and made-from strips
   await expect(page.locator(".wdym-reveal-side:last-child .wdym-sources img")).toHaveCount(6);
   await expect(page.locator(".wdym-part-stamps .wdym-stamp")).toHaveCount(6);
+  await expect(page.locator(".wdym-match-key")).toContainText("SUBSTITUTIONS SCORE ABOVE 40%");
+  await expect(page.locator(".wdym-stamp:not(.is-exact) .wdym-match-factor").first()).toBeVisible();
+  await expect(page.locator(".wdym-match-percent")).toHaveCount(6);
+  const signals = await page.locator(".wdym-stamp:not(.is-exact) .wdym-match-factor i").allTextContents();
+  expect(signals.length).toBeGreaterThan(0);
+  signals.forEach((signal) => expect(signal).toMatch(/^(\+\+\+|\+\+|\+|—)$/));
   await page.locator(".wdym-next-reveal").click();
   await expect(page.locator(".wdym-part-stamps .wdym-stamp")).toHaveCount(6);
   await page.locator(".wdym-next-reveal").click();
@@ -105,6 +129,30 @@ test("a full flesh-draft round: commissions, snake draft, part stamps, butcher's
   await expect(page.locator(".wdym-handoff")).toBeVisible();
   const roundIndex = await page.evaluate(() => state.whodidyoumake.roundIndex);
   expect(roundIndex).toBe(1);
+});
+
+test("snipped facial features are omitted so the face surface beneath stays blank", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "hidden anatomy smoke runs once");
+  await openDraft(page);
+  await passCommissions(page);
+
+  const donorId = await page.evaluate(() => state.whodidyoumake.rounds[0].donors[0].id);
+  await page.locator(`.wdym-donor[data-donor="${donorId}"]`).click();
+  await page.locator('.wdym-claim-part[data-part="eyes"]').click();
+  await passCommissions(page);
+  await page.locator(`.wdym-donor[data-donor="${donorId}"]`).click();
+  await page.locator('.wdym-claim-part[data-part="mouth"]').click();
+  await passCommissions(page);
+
+  const donor = page.locator(`.wdym-donor[data-donor="${donorId}"]`);
+  const anatomy = await renderedAnatomy(donor);
+  expect(anatomy).not.toContain("eyes");
+  expect(anatomy).not.toContain("mouth");
+  expect(anatomy).toEqual(expect.arrayContaining(["skull", "nose", "hair", "body"]));
+  await expect(donor.locator(".wdym-zap-remnant")).toHaveCount(0);
+  const removed = (await donor.getAttribute("data-removed-parts")).split(" ");
+  expect(removed).toEqual(expect.arrayContaining(["eyes", "mouth"]));
+  await expect(donor).toHaveAttribute("aria-label", /Removed:/);
 });
 
 test("stealing a rival's part is worn by the thief and stamped STOLEN at the reveal", async ({ page }, testInfo) => {
@@ -135,12 +183,12 @@ test("a one-round session reaches the finale with a crowned winner and a gallery
   await page.locator(".wdym-bodies").click();   // 3 -> 4
   await page.locator(".wdym-bodies").click();   // 4 -> 5
   await page.locator(".wdym-bodies").click();   // 5 -> 1
-  await expect(page.locator(".wdym-bodies")).toContainText("BODIES TONIGHT: 1");
+  await expect(page.locator(".wdym-bodies")).toContainText("TO BUILD: 1");
   await passCommissions(page);
   await finishDraft(page);
   await page.locator(".wdym-next-reveal").click();
   await page.locator(".wdym-next-reveal").click();
-  await expect(page.locator(".wdym-next-round")).toContainText("FINAL RECKONING");
+  await expect(page.locator(".wdym-next-round")).toContainText("FINAL SCORES");
   await page.locator(".wdym-next-round").click();
   await expect(page.locator(".wdym-finale")).toBeVisible();
   await expect(page.locator(".wdym-final-score > span")).toHaveCount(2);
@@ -174,7 +222,11 @@ test("the flesh draft seats at most six players", async ({ page }, testInfo) => 
   });
   await page.goto("/");
   await page.locator(".ts-letplay").click();
-  await page.locator('.ts-ruleset[data-ruleset="whodidyoumake"]').click();
+  // Focus carousel: recentre the off-centre card, then the centred card launches.
+  const wdymCard = page.locator('.ts-ruleset[data-ruleset="whodidyoumake"]');
+  await wdymCard.click();
+  await expect(wdymCard).toHaveClass(/is-focus/);
+  await wdymCard.click();
   await page.locator(".ts-local").click();
   const addButton = page.locator(".ts-add-player");
   for (let index = 0; index < 8 && await addButton.isEnabled(); index += 1) await addButton.click();
@@ -182,29 +234,21 @@ test("the flesh draft seats at most six players", async ({ page }, testInfo) => 
   await expect(addButton).toBeDisabled();
 });
 
-test("the commission is a face only, and draft peeks burn three rationed charges", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "peek smoke runs once");
+test("each local turn studies target and build before a board with neither and no peeks", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "memory-flow smoke runs once");
   await openDraft(page);
-  await expect(page.locator(".wdym-peek-stage span")).toContainText("HOLD TO SEE IT");
-  await page.locator(".wdym-hold").dispatchEvent("pointerdown");
-  await expect(page.locator(".wdym-peek-stage .wdym-commission-face")).toBeVisible();
+  await expect(page.locator(".wdym-study-pair img")).toHaveCount(2);
+  await expect(page.locator(".wdym-study-pair figcaption")).toHaveText(["COMMISSION", "YOUR BUILD"]);
   await expect(page.locator(".wdym-sources")).toHaveCount(0);   // no source hints before the reveal
-  await page.locator(".wdym-hold").dispatchEvent("pointerup");
-  await expect(page.locator(".wdym-peek-stage img")).toHaveCount(0);
-
   await passCommissions(page);
-  const peek = () => page.locator(".wdym-peek-hold");
-  await expect(peek()).toContainText("3 LEFT");
-  for (const remaining of ["2 LEFT", "1 LEFT", "NO PEEKS LEFT"]) {
-    await peek().dispatchEvent("pointerdown");
-    await expect(page.locator(".wdym-peek-overlay .wdym-commission-face")).toBeVisible();
-    await page.locator("body").dispatchEvent("pointerup");
-    await expect(page.locator(".wdym-peek-overlay")).toHaveCount(0);
-    await expect(peek()).toContainText(remaining);
-  }
-  await expect(peek()).toBeDisabled();
-  await peek().dispatchEvent("pointerdown");
-  await expect(page.locator(".wdym-peek-overlay")).toHaveCount(0);   // spent means spent
+  await expect(page.locator(".wdym-study-pair, .wdym-commission-face, .wdym-tray")).toHaveCount(0);
+  await expect(page.locator(".wdym-peek-hold, .wdym-peek-overlay")).toHaveCount(0);
+  await scriptedPick(page, "greedy");
+  await expect(page.locator(".wdym-handoff")).toBeVisible();
+  await expect(page.locator(".wdym-study-pair")).toHaveCount(0);
+  await page.locator(".wdym-study-open").click();
+  await expect(page.locator(".wdym-study-pair img")).toHaveCount(2);
+  await expect(page.locator(".wdym-handoff")).toContainText("0/6 PARTS");
 });
 
 test("a refresh resumes the draft mid-turn with every claim intact", async ({ page, context }, testInfo) => {
@@ -220,11 +264,11 @@ test("a refresh resumes the draft mid-turn with every claim intact", async ({ pa
   const resumed = await context.newPage();
   await resumed.goto("/");
   await expect(resumed.locator("body")).toHaveClass(/ruleset-whodidyoumake/);
-  await expect(resumed.locator(".wdym-draft")).toBeVisible();
+  await expect(resumed.locator(".wdym-handoff")).toBeVisible();
   const after = await resumed.evaluate(() => JSON.stringify(state.whodidyoumake.rounds[0].claims));
   expect(after).toBe(before);
   const phase = await resumed.evaluate(() => state.whodidyoumake.phase);
-  expect(phase).toBe("drafting");
+  expect(phase).toBe("commission-viewing");
 });
 
 test("retired WHO? WERE YOU? saves are cleared with an explanation instead of resuming", async ({ page }, testInfo) => {
@@ -257,7 +301,20 @@ test("draft screens fit touch viewports without horizontal overflow", async ({ p
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(3);
   const enabled = page.locator(".wdym-claim-part:not([disabled])").first();
   await enabled.tap();
-  await expect(page.locator(".wdym-tray-slots i:not(.is-empty)").first()).toBeVisible();
+  await expect(page.locator(".wdym-handoff")).toBeVisible();
+  await expect(page.locator(".wdym-study-pair")).toHaveCount(0);
+  await page.locator(".wdym-study-open").tap();
+  await expect(page.locator(".wdym-study-pair img")).toHaveCount(2);
+});
+
+test("the flat reveal ledger fits touch viewports without horizontal overflow", async ({ page }, testInfo) => {
+  test.skip(!["iphone", "tablet"].includes(testInfo.project.name), "touch reveal layout only");
+  await openDraft(page);
+  await passCommissions(page);
+  await finishDraft(page, { 0: "greedy", 1: "first" });
+  await expect(page.locator(".wdym-part-stamps .wdym-stamp")).toHaveCount(6);
+  await expect(page.locator(".wdym-match-factor").first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(3);
 });
 
 test("genetics lab opens on the flesh-draft sampler with recipes and contention", async ({ page }, testInfo) => {

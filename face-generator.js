@@ -277,6 +277,19 @@
       front: "side-part-locks",
       sidePart: true
     },
+    // Designed multi-piece presets (promoted 2026-07-19 from Joel's Hair Studio catalogue).
+    // Geometry lives in faces-hair.js HAIR_PRESETS — these entries only advertise the keys
+    // through traitBook.hairStyles; the compositor resolves them like any other preset.
+    samurai: { preset: true },
+    question: { preset: true },
+    napeTail: { preset: true },
+    curtainDome: { preset: true },
+    crestCap: { preset: true },
+    softServe: { preset: true },
+    duchess: { preset: true },
+    princessMane: { preset: true },
+    topKnotWhip: { preset: true },
+    sideSpill: { preset: true },
     bald: {
       back: "",
       front: ""
@@ -981,7 +994,53 @@
     ["priya", "Priya", "she", "brown", "longWaves", "black", "tee", "#7f42b5", "happy", "hoops", "dentist", "wideSmile"],
     ["hugo", "Hugo", "he", "fair", "curls", "brown", "collared", "#226aa0", "sad", "roundGlasses", "bus driver"],
     ["noor", "Noor", "she", "brown", "hijab", "blueBlack", "tee", "#5a7b69", "angry", "none", "librarian"],
-    ["tyler", "Tyler", "he", "fair", "messy", "blonde", "jacket", "#282a2f", "neutral", "none", "contractor"]
+    ["tyler", "Tyler", "he", "fair", "messy", "blonde", "jacket", "#282a2f", "neutral", "none", "contractor"],
+    // The eight winners from the first public ballot are permanent playable cast members.
+    ["sim-kwame", "Kwame", "he", "ebony", "samurai", "black", "chefCoat", "#f0eee5", "neutral", "studs", "night baker"],
+    ["sim-saskia", "Saskia", "she", "porcelain", "sideSpill", "pink", "sequin", "#563f91", "angry", "catEyeGlasses", "taxidermist"],
+    ["sim-zahra", "Zahra", "she", "brown", "hijab", "black", "labCoat", "#f1f2ed", "happy", "squareGlasses", "forensic botanist", "wideSmile"],
+    ["sim-leila", "Leila", "she", "amber", "sidePart", "brown", "denim", "#3e709d", "sad", "hoops", "union organiser"],
+    ["sim-farah", "Farah", "she", "brown", "hijab", "blueBlack", "cardigan", "#77578a", "happy", "catEyeGlasses", "family therapist", "warmSmile"],
+    ["sim-gus", "Gus", "he", "fair", "bald", "brown", "chefCoat", "#eeeade", "sad", "moustache", "cruise pianist"],
+    ["sim-marisol", "Marisol", "she", "tan", "princessMane", "darkBrown", "sequin", "#6c3e91", "happy", "hoops", "wedding singer", "bigOpenSmile"],
+    ["sim-lenny", "Lenny", "he", "fair", "question", "auburn", "sweaterVest", "#c28a33", "happy", "bow", "children's magician", "goofyTeeth"],
+
+    // Ballot-two winners: promoted permanently after the second public vote.
+    ["sim2-maude", "Maude", "she", "porcelain", "princessMane", "silver", "pinafore", "#676493", "sad", "catEyeGlasses", "doll hospital technician"],
+    ["sim2-cleo", "Cleo", "she", "tan", "softServe", "pink", "denim", "#3e709d", "happy", "flowerClip", "nightclub booker", "bigOpenSmile"],
+
+    // Ballot three: thirty entirely new combinations. Every two-part visual signature is fresh
+    // against the permanent cast and the entire prior ballot; face geometry is authored below.
+    ["sim3-aya", "Aya", "she", "amber", "cropped", "black", "sariDrape", "#b73e69", "happy", "catEyeGlasses", "sign-language interpreter", "warmSmile"],
+    ["sim3-bo", "Bo", "he", "fair", "curls", "copper", "securityVest", "#28313b", "sad", "beard", "night museum guard"],
+    ["sim3-cyra", "Cyra", "they", "deep", "locs", "blueBlack", "pinafore", "#57558f", "neutral", "roundGlasses", "botanical illustrator"],
+    ["sim3-dov", "Dov", "he", "olive", "curtainDome", "silver", "raincoat", "#d7aa34", "angry", "beanie", "flood inspector"],
+    ["sim3-esi", "Esi", "she", "ebony", "coily", "pink", "blazer", "#376b72", "happy", "necklace", "game-show mathematician", "wideSmile"],
+    ["sim3-fadil", "Fadil", "he", "brown", "napeTail", "black", "scrubs", "#278b8d", "neutral", "squareGlasses", "sleep-clinic nurse"],
+    ["sim3-goldie", "Goldie", "she", "fair", "duchess", "copper", "hoodie", "#765192", "surprised", "flowerClip", "puppeteer"],
+    ["sim3-haru", "Haru", "they", "porcelain", "samurai", "pink", "jacket", "#40414b", "sad", "roundGlasses", "fragrance critic"],
+    ["sim3-io", "Io", "she", "tan", "bob", "blueBlack", "turtleneck", "#b35f36", "angry", "choker", "divorce mediator"],
+    ["sim3-juno", "Juno", "they", "brown", "topKnotWhip", "copper", "varsity", "#983b4d", "happy", "choker", "tram conductor", "bigSmile"],
+    ["sim3-kemi", "Kemi", "she", "deep", "sidePart", "black", "sariDrape", "#a73368", "neutral", "headband", "courtroom sketch artist"],
+    ["sim3-laszlo", "Laszlo", "he", "fair", "bald", "silver", "flannel", "#a84242", "surprised", "chain", "radio repairer"],
+    ["sim3-miri", "Miri", "she", "amber", "hijab", "copper", "raincoat", "#327a7d", "angry", "necklace", "coastal engineer"],
+    ["sim3-nox", "Nox", "they", "porcelain", "question", "black", "apron", "#2e7771", "surprised", "chain", "stage-illusion engineer"],
+    ["sim3-oona", "Oona", "she", "olive", "longWaves", "blonde", "scrubs", "#297e94", "neutral", "cap", "neonatal surgeon"],
+    ["sim3-pax", "Pax", "he", "tan", "crestCap", "brown", "bomber", "#576f40", "happy", "squareGlasses", "pinball mechanic"],
+    ["sim3-qasim", "Qasim", "he", "brown", "messy", "black", "kurta", "#31725c", "sad", "squareGlasses", "etymologist"],
+    ["sim3-rhea", "Rhea", "she", "fair", "sideSpill", "silver", "scrubs", "#278f94", "neutral", "headband", "prosthetics technician"],
+    ["sim3-sacha", "Sacha", "he", "ebony", "softServe", "auburn", "rugby", "#397961", "happy", "beard", "wrestling referee", "bigSmile"],
+    ["sim3-tove", "Tove", "she", "porcelain", "princessMane", "black", "raincoat", "#d2a535", "sad", "dropEarrings", "funeral florist"],
+    ["sim3-ugo", "Ugo", "he", "tan", "messy", "copper", "chefCoat", "#f0eee5", "angry", "scarf", "lighthouse cook"],
+    ["sim3-vega", "Vega", "she", "deep", "curls", "pink", "denim", "#3e709d", "happy", "catEyeGlasses", "roller-rink manager", "wideSmile"],
+    ["sim3-wren", "Wren", "they", "fair", "locs", "silver", "sweaterVest", "#bd8836", "neutral", "flowerClip", "miniature architect"],
+    ["sim3-xola", "Xola", "she", "ebony", "coily", "copper", "leather", "#30333a", "surprised", "bow", "air-traffic investigator"],
+    ["sim3-yves", "Yves", "he", "olive", "curtainDome", "blonde", "cardigan", "#78588c", "sad", "moustache", "handwriting expert"],
+    ["sim3-zelda", "Zelda", "she", "fair", "duchess", "black", "sequin", "#8f3158", "angry", "roundGlasses", "opera surtitler"],
+    ["sim3-aro", "Aro", "he", "brown", "napeTail", "silver", "apron", "#2e7771", "neutral", "beard", "bicycle-frame builder"],
+    ["sim3-bibi", "Bibi", "she", "fakeTan", "bob", "pink", "varsity", "#3b67a0", "happy", "dropEarrings", "competitive florist", "warmSmile"],
+    ["sim3-cato", "Cato", "they", "amber", "topKnotWhip", "blueBlack", "labCoat", "#eff1ed", "surprised", "dropEarrings", "meteorite curator"],
+    ["sim3-demi", "Demi", "they", "deep", "longWaves", "copper", "tracksuit", "#355f9d", "angry", "studs", "stunt rigger"]
   ];
 
   const mouthLabels = {
@@ -1009,6 +1068,16 @@
     locs: "braids or locs",
     cropped: "short hair",
     sidePart: "side-parted hair",
+    samurai: "samurai top-knot",
+    question: "a single curl",
+    napeTail: "hair with a nape tail",
+    curtainDome: "swept curtain mop",
+    crestCap: "spiky crest cap",
+    softServe: "stacked curly updo",
+    duchess: "rolled updo",
+    princessMane: "long fringed mane",
+    topKnotWhip: "top-knot with a tail",
+    sideSpill: "side-spilling hair",
     bald: "bald head",
     hijab: "headscarf",
     glasses: "glasses",
@@ -4617,12 +4686,669 @@
     tyler: {
       animMode: "bobble", blinkRate: 5.5, eyeScale: 1.0, browThick: 1.0, noseTip: "straight", noseScale: 1.02,
       chinShape: "square", chinWidth: 1.06, mouthScale: 1.02, hairColor: "darkBrown", frontHairY: -8
+    },
+    // --- The New 30 ---------------------------------------------------------------
+    // A deliberate second-generation cast: each person gets an authored silhouette,
+    // facial rhythm and animation temperament instead of relying on rotating defaults.
+    "sim-dalia": {
+      faceShape: "heart", headScaleX: 0.96, headScaleY: 1.04, eyeGap: 56, eyeScale: 1.02, eyeOpen: 0.92,
+      irisScale: 0.88, browShape: "arched", browY: -1, browScaleX: 1.08, lashes: 0.42,
+      noseTip: "round", noseWidth: 1.08, mouthScale: 1.1, mouthY: 3, lips: "full", lipUpper: "cupid",
+      lipLower: "pillow", lipColor: "#7f354e", cheekOpacity: 0.12, chinShape: "pointed", chinScale: 0.78,
+      build: 72, bodyWidth: 1.02, bust: 0.42, animMode: "calm", blinkRate: 4.8
+    },
+    "sim-rowan": {
+      faceShape: "long", headScaleX: 0.9, headScaleY: 1.08, eyeGap: 48, eyeScale: 1.14, eyeOpen: 1.04,
+      irisScale: 0.8, browShape: "thin", browY: 1.5, browScaleX: 0.86, noseTip: "upturned", noseWidth: 0.82,
+      mouthScale: 0.88, mouthY: 5, teethStyle: "gappy", chinShape: "round", chinScale: 0.74,
+      underEyeOpacity: 0.18, build: 58, bodyWidth: 0.94, animMode: "curious", blinkRate: 3.1
+    },
+    "sim-kwame": {
+      faceShape: "square", headScaleX: 1.08, headScaleY: 0.98, eyeGap: 58, eyeScale: 0.88, eyeOpen: 0.78,
+      irisScale: 0.84, eyeColor: "#7a5530", browShape: "thick", browThick: 1.22, browY: 1,
+      noseTip: "round", noseWidth: 1.22, noseScale: 1.08, mouthScale: 1.04, lips: "soft", lipColor: "#7c4937",
+      chinShape: "square", chinWidth: 1.18, jawLength: 0.08, build: 92, bodyWidth: 1.18,
+      shoulderSlope: 0.74, animMode: "serious", blinkRate: 7.2
+    },
+    "sim-saskia": {
+      faceShape: "heart", headScaleX: 0.94, headScaleY: 1.05, eyeGap: 62, eyeScale: 0.92, eyeOpen: 0.7,
+      irisScale: 0.78, browShape: "arched", browY: 2, browScaleX: 1.15, lashes: 0.72,
+      eyelashDensity: 1.25, noseTip: "pointed", noseWidth: 0.76, mouthScale: 1.12, mouthY: 4,
+      lips: "full", lipUpper: "peaked", lipLower: "flat", lipColor: "#68465d", chinShape: "pointed",
+      cheekOpacity: 0.08, build: 64, bodyWidth: 0.97, animMode: "sideeye", blinkRate: 3.8
+    },
+    "sim-omar": {
+      faceShape: "long", headScaleX: 0.93, headScaleY: 1.08, eyeGap: 52, eyeScale: 0.9, eyeOpen: 0.73,
+      irisScale: 0.86, browShape: "bushy", browThick: 1.38, browY: 0.5, noseTip: "straight", noseScale: 1.15,
+      noseWidth: 0.93, mouthScale: 0.96, mouthY: 6, chinShape: "dimple", chinY: -1, jawLength: 0.12,
+      beardLength: 0.48, underEyeOpacity: 0.28, build: 84, bodyWidth: 1.08, animMode: "squint", blinkRate: 5.9
+    },
+    "sim-jun": {
+      faceShape: "oval", headScaleX: 0.96, headScaleY: 1.03, eyeGap: 64, eyeScale: 1.02, eyeOpen: 0.84,
+      irisScale: 0.92, eyeColor: "#45698f", lazyEye: 1.5, browShape: "thin", browY: -0.5,
+      noseTip: "narrow", noseWidth: 0.8, mouthScale: 1.02, lips: "soft", lipUpper: "flat", lipColor: "#6f4d4b",
+      chinShape: "round", frontHairY: -3, build: 61, bodyWidth: 0.97, animMode: "dreamy", blinkRate: 2.6
+    },
+    "sim-zahra": {
+      faceShape: "round", headScaleX: 1.03, headScaleY: 0.98, eyeGap: 52, eyeScale: 1.06, eyeOpen: 0.96,
+      irisScale: 0.88, eyeColor: "#3f6048", browShape: "arched", browThick: 1.08, lashes: 0.55,
+      noseTip: "button", noseWidth: 1.05, mouthScale: 1.18, mouthY: 3, lips: "full", lipUpper: "cupid",
+      lipLower: "wide", lipColor: "#8c4054", teethStyle: "perfect", cheekOpacity: 0.14,
+      build: 76, bodyWidth: 1.04, bust: 0.36, animMode: "alert", blinkRate: 3.7
+    },
+    "sim-maceo": {
+      faceShape: "long", headScaleX: 0.94, headScaleY: 1.09, eyeGap: 60, eyeScale: 1.12, eyeOpen: 1.08,
+      irisScale: 0.76, browShape: "thick", browY: -1.5, noseTip: "upturned", noseWidth: 1.13,
+      mouthScale: 1.08, mouthY: 5, lips: "soft", chinShape: "round", chinScale: 0.82,
+      build: 70, bodyWidth: 1.02, shoulderSlope: 0.8, animMode: "googly", blinkRate: 2.9
+    },
+    "sim-greta": {
+      faceShape: "long", headScaleX: 0.91, headScaleY: 1.08, eyeGap: 50, eyeScale: 0.86, eyeOpen: 0.68,
+      irisScale: 0.78, browShape: "thin", browY: 2.5, browScaleX: 0.86, noseTip: "narrow", noseScale: 1.2,
+      noseWidth: 0.72, mouthScale: 0.88, mouthY: 4, lips: "line", chinShape: "pointed", chinScale: 0.78,
+      underEyeOpacity: 0.42, crowsFeetOpacity: 0.36, build: 59, bodyWidth: 0.91, animMode: "serious", blinkRate: 6.8
+    },
+    "sim-beau": {
+      faceShape: "square", headScaleX: 1.07, headScaleY: 0.96, eyeGap: 61, eyeScale: 0.98, eyeOpen: 0.9,
+      irisScale: 0.86, eyeColor: "#45698f", browShape: "thick", browY: -1, noseTip: "button", noseWidth: 1.18,
+      mouthScale: 1.2, mouthY: 4, teethStyle: "perfect", chinShape: "square", chinWidth: 1.08,
+      cheekOpacity: 0.11, build: 96, bodyWidth: 1.2, shoulderSlope: 0.84, animMode: "bobble", blinkRate: 4.1
+    },
+    "sim-imani": {
+      faceShape: "heart", headScaleX: 0.98, headScaleY: 1.06, eyeGap: 59, eyeScale: 1.02, eyeOpen: 0.78,
+      irisScale: 0.9, eyeColor: "#7a5530", browShape: "arched", browY: -1, lashes: 0.52,
+      noseTip: "straight", noseWidth: 0.88, mouthScale: 1.03, mouthY: 3, lips: "full", lipUpper: "heavy",
+      lipLower: "pillow", lipColor: "#714049", chinShape: "pointed", chinScale: 0.78, frontHairY: -15,
+      build: 74, bodyWidth: 1.02, bust: 0.3, animMode: "calm", blinkRate: 5.2
+    },
+    "sim-paolo": {
+      faceShape: "long", headScaleX: 0.92, headScaleY: 1.1, eyeGap: 54, eyeScale: 0.89, eyeOpen: 0.65,
+      irisScale: 0.82, browShape: "bushy", browThick: 1.28, browY: 2, noseTip: "round", noseScale: 1.22,
+      noseWidth: 1.05, mouthScale: 0.92, mouthY: 7, chinShape: "dimple", jawLength: 0.16,
+      underEyeOpacity: 0.5, beardLength: 0.58, build: 81, bodyWidth: 1.05, animMode: "sleepy", blinkRate: 2.2
+    },
+    "sim-esme": {
+      faceShape: "round", headScaleX: 1.04, headScaleY: 0.96, eyeGap: 66, eyeScale: 1.18, eyeOpen: 1.1,
+      irisScale: 0.86, eyeColor: "#45698f", browShape: "thin", browY: 2, noseTip: "button", noseScale: 0.76,
+      noseWidth: 0.92, mouthScale: 0.88, mouthY: 4, lips: "soft", lipColor: "#90504f", chinShape: "round",
+      cheekOpacity: 0.18, build: 55, bodyWidth: 0.9, bust: 0.18, animMode: "curious", blinkRate: 2.8
+    },
+    "sim-dev": {
+      faceShape: "square", headScaleX: 1.07, headScaleY: 1.0, eyeGap: 49, eyeScale: 0.9, eyeOpen: 0.7,
+      irisScale: 0.82, browShape: "thick", browThick: 1.5, browY: 1.5, noseTip: "straight", noseScale: 1.12,
+      noseWidth: 1.0, mouthScale: 0.92, mouthY: 4, chinShape: "square", chinWidth: 1.2, jawLength: 0.07,
+      frownLineOpacity: 0.42, build: 99, bodyWidth: 1.24, shoulderSlope: 0.78, animMode: "serious", blinkRate: 7.8
+    },
+    "sim-niamh": {
+      faceShape: "heart", headScaleX: 0.95, headScaleY: 1.04, eyeGap: 58, eyeScale: 1.08, eyeOpen: 0.98,
+      irisScale: 0.9, eyeColor: "#3f6048", browShape: "arched", browY: -0.5, lashes: 0.38,
+      noseTip: "upturned", noseWidth: 0.84, mouthScale: 1.04, mouthY: 3, lips: "full", lipUpper: "cupid",
+      lipColor: "#a34d54", cheekOpacity: 0.2, crowsFeetOpacity: 0.1, build: 66, bodyWidth: 0.96,
+      bust: 0.3, animMode: "shifty", blinkRate: 3.4
+    },
+    "sim-sol": {
+      faceShape: "oval", headScaleX: 0.98, headScaleY: 1.06, eyeGap: 65, eyeScale: 1.06, eyeOpen: 0.92,
+      irisScale: 0.8, eyeColor: "#3f6048", browShape: "thin", browY: 1, noseTip: "narrow", noseWidth: 0.76,
+      noseScale: 1.08, mouthScale: 1.08, mouthY: 4, lips: "soft", lipColor: "#754543", chinShape: "round",
+      earVariant: "lobe", build: 63, bodyWidth: 0.96, animMode: "nod", blinkRate: 4.6
+    },
+    "sim-chidi": {
+      faceShape: "round", headScaleX: 1.05, headScaleY: 1.0, eyeGap: 50, eyeScale: 0.92, eyeOpen: 0.72,
+      irisScale: 0.8, browShape: "bushy", browThick: 1.18, browY: 2, noseTip: "round", noseWidth: 1.18,
+      mouthScale: 0.94, mouthY: 5, lips: "soft", lipColor: "#754537", chinShape: "round", underEyeOpacity: 0.58,
+      crowsFeetOpacity: 0.24, build: 82, bodyWidth: 1.08, animMode: "sleepy", blinkRate: 2.0
+    },
+    "sim-leila": {
+      faceShape: "oval", headScaleX: 0.96, headScaleY: 1.03, eyeGap: 55, eyeScale: 1.02, eyeOpen: 0.82,
+      irisScale: 0.9, browShape: "arched", browThick: 1.15, browY: 1, noseTip: "pointed", noseWidth: 0.82,
+      mouthScale: 1.08, mouthY: 4, lips: "full", lipUpper: "heavy", lipLower: "wide", lipColor: "#8d4651",
+      chinShape: "dimple", cheekOpacity: 0.1, build: 79, bodyWidth: 1.04, bust: 0.28, animMode: "sideeye", blinkRate: 3.6
+    },
+    "sim-kenji": {
+      faceShape: "square", headScaleX: 1.02, headScaleY: 0.98, eyeGap: 64, eyeScale: 0.88, eyeOpen: 0.62,
+      irisScale: 0.76, browShape: "thin", browY: 1.5, browScaleX: 1.08, noseTip: "straight", noseScale: 1.08,
+      noseWidth: 0.8, mouthScale: 0.9, mouthY: 5, lips: "line", chinShape: "square", chinWidth: 1.05,
+      jawLength: 0.04, build: 73, bodyWidth: 1.0, animMode: "squint", blinkRate: 6.4
+    },
+    "sim-farah": {
+      faceShape: "heart", headScaleX: 0.97, headScaleY: 1.04, eyeGap: 60, eyeScale: 1.05, eyeOpen: 0.88,
+      irisScale: 0.9, eyeColor: "#3f6048", browShape: "arched", browY: -0.5, lashes: 0.62,
+      noseTip: "button", noseWidth: 0.96, mouthScale: 1.12, mouthY: 3, lips: "full", lipUpper: "cupid",
+      lipLower: "pillow", lipColor: "#86485a", cheekOpacity: 0.14, chinShape: "pointed", chinScale: 0.82,
+      build: 70, bodyWidth: 0.99, bust: 0.34, animMode: "calm", blinkRate: 4.1
+    },
+    "sim-arturo": {
+      faceShape: "long", headScaleX: 0.96, headScaleY: 1.07, eyeGap: 57, eyeScale: 0.94, eyeOpen: 0.79,
+      irisScale: 0.88, browShape: "bushy", browThick: 1.32, browY: 0.5, noseTip: "pointed", noseScale: 1.12,
+      noseWidth: 0.9, mouthScale: 1.02, mouthY: 6, lips: "soft", chinShape: "dimple", jawLength: 0.13,
+      crowsFeetOpacity: 0.4, nasoOpacity: 0.22, build: 94, bodyWidth: 1.17, shoulderSlope: 0.82,
+      animMode: "lean", blinkRate: 4.9
+    },
+    "sim-rue": {
+      faceShape: "round", headScaleX: 1.04, headScaleY: 0.97, eyeGap: 67, eyeScale: 1.13, eyeOpen: 1.03,
+      irisScale: 0.72, eyeColor: "#45698f", browShape: "thin", browY: 2.5, noseTip: "upturned", noseScale: 0.78,
+      noseWidth: 0.86, mouthScale: 0.86, mouthY: 4, lips: "full", lipUpper: "peaked", lipColor: "#80405c",
+      chinShape: "round", cheekOpacity: 0.16, build: 54, bodyWidth: 0.9, animMode: "nervous", blinkRate: 2.3
+    },
+    "sim-binta": {
+      faceShape: "square", headScaleX: 1.03, headScaleY: 1.01, eyeGap: 56, eyeScale: 1.0, eyeOpen: 0.88,
+      irisScale: 0.88, eyeColor: "#7a5530", browShape: "arched", browThick: 1.08, browY: -1, lashes: 0.44,
+      noseTip: "round", noseWidth: 1.15, mouthScale: 1.17, mouthY: 4, lips: "full", lipUpper: "heavy",
+      lipLower: "wide", lipColor: "#713741", teethStyle: "perfect", chinShape: "square", chinWidth: 1.04,
+      build: 86, bodyWidth: 1.1, bust: 0.32, animMode: "smug", blinkRate: 4.7
+    },
+    "sim-gus": {
+      faceShape: "round", headScaleX: 1.08, headScaleY: 0.95, eyeGap: 47, eyeScale: 0.84, eyeOpen: 0.66,
+      irisScale: 0.78, browShape: "bushy", browThick: 1.26, browY: 2, noseTip: "round", noseScale: 1.22,
+      noseWidth: 1.2, mouthScale: 0.9, mouthY: 6, chinShape: "dimple", chinWidth: 1.1, beardLength: 0.62,
+      crowsFeetOpacity: 0.5, underEyeOpacity: 0.45, build: 88, bodyWidth: 1.15, animMode: "sleepy", blinkRate: 2.6
+    },
+    "sim-marisol": {
+      faceShape: "heart", headScaleX: 0.96, headScaleY: 1.05, eyeGap: 61, eyeScale: 1.09, eyeOpen: 0.96,
+      irisScale: 0.88, eyeColor: "#7a5530", browShape: "arched", browY: -1.5, lashes: 0.86,
+      eyelashDensity: 1.4, noseTip: "narrow", noseWidth: 0.86, mouthScale: 1.24, mouthY: 4, lips: "full",
+      lipUpper: "cupid", lipLower: "pillow", lipColor: "#a33e5a", teethStyle: "perfect", cheekOpacity: 0.18,
+      chinShape: "pointed", frontHairY: -17, build: 75, bodyWidth: 1.02, bust: 0.48, animMode: "smug", blinkRate: 3.5
+    },
+    "sim-tariq": {
+      faceShape: "long", headScaleX: 0.91, headScaleY: 1.1, eyeGap: 49, eyeScale: 1.07, eyeOpen: 1.0,
+      irisScale: 0.74, eyeColor: "#3f6048", browShape: "bushy", browThick: 1.2, browY: 2,
+      noseTip: "button", noseWidth: 0.72, noseScale: 1.14, mouthScale: 0.86, mouthY: 5, lips: "line",
+      chinShape: "pointed", chinScale: 0.72, underEyeOpacity: 0.3, frontHairY: -11, build: 62, bodyWidth: 0.94,
+      animMode: "nervous", blinkRate: 2.5
+    },
+    "sim-evelyn": {
+      faceShape: "oval", headScaleX: 0.94, headScaleY: 1.07, eyeGap: 54, eyeScale: 0.91, eyeOpen: 0.73,
+      irisScale: 0.82, eyeColor: "#45698f", browShape: "thin", browY: 2, noseTip: "pointed", noseScale: 1.12,
+      noseWidth: 0.76, mouthScale: 0.94, mouthY: 5, lips: "full", lipUpper: "flat", lipColor: "#8c4d55",
+      chinShape: "pointed", chinScale: 0.74, crowsFeetOpacity: 0.48, underEyeOpacity: 0.36,
+      nasoOpacity: 0.26, build: 57, bodyWidth: 0.91, animMode: "serious", blinkRate: 7.0
+    },
+    "sim-koa": {
+      faceShape: "square", headScaleX: 1.06, headScaleY: 0.98, eyeGap: 63, eyeScale: 0.92, eyeOpen: 0.72,
+      irisScale: 0.82, browShape: "thick", browThick: 1.26, browY: 1.5, noseTip: "straight", noseWidth: 1.08,
+      noseScale: 1.05, mouthScale: 1.02, mouthY: 5, lips: "soft", lipColor: "#74433e", chinShape: "square",
+      chinWidth: 1.12, build: 91, bodyWidth: 1.17, shoulderSlope: 0.84, animMode: "sideeye", blinkRate: 4.4
+    },
+    "sim-rashida": {
+      faceShape: "long", headScaleX: 0.93, headScaleY: 1.09, eyeGap: 58, eyeScale: 0.97, eyeOpen: 0.82,
+      irisScale: 0.88, eyeColor: "#3f6048", browShape: "arched", browThick: 1.15, browY: 0, lashes: 0.38,
+      noseTip: "straight", noseScale: 1.14, noseWidth: 0.86, mouthScale: 1.04, mouthY: 5, lips: "full",
+      lipUpper: "heavy", lipLower: "flat", lipColor: "#6e3a3e", chinShape: "dimple", jawLength: 0.12,
+      build: 78, bodyWidth: 1.05, bust: 0.24, animMode: "nod", blinkRate: 5.6
+    },
+    "sim-lenny": {
+      faceShape: "round", headScaleX: 1.06, headScaleY: 0.96, eyeGap: 68, eyeScale: 1.14, eyeOpen: 1.02,
+      irisScale: 0.76, eyeColor: "#45698f", browShape: "thin", browY: 1.5, noseTip: "button", noseScale: 0.8,
+      noseWidth: 1.1, mouthScale: 1.16, mouthY: 4, teethStyle: "gappy", chinShape: "round", cheekOpacity: 0.14,
+      build: 60, bodyWidth: 0.94, animMode: "googly", blinkRate: 2.7
     }
   };
 
-  function createCharacters(makeTags, fallbackCharacters = []) {
+  const nextCandidateOverrides = {
+    "sim2-nyla": {
+      faceShape: "square", headScaleX: 1.05, headScaleY: 0.99, eyeGap: 54, eyeScale: 0.93, eyeOpen: 0.76,
+      browShape: "thick", browThick: 1.28, noseTip: "round", noseWidth: 1.16, lips: "soft", lipColor: "#713d43",
+      chinShape: "square", chinWidth: 1.1, build: 88, bodyWidth: 1.12, animMode: "serious", blinkRate: 6.4
+    },
+    "sim2-vesper": {
+      faceShape: "heart", headScaleX: 0.94, headScaleY: 1.06, eyeGap: 62, eyeScale: 0.91, eyeOpen: 0.7,
+      browShape: "arched", browY: 1.5, lashes: 0.72, noseTip: "pointed", noseWidth: 0.75, lips: "full",
+      lipUpper: "peaked", lipLower: "flat", lipColor: "#65435e", chinShape: "pointed", animMode: "sideeye"
+    },
+    "sim2-idris": {
+      faceShape: "round", headScaleX: 1.08, headScaleY: 0.95, eyeGap: 47, eyeScale: 0.84, eyeOpen: 0.65,
+      browShape: "bushy", browThick: 1.3, noseTip: "round", noseScale: 1.2, noseWidth: 1.2, chinShape: "dimple",
+      underEyeOpacity: 0.46, crowsFeetOpacity: 0.46, build: 87, bodyWidth: 1.14, animMode: "sleepy"
+    },
+    "sim2-suri": {
+      faceShape: "heart", headScaleX: 0.98, headScaleY: 1.03, eyeGap: 58, eyeScale: 1.05, eyeOpen: 0.9,
+      eyeColor: "#3f6048", browShape: "arched", lashes: 0.5, noseTip: "button", noseWidth: 0.94, lips: "full",
+      lipUpper: "cupid", lipLower: "pillow", lipColor: "#874858", cheekOpacity: 0.14, animMode: "calm"
+    },
+    "sim2-otis": {
+      faceShape: "long", headScaleX: 0.9, headScaleY: 1.09, eyeGap: 65, eyeScale: 1.13, eyeOpen: 1.02,
+      irisScale: 0.78, eyeColor: "#45698f", browShape: "thin", noseTip: "button", noseScale: 0.8,
+      mouthScale: 1.14, teethStyle: "gappy", chinShape: "round", build: 58, bodyWidth: 0.93, animMode: "googly"
+    },
+    "sim2-amina": {
+      faceShape: "square", headScaleX: 1.06, headScaleY: 0.98, eyeGap: 50, eyeScale: 0.91, eyeOpen: 0.76,
+      browShape: "thick", browThick: 1.24, browY: 1, lashes: 0.36, noseTip: "round", noseWidth: 1.16,
+      mouthScale: 1.18, lips: "full", lipUpper: "heavy", lipLower: "wide", lipColor: "#8d3852",
+      chinShape: "square", chinWidth: 1.08, build: 88, bodyWidth: 1.12, bust: 0.34, animMode: "bobble"
+    },
+    "sim2-cass": {
+      faceShape: "oval", headScaleX: 0.97, headScaleY: 1.04, eyeGap: 63, eyeScale: 1.02, eyeOpen: 0.88,
+      irisScale: 0.87, browShape: "thin", noseTip: "button", noseWidth: 0.82, lips: "soft", lipUpper: "flat",
+      lipColor: "#784a52", chinShape: "pointed", build: 62, bodyWidth: 0.96, animMode: "curious"
+    },
+    "sim2-rafael": {
+      faceShape: "long", headScaleX: 0.93, headScaleY: 1.09, eyeGap: 51, eyeScale: 0.88, eyeOpen: 0.7,
+      browShape: "bushy", browThick: 1.36, noseTip: "straight", noseScale: 1.16, mouthScale: 0.96,
+      jawLength: 0.13, chinShape: "dimple", underEyeOpacity: 0.28, build: 85, bodyWidth: 1.09, animMode: "squint"
+    },
+    "sim2-yvette": {
+      faceShape: "long", headScaleX: 0.92, headScaleY: 1.08, eyeGap: 53, eyeScale: 0.88, eyeOpen: 0.7,
+      browShape: "arched", browScaleX: 0.9, noseTip: "pointed", noseScale: 1.15, noseWidth: 0.74, lips: "full",
+      lipUpper: "flat", lipColor: "#794550", crowsFeetOpacity: 0.32, chinShape: "pointed", animMode: "serious"
+    },
+    "sim2-musa": {
+      faceShape: "square", headScaleX: 1.07, headScaleY: 0.98, eyeGap: 60, eyeScale: 1.02, eyeOpen: 0.9,
+      irisScale: 0.82, browShape: "thick", noseTip: "round", noseWidth: 1.18, mouthScale: 1.08,
+      chinShape: "square", chinWidth: 1.14, build: 98, bodyWidth: 1.22, shoulderSlope: 0.84, animMode: "bobble"
+    },
+    "sim2-priyanka": {
+      faceShape: "heart", headScaleX: 0.97, headScaleY: 1.05, eyeGap: 58, eyeScale: 1.06, eyeOpen: 0.93,
+      eyeColor: "#3f6048", browShape: "arched", lashes: 0.66, noseTip: "narrow", noseWidth: 0.88, lips: "full",
+      lipUpper: "cupid", lipLower: "wide", lipColor: "#913f56", cheekOpacity: 0.16, bust: 0.4, animMode: "calm"
+    },
+    "sim2-theo": {
+      faceShape: "long", headScaleX: 0.91, headScaleY: 1.08, eyeGap: 49, eyeScale: 0.9, eyeOpen: 0.72,
+      browShape: "thin", browY: 1.5, noseTip: "narrow", noseScale: 1.16, noseWidth: 0.72, mouthScale: 0.88,
+      chinShape: "pointed", underEyeOpacity: 0.3, build: 61, bodyWidth: 0.94, animMode: "shifty"
+    },
+    "sim2-celia": {
+      faceShape: "round", headScaleX: 1.03, headScaleY: 0.98, eyeGap: 59, eyeScale: 1.02, eyeOpen: 0.8,
+      browShape: "arched", noseTip: "upturned", noseWidth: 0.88, lips: "full", lipUpper: "heavy",
+      lipColor: "#895058", cheekOpacity: 0.14, chinShape: "round", build: 68, bust: 0.28, animMode: "dreamy"
+    },
+    "sim2-malik": {
+      faceShape: "square", headScaleX: 1.06, headScaleY: 1.0, eyeGap: 55, eyeScale: 0.9, eyeOpen: 0.74,
+      browShape: "thick", browThick: 1.3, noseTip: "round", noseWidth: 1.18, lips: "soft", lipColor: "#76433a",
+      chinShape: "square", chinWidth: 1.12, build: 94, bodyWidth: 1.18, animMode: "serious"
+    },
+    "sim2-anouk": {
+      faceShape: "long", headScaleX: 0.92, headScaleY: 1.1, eyeGap: 65, eyeScale: 1.04, eyeOpen: 0.84,
+      eyeColor: "#45698f", browShape: "thin", noseTip: "straight", noseWidth: 0.76, lips: "soft", lipUpper: "flat",
+      lipColor: "#7e4b57", chinShape: "pointed", build: 59, bodyWidth: 0.93, animMode: "sideeye"
+    },
+    "sim2-soraya": {
+      faceShape: "long", headScaleX: 0.9, headScaleY: 1.11, eyeGap: 65, eyeScale: 0.88, eyeOpen: 0.7,
+      eyeColor: "#45698f", browShape: "thin", browY: 2, noseTip: "pointed", noseScale: 1.18,
+      noseWidth: 0.76, mouthScale: 0.9, lips: "soft", lipUpper: "flat", lipColor: "#7c4650",
+      chinShape: "pointed", build: 60, bodyWidth: 0.93, animMode: "serious"
+    },
+    "sim2-bento": {
+      faceShape: "square", headScaleX: 1.08, headScaleY: 0.96, eyeGap: 61, eyeScale: 0.98, eyeOpen: 0.9,
+      eyeColor: "#45698f", browShape: "thick", noseTip: "button", noseWidth: 1.18, mouthScale: 1.2,
+      teethStyle: "perfect", chinShape: "square", build: 96, bodyWidth: 1.2, animMode: "bobble"
+    },
+    "sim2-odessa": {
+      faceShape: "long", headScaleX: 0.92, headScaleY: 1.09, eyeGap: 52, eyeScale: 0.87, eyeOpen: 0.67,
+      browShape: "thin", browY: 2, noseTip: "narrow", noseScale: 1.18, lips: "line", chinShape: "pointed",
+      underEyeOpacity: 0.42, crowsFeetOpacity: 0.4, build: 61, bodyWidth: 0.94, animMode: "serious"
+    },
+    "sim2-finch": {
+      faceShape: "long", headScaleX: 0.9, headScaleY: 1.08, eyeGap: 66, eyeScale: 1.12, eyeOpen: 1.03,
+      irisScale: 0.76, browShape: "thin", noseTip: "upturned", noseScale: 0.78, teethStyle: "gappy",
+      chinShape: "round", build: 56, bodyWidth: 0.92, animMode: "curious"
+    },
+    "sim2-hector": {
+      faceShape: "heart", headScaleX: 0.94, headScaleY: 1.07, eyeGap: 64, eyeScale: 1.04, eyeOpen: 0.9,
+      browShape: "thin", browY: -0.5, noseTip: "pointed", noseScale: 0.92, noseWidth: 0.78,
+      mouthScale: 0.94, lips: "line", chinShape: "pointed", chinScale: 0.74, build: 67,
+      bodyWidth: 0.96, animMode: "shifty"
+    },
+    "sim2-zuri": {
+      faceShape: "heart", headScaleX: 0.96, headScaleY: 1.04, eyeGap: 60, eyeScale: 1.0, eyeOpen: 0.82,
+      browShape: "arched", browThick: 1.18, lashes: 0.42, noseTip: "pointed", noseWidth: 0.82, lips: "full",
+      lipUpper: "heavy", lipLower: "wide", lipColor: "#713a45", chinShape: "pointed", animMode: "sideeye"
+    },
+    "sim2-ravi": {
+      faceShape: "long", headScaleX: 0.91, headScaleY: 1.1, eyeGap: 50, eyeScale: 1.06, eyeOpen: 0.96,
+      irisScale: 0.76, browShape: "bushy", noseTip: "button", noseWidth: 0.74, mouthScale: 0.88,
+      frontHairY: -11, chinShape: "pointed", build: 62, bodyWidth: 0.94, animMode: "nervous"
+    },
+    "sim2-maude": {
+      faceShape: "oval", headScaleX: 0.96, headScaleY: 1.04, eyeGap: 57, eyeScale: 1.02, eyeOpen: 0.86,
+      eyeColor: "#45698f", browShape: "thin", noseTip: "button", noseScale: 0.86, lips: "soft",
+      lipColor: "#92535d", frontHairY: -15, crowsFeetOpacity: 0.26, build: 58, bust: 0.22, animMode: "dreamy"
+    },
+    "sim2-enzo": {
+      faceShape: "oval", headScaleX: 0.94, headScaleY: 1.08, eyeGap: 64, eyeScale: 1.04, eyeOpen: 0.9,
+      eyeColor: "#45698f", browShape: "arched", browY: -0.5, noseTip: "pointed", noseScale: 0.94,
+      noseWidth: 0.78, mouthScale: 1.04, lips: "soft", lipUpper: "peaked", lipColor: "#754642",
+      chinShape: "pointed", build: 63, bodyWidth: 0.95, animMode: "nod"
+    },
+    "sim2-cleo": {
+      faceShape: "heart", headScaleX: 0.95, headScaleY: 1.05, eyeGap: 62, eyeScale: 1.07, eyeOpen: 0.92,
+      browShape: "arched", lashes: 0.84, noseTip: "narrow", noseWidth: 0.82, lips: "full", lipUpper: "peaked",
+      lipLower: "pillow", lipColor: "#9c3d64", teethStyle: "perfect", cheekOpacity: 0.18, animMode: "smug"
+    },
+    "sim2-nabil": {
+      faceShape: "oval", headScaleX: 0.98, headScaleY: 1.05, eyeGap: 55, eyeScale: 0.92, eyeOpen: 0.78,
+      browShape: "thick", browThick: 1.2, noseTip: "straight", noseScale: 1.1, noseWidth: 0.94,
+      mouthScale: 0.96, chinShape: "square", build: 82, bodyWidth: 1.06, animMode: "calm"
+    },
+    "sim2-tamsin": {
+      faceShape: "heart", headScaleX: 0.96, headScaleY: 1.04, eyeGap: 56, eyeScale: 1.01, eyeOpen: 0.78,
+      browShape: "arched", browThick: 1.18, noseTip: "pointed", noseWidth: 0.8, lips: "full",
+      lipUpper: "heavy", lipColor: "#8c4654", chinShape: "dimple", build: 76, bust: 0.3, animMode: "sideeye"
+    },
+    "sim2-kojo": {
+      faceShape: "long", headScaleX: 0.96, headScaleY: 1.08, eyeGap: 57, eyeScale: 0.93, eyeOpen: 0.76,
+      browShape: "bushy", browThick: 1.3, noseTip: "pointed", noseScale: 1.12, noseWidth: 0.9,
+      jawLength: 0.12, chinShape: "dimple", build: 96, bodyWidth: 1.19, animMode: "lean"
+    },
+    "sim2-nour": {
+      faceShape: "square", headScaleX: 1.07, headScaleY: 0.98, eyeGap: 49, eyeScale: 0.9, eyeOpen: 0.72,
+      eyeColor: "#7a5530", browShape: "bushy", browThick: 1.25, browY: 1.5, noseTip: "straight",
+      noseScale: 1.12, noseWidth: 1.08, mouthScale: 0.94, lips: "soft", lipUpper: "flat",
+      lipColor: "#74434a", chinShape: "dimple", build: 82, bodyWidth: 1.08, animMode: "nod"
+    },
+    "sim2-pike": {
+      faceShape: "square", headScaleX: 1.05, headScaleY: 0.98, eyeGap: 63, eyeScale: 0.92, eyeOpen: 0.7,
+      browShape: "thick", browThick: 1.26, noseTip: "straight", noseWidth: 1.06, chinShape: "square",
+      chinWidth: 1.1, build: 92, bodyWidth: 1.18, shoulderSlope: 0.84, animMode: "sideeye"
+    },
+    "sim2-valentina": {
+      faceShape: "heart", headScaleX: 0.96, headScaleY: 1.05, eyeGap: 60, eyeScale: 1.08, eyeOpen: 0.94,
+      browShape: "arched", lashes: 0.78, noseTip: "narrow", noseWidth: 0.84, lips: "full", lipUpper: "cupid",
+      lipLower: "pillow", lipColor: "#9b3e5e", teethStyle: "perfect", cheekOpacity: 0.18, bust: 0.45, animMode: "smug"
+    },
+    "sim2-cecil": {
+      faceShape: "square", headScaleX: 1.05, headScaleY: 1.0, eyeGap: 48, eyeScale: 0.9, eyeOpen: 0.7,
+      irisScale: 0.86, eyeColor: "#3f6048", browShape: "thick", browThick: 1.3, noseTip: "straight",
+      noseScale: 1.18, noseWidth: 1.06, mouthScale: 1.22, teethStyle: "perfect", chinShape: "square",
+      chinWidth: 1.12, build: 90, bodyWidth: 1.16, animMode: "serious"
+    },
+    "sim2-amara": {
+      faceShape: "square", headScaleX: 1.03, headScaleY: 1.02, eyeGap: 55, eyeScale: 0.95, eyeOpen: 0.76,
+      browShape: "arched", browThick: 1.18, noseTip: "straight", noseWidth: 1.08, lips: "full",
+      lipUpper: "heavy", lipColor: "#6e3843", chinShape: "square", chinWidth: 1.04, build: 84, animMode: "serious"
+    },
+    "sim2-jonas": {
+      faceShape: "long", headScaleX: 0.9, headScaleY: 1.1, eyeGap: 49, eyeScale: 1.07, eyeOpen: 0.98,
+      irisScale: 0.74, eyeColor: "#3f6048", browShape: "bushy", noseTip: "button", noseScale: 1.12,
+      noseWidth: 0.72, mouthScale: 0.85, frontHairY: -11, chinShape: "pointed", animMode: "nervous"
+    },
+    "sim2-rina": {
+      faceShape: "heart", headScaleX: 0.95, headScaleY: 1.04, eyeGap: 61, eyeScale: 0.93, eyeOpen: 0.72,
+      browShape: "arched", browY: 1.5, lashes: 0.68, noseTip: "pointed", noseWidth: 0.76, lips: "full",
+      lipUpper: "peaked", lipColor: "#68445c", chinShape: "pointed", animMode: "sideeye"
+    },
+    "sim2-darnell": {
+      faceShape: "long", headScaleX: 0.91, headScaleY: 1.11, eyeGap: 64, eyeScale: 0.85, eyeOpen: 0.64,
+      browShape: "bushy", browThick: 1.2, browY: 1.5, noseTip: "narrow", noseScale: 1.16,
+      noseWidth: 0.74, mouthScale: 0.9, lips: "line", chinShape: "pointed", chinScale: 0.76,
+      build: 72, bodyWidth: 0.98, animMode: "lean"
+    },
+    "sim2-edda": {
+      faceShape: "long", headScaleX: 0.91, headScaleY: 1.1, eyeGap: 52, eyeScale: 0.87, eyeOpen: 0.68,
+      eyeColor: "#45698f", browShape: "thin", noseTip: "pointed", noseScale: 1.16, noseWidth: 0.74,
+      lips: "full", lipUpper: "flat", lipColor: "#874d57", crowsFeetOpacity: 0.46, underEyeOpacity: 0.38, animMode: "serious"
+    },
+    "sim2-samir": {
+      faceShape: "long", headScaleX: 0.93, headScaleY: 1.09, eyeGap: 52, eyeScale: 0.89, eyeOpen: 0.72,
+      browShape: "bushy", browThick: 1.34, noseTip: "straight", noseScale: 1.15, noseWidth: 0.94,
+      jawLength: 0.13, chinShape: "dimple", build: 83, bodyWidth: 1.07, animMode: "squint"
+    },
+    "sim2-lore": {
+      faceShape: "round", headScaleX: 1.03, headScaleY: 0.98, eyeGap: 65, eyeScale: 1.1, eyeOpen: 0.98,
+      irisScale: 0.78, eyeColor: "#45698f", browShape: "thin", noseTip: "upturned", noseScale: 0.8,
+      lips: "soft", lipColor: "#854d58", chinShape: "round", build: 57, bodyWidth: 0.92, animMode: "curious"
+    },
+    "sim2-paloma": {
+      faceShape: "round", headScaleX: 1.05, headScaleY: 0.97, eyeGap: 50, eyeScale: 0.9, eyeOpen: 0.76,
+      eyeColor: "#45698f", browShape: "thick", browThick: 1.18, browY: 1, lashes: 0.3,
+      noseTip: "round", noseScale: 1.08, noseWidth: 1.16, mouthScale: 1.02, lips: "soft",
+      lipUpper: "heavy", lipLower: "flat", lipColor: "#8a4554", chinShape: "square",
+      chinWidth: 1.06, build: 84, bodyWidth: 1.08, bust: 0.3, animMode: "bobble"
+    },
+    "sim2-adisa": {
+      faceShape: "square", headScaleX: 1.03, headScaleY: 1.01, eyeGap: 55, eyeScale: 0.98, eyeOpen: 0.82,
+      eyeColor: "#7a5530", browShape: "arched", browThick: 1.12, noseTip: "round", noseWidth: 1.14,
+      lips: "full", lipUpper: "heavy", lipColor: "#6d3942", chinShape: "square", build: 83, animMode: "calm"
+    },
+    "sim2-bram": {
+      faceShape: "round", headScaleX: 1.07, headScaleY: 0.96, eyeGap: 48, eyeScale: 0.83, eyeOpen: 0.64,
+      browShape: "bushy", browThick: 1.28, noseTip: "round", noseScale: 1.22, noseWidth: 1.18,
+      chinShape: "dimple", crowsFeetOpacity: 0.5, underEyeOpacity: 0.46, build: 89, bodyWidth: 1.15, animMode: "sleepy"
+    },
+    "sim2-safiya": {
+      faceShape: "square", headScaleX: 1.04, headScaleY: 1.0, eyeGap: 64, eyeScale: 0.88, eyeOpen: 0.68,
+      browShape: "thick", browThick: 1.3, browY: 2, noseTip: "round", noseScale: 1.12,
+      noseWidth: 1.15, mouthScale: 0.92, lips: "line", chinShape: "square", chinWidth: 1.12,
+      build: 88, bodyWidth: 1.12, animMode: "serious"
+    },
+    "sim2-marcel": {
+      faceShape: "long", headScaleX: 0.93, headScaleY: 1.08, eyeGap: 50, eyeScale: 0.86, eyeOpen: 0.68,
+      browShape: "thin", browY: 1.5, noseTip: "narrow", noseScale: 1.2, noseWidth: 0.72,
+      chinShape: "pointed", crowsFeetOpacity: 0.34, build: 74, bodyWidth: 1.0, animMode: "serious"
+    },
+    "sim2-xiang": {
+      faceShape: "oval", headScaleX: 0.95, headScaleY: 1.06, eyeGap: 66, eyeScale: 1.03, eyeOpen: 0.9,
+      browShape: "arched", browY: -1, noseTip: "upturned", noseScale: 0.86, noseWidth: 0.82,
+      mouthScale: 1.02, lips: "soft", lipUpper: "peaked", chinShape: "pointed", build: 65,
+      bodyWidth: 0.96, animMode: "curious"
+    },
+    "sim2-deka": {
+      faceShape: "round", headScaleX: 1.04, headScaleY: 0.98, eyeGap: 61, eyeScale: 1.08, eyeOpen: 1.0,
+      irisScale: 0.78, browShape: "thick", noseTip: "upturned", noseWidth: 1.06, lips: "soft",
+      chinShape: "round", build: 72, bodyWidth: 1.03, animMode: "bobble"
+    },
+    "sim2-bianca": {
+      faceShape: "square", headScaleX: 1.07, headScaleY: 0.96, eyeGap: 61, eyeScale: 1.0, eyeOpen: 0.9,
+      eyeColor: "#45698f", browShape: "thick", noseTip: "button", noseWidth: 1.16, mouthScale: 1.2,
+      teethStyle: "perfect", chinShape: "square", build: 92, bodyWidth: 1.17, bust: 0.28, animMode: "bobble"
+    },
+    "sim2-reuben": {
+      faceShape: "long", headScaleX: 0.95, headScaleY: 1.08, eyeGap: 56, eyeScale: 0.92, eyeOpen: 0.76,
+      browShape: "bushy", noseTip: "round", noseScale: 1.12, noseWidth: 1.04, lips: "soft",
+      jawLength: 0.11, chinShape: "dimple", build: 84, bodyWidth: 1.08, animMode: "calm"
+    },
+    "sim2-orla": {
+      faceShape: "heart", headScaleX: 0.95, headScaleY: 1.05, eyeGap: 58, eyeScale: 1.04, eyeOpen: 0.8,
+      eyeColor: "#3f6048", browShape: "arched", browThick: 1.16, lashes: 0.42, noseTip: "upturned",
+      noseWidth: 0.84, lips: "full", lipUpper: "cupid", lipColor: "#9b4a53", cheekOpacity: 0.18, animMode: "shifty"
+    },
+    "sim2-jett": {
+      faceShape: "heart", headScaleX: 0.96, headScaleY: 1.06, eyeGap: 47, eyeScale: 0.88, eyeOpen: 0.7,
+      irisScale: 0.9, eyeColor: "#3f6048", browShape: "bushy", browThick: 1.34, noseTip: "straight",
+      noseScale: 1.15, noseWidth: 0.86, mouthScale: 0.9, lips: "line", chinShape: "pointed",
+      chinScale: 0.74, build: 76, bodyWidth: 1.02, animMode: "shifty"
+    }
+  };
+
+  const thirdCandidateOverrides = {
+    "sim3-aya": {
+      faceShape: "heart", headScaleX: 0.94, headScaleY: 1.07, eyeGap: 64, eyeScale: 1.08, eyeOpen: 0.92,
+      irisScale: 0.86, eyeColor: "#3f6048", browShape: "arched", noseTip: "upturned", noseWidth: 0.82,
+      mouthScale: 1.12, lips: "full", lipUpper: "peaked", lipLower: "pillow", lipColor: "#8f4054",
+      chinShape: "pointed", build: 66, bodyWidth: 0.96, animMode: "calm"
+    },
+    "sim3-bo": {
+      faceShape: "square", headScaleX: 1.09, headScaleY: 0.97, eyeGap: 48, eyeScale: 0.84, eyeOpen: 0.64,
+      browShape: "bushy", browThick: 1.38, noseTip: "round", noseScale: 1.22, noseWidth: 1.2,
+      mouthScale: 0.94, lips: "soft", chinShape: "dimple", build: 98, bodyWidth: 1.22, animMode: "sleepy"
+    },
+    "sim3-cyra": {
+      faceShape: "long", headScaleX: 0.9, headScaleY: 1.12, eyeGap: 61, eyeScale: 1.1, eyeOpen: 1.0,
+      irisScale: 0.78, eyeColor: "#45698f", browShape: "thin", noseTip: "button", noseScale: 0.8,
+      noseWidth: 0.76, mouthScale: 0.86, lips: "line", chinShape: "pointed", build: 58,
+      bodyWidth: 0.92, animMode: "curious"
+    },
+    "sim3-dov": {
+      faceShape: "round", headScaleX: 1.05, headScaleY: 0.96, eyeGap: 52, eyeScale: 0.82, eyeOpen: 0.62,
+      browShape: "bushy", browThick: 1.28, noseTip: "pointed", noseScale: 1.18, noseWidth: 0.88,
+      mouthScale: 0.9, lips: "line", chinShape: "dimple", underEyeOpacity: 0.48,
+      crowsFeetOpacity: 0.42, build: 83, bodyWidth: 1.08, animMode: "squint"
+    },
+    "sim3-esi": {
+      faceShape: "oval", headScaleX: 1.0, headScaleY: 1.03, eyeGap: 49, eyeScale: 0.96, eyeOpen: 0.8,
+      browShape: "thick", browThick: 1.2, noseTip: "round", noseScale: 1.1, noseWidth: 1.13,
+      mouthScale: 1.22, lips: "full", lipUpper: "heavy", lipLower: "wide", lipColor: "#713b49",
+      chinShape: "square", build: 87, bodyWidth: 1.11, bust: 0.3, animMode: "bobble"
+    },
+    "sim3-fadil": {
+      faceShape: "long", headScaleX: 0.93, headScaleY: 1.1, eyeGap: 56, eyeScale: 0.9, eyeOpen: 0.7,
+      browShape: "thick", browThick: 1.24, noseTip: "straight", noseScale: 1.17, noseWidth: 0.94,
+      mouthScale: 0.96, lips: "soft", chinShape: "dimple", underEyeOpacity: 0.34,
+      build: 78, bodyWidth: 1.03, animMode: "serious"
+    },
+    "sim3-goldie": {
+      faceShape: "round", headScaleX: 1.08, headScaleY: 0.94, eyeGap: 68, eyeScale: 1.16, eyeOpen: 1.06,
+      irisScale: 0.76, eyeColor: "#45698f", browShape: "thin", noseTip: "button", noseScale: 0.76,
+      noseWidth: 1.02, mouthScale: 0.88, lips: "soft", chinShape: "round", cheekOpacity: 0.18,
+      build: 54, bodyWidth: 0.9, animMode: "googly"
+    },
+    "sim3-haru": {
+      faceShape: "heart", headScaleX: 0.95, headScaleY: 1.06, eyeGap: 46, eyeScale: 0.86, eyeOpen: 0.66,
+      browShape: "arched", browY: 1.5, noseTip: "pointed", noseScale: 1.15, noseWidth: 0.72,
+      mouthScale: 1.0, lips: "full", lipUpper: "flat", lipColor: "#74485a", chinShape: "pointed",
+      build: 61, bodyWidth: 0.94, animMode: "sideeye"
+    },
+    "sim3-io": {
+      faceShape: "square", headScaleX: 1.04, headScaleY: 1.01, eyeGap: 57, eyeScale: 1.02, eyeOpen: 0.82,
+      browShape: "arched", browThick: 1.12, lashes: 0.54, noseTip: "upturned", noseWidth: 1.08,
+      mouthScale: 1.15, lips: "full", lipUpper: "peaked", lipColor: "#8c4656", chinShape: "square",
+      build: 77, bodyWidth: 1.03, bust: 0.34, animMode: "alert"
+    },
+    "sim3-juno": {
+      faceShape: "oval", headScaleX: 0.97, headScaleY: 1.05, eyeGap: 66, eyeScale: 0.98, eyeOpen: 0.86,
+      browShape: "thick", noseTip: "straight", noseScale: 1.0, noseWidth: 0.86, mouthScale: 1.05,
+      lips: "soft", chinShape: "dimple", build: 72, bodyWidth: 1.0, animMode: "nod"
+    },
+    "sim3-kemi": {
+      faceShape: "long", headScaleX: 0.92, headScaleY: 1.11, eyeGap: 50, eyeScale: 0.88, eyeOpen: 0.74,
+      browShape: "arched", browThick: 1.18, noseTip: "straight", noseScale: 1.2, noseWidth: 0.8,
+      mouthScale: 1.08, lips: "full", lipUpper: "heavy", lipColor: "#713a45", chinShape: "pointed",
+      build: 70, bodyWidth: 0.98, bust: 0.26, animMode: "serious"
+    },
+    "sim3-laszlo": {
+      faceShape: "round", headScaleX: 1.1, headScaleY: 0.95, eyeGap: 44, eyeScale: 0.8, eyeOpen: 0.6,
+      browShape: "bushy", browThick: 1.42, noseTip: "round", noseScale: 1.25, noseWidth: 1.22,
+      mouthScale: 0.88, lips: "line", chinShape: "dimple", crowsFeetOpacity: 0.5,
+      underEyeOpacity: 0.46, build: 92, bodyWidth: 1.17, animMode: "sleepy"
+    },
+    "sim3-miri": {
+      faceShape: "square", headScaleX: 1.02, headScaleY: 1.02, eyeGap: 63, eyeScale: 0.9, eyeOpen: 0.7,
+      browShape: "thin", browY: 2, noseTip: "pointed", noseScale: 1.12, noseWidth: 0.78,
+      mouthScale: 0.92, lips: "soft", lipUpper: "flat", lipColor: "#7c4650", chinShape: "square",
+      build: 82, bodyWidth: 1.07, animMode: "serious"
+    },
+    "sim3-nox": {
+      faceShape: "heart", headScaleX: 0.93, headScaleY: 1.08, eyeGap: 49, eyeScale: 1.04, eyeOpen: 0.96,
+      irisScale: 0.82, browShape: "thick", noseTip: "upturned", noseScale: 0.82, noseWidth: 0.88,
+      mouthScale: 0.84, lips: "line", chinShape: "pointed", build: 55, bodyWidth: 0.91,
+      animMode: "nervous"
+    },
+    "sim3-oona": {
+      faceShape: "oval", headScaleX: 0.96, headScaleY: 1.08, eyeGap: 58, eyeScale: 0.94, eyeOpen: 0.76,
+      browShape: "arched", browY: 1, noseTip: "narrow", noseScale: 1.12, noseWidth: 0.74,
+      mouthScale: 1.06, lips: "full", lipUpper: "flat", lipColor: "#844a54", chinShape: "round",
+      crowsFeetOpacity: 0.26, build: 68, bodyWidth: 0.97, animMode: "calm"
+    },
+    "sim3-pax": {
+      faceShape: "square", headScaleX: 1.08, headScaleY: 0.98, eyeGap: 62, eyeScale: 1.06, eyeOpen: 0.92,
+      eyeColor: "#45698f", browShape: "thick", noseTip: "button", noseScale: 0.9, noseWidth: 1.18,
+      mouthScale: 1.18, teethStyle: "perfect", chinShape: "square", chinWidth: 1.14,
+      build: 100, bodyWidth: 1.24, animMode: "bobble"
+    },
+    "sim3-qasim": {
+      faceShape: "long", headScaleX: 0.89, headScaleY: 1.13, eyeGap: 47, eyeScale: 0.9, eyeOpen: 0.68,
+      browShape: "bushy", browThick: 1.34, noseTip: "straight", noseScale: 1.16, noseWidth: 0.9,
+      mouthScale: 0.9, lips: "line", chinShape: "pointed", build: 74, bodyWidth: 0.99,
+      animMode: "squint"
+    },
+    "sim3-rhea": {
+      faceShape: "heart", headScaleX: 0.97, headScaleY: 1.04, eyeGap: 54, eyeScale: 0.86, eyeOpen: 0.64,
+      browShape: "arched", browY: 1.5, lashes: 0.62, noseTip: "pointed", noseScale: 1.0,
+      noseWidth: 0.8, mouthScale: 1.2, lips: "full", lipUpper: "cupid", lipLower: "pillow",
+      lipColor: "#8d4656", chinShape: "pointed", build: 62, bodyWidth: 0.94, animMode: "dreamy"
+    },
+    "sim3-sacha": {
+      faceShape: "round", headScaleX: 1.07, headScaleY: 0.96, eyeGap: 59, eyeScale: 1.0, eyeOpen: 0.88,
+      browShape: "bushy", browThick: 1.22, noseTip: "round", noseScale: 1.1, noseWidth: 1.14,
+      mouthScale: 1.25, teethStyle: "perfect", chinShape: "dimple", build: 96, bodyWidth: 1.2,
+      animMode: "bobble"
+    },
+    "sim3-tove": {
+      faceShape: "long", headScaleX: 0.91, headScaleY: 1.1, eyeGap: 65, eyeScale: 0.84, eyeOpen: 0.62,
+      browShape: "thin", browY: 2.5, noseTip: "narrow", noseScale: 1.2, noseWidth: 0.7,
+      mouthScale: 0.92, lips: "full", lipUpper: "flat", lipColor: "#864a55", chinShape: "pointed",
+      crowsFeetOpacity: 0.48, underEyeOpacity: 0.4, build: 56, bodyWidth: 0.91, animMode: "serious"
+    },
+    "sim3-ugo": {
+      faceShape: "square", headScaleX: 1.06, headScaleY: 1.0, eyeGap: 46, eyeScale: 0.82, eyeOpen: 0.63,
+      browShape: "bushy", browThick: 1.4, noseTip: "round", noseScale: 1.18, noseWidth: 1.16,
+      mouthScale: 0.9, lips: "line", chinShape: "square", chinWidth: 1.12, build: 89,
+      bodyWidth: 1.15, animMode: "serious"
+    },
+    "sim3-vega": {
+      faceShape: "oval", headScaleX: 0.98, headScaleY: 1.03, eyeGap: 62, eyeScale: 1.12, eyeOpen: 1.0,
+      irisScale: 0.82, eyeColor: "#3f6048", browShape: "arched", lashes: 0.76, noseTip: "button",
+      noseScale: 0.8, noseWidth: 0.9, mouthScale: 1.18, lips: "full", lipUpper: "cupid",
+      lipColor: "#8b3f57", chinShape: "round", build: 73, bodyWidth: 1.0, animMode: "smug"
+    },
+    "sim3-wren": {
+      faceShape: "round", headScaleX: 1.02, headScaleY: 0.99, eyeGap: 51, eyeScale: 0.9, eyeOpen: 0.74,
+      browShape: "thin", noseTip: "upturned", noseScale: 0.84, noseWidth: 0.82,
+      mouthScale: 0.96, lips: "soft", chinShape: "round", build: 60, bodyWidth: 0.93,
+      animMode: "curious"
+    },
+    "sim3-xola": {
+      faceShape: "square", headScaleX: 1.05, headScaleY: 1.01, eyeGap: 67, eyeScale: 1.08, eyeOpen: 0.94,
+      browShape: "thick", browThick: 1.2, noseTip: "straight", noseScale: 1.08, noseWidth: 1.08,
+      mouthScale: 1.1, lips: "full", lipUpper: "heavy", lipColor: "#713b45", chinShape: "square",
+      build: 90, bodyWidth: 1.15, bust: 0.28, animMode: "alert"
+    },
+    "sim3-yves": {
+      faceShape: "long", headScaleX: 0.9, headScaleY: 1.12, eyeGap: 55, eyeScale: 0.83, eyeOpen: 0.61,
+      browShape: "bushy", browThick: 1.26, noseTip: "pointed", noseScale: 1.22, noseWidth: 0.84,
+      mouthScale: 0.86, lips: "line", chinShape: "dimple", crowsFeetOpacity: 0.46,
+      underEyeOpacity: 0.44, build: 76, bodyWidth: 1.01, animMode: "sleepy"
+    },
+    "sim3-zelda": {
+      faceShape: "heart", headScaleX: 0.94, headScaleY: 1.08, eyeGap: 60, eyeScale: 0.88, eyeOpen: 0.68,
+      browShape: "arched", browY: 1.5, lashes: 0.58, noseTip: "narrow", noseScale: 1.18,
+      noseWidth: 0.72, mouthScale: 1.14, lips: "full", lipUpper: "peaked", lipColor: "#8e3f58",
+      chinShape: "pointed", build: 64, bodyWidth: 0.95, animMode: "sideeye"
+    },
+    "sim3-aro": {
+      faceShape: "square", headScaleX: 1.03, headScaleY: 1.02, eyeGap: 53, eyeScale: 0.85, eyeOpen: 0.65,
+      browShape: "thick", browThick: 1.34, noseTip: "round", noseScale: 1.14, noseWidth: 1.18,
+      mouthScale: 0.95, lips: "soft", chinShape: "dimple", build: 91, bodyWidth: 1.17,
+      animMode: "sleepy"
+    },
+    "sim3-bibi": {
+      faceShape: "round", headScaleX: 1.09, headScaleY: 0.94, eyeGap: 70, eyeScale: 1.14, eyeOpen: 1.04,
+      irisScale: 0.76, eyeColor: "#45698f", browShape: "thin", noseTip: "button", noseScale: 0.78,
+      noseWidth: 1.02, mouthScale: 1.2, teethStyle: "perfect", chinShape: "round", cheekOpacity: 0.18,
+      build: 58, bodyWidth: 0.92, bust: 0.24, animMode: "googly"
+    },
+    "sim3-cato": {
+      faceShape: "long", headScaleX: 0.88, headScaleY: 1.14, eyeGap: 69, eyeScale: 1.16, eyeOpen: 1.08,
+      irisScale: 0.74, eyeColor: "#3f6048", browShape: "thin", noseTip: "upturned", noseScale: 0.76,
+      noseWidth: 0.74, mouthScale: 0.82, lips: "line", chinShape: "pointed", build: 52,
+      bodyWidth: 0.9, animMode: "nervous"
+    },
+    "sim3-demi": {
+      faceShape: "heart", headScaleX: 0.98, headScaleY: 1.05, eyeGap: 45, eyeScale: 0.92, eyeOpen: 0.72,
+      browShape: "bushy", browThick: 1.3, noseTip: "straight", noseScale: 1.1, noseWidth: 1.05,
+      mouthScale: 1.04, lips: "soft", lipUpper: "heavy", chinShape: "square", build: 80,
+      bodyWidth: 1.06, animMode: "lean"
+    }
+  };
+
+  const SIM_RANGE_PREFIX = "gen-sim3-";
+  const SIM_RANGE_SELECTION_KEY = "who-sim-shortlist-v3";
+
+  function selectedSimRangeIds() {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const storage = window.localStorage;
+      if (!storage) return new Set();
+      const stored = JSON.parse(storage.getItem(SIM_RANGE_SELECTION_KEY) || "[]");
+      return new Set(Array.isArray(stored) ? stored.filter((id) => typeof id === "string" && id.startsWith(SIM_RANGE_PREFIX)) : []);
+    } catch (_) {
+      return new Set();
+    }
+  }
+
+  function createCharacters(makeTags, fallbackCharacters = [], options = {}) {
     const fallbackRoles = fallbackCharacters.map((character) => character.role);
-    return seedSpecs.map((seed, index) => {
+    const generated = seedSpecs.map((seed, index) => {
       const [id, name, pronouns, skin, hair, hairColor, clothingStyle, shirt, expression, accessory, role, mouthStyle] = seed;
       const build = buildFor(id, index, pronouns, role);
       const traits = {
@@ -4655,7 +5381,13 @@
       // Studio-tuned per-character overrides (folded in from exported corrections). Flat keys win over
       // the seed/profile defaults; getProfile() picks up any profileOverrideKeys (eyeScale, jawLength…)
       // and hairLocks/categorical traits are read straight off traits.
-      Object.assign(traits, characterOverrides[id] || {}, studioBakes[id] || {});
+      Object.assign(
+        traits,
+        characterOverrides[id] || {},
+        nextCandidateOverrides[id] || {},
+        thirdCandidateOverrides[id] || {},
+        studioBakes[id] || {}
+      );
       const normalized = normalizeLegacyTraits(traits);
       const feature = describeVisibleTraits(normalized);
       return {
@@ -4674,6 +5406,11 @@
         seed: index
       };
     });
+    // Ballot-three characters are candidates, not an automatic cast expansion. The review sheet
+    // opts into seeing all thirty; normal game/editor callers receive only the people the player kept.
+    if (options && options.includeCandidateRange) return generated;
+    const selectedCandidates = selectedSimRangeIds();
+    return generated.filter((character) => !character.id.startsWith(SIM_RANGE_PREFIX) || selectedCandidates.has(character.id));
   }
 
   function shadeColor(hex, factor) {
@@ -4747,6 +5484,12 @@
 
   function composePortrait(seed, traits) {
     traits = normalizeLegacyTraits(traits);
+    // Game modes can hide anatomical layers without painting over the portrait.
+    // Keeping this opt-in means every existing caller renders exactly as before.
+    const hiddenParts = new Set(Array.isArray(traits.hiddenParts) ? traits.hiddenParts : []);
+    const anatomy = (part, markup) => hiddenParts.has(part)
+      ? ""
+      : `<g data-anatomy-part='${part}'>${markup}</g>`;
     // traits.skinHex lets callers force an explicit skin colour (eg. the Monocultural
     // mystery paints every face the same tone); otherwise resolve the named skin tone.
     const skin = traits.skinHex || skinTones[traits.skin] || skinTones.fair;
@@ -4781,12 +5524,13 @@
         </defs>
         ${traits.headOnly ? "" : `<rect width='256' height='256' fill='${traits.background}'/>`}
         ${animCSS(traits, seed)}
-        <g class='fa-hair-behind-layer'>
+        ${anatomy("hair", `<g class='fa-hair-behind-layer'>
           ${traits.noHead ? "" : headGroup(traits, `
             ${hijabActive ? renderHijabBack(traits) : ""}
             ${renderHairComposition(traits, seed, hair, "behind")}
           `)}
-        </g>
+        </g>`)}
+        ${anatomy("body", `
         ${traits.headOnly ? "" : (clothingParts
           ? clothingPartGroup("rearCollar", clothingParts.rearCollar, traits)
           : "")}
@@ -4810,10 +5554,12 @@
         ${traits.headOnly ? "" : renderTattoo(traits, "body", "overClothes")}
         ${traits.headOnly ? "" : (accessorySvg.beforeHead || "")}
         ${traits.headOnly ? "" : (jewellerySvg.beforeHead || "")}
+        `)}
         ${traits.noHead ? renderNeckStump(traits, skin) : ""}
         ${traits.noHead ? "" : headGroup(traits, `
-          ${renderEars(traits, skin)}
-          ${headShapeGroup(traits, `
+          ${anatomy("skull", `
+            ${renderEars(traits, skin)}
+            ${headShapeGroup(traits, `
             <path d='${faceShape}' fill='${skin}' stroke='${skinInk(skin)}' stroke-width='${stroke.contour}' stroke-linejoin='round'/>
             ${renderFaceShading(seed, skin, faceShape)}
             ${renderCastShadow(seed, skin, faceShape, traits)}
@@ -4821,17 +5567,20 @@
             ${renderFaceLines(seed, skin, traits)}
             ${renderMakeup(traits, skin)}
             ${renderChin(traits, skin)}
+            `)}
           `)}
-          ${renderBeardBlobs(traits, seed)}
+          ${anatomy("mouth", renderBeardBlobs(traits, seed))}
           ${accessorySvg.behindHair || ""}
           ${jewellerySvg.behindHair || ""}
-          ${traits.noBrows ? "" : `<g class='fa-brow'>${renderBrows(expression, traits)}</g>`}
-          ${renderEyes(expression, traits)}
-          ${renderNose(seed, traits)}
+          ${anatomy("eyes", `
+            ${traits.noBrows ? "" : `<g class='fa-brow'>${renderBrows(expression, traits)}</g>`}
+            ${renderEyes(expression, traits)}
+          `)}
+          ${anatomy("nose", renderNose(seed, traits))}
           ${accessorySvg.beforeMouth}
           ${jewellerySvg.beforeMouth || ""}
-          ${renderExpressionMouth(expression, traits, seed)}
-          ${renderTattoo(traits, "face")}
+          ${anatomy("mouth", renderExpressionMouth(expression, traits, seed))}
+          ${anatomy("skull", renderTattoo(traits, "face"))}
           ${/* Blush comes solely from renderFaceModeling's cheekOpacity (the studio Blush control).
                The old expression-based renderCheeks() blush was a second layer that doubled up on
                happy/surprised faces, so it's no longer drawn. */ ""}
@@ -4839,8 +5588,10 @@
                overlaps the brow/cheek/temple instead of the brow & blush poking through it.
                The front zone of the unified composition renders base + placed + drawn pieces
                as one ordered stack. */ ""}
-          ${hijabActive && traits.accessory !== "hijab" ? renderHijabFront(traits) : ""}
-          ${renderHairComposition(traits, seed, hair, "front")}
+          ${anatomy("hair", `
+            ${hijabActive && traits.accessory !== "hijab" ? renderHijabFront(traits) : ""}
+            ${renderHairComposition(traits, seed, hair, "front")}
+          `)}
           ${accessorySvg.afterMouth}
           ${jewellerySvg.afterMouth || ""}
           ${traits.disguise ? renderDisguise(traits) : ""}
@@ -8011,6 +8762,10 @@
   window.faceGenerator = {
     createCharacters,
     renderPortrait: composePortrait,
+    simRange: {
+      prefix: SIM_RANGE_PREFIX,
+      selectionStorageKey: SIM_RANGE_SELECTION_KEY
+    },
     // Unified hair compositor: the resolved ordered stack (base preset layers + placed/drawn
     // layers, or the materialized hairComposition override). Readers that need the REAL rendered
     // stack call this instead of reading traits.hairLocks directly.

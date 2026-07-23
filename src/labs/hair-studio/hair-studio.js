@@ -504,7 +504,11 @@
     render();
   }
   function undo() {
-    if (busy || !lastAction) return;
+    if (!lastAction) return;
+    // A verdict is persisted before its 170 ms fling animation completes. Honour an
+    // immediate undo click too; the pending render callback is harmless and otherwise
+    // made the visible UNDO control silently discard the user's action.
+    busy = false;
     const deck = decks[lastAction.deck];
     if (lastAction.skip) deck.skipped.delete(lastAction.id);
     else {

@@ -22,6 +22,10 @@
       .pair figure { margin:0; }
       .pair img { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px;
                   background:#0c0d10; display:block; }
+      .ref-placeholder { display:grid; width:100%; aspect-ratio:1/1; place-items:center;
+                         border:1px dashed var(--line); border-radius:8px; background:#0c0d10;
+                         color:var(--muted); font-size:.68rem; font-weight:700; line-height:1.35;
+                         padding:14px; text-align:center; text-transform:uppercase; }
       .pair figcaption { font-size:.62rem; color:var(--muted); text-align:center; margin-top:4px;
                          text-transform:uppercase; letter-spacing:.06em; }
       .ours img { border:1px solid var(--line); }
@@ -32,16 +36,17 @@
   <body>
     <a class="lab-hub-link" href="labs/">All labs</a>
     <h1>Gold standard vs. ours</h1>
-    <p class="sub">Left = reference (gold standard). Right = our generator's best match for the same traits. Use this to spot what still diverges.</p>
+    <p class="sub">Right = our generator's best match. Reference art is intentionally not bundled
+      in deployments, so the left side is shown as a labelled placeholder.</p>
     <div class="controls">
       <label><input type="checkbox" id="oursOnly"> Show ours only</label>
     </div>
     <div id="grid" class="grid"></div>
 
     <script src="src/characters/faces-hair.js?v=210"></script>
-    <script src="src/characters/studio-bakes-import.js?v=1"></script>
-    <script src="src/characters/clothing-profiles.js?v=3"></script>
-    <script src="src/characters/face-generator.js?v=264"></script>
+    <script src="src/characters/studio-bakes-import.js?v=4"></script>
+    <script src="src/characters/clothing-profiles.js?v=4"></script>
+    <script src="src/characters/face-generator.js?v=265"></script>
     <script>
       // Trait approximations of each gold-standard reference (some accessories — bowties, fedoras,
       // straw hats, necklaces, scarves — aren't modelled yet, so those are left out or approximated).
@@ -94,7 +99,8 @@
         cell.innerHTML = `
           <h2>${name}</h2>
           <div class="pair">
-            <figure class="ref"><img src="assets/reference/${name}.png" alt="${name} reference"><figcaption>gold standard</figcaption></figure>
+            <figure class="ref"><div class="ref-placeholder">Reference art<br>not bundled</div>
+              <figcaption>gold standard</figcaption></figure>
             <figure class="ours"><img src="${ours}" alt="${name} ours"><figcaption>ours</figcaption></figure>
           </div>`;
         grid.appendChild(cell);

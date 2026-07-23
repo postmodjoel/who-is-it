@@ -65,7 +65,10 @@ async function scriptedPick(page, strategy) {
     if (!choice) choice = legal[0];
     return { picker, donorId: choice.donorId, part: choice.part };
   }, strategy);
-  await page.locator(`.wdym-donor[data-donor="${move.donorId}"]`).click();
+  // A just-used donor deliberately shudders for feedback. The scripted test can
+  // choose that same donor again before the effect settles, so do not make the
+  // rules journey wait for Playwright's geometric-stability heuristic.
+  await page.locator(`.wdym-donor[data-donor="${move.donorId}"]`).click({ force: true });
   await page.locator(`.wdym-claim-part[data-part="${move.part}"]`).click();
   return move;
 }

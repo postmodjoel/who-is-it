@@ -8228,7 +8228,7 @@
       ${overhang > 0 ? "" : `<g clip-path='url(#${clipExtId})'>${incisors}</g>`}
       ${upperLip}
       ${sheen}
-      <path d='${opening}' fill='none' stroke='${ink}' stroke-width='3' stroke-linejoin='round'/>
+      <path d='${opening}' fill='none' stroke='${ink}' stroke-width='${(3 * lw).toFixed(2)}' stroke-linejoin='round'/>
       ${overhang > 0 ? `<g clip-path='url(#${clipExtId})'>${incisors}</g>` : ""}
     `;
   }

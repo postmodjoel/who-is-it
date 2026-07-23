@@ -6070,6 +6070,18 @@ img.pol-mascot {
   }
   .title-screen.title-landing .ts-poster-slot,
   .title-screen.title-landing .ts-actions { margin-left: 0; }
+  /* Keep the splash inside the padded phone viewport. The CTA used to resolve its
+     width through a shrink-to-fit wrapper, which let both it and the wordmark
+     extend beyond the right edge on narrow phones. */
+  .title-screen.title-landing .ts-poster-slot,
+  .title-screen.title-landing .ts-poster,
+  .title-screen.title-landing .ts-cta,
+  .title-screen.title-landing .ts-actions,
+  .title-screen.title-landing .ts-step {
+    width: 100%;
+    max-width: 22rem;
+    min-width: 0;
+  }
   .title-screen.title-landing .ts-poster { margin-inline: auto; transform-origin: top center; }
   .title-screen.title-landing .ts-words { align-items: center; text-align: center; }
   .title-screen.title-landing .ts-ticker-field {
@@ -6079,21 +6091,23 @@ img.pol-mascot {
   }
   .title-screen.title-landing .ts-qrow:nth-child(n + 17) { display: none; }
   .title-screen.title-landing .ts-poster-slot { height: 61vh; min-height: 15rem; }
-  .title-screen.title-landing .ts-poster { transform: translate3d(0, 9vh, 0) scale(1); width: min(100%, 30rem); }
+  .title-screen.title-landing .ts-poster { transform: translate3d(0, 9vh, 0) scale(1); }
   .title-screen.title-landing .ts-who,
-  .title-screen.title-landing .ts-isit { font-size: clamp(4.6rem, 20vw, 6.6rem); }
-  .title-screen.title-landing .ts-anthology { font-size: .58rem; letter-spacing: .19em; }
+  .title-screen.title-landing .ts-isit { font-size: clamp(3.5rem, 16vw, 4rem); }
+  .title-screen.title-landing .ts-anthology { font-size: .54rem; letter-spacing: .14em; }
   .title-screen.title-landing .ts-anthology::before,
-  .title-screen.title-landing .ts-anthology::after { width: 1rem; margin-inline: .45rem; }
+  .title-screen.title-landing .ts-anthology::after { width: .8rem; margin-inline: .35rem; }
   .title-screen.title-landing .ts-letplay,
+  .title-screen.title-landing .ts-resume-splash,
   .title-screen.title-landing .ts-actions,
-  .title-screen.title-landing .ts-step { width: min(100%, 24rem); }
+  .title-screen.title-landing .ts-step { width: 100%; }
   .title-screen.title-landing .ts-step-names,
-  .title-screen.title-landing .ts-step-online { width: min(100%, 24rem); }
+  .title-screen.title-landing .ts-step-online { width: 100%; max-width: 22rem; }
   .title-screen.title-landing.ts-ruleset-open .ts-stage { padding-top: max(.8rem, env(safe-area-inset-top)); }
   .title-screen.title-landing.ts-ruleset-open .ts-poster-slot { height: 0; }
   .title-screen.title-landing.ts-ruleset-open .ts-actions {
     width: 100%;
+    max-width: none;
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
   .title-screen.title-landing .ts-step-ruleset { width: 100%; gap: 1rem; }

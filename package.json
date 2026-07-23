@@ -5,12 +5,13 @@
   "scripts": {
     "serve:test": "node tools/static-server.mjs",
     "test:ui": "playwright test",
-    "test:rules": "node --test tests/genetics-rules.test.mjs tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs tests/groupthink-score-health.test.mjs",
+    "test:integrity": "node --test tests/directory-integrity.test.mjs",
+    "test:rules": "node --test tests/genetics-rules.test.mjs tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs tests/groupthink-score-health.test.mjs tests/mouth-lines.test.mjs tests/studio-imports.test.mjs",
     "test:score-health": "node --test tests/groupthink-score-health.test.mjs",
     "score:health": "node tools/groupthink-score-health.mjs",
     "test:balance": "node --test tests/genetics-rules.test.mjs tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && node tools/groupthink-sim.mjs",
     "test:balance:smoke": "node --test tests/genetics-rules.test.mjs tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && node tools/groupthink-sim.mjs --smoke --gate-only",
-    "test:shared": "node --test tests/genetics-rules.test.mjs tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && playwright test tests/groupthink.spec.js tests/groupthink-online.spec.js tests/groupthink-scale.spec.js tests/groupthink-isolation.spec.js tests/ui.spec.js tests/online.spec.js --project=desktop",
+    "test:shared": "node --test tests/genetics-rules.test.mjs tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs tests/mouth-lines.test.mjs tests/studio-imports.test.mjs && playwright test tests/public-pages.spec.js tests/labs-hub.spec.js tests/groupthink.spec.js tests/groupthink-online.spec.js tests/groupthink-scale.spec.js tests/groupthink-isolation.spec.js tests/ui.spec.js tests/online.spec.js --project=desktop",
     "test:exhaustive": "node --test tests/genetics-rules.test.mjs tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && GT_EXHAUSTIVE=1 playwright test --workers=2",
     "test:gates:apply": "node --test tests/genetics-rules.test.mjs tests/groupthink-rules.test.mjs tests/groupthink-lab.test.mjs && GT_EXHAUSTIVE=1 playwright test --workers=2 && GT_LAYOUT_VALIDATED=1 node tools/groupthink-sim.mjs && node tools/apply-groupthink-decision.mjs --confirm=APPLY_GATED_RULES && playwright test tests/groupthink.spec.js tests/groupthink-online.spec.js tests/groupthink-scale.spec.js tests/groupthink-isolation.spec.js tests/ui.spec.js tests/online.spec.js --project=desktop && GT_EXHAUSTIVE=1 playwright test --workers=2"
   },

@@ -24,8 +24,9 @@ test("hair studio boots, mines the cast, and deals both decks", async ({ page },
 
 test("hair ratings swipe, store drawn pieces, cull to tagged nays, and persist", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "studio rating flow runs once");
-  await page.addInitScript(() => { try { localStorage.removeItem("wdym_hair_ratings_v1"); } catch (error) { /* blocked */ } });
   await page.goto("/labs/hair-studio.html");
+  await page.evaluate(() => { try { localStorage.removeItem("wdym_hair_ratings_v1"); } catch (error) { /* blocked */ } });
+  await page.reload();
 
   // note + chip ride the yay on the combos deck
   await expect(page.locator("#comboStage .rate-swipe-card")).toBeVisible();

@@ -43,7 +43,7 @@ test("prompt text resolves to the ballot size in every direction", () => {
 test("the shipped deck reads at every ballot size", async () => {
   globalThis.window = globalThis;
   globalThis.GameData = {};
-  await import("../groupthink-data.js");
+  await import("../src/modes/groupthink/groupthink-data.js");
   const deck = globalThis.GameData.groupthinkPrompts;
   const all = [...deck.base, ...deck.locations];
   assert.ok(all.length >= 80, `deck shrank to ${all.length}`);

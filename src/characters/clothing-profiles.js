@@ -82,12 +82,27 @@
     leather: ["#252933", "#cdd2d6", "#2f7a78"]
   };
 
+  const bakedProfiles = {
+    labCoat: {
+      garmentY: 3,
+      necklineY: 5,
+      neckWidthScale: 1.12
+    },
+    sequin: {
+      collarY: 28,
+      detailY: -15
+    }
+  };
+
   window.WhoClothingStudio = {
     version: 1,
     defaults,
     labels,
     categories,
     palette,
-    profiles: window.WhoClothingStudio?.profiles || {}
+    profiles: {
+      ...bakedProfiles,
+      ...(window.WhoClothingStudio?.profiles || {})
+    }
   };
 })();

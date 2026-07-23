@@ -14,7 +14,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
 
-await import("../groupthink-rules.js");
+await import("../src/modes/groupthink/groupthink-rules.js");
 const Rules = globalThis.GroupthinkRules;
 
 // ---------------------------------------------------------------------------------------------------

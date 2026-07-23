@@ -13,10 +13,10 @@ globalThis.window = {
   }
 };
 
-await import("../faces-hair.js");
-await import("../studio-bakes-import.js");
-await import("../clothing-profiles.js");
-await import("../face-generator.js");
+await import("../src/characters/faces-hair.js");
+await import("../src/characters/studio-bakes-import.js");
+await import("../src/characters/clothing-profiles.js");
+await import("../src/characters/face-generator.js");
 
 const generator = window.faceGenerator;
 const candidateIds = (cast) => cast
@@ -97,11 +97,18 @@ test("new candidates do not recycle the permanent cast, prior ballot, or each ot
   const all = generator.createCharacters(() => [], [], { includeCandidateRange: true });
   const permanentCast = all.filter((character) => character.id.startsWith("gen-sim") && !character.id.startsWith(generator.simRange.prefix));
   const candidates = all.filter((character) => character.id.startsWith(generator.simRange.prefix));
-  const definingPairs = ({ hair, clothing, accessory }) => {
+  const definingPairs = ({ hair, clothing, accessory, beardLength }) => {
+    // The renderer migrates the legacy `accessory: "beard"` value into a
+    // beardLength and clears the accessory slot. Compare the visible costume,
+    // otherwise a bearded candidate looks identical to a genuinely
+    // accessory-free character to this test.
+    const visibleAccessory = accessory === "none" && Number(beardLength) > 0
+      ? "beard"
+      : accessory;
     return [
       `hair:${hair}|clothing:${clothing}`,
-      `hair:${hair}|accessory:${accessory}`,
-      `clothing:${clothing}|accessory:${accessory}`
+      `hair:${hair}|accessory:${visibleAccessory}`,
+      `clothing:${clothing}|accessory:${visibleAccessory}`
     ];
   };
 

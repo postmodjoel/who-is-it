@@ -16,6 +16,7 @@
 body {
   min-height: 100vh;
   margin: 0;
+  overflow-x: hidden;
   color: var(--ink);
   background:
     linear-gradient(rgba(23, 21, 18, 0.055) 1px, transparent 1px),
@@ -159,6 +160,10 @@ main {
   transition: transform 140ms ease, box-shadow 140ms ease;
 }
 
+.lab-card > * {
+  min-width: 0;
+}
+
 .lab-card::before {
   position: absolute;
   top: 0;
@@ -285,7 +290,23 @@ footer code {
   }
 
   .hub-header {
-    padding-top: 68px;
+    padding: 58px 0 28px;
+  }
+
+  .hub-header h1 {
+    font-size: clamp(2.7rem, 12.5vw, 3rem);
+  }
+
+  .intro {
+    margin: 20px 0;
+  }
+
+  .lab-search input {
+    min-width: 0;
+  }
+
+  main {
+    padding-top: 22px;
   }
 
   .lab-grid {
@@ -294,9 +315,32 @@ footer code {
 
   .lab-card {
     grid-column: 1 / -1;
-    min-height: 245px;
-    padding: 18px;
+    min-height: 188px;
+    padding: 16px;
     box-shadow: 5px 5px 0 var(--ink);
+  }
+
+  .lab-card::before {
+    width: 72px;
+    height: 14px;
+  }
+
+  .card-number {
+    margin-bottom: 12px;
+  }
+
+  .lab-card h2 {
+    margin: 8px 0 6px;
+    font-size: 1.65rem;
+    overflow-wrap: anywhere;
+  }
+
+  .lab-card p {
+    display: -webkit-box;
+    margin-bottom: 14px;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .lab-card:hover,

@@ -4,7 +4,8 @@
 Reads tools/pool-traits.json (dumped from the running game: id, pronouns, hexes, hair
 silhouette, clothing, accessory), maps each character onto a Habbo figure string using
 the OFFICIAL figuredata palettes (nearest-colour match for skin/hair/shirt, deterministic
-set picks per character id), downloads body + head PNGs once, and emits habbo-avatars.js
+set picks per character id), downloads body + head PNGs once, and emits
+src/modes/habbo/habbo-avatars.js
 (window.HabboAvatarSprites) for the game to use at runtime with zero API calls.
 
 Usage: python3 tools/fetch-habbo-avatars.py
@@ -18,7 +19,7 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(ROOT, "assets", "habbo", "avatars")
 POOL = os.path.join(ROOT, "tools", "pool-traits.json")
-RUNTIME_JS = os.path.join(ROOT, "habbo-avatars.js")
+RUNTIME_JS = os.path.join(ROOT, "src", "modes", "habbo", "habbo-avatars.js")
 FIGDATA_URL = "https://www.habbo.com/gamedata/figuredata/1"
 IMG_URL = "https://www.habbo.com/habbo-imaging/avatarimage"
 UA = {"User-Agent": "Mozilla/5.0 (whoisit fan-game one-off sprite fetch)"}

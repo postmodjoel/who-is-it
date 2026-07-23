@@ -319,7 +319,7 @@ test("the flat reveal ledger fits touch viewports without horizontal overflow", 
 
 test("genetics lab opens on the flesh-draft sampler with recipes and contention", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "lab smoke runs once");
-  await page.goto("/genetics-lab.html");
+  await page.goto("/labs/genetics-lab.html");
   await expect(page).toHaveTitle(/Genetics Lab/);
   await expect(page.locator('.lab-tab[data-view="draft"]')).toHaveClass(/is-active/);
   await expect(page.locator(".draft-donor")).toHaveCount(18);
@@ -339,7 +339,7 @@ test("the rate deck swipes with arrows, keeps notes with verdicts, undoes, and p
       localStorage.removeItem("wdym_face_ratings_v1");
     } catch (error) { /* blocked */ }
   });
-  await page.goto("/genetics-lab.html");
+  await page.goto("/labs/genetics-lab.html");
   await page.locator('.lab-tab[data-view="rate"]').click();
   await expect(page.locator(".rate-swipe-card")).toBeVisible();
   const firstFace = await page.locator(".rate-swipe-card").getAttribute("data-face");

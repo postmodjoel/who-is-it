@@ -3,7 +3,7 @@ import test from "node:test";
 import vm from "node:vm";
 import { readFile } from "node:fs/promises";
 
-const source = await readFile(new URL("../genetics-rules.js", import.meta.url), "utf8");
+const source = await readFile(new URL("../src/modes/genetics/genetics-rules.js", import.meta.url), "utf8");
 const context = { globalThis: {} };
 vm.createContext(context);
 vm.runInContext(source, context);

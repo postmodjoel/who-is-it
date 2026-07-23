@@ -76,6 +76,8 @@ def serve_static(conn, request):
         path = "/index.html"
     # Resolve safely inside ROOT (no directory traversal).
     target = os.path.normpath(os.path.join(ROOT, path.lstrip("/")))
+    if os.path.isdir(target):
+        target = os.path.join(target, "index.html")
     if not target.startswith(ROOT) or not os.path.isfile(target):
         send_http(conn, "404 Not Found", b"Not found")
         return

@@ -1,5 +1,6 @@
 .git
 .claude
+.scratch
 node_modules
 *.md
 scratchpad

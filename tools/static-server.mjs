@@ -24,6 +24,9 @@ function fileFor(urlPath) {
   const path = resolve(join(root, safe === "/" ? "index.html" : safe));
   if (!path.startsWith(root)) return null;
   if (existsSync(path) && statSync(path).isFile()) return path;
+  const directoryIndex = join(path, "index.html");
+  if (existsSync(path) && statSync(path).isDirectory()
+      && existsSync(directoryIndex) && statSync(directoryIndex).isFile()) return directoryIndex;
   return null;
 }
 

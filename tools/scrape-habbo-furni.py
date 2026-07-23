@@ -9,7 +9,7 @@
   concurrency ~6)
 - Writes assets/habbo/furni-manifest.json  (id, slug, filename, path, sourcePage, sourceUrl)
 - Writes assets/habbo/SOURCES.md
-- Generates habbo-assets.js: a curated window.HabboFurniProps list of room-decor
+- Generates src/modes/habbo/habbo-assets.js: a curated window.HabboFurniProps list of room-decor
   props (chairs, sofas, tables, plants, lamps, rugs...) classified by filename
   keywords; clothing/wearable-looking items are excluded from room placement.
 
@@ -26,7 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(ROOT, "assets", "habbo", "furni")
 MANIFEST = os.path.join(ROOT, "assets", "habbo", "furni-manifest.json")
 SOURCES = os.path.join(ROOT, "assets", "habbo", "SOURCES.md")
-RUNTIME_JS = os.path.join(ROOT, "habbo-assets.js")
+RUNTIME_JS = os.path.join(ROOT, "src", "modes", "habbo", "habbo-assets.js")
 PAGES = range(8, 17)  # 8..16 inclusive
 URL_RE = re.compile(r"https://www\.habboassets\.com/assets/furniture/[^\"'\s]*_icon\.png")
 UA = {"User-Agent": "Mozilla/5.0 (whoisit fan-game asset fetch)"}

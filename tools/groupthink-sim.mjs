@@ -4,7 +4,7 @@ import os from "node:os";
 import { performance } from "node:perf_hooks";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 
-await import("../groupthink-rules.js");
+await import("../src/modes/groupthink/groupthink-rules.js");
 const Rules = globalThis.GroupthinkRules;
 
 const PLAYER_COUNTS = [2, 3, 4, 6, 9, 12];

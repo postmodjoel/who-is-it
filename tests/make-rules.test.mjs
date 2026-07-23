@@ -5,7 +5,10 @@ import { readFile } from "node:fs/promises";
 
 const context = { globalThis: {} };
 vm.createContext(context);
-for (const file of ["../genetics-rules.js", "../make-rules.js"]) {
+for (const file of [
+  "../src/modes/genetics/genetics-rules.js",
+  "../src/modes/who-did-you-make/make-rules.js"
+]) {
   vm.runInContext(await readFile(new URL(file, import.meta.url), "utf8"), context);
 }
 const Genetics = context.globalThis.GeneticsRules;

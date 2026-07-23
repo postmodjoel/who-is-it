@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WHO? IS IT? — Lab Directory</title>
+    <base href="../">
+    <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+    <link rel="stylesheet" href="src/labs/hub/labs-hub.css?v=1">
+  </head>
+  <body>
+    <header class="hub-header">
+      <a class="game-link" href="index.html">← Back to the game</a>
+      <p class="eyebrow">WHO? IS IT? / DESIGN TOOLS</p>
+      <h1>Lab directory<span>.</span></h1>
+      <p class="intro">Every workbench in one place. Search by what you want to change—you do not
+        need to remember what the page is called.</p>
+      <label class="lab-search">
+        <span>Find a lab</span>
+        <input id="labSearch" type="search" placeholder="Try hair, prompts, clothing, portraits…" autocomplete="off">
+        <kbd>/</kbd>
+      </label>
+    </header>
+
+    <main>
+      <section class="lab-grid" aria-label="Available labs">
+        <a class="lab-card is-yellow" href="labs/face-studio.html"
+           data-search="face portrait character generator sculpt calibration corrections editor">
+          <span class="card-number">01</span>
+          <span class="card-tag">Portrait generator</span>
+          <h2>Face Studio</h2>
+          <p>Filter the cast, edit facial traits, tune individual characters, and export corrections.</p>
+          <span class="card-action">Open workbench →</span>
+        </a>
+
+        <a class="lab-card is-blue" href="labs/clothing-lab.html"
+           data-search="clothes clothing garments layers fit body collar occlusion">
+          <span class="card-number">02</span>
+          <span class="card-tag">Character system</span>
+          <h2>Clothing Studio</h2>
+          <p>Inspect garment layers, body fits, collar geometry, occlusion, and tuning profiles.</p>
+          <span class="card-action">Open workbench →</span>
+        </a>
+
+        <a class="lab-card is-red" href="labs/hair-studio.html"
+           data-search="hair styles pieces combinations combos catalogue rating mutations">
+          <span class="card-number">03</span>
+          <span class="card-tag">Hair catalogue</span>
+          <h2>Hair Studio</h2>
+          <p>Rate hair combinations and pieces, browse the catalogue, and keep or cull new designs.</p>
+          <span class="card-action">Open workbench →</span>
+        </a>
+
+        <a class="lab-card is-ink" href="labs/hair-compositor-lab.html"
+           data-search="hair compositor overlap masks rim silhouette rendering diagnostics">
+          <span class="card-number">04</span>
+          <span class="card-tag">Rendering diagnostics</span>
+          <h2>Hair Compositor</h2>
+          <p>Debug silhouette mass, outlines, overlap masks, stacking, and multi-piece compositions.</p>
+          <span class="card-action">Open workbench →</span>
+        </a>
+
+        <a class="lab-card is-red" href="labs/genetics-lab.html"
+           data-search="genetics who did you make draft donors lineage simulation stress rate">
+          <span class="card-number">05</span>
+          <span class="card-tag">Rules simulator</span>
+          <h2>Genetics Lab</h2>
+          <p>Build lineages, sample flesh drafts, stress-test recipes, and inspect trait inheritance.</p>
+          <span class="card-action">Open workbench →</span>
+        </a>
+
+        <a class="lab-card is-yellow" href="labs/prompt-studio.html"
+           data-search="prompts questions writing copy rate edit regenerate decks groupthink">
+          <span class="card-number">06</span>
+          <span class="card-tag">Writing tools</span>
+          <h2>Prompt Studio</h2>
+          <p>Review question decks, rate and edit prompts, then export an accepted patch.</p>
+          <span class="card-action">Open workbench →</span>
+        </a>
+
+        <a class="lab-card is-blue" href="labs/compare.html"
+           data-search="compare comparison reference gold standard portraits visual qa">
+          <span class="card-number">07</span>
+          <span class="card-tag">Visual comparison</span>
+          <h2>Gold Standard Compare</h2>
+          <p>Place generated portraits beside the reference artwork for quick visual QA.</p>
+          <span class="card-action">Open workbench →</span>
+        </a>
+
+        <a class="lab-card is-ink" href="labs/audit-v2-dashboard.html"
+           data-search="audit report findings product bugs performance accessibility backlog">
+          <span class="card-number">08</span>
+          <span class="card-tag">Product record</span>
+          <h2>Audit Dashboard</h2>
+          <p>Browse the retained product audit, findings, evidence, priorities, and recommendations.</p>
+          <span class="card-action">Open dashboard →</span>
+        </a>
+      </section>
+      <p id="emptyState" class="empty-state" hidden>No lab matches that search. Try a broader word.</p>
+    </main>
+
+    <footer>
+      <strong>8 workbenches</strong>
+      <span>Keep this page bookmarked: <code>/labs/</code></span>
+    </footer>
+
+    <script src="src/labs/hub/labs-hub.js?v=1"></script>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+.lab-hub-link {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 10000;
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 13px;
+  border: 2px solid #171512;
+  border-radius: 999px;
+  background: #ffd43b;
+  box-shadow: 3px 3px 0 #171512;
+  color: #171512;
+  font: 900 11px/1 "Archivo", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.lab-hub-link:hover,
+.lab-hub-link:focus-visible {
+  outline: 2px solid #fffdf7;
+  outline-offset: 2px;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 #171512;
+}
+
+@media print {
+  .lab-hub-link {
+    display: none;
+  }
+}

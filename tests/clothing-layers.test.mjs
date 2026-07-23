@@ -7,7 +7,7 @@ const context = { window: {}, console };
 context.window.window = context.window;
 vm.createContext(context);
 for (const file of ["faces-hair.js", "studio-bakes-import.js", "clothing-profiles.js", "face-generator.js"]) {
-  vm.runInContext(fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8"), context, { filename: file });
+  vm.runInContext(fs.readFileSync(new URL(`../src/characters/${file}`, import.meta.url), "utf8"), context, { filename: file });
 }
 
 const generator = context.window.faceGenerator;

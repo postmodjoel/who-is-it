@@ -8,8 +8,8 @@
 # Usage:  tools/stamp.sh            # stamp index.html in place
 #         tools/stamp.sh --check    # print what would change, touch nothing (non-zero if drift found)
 #
-# Only same-directory local assets (href/src="foo.css?v=..." / "foo.js?v=...") are touched — absolute
-# URLs and CDN links are left alone.
+# Only repository-local assets (href/src="path/foo.css?v=..." / "path/foo.js?v=...") are touched —
+# absolute URLs and CDN links are left alone.
 #
 # DEPLOY NOTE (PERF-01): exclude these from any web deploy — they are dev-only material, not runtime:
 #   assets/reference/            (gold-standard art, ~11MB)
@@ -42,9 +42,9 @@ fi
 perl -0pi -e "s/${PATTERN}/\${1}${STAMP}/g" "$FILE"
 # MISS2-01: Face Studio shares the generator — stamp it in lockstep so the calibration workbench
 # can never silently render a DIFFERENT build of the faces than the live game.
-[ -f face-studio.html ] && perl -0pi -e "s/${PATTERN}/\${1}${STAMP}/g" face-studio.html
+[ -f labs/face-studio.html ] && perl -0pi -e "s/${PATTERN}/\${1}${STAMP}/g" labs/face-studio.html
 # Prompt Studio pins game-data.js the same way.
-[ -f prompt-studio.html ] && perl -0pi -e "s/${PATTERN}/\${1}${STAMP}/g" prompt-studio.html
+[ -f labs/prompt-studio.html ] && perl -0pi -e "s/${PATTERN}/\${1}${STAMP}/g" labs/prompt-studio.html
 # PERF-02: app.js lazy-loads editor.js + vendor-qrcode.js via versioned constants — stamp those too.
-perl -0pi -e "s/(EDITOR_SRC = \"editor\.js\?v=)\d+/\${1}${STAMP}/; s/(QRCODE_SRC = \"vendor-qrcode\.js\?v=)\d+/\${1}${STAMP}/" app.js
-echo "Stamped local css/js assets in $FILE + face-studio.html (+ lazy-load constants in app.js) with ?v=${STAMP}"
+perl -0pi -e "s/(EDITOR_SRC = \"src\\/characters\\/editor\\.js\\?v=)\\d+/\\${1}${STAMP}/; s/(QRCODE_SRC = \"src\\/vendor\\/vendor-qrcode\\.js\\?v=)\\d+/\\${1}${STAMP}/" src/core/app.js
+echo "Stamped local css/js assets in $FILE + labs/face-studio.html (+ lazy-load constants in src/core/app.js) with ?v=${STAMP}"

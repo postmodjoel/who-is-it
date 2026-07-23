@@ -9,7 +9,7 @@ globalThis.sessionStorage = {
   removeItem: (key) => memory.delete(key)
 };
 
-await import("../groupthink-lab.js");
+await import("../src/modes/groupthink/groupthink-lab.js");
 const Lab = globalThis.GroupthinkLab;
 
 test("lab stays disabled unless its explicit query flag is present", () => {

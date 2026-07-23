@@ -4916,8 +4916,8 @@ function loadScriptOnce(src) {
   });
   return _loadedScripts[src];
 }
-const EDITOR_SRC = "editor.js?v=229";
-const QRCODE_SRC = "vendor-qrcode.js?v=205";
+const EDITOR_SRC = "src/characters/editor.js?v=229";
+const QRCODE_SRC = "src/vendor/vendor-qrcode.js?v=205";
 function ensureQrcode() { return typeof qrcode !== "undefined" ? Promise.resolve() : loadScriptOnce(QRCODE_SRC); }
 
 // Saved-custom-character storage (moved from editor.js so the BOOT deal can fold customs into the

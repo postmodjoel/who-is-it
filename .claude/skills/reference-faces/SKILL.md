@@ -2,13 +2,14 @@
 name: reference-faces
 description: >-
   Recreate and refine the procedural SVG character portraits in the WHO IS THAT game's face
-  generator (face-generator.js, face-studio.html/js) so they match the hand-illustrated "gold
+  generator (`src/characters/face-generator.js`, `labs/face-studio.html`, and
+  `src/labs/face-studio/face-studio.js`) so they match the hand-illustrated "gold
   standard" reference art. Use this whenever working on how the generated faces/characters/avatars
   LOOK — hairstyles, eyes, brows, noses, mouths, ears, skin, proportions, colours, backgrounds,
   accessories — or when the user says the characters look too "Wii"/cartoonish/"chopped"/fake/
   "syndromic", want them to look more like the reference images, or ask to improve any visual
   feature of the portraits. Covers the target aesthetic spec, the "Wii tells" to avoid, per-feature
-  SVG construction recipes, the face-generator.js function map, the reference image location, and
+  SVG construction recipes, the src/characters/face-generator.js function map, the reference image location, and
   the local browser verification + cache-busting loop. Reach for this skill even when the request
   is narrow ("fix the curls", "the brows look like blocks") — the whole-portrait context matters.
 ---
@@ -81,9 +82,9 @@ If a face looks wrong, it's almost always one of these:
 1. **Study the relevant reference(s)** for the feature you're touching.
 2. **Name the specific delta** in words ("ours has X, the reference has Y") before editing. If you
    can't name it, you're guessing.
-3. **Edit `face-generator.js`** — one feature category at a time (eyes OR hair OR brows, not all).
+3. **Edit `src/characters/face-generator.js`** — one feature category at a time (eyes OR hair OR brows, not all).
    See `references/face-generator-map.md` for the function map and per-feature recipes.
-4. **Bump the cache-buster** in `face-studio.html` (see below) — non-negotiable.
+4. **Bump the cache-buster** in `labs/face-studio.html` (see below) — non-negotiable.
 5. **Verify in the browser** (see below): reload, take a ZOOMED screenshot of the portrait, read
    the console for runtime errors.
 6. **Compare to the reference** and to the previous screenshot. If it's not closer, revert or adjust
@@ -94,14 +95,14 @@ screenshots; when something breaks you won't know which change did it.
 
 ## Cache-busting (critical — stale files will waste you)
 
-`face-studio.html` hard-codes `?v=N` query strings on the css/js/generator `<link>`/`<script>`
-tags. The static dev server caches aggressively, so **every** edit to `face-generator.js`,
-`face-studio.js`, or `face-studio.css` must be followed by bumping N, or the browser silently runs
+`labs/face-studio.html` hard-codes `?v=N` query strings on the css/js/generator `<link>`/`<script>`
+tags. The static dev server caches aggressively, so **every** edit to `src/characters/face-generator.js`,
+`src/labs/face-studio/face-studio.js`, or `src/labs/face-studio/face-studio.css` must be followed by bumping N, or the browser silently runs
 the old code (this has caused hours of confusion debugging "fixes that don't appear"):
 
 ```bash
 cd "/Users/joel/Documents/Programming/WHO IS THAT claude"
-sed -i '' 's/?v=16/?v=17/g' face-studio.html   # bump to the next number
+sed -i '' 's/?v=16/?v=17/g' labs/face-studio.html   # bump to the next number
 ```
 
 ## Browser verification
@@ -113,7 +114,7 @@ cd "/Users/joel/Documents/Programming/WHO IS THAT claude" && python3 -m http.ser
 
 Then drive it with the Chrome extension MCP (`mcp__Claude_in_Chrome__*`):
 
-- `navigate` to `http://localhost:5173/face-studio.html`
+- `navigate` to `http://localhost:5173/labs/face-studio.html`
 - `read_console_messages` with `onlyErrors:true` to catch generator exceptions (a thrown error
   means NO faces render — always check this after JS edits).
 - `computer` action `zoom` on the selected-portrait region to inspect a feature closely; `screenshot`
@@ -121,15 +122,16 @@ Then drive it with the Chrome extension MCP (`mcp__Claude_in_Chrome__*`):
 - The top filters (Hair/Expression/Name) and the editor tabs let you isolate a style/character. To
   see a specific hairstyle, set the Hair filter; to see a named character, type in the Name search.
 
-There is no local Node runtime, so you can't `node --check`. The browser console IS your syntax/
-runtime check — load the page and read errors after every JS edit.
+Use `node --check` for syntax, then load the page and read browser-console errors after every JS
+edit; both checks catch different classes of failure.
 
 ## The Face Studio editor is a calibration tool
 
-`face-studio.html/js` is a workbench: the user sculpts a character toward the target with
+`labs/face-studio.html` and `src/labs/face-studio/face-studio.js` form a workbench: the user
+sculpts a character toward the target with
 sliders/dropdowns (grouped into tabs; clicking a region on the portrait jumps to that group), then
 exports a correction JSON (`{ selected, all }`). When the user sends that JSON back, it is
-**calibration data** — fold the deltas into the generator's base defaults in `face-generator.js`,
+**calibration data** — fold the deltas into the generator's base defaults in `src/characters/face-generator.js`,
 don't just apply them as a one-off. Flat trait keys in corrections override the per-character
 `portraitProfile` via `getProfile(traits)`.
 

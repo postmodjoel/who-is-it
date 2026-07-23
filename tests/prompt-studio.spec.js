@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/prompt-studio.html");
+  await page.goto("/labs/prompt-studio.html");
   await page.evaluate(() => localStorage.removeItem("whoisit_prompt_studio_v1"));
   await page.reload();
   await page.getByRole("button", { name: "WHO? DO YOU THINK? SWIPE" }).click();

@@ -24,6 +24,7 @@ Example/
 assets/habbo/furni-unused/
 
 # Backups / scratch artifacts
+.scratch/
 *.BACKUP*
 *.bak
 *.orig

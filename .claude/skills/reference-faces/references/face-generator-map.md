@@ -1,6 +1,6 @@
-# face-generator.js map + per-feature recipes
+# src/characters/face-generator.js map + per-feature recipes
 
-`face-generator.js` is one IIFE attached to `window.faceGenerator`, exposing `createCharacters`,
+`src/characters/face-generator.js` is one IIFE attached to `window.faceGenerator`, exposing `createCharacters`,
 `renderPortrait` (= `composePortrait`), and `traitBook`. Everything below is inside that IIFE.
 Line numbers drift as you edit — search by function name, not line.
 
@@ -56,13 +56,13 @@ it renders strokes unevenly. Let strokes scale naturally.
 
 ## Hair
 
-### faces.js hair (the current basis — `faces-hair.js`)
+### faces.js hair (the current basis — `src/characters/faces-hair.js`)
 Most styles now render from real faces.js silhouettes (Apache-2.0, attributed) instead of the
-procedural paths below. `faces-hair.js` exposes `window.facesHair.{render,has,styles}` and holds the
+procedural paths below. `src/characters/faces-hair.js` exposes `window.facesHair.{render,has,styles}` and holds the
 copied path data. Mapping: messy→messy, cropped→crop, sidePart→parted, bob→middle-part, curls→curly,
 coily→afro, locs→dreads. (`longWaves` is now a purpose-built **procedural** style for Luna's
 flowing waves — see the longWaves note below — and is excluded from the faces.js table; the borrowed
-`female1` data is kept in faces-hair.js but rendered as a blunt-banged bob, so it's disabled there.)
+`female1` data is kept in src/characters/faces-hair.js but rendered as a blunt-banged bob, so it's disabled there.)
 faces.js authors on a 400×600 canvas; the
 `FACES_HAIR_TRANSFORM` (`translate(50.5 22) scale(0.387)`) maps that onto this 256×256 head (head
 centres + skull-top aligned, head width matched, uniform scale so shapes don't distort). In
@@ -70,7 +70,7 @@ centres + skull-top aligned, head width matched, uniform scale so shapes don't d
 group on top of the face (no separate back/front, no strand overlay); when false it falls back to the
 procedural back/front hair + strands below. bun/hijab/bald are NOT mapped and still use the
 procedural code. To add/adjust a mapping: extract the `<path d>` from the faces.js SVG, add it to the
-`HAIR` table in faces-hair.js with a mode tag (`fs` fill+stroke, `f` fill-only, `l` line-only), and
+`HAIR` table in src/characters/faces-hair.js with a mode tag (`fs` fill+stroke, `f` fill-only, `l` line-only), and
 add the style key. To re-fit, tweak `FACES_HAIR_TRANSFORM`. Strokes use width 8.8 in faces-space
 (×0.387 ≈ the 3.4 contour) and scale naturally with any head resize.
 
@@ -186,5 +186,5 @@ Avoid restoring a long centre bridge line — it elongates the midface.
 1. Add the trait to `getProfile`/`profileOverrideKeys` (numeric) or as a categorical trait + to
    `traitBook`.
 2. Consume it in the relevant `render*` function (use the `stroke` scale + `ink`/`shadeColor`).
-3. Add a control to `face-studio.js` `editorFields` (range or `type:"select"`) in the right group.
+3. Add a control to `src/labs/face-studio/face-studio.js` `editorFields` (range or `type:"select"`) in the right group.
 4. Bump the cache-buster, reload, verify in the browser, compare to the reference.

@@ -9,7 +9,7 @@ if (confirmation !== "APPLY_GATED_RULES") {
 }
 
 const reportPath = path.resolve(value("--decision") || "test-results/groupthink-lab/decision.json");
-const rulesPath = path.resolve(value("--rules") || "groupthink-rules.js");
+const rulesPath = path.resolve(value("--rules") || "src/modes/groupthink/groupthink-rules.js");
 const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
 if ((Number(report.sessionsPerCell) || 0) < 20_000) throw new Error("Decision is not based on 20,000 sessions per cell");
 
@@ -54,4 +54,3 @@ if (next === source) {
   fs.writeFileSync(rulesPath, next);
   process.stdout.write(`Applied gated production rules: ${JSON.stringify(decision)}\n`);
 }
-

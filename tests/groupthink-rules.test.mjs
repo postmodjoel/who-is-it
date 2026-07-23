@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-await import("../groupthink-rules.js");
+await import("../src/modes/groupthink/groupthink-rules.js");
 const Rules = globalThis.GroupthinkRules;
 
 test("pick-count and support boundaries preserve the live rules", () => {

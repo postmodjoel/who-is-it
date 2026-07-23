@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
       }
     }));
   }, { key: UI_KEY });
-  await page.goto("/clothing-lab.html");
+  await page.goto("/labs/clothing-lab.html");
   await expect(page.locator("#selectedName")).toHaveText("Lab Coat");
 });
 

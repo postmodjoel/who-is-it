@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
  * Data/API tests probe window.facesHair / window.faceGenerator on the lab page; rendering tests
  * decode the produced SVGs; designer tests drive the Face Studio Hair Designer. */
 
-const LAB = "/hair-compositor-lab.html";
+const LAB = "/labs/hair-compositor-lab.html";
 
 async function decodePortrait(page, traits, seed = 7) {
   return page.evaluate(({ traits: t, seed: s }) => {
@@ -158,7 +158,7 @@ test.describe("compositor rendering", () => {
 test.describe("hair designer interactions", () => {
   const KEY = "who-is-that-face-corrections";
   async function openHair(page) {
-    await page.goto("/face-studio.html");
+    await page.goto("/labs/face-studio.html");
     await page.getByRole("button", { name: "Hair", exact: true }).first().click();
     await expect(page.locator(".lock-designer .meta-label").first()).toHaveText("Hair Designer");
   }
@@ -266,7 +266,7 @@ test.describe("visual snapshots", () => {
 
   test("mobile face studio stack stays usable", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "iphone", "mobile layout runs on the iphone project");
-    await page.goto("/face-studio.html");
+    await page.goto("/labs/face-studio.html");
     await page.getByRole("button", { name: "Hair", exact: true }).first().click();
     await expect(page.locator(".lock-designer .meta-label").first()).toHaveText("Hair Designer");
     await expect(page.locator(".lock-stack")).toBeVisible();

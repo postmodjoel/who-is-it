@@ -203,6 +203,7 @@ function handleNetMsg(msg) {
   // Presence first: any message from another client proves they're alive (and revives them if we
   // thought they'd dropped).
   if (msg.clientId && msg.clientId !== state.clientId) notePeer(msg);
+  if (window.WhoDidYouMake && WhoDidYouMake.handleNetMessage(msg)) return;
   if (window.Groupthink && Groupthink.handleNetMessage(msg)) return;
   if (msg.type === "ping") return;
   if (msg.type === "bye") { peerGone(netPeers.get(msg.clientId), "left", msg.clientId); return; }
@@ -272,18 +273,19 @@ function handleNetMsg(msg) {
     // Observers (TV displays) never take a seat: they only receive the broadcast to render the board.
     if (msg.observe) {
       if (state.inLobby) { broadcastLobby(); }
-      else if (typeof buildGameSave === "function") netSend("snapshot", { save: buildGameSave() });
+      else if (typeof buildGameSave === "function") netSend("snapshot", { for: msg.clientId, save: buildGameSave() });
       return;
     }
     if (msg.clientId && !state.roster.some((r) => r.clientId === msg.clientId)) {
       // GROUPTHINK shrinks one communal cast across a fixed roster. A late player would have no prior
       // ballots or score/save history, so the match roster closes the moment round one starts.
-      if (!state.inLobby && state.ruleset === "groupthink") {
+      if (!state.inLobby && (state.ruleset === "groupthink" || state.ruleset === "whodidyoumake")) {
         netSend("roomfull", { for: msg.clientId });
         return;
       }
       // A new client: register them in the next open slot (up to the cap).
-      if (state.roster.length < MAX_PLAYERS) {
+      const roomCap = state.ruleset === "whodidyoumake" ? 6 : MAX_PLAYERS;
+      if (state.roster.length < roomCap) {
         const index = state.roster.length;
         state.roster.push({ name: cleanName || `Player ${index + 1}`, clientId: msg.clientId });
         state.playerCount = state.roster.length;
@@ -306,7 +308,10 @@ function handleNetMsg(msg) {
     // bring back crossings.)
     else if (typeof buildGameSave === "function") {
       const save = buildGameSave();
-      netSend("snapshot", { save });
+      // A reconnect snapshot is private to the peer that announced itself. Broadcasting it lets a
+      // late, rejected joiner race the targeted `roomfull` packet and enter a closed match using the
+      // known player's snapshot.
+      netSend("snapshot", { for: msg.clientId, save });
       if (typeof saveGameState === "function") saveGameState();
     }
     else netSend("sync", { salt: state.gameSalt, settings: state.settings, effectId: state.wheelPick, roster: rosterForWire(), playerCount: state.playerCount, playMode: state.playMode, ruleset: state.ruleset });

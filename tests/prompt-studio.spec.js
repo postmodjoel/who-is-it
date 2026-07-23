@@ -8,7 +8,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("rates prompts, preserves feedback, undoes, and exports stable ids", async ({ page }) => {
-  await expect(page.locator("#gtProgress")).toContainText("0/37 rated");
+  const total = await page.evaluate(() => Object.values(window.GameData.groupthinkPrompts).flat().length);
+  // A floor against accidental deck collapse, not a size target - curation is expected to shrink it.
+  expect(total).toBeGreaterThanOrEqual(80);
+  await expect(page.locator("#gtProgress")).toContainText(`0/${total} rated`);
   const id = await page.locator(".swipe-id").textContent();
   const original = await page.locator(".swipe-text").textContent();
 
@@ -17,7 +20,7 @@ test("rates prompts, preserves feedback, undoes, and exports stable ids", async 
   await page.locator("#gtReplacement").fill("Pick three who brought an alibi to dinner.");
   await page.locator("#gtRewrite").check();
   await page.getByRole("button", { name: "Yay" }).click();
-  await expect(page.locator("#gtProgress")).toContainText("1/37 rated");
+  await expect(page.locator("#gtProgress")).toContainText(`1/${total} rated`);
 
   const saved = await page.evaluate((promptId) => JSON.parse(localStorage.getItem("whoisit_prompt_studio_v1")).groupthink[promptId], id);
   expect(saved).toMatchObject({
@@ -34,8 +37,7 @@ test("rates prompts, preserves feedback, undoes, and exports stable ids", async 
   await expect(page.locator("#gtNote")).toHaveValue("Sharper and more specific");
 
   await page.getByRole("button", { name: "Maybe" }).click();
-  await page.getByRole("button", { name: "ALL PROMPTS" }).click();
-  await page.getByRole("button", { name: /EXPORT FOR CLAUDE/ }).click();
+  await page.locator("#gtExport").click();
   const payload = JSON.parse(await page.locator("#out").inputValue());
   expect(payload.studio).toBe("whoisit-prompt-studio-v2");
   expect(payload.groupthink[0]).toMatchObject({
@@ -48,12 +50,13 @@ test("rates prompts, preserves feedback, undoes, and exports stable ids", async 
 });
 
 test("queue filters and keyboard shortcuts ignore feedback fields", async ({ page }) => {
+  const total = await page.evaluate(() => Object.values(window.GameData.groupthinkPrompts).flat().length);
   await page.locator("#gtNote").focus();
   await page.keyboard.press("ArrowRight");
-  await expect(page.locator("#gtProgress")).toContainText("0/37 rated");
+  await expect(page.locator("#gtProgress")).toContainText(`0/${total} rated`);
   await page.locator("#gtCard").focus();
   await page.keyboard.press("ArrowUp");
-  await expect(page.locator("#gtProgress")).toContainText("1/37 rated");
+  await expect(page.locator("#gtProgress")).toContainText(`1/${total} rated`);
   await page.locator("#gtQueue").selectOption("maybe");
   await expect(page.locator("#gtStage .swipe-card")).toHaveCount(1);
 });

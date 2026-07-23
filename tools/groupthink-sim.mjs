@@ -117,8 +117,8 @@ function candidateScore({ ownPicks, otherPicks, playerCount, doubleDownEnabled }
   ownPicks.forEach((id) => { counts[id] = (counts[id] || 0) + 1; });
   const support = Rules.matchSupport(playerCount);
   const matches = ownPicks.filter((id) => counts[id] >= support);
-  // Consolation scales with the ballot size, matching scoreRound's live rule.
-  let score = matches.length ? matches.length * 2 : Math.min(3, Math.max(1, ownPicks.length));
+  // Flat consolation floor of 1, matching scoreRound's live rule (a match always beats the floor).
+  let score = matches.length ? matches.length * 2 : 1;
   let doubleDownId = null;
   if (doubleDownEnabled && matches.length) {
     doubleDownId = matches[0];

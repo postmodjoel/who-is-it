@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Next 30 Sims · Vote</title>
+    <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+    <link rel="stylesheet" href="sim-range-review.css?v=2">
+  </head>
+  <body>
+    <main class="range-shell">
+      <header class="range-head">
+        <div>
+          <p class="range-kicker">WHO? KNOWS? · CAST DEVELOPMENT</p>
+          <h1>THE NEXT 30</h1>
+          <p class="range-intro">Maude and Cleo have joined your first eight in the game. These thirty are wholly new designs—vote in only the ones you want.</p>
+        </div>
+        <a id="finishButton" class="range-back" href="index.html">BACK TO GAME · NONE KEPT →</a>
+      </header>
+
+      <section class="shortlist-strip" aria-label="Shortlist status">
+        <div class="shortlist-tally">
+          <strong id="shortlistCount">0</strong>
+          <span>OF 30<br>KEPT</span>
+        </div>
+        <p><strong>Click KEEP on the ones you want.</strong><br>Your shortlist saves instantly and controls which new people appear in the game.</p>
+        <button id="clearVotes" class="clear-votes" type="button" disabled>CLEAR VOTES</button>
+      </section>
+
+      <section class="range-toolbar" aria-label="Review controls">
+        <div class="range-control-stack">
+          <div class="range-filter-tabs" role="group" aria-label="Shortlist filter">
+            <button type="button" class="is-active" data-filter="all">ALL 30</button>
+            <button type="button" data-filter="kept">KEPT ONLY</button>
+            <button type="button" data-filter="unkept">NOT KEPT</button>
+          </div>
+          <div class="range-tabs" role="group" aria-label="Expression">
+            <button type="button" class="is-active" data-expression="assigned">ASSIGNED</button>
+            <button type="button" data-expression="neutral">NEUTRAL</button>
+            <button type="button" data-expression="happy">HAPPY</button>
+            <button type="button" data-expression="surprised">SURPRISED</button>
+            <button type="button" data-expression="angry">ANGRY</button>
+            <button type="button" data-expression="sad">SAD</button>
+          </div>
+        </div>
+        <div id="rangeSummary" class="range-summary" aria-live="polite"></div>
+      </section>
+
+      <section id="simRangeGrid" class="range-grid" aria-label="Thirty new character portraits"></section>
+    </main>
+
+    <script src="faces-hair.js?v=210"></script>
+    <script src="studio-bakes-import.js?v=3"></script>
+    <script src="clothing-profiles.js?v=3"></script>
+    <script src="face-generator.js?v=264"></script>
+    <script src="sim-range-review.js?v=7"></script>
+  </body>
+</html>

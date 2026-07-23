@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" data-palette="#3987e5,#008300">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WHO? DO YOU THINK? — Scoring Health</title>
+<style>
+  /* Dark-primary to match the game; validated dataviz palette for all data marks. Light fallback via
+     prefers-color-scheme. Data-viz roles are CSS custom properties so the two modes swap in one place. */
+  :root {
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#232322;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,0.10);
+    --accent:#ffd43b;
+    /* status */
+    --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+    /* categorical (dark steps): honest = blue slot 1, consolation = green slot 2 */
+    --series-honest:#3987e5; --series-consolation:#008300; --series-consensus:#9085e9; --series-random:#898781;
+    /* sequential blue, dark→light (low recedes toward surface, high pops) */
+    --seq-0:#12325c; --seq-1:#184f95; --seq-2:#256abf; --seq-3:#3987e5; --seq-4:#5598e7; --seq-5:#86b6ef; --seq-6:#b7d3f6;
+    --ref:#ffd43b; /* "one match = 2" reference line */
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      --plane:#f9f9f7; --surface:#fcfcfb; --surface-2:#f2f1ec;
+      --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+      --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,0.10);
+      --series-honest:#2a78d6; --series-consolation:#008300; --series-consensus:#4a3aa7; --series-random:#898781;
+      --seq-0:#cde2fb; --seq-1:#9ec5f4; --seq-2:#6da7ec; --seq-3:#3987e5; --seq-4:#256abf; --seq-5:#184f95; --seq-6:#0d366b;
+      --ref:#c98500;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--plane); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px; line-height:1.5;
+    padding:28px clamp(16px,4vw,48px) 80px;
+  }
+  h1 { font-size:clamp(20px,3vw,28px); margin:0 0 4px; letter-spacing:-.01em; }
+  h2 { font-size:15px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); margin:34px 0 12px; font-weight:800; }
+  .sub { color:var(--muted); font-size:12.5px; margin:0 0 2px; }
+  .headline { color:var(--ink); font-size:15px; margin:14px 0 0; padding:12px 16px; background:var(--surface); border:1px solid var(--ring); border-radius:12px; border-left:3px solid var(--accent); }
+  a { color:var(--series-honest); }
+
+  /* verdict chips */
+  .chips { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; }
+  .chip { background:var(--surface); border:1px solid var(--ring); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:6px; }
+  .chip .verdict { display:inline-flex; align-items:center; gap:7px; font-weight:800; font-size:12px; letter-spacing:.04em; padding:3px 9px; border-radius:999px; width:max-content; }
+  .v-PASS { color:#062; background:color-mix(in srgb,var(--good) 22%, transparent); }
+  .v-WARN { color:#7a5600; background:color-mix(in srgb,var(--warn) 26%, transparent); }
+  .v-FAIL { color:#611; background:color-mix(in srgb,var(--crit) 24%, transparent); }
+  @media (prefers-color-scheme:dark) {
+    .v-PASS { color:#7ee37e; } .v-WARN { color:#ffd98a; } .v-FAIL { color:#ff9a9a; }
+  }
+  .chip .glyph { font-size:12px; }
+  .chip .dim { font-weight:800; font-size:14px; }
+  .chip .q { color:var(--muted); font-size:12px; }
+  .chip .decide { color:var(--ink-2); font-size:11.5px; font-variant-numeric:tabular-nums; }
+
+  /* controls */
+  .controls { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; margin:8px 0 4px; }
+  .ctl { display:flex; flex-direction:column; gap:5px; }
+  .ctl label { font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  select, .seg button { font:inherit; }
+  select { background:var(--surface); color:var(--ink); border:1px solid var(--ring); border-radius:8px; padding:7px 10px; }
+  .seg { display:inline-flex; border:1px solid var(--ring); border-radius:8px; overflow:hidden; }
+  .seg button { background:var(--surface); color:var(--ink-2); border:0; padding:7px 14px; cursor:pointer; font-weight:700; }
+  .seg button[aria-pressed="true"] { background:var(--series-honest); color:#fff; }
+  .metric-note { color:var(--muted); font-size:12px; }
+
+  .card { background:var(--surface); border:1px solid var(--ring); border-radius:14px; padding:18px; overflow-x:auto; }
+
+  /* heatmap */
+  .hm { border-collapse:separate; border-spacing:3px; }
+  .hm th { color:var(--muted); font-size:11.5px; font-weight:700; padding:4px 6px; text-align:center; }
+  .hm th.rowlab, .hm td.rowlab { text-align:right; color:var(--ink-2); font-weight:700; white-space:nowrap; padding-right:10px; }
+  .hm td.cell { width:74px; height:44px; border-radius:7px; text-align:center; font-variant-numeric:tabular-nums; font-weight:700; font-size:13px; cursor:default; position:relative; border:1px solid var(--ring); }
+  .hm td.cell:hover { outline:2px solid var(--accent); outline-offset:1px; }
+  .scale { display:flex; align-items:center; gap:8px; margin-top:12px; color:var(--muted); font-size:12px; }
+  .scale .bar { height:12px; width:180px; border-radius:6px; border:1px solid var(--ring); }
+
+  /* bars */
+  .bars { display:flex; gap:34px; align-items:flex-end; height:230px; padding:8px 4px 0; position:relative; }
+  .bargroup { display:flex; flex-direction:column; align-items:center; gap:8px; flex:0 0 auto; }
+  .barpair { display:flex; gap:10px; align-items:flex-end; height:180px; }
+  .bar { width:46px; border-radius:4px 4px 0 0; position:relative; display:flex; justify-content:center; align-items:flex-start; }
+  .bar b { position:absolute; top:-19px; font-size:12px; font-variant-numeric:tabular-nums; color:var(--ink-2); font-weight:800; }
+  .bar.honest { background:var(--series-honest); }
+  .bar.consolation { background:var(--series-consolation); }
+  .barlab { font-size:12px; color:var(--muted); font-weight:700; }
+  .refline { position:absolute; left:0; right:0; border-top:2px dashed var(--ref); }
+  .refline span { position:absolute; right:0; top:-18px; color:var(--ref); font-size:11px; font-weight:800; background:var(--surface); padding:0 4px; }
+  .legend { display:flex; gap:18px; margin-top:14px; flex-wrap:wrap; }
+  .legend span { display:inline-flex; align-items:center; gap:7px; color:var(--ink-2); font-size:12.5px; }
+  .swatch { width:12px; height:12px; border-radius:3px; display:inline-block; }
+
+  /* table */
+  table.grid { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; font-size:12.5px; }
+  table.grid th, table.grid td { padding:7px 10px; text-align:right; border-bottom:1px solid var(--grid); white-space:nowrap; }
+  table.grid th:first-child, table.grid td:first-child { text-align:left; }
+  table.grid th { color:var(--muted); font-weight:700; cursor:pointer; user-select:none; position:sticky; top:0; background:var(--surface); }
+  table.grid th:hover { color:var(--ink); }
+  table.grid tbody tr:hover { background:var(--surface-2); }
+  .flag-fail td:first-child::before { content:"● "; color:var(--crit); }
+  .flag-warn td:first-child::before { content:"● "; color:var(--warn); }
+
+  /* tooltip */
+  #tip { position:fixed; z-index:50; pointer-events:none; background:var(--surface-2); color:var(--ink); border:1px solid var(--ring); border-radius:9px; padding:9px 11px; font-size:12px; box-shadow:0 8px 26px rgba(0,0,0,.4); opacity:0; transition:opacity .1s; max-width:260px; }
+  #tip .tt-h { font-weight:800; margin-bottom:5px; }
+  #tip .tt-row { display:flex; justify-content:space-between; gap:16px; color:var(--ink-2); }
+  #tip .tt-row b { color:var(--ink); font-variant-numeric:tabular-nums; }
+  .miss { background:var(--surface); border:1px solid var(--ring); border-left:3px solid var(--warn); border-radius:12px; padding:20px; color:var(--ink-2); }
+  code { background:var(--surface-2); padding:1px 6px; border-radius:5px; font-size:12px; }
+</style>
+</head>
+<body>
+  <h1>WHO? DO YOU THINK? — Scoring Health</h1>
+  <p class="sub" id="meta">Loading report…</p>
+  <div id="app"></div>
+  <div id="tip"></div>
+
+<script>
+const REPORT_URL = "test-results/groupthink-score-health/report.json";
+const CORRS = [0.25, 0.5, 0.75, 0.9];
+const SEQ = ["--seq-0","--seq-1","--seq-2","--seq-3","--seq-4","--seq-5","--seq-6"];
+const METRICS = {
+  etaSq:              { label: "η² — signal share (skill explains score)", dir: "high", fmt: v => v.toFixed(3) },
+  tieRate:            { label: "Tie-for-first rate", dir: "low", fmt: v => (v*100).toFixed(0)+"%" },
+  covMean:            { label: "Score spread (CoV)", dir: "band", fmt: v => v.toFixed(2) },
+  seatR:              { label: "Seat bias |r| (fairness)", dir: "low", abs: true, fmt: v => v.toFixed(3) },
+  maxWinProb:         { label: "Top strategy win share", dir: "low", fmt: v => (v*100).toFixed(0)+"%" },
+  topFinishConsensus: { label: "Consensus first-place share", dir: "high", fmt: v => (v*100).toFixed(0)+"%" }
+};
+const DIM_META = {
+  A: ["Validity", "Does matching the room beat random picking?"],
+  B: ["Signal vs luck", "Does skill decide the winner, or the dice?"],
+  C: ["Dynamic range", "Does the score separate the table without a blowout?"],
+  D: ["Invariance", "Fair across table size and the 1/2/3-pick ballots?"],
+  E: ["No solved strategy", "Is one line dominant enough to make it boring?"]
+};
+const GLYPH = { PASS:"✓", WARN:"!", FAIL:"✕" };
+let state = { metric: "etaSq", yolo: true, sort: { key: "playerCount", dir: 1 }, data: null };
+
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+const metricVal = (cell, key) => { const m = METRICS[key]; const v = cell[key]; return m.abs ? Math.abs(v) : v; };
+
+fetch(REPORT_URL).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(d => { state.data = d; render(); })
+  .catch(() => {
+    document.getElementById("meta").textContent = "";
+    document.getElementById("app").innerHTML =
+      `<div class="miss"><b>No report loaded.</b><br>Generate it with <code>npm run score:health</code> and serve this file from the repo root (the game's dev server does this). ` +
+      `The report lives at <code>${REPORT_URL}</code> — note that any <code>playwright test</code> run wipes <code>test-results/</code>, so rerun the tool if the page can't find it.</div>`;
+  });
+
+function render() {
+  const d = state.data, app = document.getElementById("app");
+  document.getElementById("meta").innerHTML =
+    `seed <code>${d.seed}</code> · ${d.sessionsPerCell.toLocaleString()} sessions/cell · ${d.cells.length} competitive + ${d.duoCells.length} duo cells · generated ${new Date(d.generatedAt).toLocaleString()} · ${d.runtimeSeconds}s`;
+  app.innerHTML = "";
+
+  const values = ["A","B","C","D","E"].map(k => d.verdicts[k]);
+  const headline = values.every(v => v==="PASS")
+    ? "The score works: skill beats luck, the table separates, and no dimension shows a fairness break."
+    : values.includes("FAIL")
+      ? "The score has at least one real break — see the FAIL chips before trusting session results."
+      : "The score broadly works, with soft spots worth watching (WARN).";
+  app.appendChild(el("div","headline","<b>Headline:</b> "+headline));
+
+  // verdict chips
+  app.appendChild(el("h2",null,"Verdict"));
+  const chips = el("div","chips");
+  for (const k of ["A","B","C","D","E"]) {
+    const v = d.verdicts[k], [name,q] = DIM_META[k];
+    const chip = el("div","chip");
+    chip.innerHTML =
+      `<span class="verdict v-${v}"><span class="glyph">${GLYPH[v]}</span>${v}</span>` +
+      `<span class="dim">${k} · ${name}</span><span class="q">${q}</span>` +
+      `<span class="decide">${decider(k)}</span>`;
+    chips.appendChild(chip);
+  }
+  app.appendChild(chips);
+
+  // controls
+  app.appendChild(el("h2",null,"Metric heatmap"));
+  const controls = el("div","controls");
+  const mSel = el("div","ctl");
+  mSel.innerHTML = `<label>Metric</label>`;
+  const sel = el("select");
+  for (const [key,m] of Object.entries(METRICS)) { const o = el("option",null,m.label); o.value = key; if (key===state.metric) o.selected = true; sel.appendChild(o); }
+  sel.onchange = () => { state.metric = sel.value; render(); };
+  mSel.appendChild(sel);
+  const ySel = el("div","ctl");
+  ySel.innerHTML = `<label>Mode</label>`;
+  const seg = el("div","seg");
+  for (const [lab,val] of [["YOLO",true],["Full deck",false]]) {
+    const b = el("button",null,lab); b.setAttribute("aria-pressed", String(state.yolo===val));
+    b.onclick = () => { state.yolo = val; render(); }; seg.appendChild(b);
+  }
+  ySel.appendChild(seg);
+  controls.appendChild(mSel); controls.appendChild(ySel);
+  const dir = METRICS[state.metric].dir;
+  controls.appendChild(el("div","metric-note", dir==="high" ? "↑ higher is better" : dir==="low" ? "↓ lower is better" : "healthy band ≈ 0.15–0.6"));
+  app.appendChild(controls);
+  app.appendChild(heatmap());
+
+  // ballot bars
+  app.appendChild(el("h2",null,"Floor safety by ballot size — honest vs floor-farming"));
+  app.appendChild(ballotBars());
+
+  // table
+  app.appendChild(el("h2",null,"All cells"));
+  app.appendChild(tableCard());
+}
+
+function decider(k) {
+  const d = state.data, cells = d.cells, T = d.thresholds;
+  const med = arr => { const s = arr.slice().sort((a,b)=>a-b); return s.length ? s[Math.floor((s.length-1)/2)] : 0; };
+  if (k==="A") return `validity share ${Math.round((d.verdicts.aShare||0)*100)}% of scored rooms (target ≥${T.validityPassShare*100}%)`;
+  if (k==="B") return `η² median ${med(cells.map(c=>c.etaSq)).toFixed(2)} (pass ≥${T.etaSqPass}); luck rooms ≤${T.luckRoomCorrelation} corr exempt`;
+  if (k==="C") return `CoV median ${med(cells.map(c=>c.covMean)).toFixed(2)}; ties excused when CoV ≥${T.covHealthyForTies}`;
+  if (k==="D") return `worst |seat r| ${Math.max(...cells.map(c=>Math.abs(c.seatR))).toFixed(3)}; consolation ≤ honest at every ballot`;
+  return `max strategy win-share ${Math.max(...cells.map(c=>c.maxWinProb)).toFixed(2)} (warn >${T.solvedWarn}, fail >${T.solvedFail})`;
+}
+
+function visibleCells() { return state.data.cells.filter(c => c.yolo === state.yolo); }
+
+function heatmap() {
+  const card = el("div","card");
+  const cells = visibleCells();
+  const pcs = [...new Set(state.data.cells.map(c=>c.playerCount))].sort((a,b)=>a-b);
+  const m = METRICS[state.metric];
+  // stable domain across BOTH modes so toggling YOLO doesn't rescale colours
+  const all = state.data.cells.map(c => metricVal(c, state.metric));
+  const lo = Math.min(...all), hi = Math.max(...all), span = (hi-lo) || 1;
+  const colorFor = v => { const t = (v-lo)/span; return css(SEQ[Math.max(0,Math.min(SEQ.length-1,Math.round(t*(SEQ.length-1))))]); };
+  const inkFor = v => ((v-lo)/span > 0.55 ? "#0b0b0b" : "#ffffff");
+
+  const tbl = el("table","hm");
+  const head = el("tr"); head.appendChild(el("th","rowlab","players ↓ / corr →"));
+  for (const c of CORRS) head.appendChild(el("th",null,String(c)));
+  tbl.appendChild(head);
+  for (const pc of pcs) {
+    const tr = el("tr"); tr.appendChild(el("td","rowlab", pc+"p"));
+    for (const corr of CORRS) {
+      const cell = cells.find(c => c.playerCount===pc && c.correlation===corr);
+      const td = el("td","cell");
+      if (!cell) { td.style.background = "transparent"; td.style.border = "1px dashed var(--grid)"; td.textContent = "·"; }
+      else {
+        const v = metricVal(cell, state.metric);
+        td.style.background = colorFor(v); td.style.color = inkFor(v);
+        td.textContent = m.fmt(m.abs ? Math.abs(cell[state.metric]) : cell[state.metric]);
+        attachTip(td, cell);
+      }
+      tr.appendChild(td);
+    }
+    tbl.appendChild(tr);
+  }
+  card.appendChild(tbl);
+  // scale legend
+  const scale = el("div","scale");
+  const grad = `linear-gradient(90deg, ${SEQ.map(s=>css(s)).join(",")})`;
+  scale.innerHTML = `<span>${m.fmt(lo)}</span><span class="bar" style="background:${grad}"></span><span>${m.fmt(hi)}</span><span style="margin-left:6px">— ${m.label}. Dashed = not applicable at this size.</span>`;
+  card.appendChild(scale);
+  return card;
+}
+
+function ballotBars() {
+  const card = el("div","card");
+  const agg = {}; // ballot -> {honest:[], consolation:[]}
+  for (const c of state.data.cells) for (const [b, rates] of Object.entries(c.ballotRates)) {
+    (agg[b] || (agg[b] = { honest:[], consolation:[] }));
+    if (rates.honest != null) agg[b].honest.push(rates.honest);
+    if (rates.consolation != null) agg[b].consolation.push(rates.consolation);
+  }
+  const ballots = Object.keys(agg).sort();
+  const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
+  const maxV = Math.max(4, ...ballots.flatMap(b => [mean(agg[b].honest), mean(agg[b].consolation)]));
+  const wrap = el("div","bars");
+  // reference line at "one match = 2"
+  const refTop = 180 - (2/maxV)*180;
+  const ref = el("div","refline"); ref.style.top = (refTop+8)+"px"; ref.innerHTML = `<span>one match = 2</span>`;
+  wrap.appendChild(ref);
+  for (const b of ballots) {
+    const h = mean(agg[b].honest), c = mean(agg[b].consolation);
+    const g = el("div","bargroup");
+    const pair = el("div","barpair");
+    for (const [cls,val] of [["honest",h],["consolation",c]]) {
+      const bar = el("div","bar "+cls); bar.style.height = Math.max(2,(val/maxV)*180)+"px";
+      bar.innerHTML = `<b>${val.toFixed(2)}</b>`; pair.appendChild(bar);
+    }
+    g.appendChild(pair); g.appendChild(el("div","barlab", b+"-pick")); wrap.appendChild(g);
+  }
+  card.appendChild(wrap);
+  const legend = el("div","legend");
+  legend.innerHTML =
+    `<span><i class="swatch" style="background:var(--series-honest)"></i>honest (reads the room)</span>` +
+    `<span><i class="swatch" style="background:var(--series-consolation)"></i>consolation (farms the floor)</span>` +
+    `<span style="color:var(--ref)">— — one match = 2 pts</span>`;
+  card.appendChild(legend);
+  card.appendChild(el("p","metric-note","Honest must clear the floor at every ballot size, and the floor (green) must stay under the “one match” line — the guarantee the flat floor = 1 was chosen to make."));
+  return card;
+}
+
+function tableCard() {
+  const card = el("div","card");
+  const cols = [
+    ["cell","cell",c=>`${c.playerCount}p · ${c.correlation} · ${c.yolo?"yolo":"full"}`],
+    ["playerCount","players",c=>c.playerCount],["correlation","corr",c=>c.correlation],
+    ["etaSq","η²",c=>c.etaSq.toFixed(3)],["tieRate","ties",c=>(c.tieRate*100).toFixed(0)+"%"],
+    ["covMean","CoV",c=>c.covMean.toFixed(2)],["seatR","seat r",c=>c.seatR.toFixed(3)],
+    ["topFinishConsensus","cons.1st",c=>(c.topFinishConsensus*100).toFixed(0)+"%"],
+    ["maxWinProb","top win",c=>(c.maxWinProb*100).toFixed(0)+"%"],["meanRounds","rounds",c=>c.meanRounds]
+  ];
+  const T = state.data.thresholds;
+  const flag = c => {
+    if (c.covMean < T.covFailLow || (c.playerCount>=3 && c.playerCount<=6 && c.tieRate>T.tieFail && c.covMean<T.covLow) || c.runawayRate>T.runawayFail || Math.abs(c.seatR)>T.seatRFail) return "flag-fail";
+    if (c.maxWinProb > T.solvedWarn || (c.correlation>T.luckRoomCorrelation && c.etaSq<T.etaSqPass)) return "flag-warn";
+    return "";
+  };
+  const tbl = el("table","grid");
+  const thead = el("tr");
+  for (const [key,lab] of cols) { const th = el("th",null,lab); th.onclick = () => { state.sort = { key, dir: state.sort.key===key ? -state.sort.dir : 1 }; card.replaceWith(tableCard()); }; if (state.sort.key===key) th.innerHTML = lab+(state.sort.dir>0?" ▲":" ▼"); thead.appendChild(th); }
+  tbl.appendChild(thead);
+  const rows = state.data.cells.slice().sort((a,b) => {
+    const k = state.sort.key; const av = k==="cell" ? a.playerCount : a[k], bv = k==="cell" ? b.playerCount : b[k];
+    return (av>bv?1:av<bv?-1:0) * state.sort.dir;
+  });
+  for (const c of rows) {
+    const tr = el("tr", flag(c));
+    for (const [,,fn] of cols) tr.appendChild(el("td",null,String(fn(c))));
+    attachTip(tr, c);
+    tbl.appendChild(tr);
+  }
+  card.appendChild(tbl);
+  card.appendChild(el("p","metric-note","● red = fails a threshold · ● amber = soft-note (dominant-ish strategy, or a skill room below the η² pass line). Click a header to sort."));
+  return card;
+}
+
+function attachTip(node, cell) {
+  const tip = document.getElementById("tip");
+  node.addEventListener("mousemove", e => {
+    tip.style.opacity = "1";
+    tip.style.left = Math.min(e.clientX+14, innerWidth-270)+"px";
+    tip.style.top = (e.clientY+14)+"px";
+    const r = cell.strategyRate;
+    tip.innerHTML =
+      `<div class="tt-h">${cell.playerCount} players · corr ${cell.correlation} · ${cell.yolo?"YOLO":"full deck"}</div>` +
+      row("η² (signal)", cell.etaSq.toFixed(3)) + row("tie-for-first", (cell.tieRate*100).toFixed(0)+"%") +
+      row("score spread CoV", cell.covMean.toFixed(2)) + row("seat bias r", cell.seatR.toFixed(3)) +
+      row("consensus / honest", r.consensus.toFixed(2)+" / "+r.honest.toFixed(2)) +
+      row("random / consolation", r.random.toFixed(2)+" / "+r.consolation.toFixed(2)) +
+      row("top strategy", cell.maxWinStrategy+" "+(cell.maxWinProb*100).toFixed(0)+"%");
+  });
+  node.addEventListener("mouseleave", () => { tip.style.opacity = "0"; });
+  function row(k,v){ return `<div class="tt-row">${k}<b>${v}</b></div>`; }
+}
+</script>
+</body>
+</html>

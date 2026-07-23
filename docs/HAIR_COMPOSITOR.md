@@ -94,3 +94,69 @@ Baseline visual notes (defects the compositor must fix / behaviours it must keep
 - +disconnected: detached piece keeps its own exterior contour (keep).
 - +behind: behind piece renders in the pre-head layer with its own contour (keep).
 - hijab: scarf cloth colour = `traits.shirt` (not hair). hijab·light/dark cells identical.
+
+## 3. Architecture (as shipped)
+
+- **faces-hair.js** — geometry registry `hairPieces` (8 `base:*` pieces + 31 `lock:*` pieces;
+  parts mass/fill/detail/lines; declared coordinate spaces, original path data untouched),
+  `HAIR_PRESETS` (bald + hijab = empty), `getHairPreset`, `normalizeHairLayer`,
+  `renderHairPiecePart` (modes mass/fill/detail/seam/full). `renderLock`/`renderLockPart` are
+  pure adapters over `renderHairPiecePart`. The old base renderer (`render`, `overlayLock`,
+  `strandPaths`) is deleted; overlay content lives on as registry `detail`.
+- **face-generator.js** — `resolveHairComposition(traits)` (precedence: versioned
+  `hairComposition` → `traits.hair` preset → legacy `hairLocks` appended; id repair; fallbacks),
+  `renderHairComposition(traits, seed, hair, zone)` (per-zone mass union → one feMorphology rim →
+  fills bottom-to-top → owned details → masked interior seams; `lockBlend:"separate"` = per-piece
+  full through the same stack), `inverseHeadTransform` (drawn pieces join the in-head stack with
+  their raw-portrait coordinates preserved). Legacy split renderers
+  (renderBackHair/FrontHair/HairLocks/DrawnLocks/HairTexture/HairHighlights/hairStrandTones)
+  removed. hijab renders as headwear (`accessories.hijab` + behind-cloth in the hair-behind
+  layer); `normalizeLegacyTraits` maps `hair:"hijab"` to effective bald+accessory without
+  mutating the record; a conflicting head accessory loses, glasses etc. coexist.
+- **face-studio.js** — Hair Designer edits the full resolved stack (BASE/PLACED/DRAWN rows,
+  BOTTOM/TOP markers, per-row transforms/zones/colours/visibility, markers for every layer).
+  First stack edit materializes `corrections[id].hairComposition {version:1, preset, layers}`;
+  `hairLocks` stays synced to non-base layers in legacy shape. Actions: Reset base / Clear
+  placed / Clear all hair (confirmed). Style change with edited base pieces confirms first;
+  cancel restores. Choosing accessory hijab normalizes hair to bald.
+- Consumers updated: make-rules EXTRA_KEYS carries `hairComposition` with the HAIR part;
+  breeding mirrors composition layers; modes.js bald-strips clear it and the hair-swap pool
+  carries it; rainbow dye maps composition layers.
+
+## 4. Gate results (2026-07-19)
+
+- **Architecture** PASS — all 9 advertised styles resolve to compositor layers (probe:
+  unresolved=[]); head renders bald + stack; no production branch renders a privileged base
+  style (legacy functions deleted, single call path through resolveHairComposition);
+  renderLockPart delegates; hijab absent from the hair dropdown.
+- **Compatibility** PASS — full cast 40/40 renders; game board, Hair Studio (mining intact:
+  101 placements/25 kinds), Genetics Lab (18/18 donors) all clean, zero console errors;
+  legacy `hair+hairLocks` records untouched; legacy hijab renders intentionally (scarf +
+  frame, glasses coexist).
+- **Visual** PASS — overlap grid: connected base+placed share ONE exterior contour (the
+  buried-outline defect is gone), detached islands keep their own, behind/front zones never
+  merge, wide/narrow/±frontHairY aligned. Known intentional refinements: the exterior rim is
+  a dilate band (~2.7px fully outside) vs the old centred stroke — reads marginally fatter;
+  longWaves now renders OVER face features like every other front piece (was under-brows).
+- **Interaction** PASS — verified live: base row at bottom, cross-boundary edits, deleted
+  base persists reload, action scopes, style-change confirm/cancel, dye vs per-layer colours.
+  CI: tests/hair-compositor.spec.js (desktop + iphone projects).
+- **Performance** PASS — warm median 14.4 ms / 90-portrait matrix = 0.160 ms/portrait vs
+  baseline 0.188 (−15%); worst style locs 0.277 ms/portrait (baseline 0.73 cold); typical
+  base+2-piece SVG 17,416 B vs 17,478 B (−0.4%). All far inside the +25%/+50%/+50% ceilings.
+
+Not done (noted): old/new side-by-side in the lab (old renderer deleted; the captured baseline
+screenshots + CI snapshots serve as the reference instead).
+
+## 5. Designed presets (2026-07-19, post-ship)
+
+Ten multi-piece styles promoted from the Hair Studio's DESIGNED catalogue into HAIR_PRESETS
+(faces-hair.js `DESIGN_PRESETS`) and advertised via stub `{ preset: true }` entries in the
+generator's hairStyles map: **samurai, question, napeTail, curtainDome, crestCap, softServe,
+duchess, princessMane, topKnotWhip, sideSpill** (19 advertised styles total). Their drawn
+components (top-bun spiral, nape tail, question curl, swoop fringe) are Joel's own rated yay
+pieces, stored as raw portrait256 paths. napeTail and topKnotWhip carry a `zone: "behind"` tail
+layer — the first behind-zone base layers in the system (they render in the behind pass and tuck
+behind the shoulder). Rejected at review: The Cockatoo, Side Pony. Every preset layer is a
+normal base layer: editable, reorderable, and resettable in the Hair Designer — this is the
+intended end-state of the compositor design (bases are no longer privileged single silhouettes).

@@ -70,6 +70,7 @@ main { display: grid; gap: 18px; width: min(1200px, calc(100% - 24px)); margin: 
 .cat-card img { display: block; width: 100%; aspect-ratio: .84; object-fit: cover; }
 .cat-card figcaption { padding: 5px 6px 7px; font-size: .54rem; font-weight: 900; line-height: 1.3; overflow-wrap: break-word; }
 .cat-card figcaption em { font-style: italic; font-weight: 700; opacity: .6; }
+.cat-card.is-designed { border-width: 3px; box-shadow: 3px 3px 0 #2861d0; }
 .cat-cull {
   position: absolute; top: 4px; right: 4px; z-index: 2; min-height: 0; width: 24px; height: 24px;
   display: grid; place-items: center; padding: 0; border: 2px solid #171512; background: #fff; color: #171512; font-size: .7rem;

@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gold-standard comparison</title>
+    <base href="../">
+    <link rel="stylesheet" href="src/labs/lab-nav.css?v=1">
     <style>
       :root { --bg:#14161c; --panel:#1d2027; --line:#2c313c; --text:#e8eaf0; --muted:#8a90a0; }
       * { box-sizing: border-box; }
@@ -28,6 +30,7 @@
     </style>
   </head>
   <body>
+    <a class="lab-hub-link" href="labs/">All labs</a>
     <h1>Gold standard vs. ours</h1>
     <p class="sub">Left = reference (gold standard). Right = our generator's best match for the same traits. Use this to spot what still diverges.</p>
     <div class="controls">
@@ -35,10 +38,10 @@
     </div>
     <div id="grid" class="grid"></div>
 
-    <script src="faces-hair.js?v=210"></script>
-    <script src="studio-bakes-import.js?v=1"></script>
-    <script src="clothing-profiles.js?v=3"></script>
-    <script src="face-generator.js?v=264"></script>
+    <script src="src/characters/faces-hair.js?v=210"></script>
+    <script src="src/characters/studio-bakes-import.js?v=1"></script>
+    <script src="src/characters/clothing-profiles.js?v=3"></script>
+    <script src="src/characters/face-generator.js?v=264"></script>
     <script>
       // Trait approximations of each gold-standard reference (some accessories — bowties, fedoras,
       // straw hats, necklaces, scarves — aren't modelled yet, so those are left out or approximated).

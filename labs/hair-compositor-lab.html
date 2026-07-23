@@ -4,7 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hair Compositor Lab</title>
+  <base href="../">
   <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+  <link rel="stylesheet" href="src/labs/lab-nav.css?v=1">
   <style>
     :root { color-scheme: dark; font-family: Archivo, sans-serif; background: #0d1018; color: #f9f5e9; }
     * { box-sizing: border-box; }
@@ -30,6 +32,7 @@
   </style>
 </head>
 <body>
+  <a class="lab-hub-link" href="labs/">All labs</a>
   <header>
     <h1>HAIR COMPOSITOR LAB</h1>
     <nav class="tabs">
@@ -64,12 +67,12 @@
       <div id="debugGrid"></div>
     </section>
   </main>
-  <script src="game-data.js?v=207"></script>
-  <script src="studio-bakes-import.js?v=3"></script>
-  <script src="clothing-profiles.js?v=1"></script>
-  <script src="editor-shared.js?v=221"></script>
-  <script src="face-generator.js?v=264"></script>
-  <script src="faces-hair.js?v=210"></script>
-  <script src="hair-compositor-lab.js?v=2"></script>
+  <script src="src/core/game-data.js?v=207"></script>
+  <script src="src/characters/studio-bakes-import.js?v=3"></script>
+  <script src="src/characters/clothing-profiles.js?v=1"></script>
+  <script src="src/characters/editor-shared.js?v=221"></script>
+  <script src="src/characters/face-generator.js?v=264"></script>
+  <script src="src/characters/faces-hair.js?v=210"></script>
+  <script src="src/labs/hair-compositor/hair-compositor-lab.js?v=2"></script>
 </body>
 </html>

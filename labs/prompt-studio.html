@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WHO? IS IT? — Prompt Studio</title>
+<base href="../">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%232b54e0'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle'%3E✍%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="src/labs/lab-nav.css?v=1">
 <style>
   :root{
     --bg:#0d1220; --panel:#161c2c; --raised:#1d2436; --soft:#22293a;
@@ -147,6 +149,7 @@
 </style>
 </head>
 <body>
+<a class="lab-hub-link" href="labs/">All labs</a>
 <header><div class="wrap">
   <h1><span class="q">WHO? IS IT?</span> — Prompt Studio <span style="font-weight:600;color:var(--mut);font-size:12px">rate · edit · regenerate with Claude</span></h1>
   <p class="sub">Every prompt in the game, judged by you. Verdicts, edits and notes save locally (<b>whoisit_prompt_studio_v1</b>). When you're done with a pass, <b>EXPORT FOR CLAUDE</b> and paste it into the session — Claude returns a patch you review in the Import panel, and only the file on disk ever changes when Claude applies your accepted patch.</p>
@@ -209,8 +212,8 @@
   <textarea id="out" readonly aria-label="Export output"></textarea>
 </main>
 
-<script src="game-data.js?v=207"></script>
-<script src="groupthink-data.js?v=3"></script>
+<script src="src/core/game-data.js?v=207"></script>
+<script src="src/modes/groupthink/groupthink-data.js?v=3"></script>
 <script>
 const KEY="whoisit_prompt_studio_v1";
 const $=s=>document.querySelector(s);

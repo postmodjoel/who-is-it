@@ -4,10 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Clothing Studio</title>
+    <base href="../">
     <link rel="stylesheet" href="assets/fonts/fonts.css">
-    <link rel="stylesheet" href="clothing-lab.css?v=7">
+    <link rel="stylesheet" href="src/labs/lab-nav.css?v=1">
+    <link rel="stylesheet" href="src/labs/clothing-lab/clothing-lab.css?v=7">
   </head>
   <body>
+    <a class="lab-hub-link" href="labs/">All labs</a>
     <main class="studio-shell">
       <header class="topbar">
         <div class="brand-block">
@@ -15,7 +18,7 @@
           <h1>Clothing Studio</h1>
         </div>
         <nav class="top-actions" aria-label="Design tools">
-          <a class="icon-text-button" href="face-studio.html">Face Studio</a>
+          <a class="icon-text-button" href="labs/face-studio.html">Face Studio</a>
           <a class="icon-button" href="index.html" aria-label="Back to game" title="Back to game">←</a>
         </nav>
       </header>
@@ -123,10 +126,10 @@
       </section>
     </main>
 
-    <script src="faces-hair.js?v=210"></script>
-    <script src="studio-bakes-import.js?v=3"></script>
-    <script src="clothing-profiles.js?v=3"></script>
-    <script src="face-generator.js?v=264"></script>
-    <script src="clothing-lab.js?v=9"></script>
+    <script src="src/characters/faces-hair.js?v=210"></script>
+    <script src="src/characters/studio-bakes-import.js?v=3"></script>
+    <script src="src/characters/clothing-profiles.js?v=3"></script>
+    <script src="src/characters/face-generator.js?v=264"></script>
+    <script src="src/labs/clothing-lab/clothing-lab.js?v=9"></script>
   </body>
 </html>

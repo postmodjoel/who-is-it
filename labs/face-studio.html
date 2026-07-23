@@ -4,10 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Face Studio</title>
+    <base href="../">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23f4c84e'/%3E%3Ccircle cx='32' cy='26' r='15' fill='%23fffdf7' stroke='%23171512' stroke-width='4'/%3E%3Cpath d='M16 62c3-17 29-17 32 0' fill='%234a7bd9' stroke='%23171512' stroke-width='4'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="face-studio.css?v=174">
+    <link rel="stylesheet" href="src/labs/lab-nav.css?v=1">
+    <link rel="stylesheet" href="src/labs/face-studio/face-studio.css?v=174">
   </head>
   <body>
+    <a class="lab-hub-link" href="labs/">All labs</a>
     <main class="studio-shell">
       <header class="studio-topbar">
         <div>
@@ -15,7 +18,7 @@
           <h1>Face Studio</h1>
         </div>
         <div class="topbar-actions">
-          <a class="button ghost" href="clothing-lab.html">Clothing Studio</a>
+          <a class="button ghost" href="labs/clothing-lab.html">Clothing Studio</a>
           <a class="button ghost" href="index.html">Game</a>
           <button id="resetAllCorrectionsButton" class="button danger" type="button">Reset All Faces to Base</button>
           <button id="resetButton" class="button primary" type="button">Clear Filters</button>
@@ -122,11 +125,11 @@
       </section>
     </main>
 
-    <script src="faces-hair.js?v=210"></script>
-    <script src="studio-bakes-import.js?v=3"></script>
-    <script src="clothing-profiles.js?v=3"></script>
-    <script src="face-generator.js?v=264"></script>
-    <script src="editor-shared.js?v=221"></script>
-    <script src="face-studio.js?v=198"></script>
+    <script src="src/characters/faces-hair.js?v=210"></script>
+    <script src="src/characters/studio-bakes-import.js?v=3"></script>
+    <script src="src/characters/clothing-profiles.js?v=3"></script>
+    <script src="src/characters/face-generator.js?v=264"></script>
+    <script src="src/characters/editor-shared.js?v=221"></script>
+    <script src="src/labs/face-studio/face-studio.js?v=198"></script>
   </body>
 </html>

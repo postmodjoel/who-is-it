@@ -27,6 +27,25 @@ async function openRulesetPicker(page) {
   await expect(page.locator(".ts-step-ruleset")).toBeVisible();
 }
 
+// The focus carousel centre-scrolls and toggles .is-focus off its scroll handler, so a snapshot taken
+// mid-animation is nondeterministic. Wait until focus + card geometry hold steady for several animation
+// frames, then return the settled card sizes. (cleanBoot reloads the page each viewport, so the window
+// counter starts fresh; within a viewport the before/after states differ, which resets it.)
+async function settledCardSizes(page) {
+  await page.waitForFunction(() => {
+    const cards = [...document.querySelectorAll(".ts-ruleset")];
+    if (cards.length !== 3) return false;
+    const key = cards.map((c) => `${c.classList.contains("is-focus") ? "F" : "."}${Math.round(c.getBoundingClientRect().width)}`).join(",");
+    if (window.__rsKey === key) window.__rsStable = (window.__rsStable || 0) + 1;
+    else { window.__rsKey = key; window.__rsStable = 0; }
+    return window.__rsStable >= 6;
+  }, null, { timeout: 5000, polling: "raf" });
+  return page.locator(".ts-ruleset").evaluateAll((buttons) => buttons.map((button) => {
+    const rect = button.getBoundingClientRect();
+    return { width: Math.round(rect.width), height: Math.round(rect.height) };
+  }));
+}
+
 async function startRuleset(page, ruleset) {
   await cleanBoot(page);
   await page.evaluate((key) => {
@@ -35,16 +54,19 @@ async function startRuleset(page, ruleset) {
     state.ruleset = key;
     state.settings.groupthinkYolo = false;
     startLocalGame(2, ["Joel", "You"], key === "whoisit" ? "team" : "solo");
+    // Some prompts pin themselves to a one-pick ballot ("The worst person."), which would starve a
+    // chrome test that needs to select two cards. Force a plain multi-pick prompt so this stays a
+    // test about pick styling rather than about whatever the deck happened to deal.
+    if (key === "groupthink") window.Groupthink?.startRound?.(0, { promptId: "racists" });
     document.querySelector(".title-screen")?.remove();
     window.Sound?.titleLoop?.(false);
   }, ruleset);
   await page.locator(".round-reveal, .dimension-warp, .forecast-card, .manifesto-card, .gt-intro-warp")
     .evaluateAll((nodes) => nodes.forEach((node) => node.remove()));
   if (ruleset === "whodidyoumake") {
-    for (let index = 0; index < 2; index += 1) {
-      await expect(page.locator(".wdym-handoff")).toBeVisible();
-      await page.locator(".wdym-seen").click();
-    }
+    await expect(page.locator(".wdym-handoff")).toBeVisible();
+    if (await page.locator(".wdym-study-open").isVisible()) await page.locator(".wdym-study-open").click();
+    await page.locator(".wdym-seen").click();
     await expect(page.locator(".wdym-draft")).toBeVisible();
   } else {
     await expect(page.locator("#characterBoard")).toBeVisible();
@@ -56,42 +78,49 @@ test("ruleset picker is stable, capped, and continuously painted at every target
     await page.setViewportSize(viewport);
     await openRulesetPicker(page);
 
-    const before = await page.locator(".ts-ruleset").evaluateAll((buttons) => buttons.map((button) => {
-      const rect = button.getBoundingClientRect();
-      return { width: Math.round(rect.width), height: Math.round(rect.height) };
-    }));
+    const before = await settledCardSizes(page);
     const metrics = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       tickerPosition: getComputedStyle(document.querySelector(".ts-ticker-field")).position,
       logoSizes: [...document.querySelectorAll(".ts-ruleset-logo")].map((node) => parseFloat(getComputedStyle(node).fontSize)),
       descriptionRows: [...document.querySelectorAll(".ts-ruleset small")].map((node) => node.children.length),
-      descriptionHeights: [...document.querySelectorAll(".ts-ruleset small")].map((node) => Math.round(node.getBoundingClientRect().height)),
-      ctaOffsets: [...document.querySelectorAll(".ts-ruleset")].map((node) => {
-        const card = node.getBoundingClientRect();
-        const cta = node.querySelector(".ts-ruleset-enter").getBoundingClientRect();
-        return Math.round(cta.top - card.top);
-      }),
-      rows: getComputedStyle(document.querySelector(".ts-ruleset-grid")).gridTemplateColumns.split(" ").length
+      // offsetHeight (layout height), not getBoundingClientRect (rendered) — non-focused cards are
+      // transform:scale(.82), so only the layout height is comparable across focused + peeking cards.
+      descriptionHeights: [...document.querySelectorAll(".ts-ruleset small")].map((node) => node.offsetHeight),
+      // FOCUS CAROUSEL: exactly one game is centred (.is-focus) and only its PLAY sticker shows; the
+      // neighbours blur/dim/peek with their CTA hidden. The track is a horizontal flex rail, not a grid.
+      cardCount: document.querySelectorAll(".ts-ruleset").length,
+      focusCount: document.querySelectorAll(".ts-ruleset.is-focus").length,
+      visibleCtas: [...document.querySelectorAll(".ts-ruleset-enter")].filter((node) => node.getClientRects().length > 0).length,
+      trackDisplay: getComputedStyle(document.querySelector(".ts-ruleset-grid")).display
     }));
     expect(metrics.overflow).toBeLessThanOrEqual(1);
     expect(metrics.tickerPosition).toBe("fixed");
     expect(Math.max(...metrics.logoSizes)).toBeLessThanOrEqual(92);
     expect(metrics.descriptionRows).toEqual([3, 3, 3]);
     expect(new Set(metrics.descriptionHeights).size).toBe(1);
-    expect(Math.max(...metrics.ctaOffsets) - Math.min(...metrics.ctaOffsets)).toBeLessThanOrEqual(1);
-    expect(metrics.rows).toBe(viewport.width <= 640 ? 1 : 3);
+    expect(metrics.cardCount).toBe(3);
+    expect(metrics.focusCount).toBe(1);
+    expect(metrics.visibleCtas).toBe(1);
+    expect(metrics.trackDisplay).toBe("flex");
 
-    await page.locator('.ts-ruleset[data-ruleset="groupthink"]').click();
+    // Only the CENTRED card starts a game (a tap on a neighbour just recentres it), so enter through
+    // the focused card, then BACK out of the mode step — the picker must return with geometry untouched.
+    await page.locator(".ts-ruleset.is-focus").click();
+    await expect(page.locator(".ts-step-main")).toBeVisible();
     await page.locator(".ts-splash-back").click();
     await expect(page.locator(".ts-step-ruleset")).toBeVisible();
     await expect(page.locator(".title-screen")).not.toHaveClass(/has-ruleset|is-groupthink|is-whodidyoumake/);
     await expect(page.locator(".ts-poster .ts-isit")).toHaveText("KNOWS?");
 
-    const after = await page.locator(".ts-ruleset").evaluateAll((buttons) => buttons.map((button) => {
-      const rect = button.getBoundingClientRect();
-      return { width: Math.round(rect.width), height: Math.round(rect.height) };
-    }));
-    expect(after).toEqual(before);
+    // Re-entry re-centres with its own animation, so wait for the carousel to settle before snapshotting.
+    // Sizes must return unchanged (no reflow); allow ±1px for sub-pixel scroll-position rounding.
+    const after = await settledCardSizes(page);
+    expect(after).toHaveLength(before.length);
+    after.forEach((size, index) => {
+      expect(Math.abs(size.width - before[index].width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(size.height - before[index].height)).toBeLessThanOrEqual(1);
+    });
 
     const last = page.locator(".ts-ruleset").last();
     await last.scrollIntoViewIfNeeded();
@@ -178,7 +207,11 @@ for (const viewport of [
   { label: "desktop", width: 1440, height: 980 },
   { label: "mobile", width: 390, height: 844 }
 ]) {
-  test(`all game shells share supported chrome and geometry on ${viewport.label}`, async ({ page }) => {
+  test(`all game shells share supported chrome and geometry on ${viewport.label}`, async ({ page }, testInfo) => {
+    // This test drives its own viewports via setViewportSize, and its screenshot baselines are only
+    // captured/committed for the desktop project (…-shell-desktop-darwin.png). Running it under the
+    // iphone/tablet projects just asks for baselines that don't exist and fails on "writing actual".
+    test.skip(testInfo.project.name !== "desktop", "shared-chrome baselines live on the desktop project only");
     await page.setViewportSize(viewport);
     for (const ruleset of ["whoisit", "groupthink", "whodidyoumake"]) {
       await startRuleset(page, ruleset);
@@ -209,7 +242,7 @@ for (const viewport of [
         await expect(page.locator(".sort-wrap")).toBeHidden();
         await expect(page.locator("#almanacButton")).toBeHidden();
         await expect(page.locator("#editorButton")).toBeHidden();
-        await expect(page.locator(".wdym-panel").first()).toHaveCSS("border-radius", "0px");
+        await expect(page.locator(".wdym-panel").first()).toHaveCSS("border-radius", "12px");
       }
 
       await expect(page).toHaveScreenshot(`${ruleset}-${viewport.label}-shell.png`, {

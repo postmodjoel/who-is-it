@@ -12,7 +12,11 @@ test.describe("WHO? DO YOU THINK? online", () => {
     await page.evaluate(() => { try { localStorage.removeItem("whoisit_game_v1"); } catch (e) { /* fine */ } });
     await page.reload();
     if (await page.locator(".ts-letplay").count()) await page.locator(".ts-letplay").click();
-    await page.locator('.ts-ruleset[data-ruleset="groupthink"]').click();
+    // Focus carousel: recentre the off-centre card, then the centred card launches.
+    const gtCard = page.locator('.ts-ruleset[data-ruleset="groupthink"]');
+    await gtCard.click();
+    await expect(gtCard).toHaveClass(/is-focus/);
+    await gtCard.click();
     await page.locator(".ts-online").click();
   }
 

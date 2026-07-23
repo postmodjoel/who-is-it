@@ -4549,11 +4549,11 @@ body.mode-pixall .secret-card img {
   padding: 1px 6px; border-radius: 10px; font-size: 0.5rem; font-weight: 900; color: #3a0022;
   background: linear-gradient(180deg, #ffd0ea, #ff8fd0); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
-.character-card.just-born { animation: baby-pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.character-card.just-born { animation: baby-pop 0.82s cubic-bezier(0.22, 0.72, 0.22, 1) both; }
 @keyframes baby-pop {
-  0% { transform: scale(0) rotate(-12deg); opacity: 0; }
-  60% { transform: scale(1.12); opacity: 1; }
-  100% { transform: scale(1); }
+  0% { transform: translateY(12px) scale(0.96); opacity: 0; filter: blur(3px); }
+  55% { opacity: 1; filter: blur(0); }
+  100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
 }
 
 /* ===================== Character editor ===================== */
@@ -4897,24 +4897,23 @@ body.mode-pixall .secret-card img {
   80% { opacity: 1; }
   100% { opacity: 0; transform: translateX(-50%) scale(1); }
 }
-/* The baby forms into a card, holds, then flies down to the bottom of the stack. */
+/* The baby resolves softly into a card, holds, then dissolves before the decision panel. */
 .birth-card {
   position: absolute; left: 50%; top: 50%; z-index: 3; width: 150px;
   background: linear-gradient(180deg, #1e1224, #100a14);
   border: 2px solid #ff8fd0; border-radius: 12px; overflow: hidden;
   box-shadow: 0 0 0 2px #ff8fd0, 0 12px 34px rgba(0, 0, 0, 0.6);
-  opacity: 0; transform: translate(-50%,-50%) scale(0);
-  animation: birth-card 2.1s cubic-bezier(0.2, 1.3, 0.35, 1) forwards; animation-delay: 0.35s;
+  opacity: 0; transform: translate(-50%,-47%) scale(0.94); filter: blur(7px);
+  animation: birth-card 2.1s cubic-bezier(0.22, 0.72, 0.22, 1) forwards; animation-delay: 0.35s;
 }
 .with-grind .birth-card { animation-delay: 1.4s; }
 .birth-card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
 .birth-name { display: block; padding: 5px 6px; text-align: center; font-weight: 800; color: #fff; font-size: 0.92rem; }
 @keyframes birth-card {
-  0% { opacity: 0; transform: translate(-50%,-50%) scale(0) rotate(-16deg); }
-  12% { opacity: 1; transform: translate(-50%,-50%) scale(1.12) rotate(4deg); }
-  20% { transform: translate(-50%,-50%) scale(1) rotate(0deg); }
-  62% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, 320px) scale(0.3) rotate(0deg); }
+  0% { opacity: 0; transform: translate(-50%,-47%) scale(0.94); filter: blur(7px); }
+  22% { opacity: 1; transform: translate(-50%,-50%) scale(1); filter: blur(0); }
+  72% { opacity: 1; transform: translate(-50%,-50%) scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: translate(-50%,-53%) scale(0.98); filter: blur(2px); }
 }
 
 /* ===================== GAYBY ===================== */
@@ -5192,6 +5191,16 @@ body[data-character-renderer="ps1"] .room-status { line-height: 1.6; }
 .manifesto-card .mf-go { width: 100%; min-height: 54px; font-size: 1.05rem; letter-spacing: 0.06em; }
 .onboard-tips { position: fixed; inset: 0; z-index: 1200; pointer-events: none; transition: opacity 0.3s ease; }
 .onboard-tips.ob-out { opacity: 0; }
+/* First-run scrim: on narrow screens both tips fall to ob-below and sit over dense content. A soft
+   dimming layer turns that unavoidable overlap into an intentional spotlight - the board recedes, the
+   two yellow hints pop. It's a pseudo-element so it fades in with the tips and out with .ob-out, and
+   inherits pointer-events:none so any tap still passes through to dismiss. */
+.onboard-tips::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(130% 90% at 50% 42%, rgba(8, 10, 22, 0.34), rgba(8, 10, 22, 0.64));
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  animation: ob-pop 0.4s ease both;
+}
 .onboard-tip {
   position: absolute; max-width: 190px; padding: 9px 13px; border-radius: 12px;
   background: #ffd400; color: #14110d; font-weight: 800; font-size: 0.82rem; line-height: 1.25;
@@ -5873,36 +5882,58 @@ img.pol-mascot {
 }
 .ts-ruleset-head span { font: 900 .76rem/1 Archivo, sans-serif; letter-spacing: .28em; }
 .ts-ruleset-head small { color: #ffd43b; font: 800 .66rem/1 Archivo, sans-serif; letter-spacing: .18em; }
+/* FOCUS CAROUSEL: one game per screen, crisp + centred; the neighbours blur/dim/scale and peek at the
+   edges. Same mechanic on desktop and mobile - the track just gets wider. The centred card's .is-focus
+   class is toggled by setRulesetFocus() in JS on scroll. */
+.ts-ruleset-carousel { position: relative; width: 100%; }
 .ts-ruleset-grid {
   position: relative;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: minmax(20rem, min(48svh, 29rem));
+  display: flex;
+  align-items: center;
   width: 100%;
+  height: min(54svh, 31rem);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  /* No CSS scroll-behavior: smooth here - it would force EVERY programmatic scroll (incl. the instant
+     re-centre on open/re-entry) to animate, letting the scroll-sync steal focus mid-flight. rsCentreOn()
+     in app.js picks smooth vs instant per call instead. */
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--rs-peek, 19%);
 }
-.ts-ruleset-grid .ts-ruleset + .ts-ruleset {
-  border-left: 1px solid rgba(255,255,255,.26) !important;
-}
+.ts-ruleset-grid::-webkit-scrollbar { display: none; }
 .title-screen.title-landing .ts-ruleset {
   position: relative;
+  flex: 0 0 var(--rs-card, 62%);
   min-width: 0;
-  min-height: 100%;
+  height: 100%;
+  scroll-snap-align: center;
   margin: 0;
   padding: clamp(1.25rem, 3vw, 2.75rem) !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(.9rem, 2.2svh, 1.45rem);
+  gap: clamp(1rem, 2.4svh, 1.6rem);
   border: 0 !important;
   border-radius: 0;
   background: transparent !important;
   color: #fffdf7 !important;
   box-shadow: none !important;
   text-align: center;
-  overflow: hidden;
+  overflow: visible;
   isolation: isolate;
-  transition: transform 180ms ease, background 180ms ease !important;
+  /* Non-focused neighbours recede: blurred, dimmed, scaled down. .is-focus (set in JS) snaps back. */
+  opacity: .34;
+  transform: scale(.82);
+  filter: blur(4px);
+  transition: transform 320ms cubic-bezier(.2,.7,.3,1), opacity 320ms ease, filter 320ms ease !important;
+}
+.title-screen.title-landing .ts-ruleset.is-focus {
+  opacity: 1;
+  transform: none;
+  filter: none;
 }
 .title-screen.title-landing .ts-ruleset::before {
   content: "";
@@ -5919,11 +5950,9 @@ img.pol-mascot {
 .title-screen.title-landing .ts-ruleset-groupthink::before {
   background: radial-gradient(circle at 55% 48%, rgba(224,27,27,.18), transparent 68%);
 }
-.title-screen.title-landing .ts-ruleset:hover,
-.title-screen.title-landing .ts-ruleset:focus-visible { transform: translateY(-4px); }
-.title-screen.title-landing .ts-ruleset:hover::before,
-.title-screen.title-landing .ts-ruleset:focus-visible::before { opacity: 1; }
-.title-screen.title-landing .ts-ruleset:active { transform: translateY(1px); }
+/* The colour glow rides the FOCUSED card (not hover) so the centred game feels alive. */
+.title-screen.title-landing .ts-ruleset.is-focus::before { opacity: 1; }
+.title-screen.title-landing .ts-ruleset.is-focus:active { transform: scale(.985); }
 .title-screen.title-landing .ts-ruleset:focus-visible { outline: 3px solid #fffdf7; outline-offset: -5px; }
 .ts-ruleset-logo {
   display: flex;
@@ -5958,21 +5987,38 @@ img.pol-mascot {
   letter-spacing: .075em;
 }
 .ts-ruleset small span { display: block; }
-.title-screen.title-landing .ts-ruleset .ts-discovery {
-  display: none;
-}
+/* The discovery chip rides inside the WHO? IS IT? card; keep it snug under the tagline. */
+.ts-ruleset .ts-discovery { margin: 2px auto 0; }
+/* The CTA is now a real PLAY button on the focused card (was a faint "PLAY THIS ->"). Hidden on the
+   blurred neighbours so only the centred game invites a tap. */
 .ts-ruleset-enter {
-  display: flex;
-  align-items: center;
-  gap: .65rem;
-  color: rgba(255,255,255,.48);
-  font: 900 .65rem/1 Archivo, sans-serif;
-  letter-spacing: .18em;
-  transition: color 180ms ease, gap 180ms ease;
+  display: none;
+  margin-top: .3rem;
+  padding: .8em 2.4em;
+  background: var(--accent-yellow, #ffd43b);
+  color: #101116;
+  border-radius: 12px;
+  font: 900 1rem/1 Archivo, sans-serif;
+  letter-spacing: .16em;
+  transition: filter 140ms ease;
 }
-.ts-ruleset-enter b { color: #ffd43b; font: 900 1.15rem/1 Archivo, sans-serif; }
-.ts-ruleset:hover .ts-ruleset-enter,
-.ts-ruleset:focus-visible .ts-ruleset-enter { gap: .95rem; color: #fffdf7; }
+.ts-ruleset.is-focus .ts-ruleset-enter { display: block; }
+.ts-ruleset.is-focus:hover .ts-ruleset-enter { filter: brightness(1.06); }
+/* Carousel arrows (desktop) + progress dots. */
+.ts-rs-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 5;
+  width: 54px; height: 54px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16);
+  color: #fff; font: 900 1.7rem/1 Archivo, sans-serif; cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.ts-rs-arrow:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.32); }
+.ts-rs-prev { left: clamp(6px, 2vw, 30px); }
+.ts-rs-next { right: clamp(6px, 2vw, 30px); }
+.ts-rs-dots { display: flex; gap: 10px; justify-content: center; margin-top: 22px; }
+.ts-rs-dots i { width: 9px; height: 9px; border-radius: 999px; background: rgba(255,255,255,.28); transition: width 220ms ease, background 220ms ease; }
+.ts-rs-dots i.is-on { width: 26px; background: var(--accent-yellow, #ffd43b); }
 .title-screen.title-landing .ts-step-ruleset .ts-ruleset-back {
   align-self: center;
   width: auto;
@@ -6052,22 +6098,16 @@ img.pol-mascot {
   }
   .title-screen.title-landing .ts-step-ruleset { width: 100%; gap: 1rem; }
   .ts-ruleset-head { gap: .25rem; }
-  .ts-ruleset-grid {
-    grid-template-columns: 1fr;
-    grid-auto-rows: auto;
-  }
-  .ts-ruleset-grid .ts-ruleset + .ts-ruleset {
-    border-left: 0 !important;
-    border-top: 1px solid rgba(255,255,255,.26) !important;
-  }
+  /* Mobile carousel: card ~82% wide so the neighbours still peek ~9% each side; arrows off (swipe). */
+  .ts-ruleset-grid { --rs-peek: 9%; --rs-card: 82%; height: min(60svh, 32rem); }
+  .ts-rs-arrow { display: none; }
   .title-screen.title-landing .ts-ruleset {
-    min-height: clamp(12.25rem, 27svh, 14.5rem);
-    padding: 1.25rem 1rem !important;
-    gap: .68rem;
+    padding: 1.5rem 1rem !important;
+    gap: 1.1rem;
   }
-  .ts-ruleset-logo { font-size: clamp(3rem, 15vw, 4.15rem); }
-  .ts-ruleset small { font-size: .62rem; line-height: 1.35; }
-  .ts-ruleset-enter { font-size: .56rem; }
+  .ts-ruleset-logo { font-size: clamp(3.2rem, 16vw, 4.6rem); }
+  .ts-ruleset small { font-size: .82rem; line-height: 1.4; }
+  .ts-ruleset-enter { font-size: .95rem; padding: .85em 2.4em; }
   .title-screen.title-landing.ts-menu-open .ts-poster-slot { height: 11rem; }
   .title-screen.title-landing.ts-menu-open .ts-poster { transform: translate3d(0, 0, 0) scale(0.72); }
 }
@@ -6121,6 +6161,10 @@ img.pol-mascot {
     white-space: nowrap;
   }
   .topbar-actions #debugEffectPicker { max-width: 64px; font-size: 0.6rem; }
+  /* Declutter the crowded mobile toolbar: the theme toggle and help are the least-reached-for on a
+     phone, so hide them here (both stay on desktop, where there is room). Capability state is
+     untouched - these remain "available", just not shown at this width. */
+  #themeButton, #helpButton { display: none; }
   .stage-top { display: flex; flex-direction: column; }
 }
 
@@ -6150,13 +6194,14 @@ img.pol-mascot {
   overflow: hidden;
 }
 /* Sections separate with quiet rules instead of stacked boxes. */
-.side-panel .cue-card,
 .side-panel .side-actions,
 .side-panel .opponent-panel {
   border-top: 1px solid var(--border-subtle);
   margin-top: 12px;
   padding-top: 12px;
 }
+/* The question needs no divider or dead band above it (was a faint border + 24px wasted gap). */
+.side-panel .cue-card { margin-top: 10px; }
 .side-panel .side-you { margin-top: 4px; }
 .side-panel .seat-roster { margin-top: 10px; }
 /* Local seat hand-off: the active segment moves first; the secret card gives a smaller echo. */
@@ -6716,20 +6761,69 @@ body:not([data-theme="light"]) .topbar-actions .button.primary {
   position: fixed; inset: 0; z-index: 1006;
   display: grid; place-items: center;
   background: rgba(8, 5, 14, 0.78); backdrop-filter: blur(4px);
+  padding: 18px;
+  opacity: 0;
+  transition: opacity 0.34s ease, background 0.46s ease;
 }
+.keep-abort.is-ready { opacity: 1; }
 /* AES-01: on the shared modal tokens (panel bg, radius-xl, shadow-modal, yellow accent border). */
 .ka-box {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
-  padding: 22px 30px; border-radius: var(--radius-xl); text-align: center;
+  width: min(470px, calc(100vw - 36px)); max-height: calc(100dvh - 36px); overflow-y: auto;
+  padding: 22px 26px; border-radius: var(--radius-xl); text-align: center;
   background: var(--bg-panel-raised);
   border: 2px solid var(--accent-yellow); box-shadow: var(--shadow-modal);
-  animation: reel-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+  opacity: 0; transform: translateY(14px) scale(0.98); filter: blur(4px);
+  transition: opacity 0.42s ease, transform 0.52s cubic-bezier(0.22, 0.72, 0.22, 1), filter 0.42s ease;
 }
+.keep-abort.is-ready .ka-box { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 .ka-q { margin: 0; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.06em; color: var(--accent-yellow); text-transform: uppercase; }   /* VC2-02 */
 .ka-face { width: 120px; height: 120px; object-fit: cover; border-radius: 14px; border: 3px solid #fffdf7; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
 .ka-name { margin: 0; font-weight: 900; font-size: 1.1rem; text-transform: uppercase; color: #fffdf7; }
+.ka-details {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
+  width: 100%; margin: 3px 0 1px;
+}
+.ka-detail {
+  min-width: 0; padding: 8px 10px; text-align: left;
+  background: rgba(255, 255, 255, 0.055); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 9px;
+}
+.ka-detail-wide { grid-column: 1 / -1; }
+.ka-detail dt { margin: 0 0 2px; font-size: 0.55rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-yellow); }
+.ka-detail dd { margin: 0; overflow-wrap: anywhere; font-size: 0.76rem; font-weight: 750; line-height: 1.25; color: var(--text-primary); }
+.ka-status { min-height: 1em; margin: 0; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); opacity: 0; transition: opacity 0.2s ease; }
 .ka-btns { display: flex; gap: 10px; margin-top: 4px; }
 .ka-btns .button { min-width: 120px; font-weight: 800; }
+.keep-abort.is-keeping { background: rgba(10, 24, 17, 0.84); }
+.keep-abort.is-aborting { background: rgba(18, 10, 16, 0.9); }
+.keep-abort.is-keeping .ka-box { animation: ka-keep 0.52s ease forwards; }
+.keep-abort.is-aborting .ka-box { animation: ka-abort 0.52s ease forwards; }
+.keep-abort.is-keeping .ka-status,
+.keep-abort.is-aborting .ka-status { opacity: 1; }
+.keep-abort.is-keeping .ka-btns,
+.keep-abort.is-aborting .ka-btns { opacity: 0.2; transition: opacity 0.18s ease; }
+.keep-abort.is-keeping .ka-face { box-shadow: 0 0 0 4px rgba(93, 255, 143, 0.2), 0 10px 30px rgba(93, 255, 143, 0.25); transition: box-shadow 0.3s ease; }
+.keep-abort.is-aborting .ka-face { filter: grayscale(0.8) blur(1px); opacity: 0.48; transition: filter 0.4s ease, opacity 0.4s ease; }
+@keyframes ka-keep {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  45% { transform: translateY(-4px) scale(1.012); opacity: 1; }
+  100% { transform: translateY(4px) scale(0.985); opacity: 0; filter: blur(2px); }
+}
+@keyframes ka-abort {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(8px) scale(0.965); opacity: 0; filter: blur(8px); }
+}
+@media (max-width: 520px) {
+  .keep-abort { padding: 10px; }
+  .ka-box { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); padding: 16px; gap: 6px; }
+  .ka-face { width: 96px; height: 96px; }
+  .ka-btns { width: 100%; }
+  .ka-btns .button { min-width: 0; flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .birth-card, .character-card.just-born, .keep-abort.is-keeping .ka-box, .keep-abort.is-aborting .ka-box { animation-duration: 0.01ms !important; }
+  .keep-abort, .ka-box { transition-duration: 0.01ms !important; }
+}
 
 /* ===================== Round-end reveal (both secrets) ===================== */
 .round-reveal {
@@ -7699,11 +7793,14 @@ body.mode-nw .cue-card {
 .lastwords-bubble {
   position: absolute; left: 50%; top: 8px; z-index: 80;
   transform: translateX(-50%);
-  max-width: 92%; padding: 6px 10px;
+  /* Cap the width so long last words WRAP into a compact bubble instead of a single wide line that
+     overflows the screen when centred over an edge-column card (showLastWords clamps the left offset
+     to keep the whole bubble on-screen). */
+  max-width: min(230px, calc(100vw - 20px)); padding: 6px 10px;
   background: #fffdf7; color: #171512;
   border: 2px solid #171512; border-radius: 10px;
   font-size: 0.66rem; font-weight: 700; font-style: italic; line-height: 1.25;
-  text-align: center; pointer-events: none;
+  overflow-wrap: break-word; text-align: center; pointer-events: none;
   box-shadow: 0 3px 0 rgba(23, 21, 18, 0.35);
   animation: lwIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -8537,6 +8634,8 @@ body:not(.observer) #observerBar { display: none; }
    ============================================================================================ */
 
 /* ---------- 1. Shared controls: Secondary (default), Primary, Tertiary(.ghost), Icon ---------- */
+/* FLAT-MODERN button system (Joel's pick): crisp dark fills, one hairline border, one radius scale,
+   NO drop-shadow depth. Hover = a lift in fill + border only; press = a subtle darken. */
 .button,
 .segment,
 .icon-button {
@@ -8545,23 +8644,22 @@ body:not(.observer) #observerBar { display: none; }
   border-radius: var(--radius-md);
   color: var(--control-ink);
   background: var(--control-bg);
-  box-shadow: var(--shadow-control);
+  box-shadow: none;
   font-weight: 800;
   letter-spacing: 0.02em;
-  transition: transform 120ms ease-out, background 140ms ease, box-shadow 120ms ease, border-color 140ms ease;
+  transition: background 140ms ease, box-shadow 120ms ease, border-color 140ms ease;
 }
 .button:hover,
 .segment:hover,
 .icon-button:hover {
-  transform: translateY(-1px);
   background: var(--control-bg-hover);
-  box-shadow: var(--shadow-control);
+  border-color: var(--border-strong, var(--control-border));
 }
 .button:active,
 .segment:active,
 .icon-button:active {
-  transform: translateY(1px);
-  box-shadow: none;
+  background: var(--control-bg);
+  box-shadow: inset 0 0 0 100px rgba(0, 0, 0, 0.14);
   transition-duration: 80ms;
 }
 .button.primary {
@@ -8597,7 +8695,7 @@ body:not([data-theme="light"]) .topbar-actions select,
 body:not([data-theme="light"]) .game-bar-actions .button {
   background: var(--bg-panel-raised);
   border: 1px solid var(--border-standard);
-  box-shadow: var(--shadow-control);
+  box-shadow: none;
   color: var(--text-primary);
 }
 body:not([data-theme="light"]) .topbar-actions .button:hover,
@@ -9003,10 +9101,9 @@ body.low-power .tsp-toggle i::after { transition: none; }
     background: var(--bg-panel);
     box-shadow: none;
   }
-  /* Sections divide with hairlines instead of stacking more dark boxes. */
+  /* The question sits tight — no divider or dead band above it. */
   .side-panel .cue-card {
-    border-top: 1px solid var(--border-subtle);
-    padding-top: var(--space-3);
+    margin-top: 10px;
   }
   /* Player switch: one segmented control, 1px border, no drop-shadow chunk. */
   .seat-roster.seat-pill {

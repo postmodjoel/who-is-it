@@ -358,6 +358,7 @@ function iconSvg(name) {
   const common = "viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'";
   const paths = {
     moon: "<path d='M20 14.2A7.7 7.7 0 0 1 9.8 4 8.6 8.6 0 1 0 20 14.2Z'/>",
+    help: "<circle cx='12' cy='12' r='9.2'/><path d='M9.3 9.4a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.1-2.7 3.8'/><path d='M12 17.3h.01'/>",
     sun: "<circle cx='12' cy='12' r='4'/><path d='M12 2.5v2.5M12 19v2.5M21.5 12H19M5 12H2.5M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8M18.7 18.7l-1.8-1.8M7.1 7.1L5.3 5.3'/>",
     settings: "<circle cx='12' cy='12' r='3'/><path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z'/>",
     refresh: "<path d='M20 11a8 8 0 0 0-14.9-3'/><path d='M4 4v4h4'/><path d='M4 13a8 8 0 0 0 14.9 3'/><path d='M20 20v-4h-4'/>",
@@ -418,7 +419,8 @@ function installStaticIcons() {
   setButtonIcon(els.editorButton, "palette", "Character editor");
   setButtonIcon(els.soundButton, "speaker", "Sound & music");
   setButtonIcon(els.soundboardButton, "megaphone", "Soundboard");
-  [els.almanacButton, els.editorButton, els.soundButton, els.soundboardButton].forEach((b) => b && b.classList.add("icon-only"));
+  setButtonIcon(els.helpButton, "help", "How it works");
+  [els.almanacButton, els.editorButton, els.soundButton, els.soundboardButton, els.helpButton].forEach((b) => b && b.classList.add("icon-only"));
   updateSortGlyph();
   if (els.swapSeatButton) { setButtonIcon(els.swapSeatButton, "swap", "End round"); els.swapSeatButton.classList.add("end-round-btn"); els.swapSeatButton.querySelector(".ib-label")?.remove(); els.swapSeatButton.insertAdjacentHTML("beforeend", "<span class=\"er-txt\">END ROUND</span>"); }
 }
@@ -427,7 +429,10 @@ function currentTheme() {
   return document.body.dataset.theme === "light" ? "light" : "dark";
 }
 
-const THEME_KEY = "whoisit_theme_v1";
+// Bumped v1 -> v2 (2026-07) to reassert DARK as the default: the mobile theme toggle is now hidden,
+// so a stale saved "light" could strand a phone in light with no way back. The bump discards the old
+// saved value once, so everyone lands on the dark default; light stays available via the desktop toggle.
+const THEME_KEY = "whoisit_theme_v2";
 function applyTheme(theme) {
   document.body.dataset.theme = theme === "light" ? "light" : "dark";
   try {
@@ -2506,11 +2511,16 @@ function showHelpCard() {
   ov.innerHTML = `
     <div class="mf-shell">
       <p class="mf-eyebrow">HOW IT WORKS</p>
-      <div class="mf-body">${fleshdraft ? `
-        <p><b>1.</b> Everyone secretly holds a commission: six body parts, drawn from the shared slab of donors.</p>
-        <p><b>2.</b> Take turns claiming parts. Claimed parts are gone for everyone—and whatever you take, <b>you wear</b>. Stealing is legal and costs you a slot.</p>
-        <p><b>3.</b> Exact parts pay 15, lookalike substitutes pay less, a perfect build pays 100. Highest total after three bodies wins.</p>
-        <p class="mf-kicker">Picks are public, commissions are private. Watch what they hoard, guess what they're building, take it first. Every donor is a stylized invention—never race or ethnicity.</p>
+      <div class="mf-body">${fleshdraft && state.gameMode === "online" ? `
+        <p><b>1.</b> Everyone secretly holds a commission: six features, drawn from the shared board of faces.</p>
+        <p><b>2.</b> Everyone picks simultaneously while their commission and current build stay visible. The first request accepted by the host gets a contested part.</p>
+        <p><b>3.</b> Exact parts pay 15, visible lookalikes earn partial credit, and the first completed build earns <b>+10</b>.</p>
+        <p class="mf-kicker">Your commission is private. Claims are public. Accuracy wins the night, but speed can break it open.</p>
+      ` : fleshdraft ? `
+        <p><b>1.</b> Before every pick, privately study your commission beside the face you've built so far.</p>
+        <p><b>2.</b> Press READY and both faces disappear. Choose one part from memory—there is no back button and no peek—then pass the device.</p>
+        <p><b>3.</b> Exact parts pay 15. Structural features, skin, hair, eyes, lip colour and other visible details all shape substitute similarity.</p>
+        <p class="mf-kicker">Study. Hide. Pick. Pass. Claimed parts are gone for everyone, and whatever you take, you wear.</p>
       ` : groupthink && yolo ? `
         <p><b>1.</b> Everyone gets the same prompt and privately picks from one shared cast: three faces at first, then two, then one.</p>
         <p><b>2.</b> Match another player: that face scores <b>2 points</b>. Match nobody: consolation prize, <b>3 points</b>.</p>
@@ -3735,6 +3745,25 @@ function loadPrefs() {
 function savePrefs(patch) {
   try { localStorage.setItem(PREFS_KEY, JSON.stringify({ ...loadPrefs(), ...patch })); } catch (e) { /* fine */ }
 }
+// Agent-driven browsers reload this game dozens of times a session, and every launch fired the full
+// SFX bed at whoever was sitting in the room. Automation starts silent.
+//
+// This is a RUNTIME override, never written to device prefs - a real browser on the same machine
+// keeps whatever the human chose. Detection covers Claude Code's preview pane (a `Claude/` token in
+// the Electron UA - it does NOT set navigator.webdriver), Playwright/Selenium/Puppeteer (which do),
+// and headless or Codex-driven Chrome. `?mute` forces silence anywhere; `?audio=on` overrides all of
+// it when you actually want to hear the game inside an agent session.
+function isAgentBrowser() {
+  try {
+    const params = new URLSearchParams(location.search);
+    if (params.has("mute") || params.has("silent")) return true;
+    if (params.get("audio") === "on") return false;
+    const ua = navigator.userAgent || "";
+    return navigator.webdriver === true
+      || /\bClaude\//.test(ua)
+      || /HeadlessChrome|Playwright|Puppeteer|Codex|Selenium/i.test(ua);
+  } catch (e) { return false; }
+}
 function showTitleSettings() {
   document.querySelector(".ts-settings-panel")?.remove();
   const S = window.Sound;
@@ -3912,8 +3941,9 @@ function audioToggleMarkup() {
   // Initial states come from device prefs so they survive reloads (Sound.isMusicOn() also checks the
   // track, so it can't seed the button).
   const prefs = loadPrefs();
-  const sfxOn = prefs.sound !== false;
-  const musicOn = prefs.music !== false;
+  const agent = isAgentBrowser();
+  const sfxOn = !agent && prefs.sound !== false;
+  const musicOn = !agent && prefs.music !== false;
   const row = (cls, kind, label, on) =>
     `<button type="button" class="ts-opt ts-audio ${cls} ${on ? "on" : ""}" aria-pressed="${on}">${tsAudioIconSlot(kind)}<span class="ts-opt-label">${label}</span><b class="ts-chip">${on ? "ON" : "OFF"}</b></button>`;
   return row("ts-sound", "sound", "Sound", sfxOn) + row("ts-music", "music", "Music", musicOn);
@@ -3960,32 +3990,45 @@ function showTitleScreen() {
             <span>CHOOSE YOUR GAME</span>
             <small>SAME FACES. DIFFERENT DAMAGE.</small>
           </div>
-          <div class="ts-ruleset-grid" role="group" aria-label="Choose a game">
+          <div class="ts-ruleset-carousel">
+            <button type="button" class="ts-rs-arrow ts-rs-prev" aria-label="Previous game" tabindex="-1">‹</button>
+            <div class="ts-ruleset-grid" role="group" aria-label="Choose a game">
             <button type="button" class="button ts-ruleset ts-ruleset-whoisit" data-ruleset="whoisit" aria-label="Play WHO? IS IT?">
               <span class="ts-ruleset-logo ts-ruleset-logo-whoisit" aria-hidden="true">
                 <span class="ts-rs-who">WHO?</span>
                 <span class="ts-rs-isit">IS IT?</span>
               </span>
-              <small><span>ASK QUESTIONS.</span><span>CROSS THEM OFF.</span><span>FIND THE HIDDEN FACE.</span></small>
-              <span class="ts-ruleset-enter" aria-hidden="true">PLAY THIS <b>→</b></span>
+              <small><span>ASK.</span><span>ACCUSE.</span><span>UNMASK.</span></small>
+              ${(() => {
+                // The mystery wheel belongs to WHO? IS IT?, so its discovery count rides on this card
+                // alone - never groupthink/whodidyoumake, never the poster. Hidden until 3+ unlocked so
+                // first-timers see nothing (APP-02).
+                const total = MysteryModes.all().length;
+                const disc = loadDiscoveredModes().filter((id) => MysteryModes.all().some((e) => e.id === id)).length;
+                return disc >= 3 ? `<p class="ts-discovery" title="Mystery modes you've unlocked">🎡 ${disc} / ${total} modes discovered</p>` : "";
+              })()}
+              <span class="ts-ruleset-enter" aria-hidden="true">PLAY</span>
             </button>
             <button type="button" class="button ts-ruleset ts-ruleset-groupthink" data-ruleset="groupthink" aria-label="Play WHO? DO YOU THINK?">
               <span class="ts-ruleset-logo ts-ruleset-logo-groupthink" aria-hidden="true">
                 <span class="ts-rs-who">WHO?</span>
                 <span class="ts-rs-doyouthink">DO YOU THINK?</span>
               </span>
-              <small><span>MATCH THE ROOM.</span><span>SAVE ONE.</span><span>CUT THE REST.</span></small>
-              <span class="ts-ruleset-enter" aria-hidden="true">PLAY THIS <b>→</b></span>
+              <small><span>LOOK.</span><span>POINT.</span><span>REGRET.</span></small>
+              <span class="ts-ruleset-enter" aria-hidden="true">PLAY</span>
             </button>
             <button type="button" class="button ts-ruleset ts-ruleset-whodidyoumake" data-ruleset="whodidyoumake" aria-label="Play WHO? DID YOU MAKE?">
               <span class="ts-ruleset-logo ts-ruleset-logo-whodidyoumake" aria-hidden="true">
                 <span class="ts-rs-who">WHO?</span>
                 <span class="ts-rs-didyoumake">DID YOU MAKE?</span>
               </span>
-              <small><span>STEAL THE PARTS.</span><span>BUILD YOUR COMMISSION.</span><span>WEAR WHAT YOU TAKE.</span></small>
-              <span class="ts-ruleset-enter" aria-hidden="true">PLAY THIS <b>→</b></span>
+              <small><span>STEAL.</span><span>STITCH.</span><span>WEAR IT.</span></small>
+              <span class="ts-ruleset-enter" aria-hidden="true">PLAY</span>
             </button>
+            </div>
+            <button type="button" class="ts-rs-arrow ts-rs-next" aria-label="Next game" tabindex="-1">›</button>
           </div>
+          <div class="ts-rs-dots" aria-hidden="true"><i data-rs-dot="0"></i><i data-rs-dot="1"></i><i data-rs-dot="2"></i></div>
           <button type="button" class="button ghost ts-ruleset-back">${tsIcon("back")}<span class="ts-lbl">BACK</span></button>
         </div>
         <div class="ts-step ts-step-main" hidden>
@@ -4158,8 +4201,47 @@ function showTitleScreen() {
       ? "DO YOU THINK?"
       : key === "whodidyoumake" ? "DID YOU MAKE?" : key === "whoisit" ? "IS IT?" : "KNOWS?";
   };
+  // FOCUS CAROUSEL: the centred game gets .is-focus (crisp); the neighbours blur/dim/peek. Scroll,
+  // arrows and dots navigate; a tap on a blurred neighbour centres it instead of starting the game.
+  const rsTrack = ov.querySelector(".ts-ruleset-grid");
+  const rsCards = [...ov.querySelectorAll(".ts-ruleset")];
+  const rsDots = [...ov.querySelectorAll("[data-rs-dot]")];
+  let rsFocusIdx = 0, rsRaf = 0, rsUserScroll = false;
+  const rsSetFocus = (idx) => {
+    rsFocusIdx = idx;
+    rsCards.forEach((c, i) => c.classList.toggle("is-focus", i === idx));
+    rsDots.forEach((d, i) => d.classList.toggle("is-on", i === idx));
+  };
+  const rsCentreOn = (idx, smooth = true) => {
+    const card = rsCards[idx]; if (!card) return;
+    rsSetFocus(idx);
+    // This scroll is OURS, and we already set the focus it lands on. Drop back out of user-scroll mode
+    // so rsSyncFromScroll ignores the scroll events it fires - otherwise, if the track hasn't finished
+    // laying out, sync reads a half-applied scrollLeft and drags focus onto a neighbour.
+    rsUserScroll = false;
+    rsTrack.scrollTo({ left: card.offsetLeft - (rsTrack.clientWidth - card.clientWidth) / 2, behavior: smooth ? "smooth" : "auto" });
+  };
+  const rsSyncFromScroll = () => {
+    const mid = rsTrack.scrollLeft + rsTrack.clientWidth / 2;
+    let best = 0, bestD = Infinity;
+    rsCards.forEach((c, i) => { const cc = c.offsetLeft + c.clientWidth / 2; const d = Math.abs(cc - mid); if (d < bestD) { bestD = d; best = i; } });
+    if (best !== rsFocusIdx) rsSetFocus(best);
+  };
+  if (rsTrack) {
+    // Only a scroll the USER started may move the focus. Anything else is one of our own centre-scrolls,
+    // which has already set the focus it means to land on.
+    ["pointerdown", "touchstart", "wheel"].forEach((evt) =>
+      rsTrack.addEventListener(evt, () => { rsUserScroll = true; }, { passive: true }));
+    rsTrack.addEventListener("scroll", () => { if (!rsUserScroll || rsRaf) return; rsRaf = requestAnimationFrame(() => { rsRaf = 0; rsSyncFromScroll(); }); }, { passive: true });
+    ov.querySelector(".ts-rs-prev")?.addEventListener("click", () => rsCentreOn(Math.max(0, rsFocusIdx - 1)));
+    ov.querySelector(".ts-rs-next")?.addEventListener("click", () => rsCentreOn(Math.min(rsCards.length - 1, rsFocusIdx + 1)));
+    rsDots.forEach((d, i) => d.addEventListener("click", () => rsCentreOn(i)));
+  }
   const show = (name) => {
-    if (name === "ruleset") paintTitleRuleset();
+    // Set focus synchronously so an immediate click lands on the centred card (no race), then centre the
+    // scroll after a double rAF: the step was just un-hidden, so its offsets aren't final until it lays
+    // out, and centring on stale geometry would let the scroll-sync flicker focus on re-entry.
+    if (name === "ruleset") { paintTitleRuleset(); rsSetFocus(rsFocusIdx || 0); requestAnimationFrame(() => requestAnimationFrame(() => rsCentreOn(rsFocusIdx || 0, false))); }
     ov.classList.toggle("ts-ruleset-open", name === "ruleset");
     Object.entries(steps).forEach(([k, el]) => {
       const active = k === name;
@@ -4198,15 +4280,17 @@ function showTitleScreen() {
   ov.querySelector(".ts-letplay").addEventListener("click", () => show("ruleset"));
   ov.querySelector(".ts-splash-back").addEventListener("click", () => show("ruleset"));
   ov.querySelector(".ts-ruleset-back").addEventListener("click", openSplash);
-  ov.querySelectorAll(".ts-ruleset").forEach((button) => button.addEventListener("click", () => {
+  ov.querySelectorAll(".ts-ruleset").forEach((button, idx) => button.addEventListener("click", () => {
+    // A tap on a blurred neighbour brings it into focus; only the centred game starts on tap.
+    if (!button.classList.contains("is-focus")) { rsCentreOn(idx); return; }
     state.ruleset = normalizeRuleset(button.dataset.ruleset);
     if (state.ruleset === "groupthink" || state.ruleset === "whodidyoumake") state.playMode = "solo";
     document.title = rulesetTitle();
     paintTitleRuleset(state.ruleset);
     const onlineButton = ov.querySelector(".ts-step-main .ts-online");
     if (onlineButton) {
-      onlineButton.disabled = state.ruleset === "whodidyoumake";
-      onlineButton.querySelector(".ts-lbl").textContent = state.ruleset === "whodidyoumake" ? "ONLINE COMING LATER" : "ONLINE GAME";
+      onlineButton.disabled = false;
+      onlineButton.querySelector(".ts-lbl").textContent = state.ruleset === "whodidyoumake" ? "LIVE BUILD ONLINE" : "ONLINE GAME";
     }
     show("main");
   }));
@@ -4267,7 +4351,6 @@ function showTitleScreen() {
     startLocalGame(count, names, (state.ruleset === "groupthink" || state.ruleset === "whodidyoumake") ? "solo" : (count > 2 ? localPlayMode : "team"));
   });
   ov.querySelector(".ts-online").addEventListener("click", () => {
-    if (state.ruleset === "whodidyoumake") { flashToast("WHO? DID YOU MAKE? online play is coming later."); return; }
     show("online");
   });
   const nameInput = ov.querySelector(".ts-name-input");
@@ -4370,7 +4453,7 @@ function startOnlineGame(name) {
   state.seenPrompts = new Set();   // NET2-03: fresh session, fresh no-repeat memory (matches local)
   state.hostClaimId = null;
   ensureClientId();
-  state.playMode = state.ruleset === "groupthink" ? "solo" : "team";
+  state.playMode = (state.ruleset === "groupthink" || state.ruleset === "whodidyoumake") ? "solo" : "team";
   state.pname = cleanPlayerName(name) || "Player 1";
   state.gameSalt = `game-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   // NET-09 (documented, accepted risk): 4-digit codes can collide — two concurrent hosts have a
@@ -4393,7 +4476,7 @@ function joinRoom(code, name, opts = {}) {
   state.isObserver = !!(opts && opts.observe);
   state.gameMode = "online"; state.isHost = false; state.mySeat = 0; state.inLobby = true;
   ensureClientId();
-  state.playMode = state.ruleset === "groupthink" ? "solo" : "team";
+  state.playMode = (state.ruleset === "groupthink" || state.ruleset === "whodidyoumake") ? "solo" : "team";
   state.pname = state.isObserver ? "TV" : (cleanPlayerName(name) || "Player 2");
   state.roomCode = code;
   state.roster = [];               // populated from the host's "lobby" broadcast
@@ -4478,6 +4561,7 @@ function maybeOfferHostTakeover() {
     // WHO? DO YOU THINK? has secret parallel ballots. The new host asks each locked client to
     // resubmit its own ballot so takeover can finish the round without revealing anyone's picks.
     if (state.ruleset === "groupthink" && window.Groupthink) Groupthink.onHostClaim();
+    if (state.ruleset === "whodidyoumake" && window.WhoDidYouMake) WhoDidYouMake.onHostClaim();
     flashToast("👑 You're the host now.");
     saveGameState();
     b.remove();
@@ -4633,19 +4717,20 @@ function showLobby() {
   const ov = document.createElement("div");
   ov.className = "lobby-screen title-screen";
   const groupthink = state.ruleset === "groupthink";
+  const fleshdraft = state.ruleset === "whodidyoumake";
   ov.classList.toggle("is-groupthink", groupthink);
   ov.innerHTML = `
-    <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">${groupthink ? "DO YOU THINK?" : "IS IT?"}</span></div>
+    <div class="ts-words" aria-hidden="true"><span class="ts-who">WHO?</span><span class="ts-isit">${groupthink ? "DO YOU THINK?" : fleshdraft ? "DID YOU MAKE?" : "IS IT?"}</span></div>
     <p class="lobby-code">ROOM <b>#${escapeHtml(state.roomCode)}</b></p>
     ${host ? lobbyJoinShareMarkup() : ""}
-    ${host ? `${!groupthink ? `<label class="ts-opt ts-team-mode lobby-team-mode ${state.playMode === "solo" ? "" : "on"}">
+    ${host ? `${!groupthink && !fleshdraft ? `<label class="ts-opt ts-team-mode lobby-team-mode ${state.playMode === "solo" ? "" : "on"}">
       ${tsIcon("team")}<span class="ts-opt-label">Team Mode</span>
       <input class="lobby-team-mode-input" type="checkbox" ${state.playMode === "solo" ? "" : "checked"}>
       <b class="ts-chip">${state.playMode === "solo" ? "OFF" : "ON"}</b>
     </label>` : ""}
-    ${pgToggleMarkup()}
+    ${fleshdraft ? `<p class="lobby-mode-note"><b>LIVE BUILD</b><span>Everyone picks simultaneously. Your commission stays visible.</span></p>` : pgToggleMarkup()}
     ${groupthink ? yoloToggleMarkup() : ""}
-    ${groupthink ? "" : boardSizeMarkup()}` : ""}
+    ${groupthink || fleshdraft ? "" : boardSizeMarkup()}` : ""}
     <div class="lobby-players"></div>
     <p class="lobby-status"></p>
     <div class="lobby-actions">
@@ -4718,8 +4803,9 @@ function showLobby() {
     state.playerCount = state.roster.length;
     state.wheelPickShared = null;
     syncMySeatFromRoster();
-    const skipWarmup = state.ruleset !== "groupthink" && effectiveModePolicy() !== "progressive";
-    let effectId = state.ruleset === "groupthink" ? null : (normalizedStartModeId(state.settings) || null);
+    const plainRuleset = state.ruleset === "groupthink" || state.ruleset === "whodidyoumake";
+    const skipWarmup = !plainRuleset && effectiveModePolicy() !== "progressive";
+    let effectId = plainRuleset ? null : (normalizedStartModeId(state.settings) || null);
     // Match local setup: custom/chaotic lineups have explicitly opted out of the plain opening
     // round. Pick the authoritative first effect here so every online client receives the same one.
     if (!effectId && skipWarmup && state.settings.mystery) effectId = wheelTargetFromBag();
@@ -4742,7 +4828,8 @@ function updateLobby() {
   const ov = document.querySelector(".lobby-screen");
   if (!ov || state.isObserver) return;   // the observer's wait screen has no player list to fill
   const roster = state.roster || [];
-  const slots = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, roster.length + (roster.length < MAX_PLAYERS ? 1 : 0)));
+  const roomCap = state.ruleset === "whodidyoumake" ? 6 : MAX_PLAYERS;
+  const slots = Math.max(MIN_PLAYERS, Math.min(roomCap, roster.length + (roster.length < roomCap ? 1 : 0)));
   const modeToggle = ov.querySelector(".lobby-team-mode");
   if (modeToggle) {
     modeToggle.hidden = state.ruleset === "groupthink" || roster.length <= 2;
@@ -4759,6 +4846,8 @@ function updateLobby() {
   const enough = roster.length >= 2;
   const modeLine = state.ruleset === "groupthink"
     ? ` WHO? DO YOU THINK? · YOLO ${state.settings.groupthinkYolo !== false ? "ON — permanent cuts" : "OFF — full deck"}.`
+    : state.ruleset === "whodidyoumake"
+      ? " LIVE BUILD · simultaneous picks."
     : (roster.length > 2 ? ` Team Mode ${state.playMode === "solo" ? "OFF" : "ON"}.` : "");
   ov.querySelector(".lobby-status").textContent = enough
     ? (state.isHost ? `Ready when you are — press START.${modeLine}` : `Waiting for the host to start…${modeLine}`)
@@ -4805,9 +4894,11 @@ installStaticIcons();
   placeDesktopToolbar();   // desktop: fold the board toolbar into the sticky rail
   initHudCollapse();       // desktop: skinny rail once you scroll into the board
   if (window.Sound) {
-    if (prefs.sound === false) Sound.setEnabled(false);
+    const agent = isAgentBrowser();   // automation opens muted; see isAgentBrowser()
+    if (agent || prefs.sound === false) Sound.setEnabled(false);
     if (typeof prefs.track === "number") Sound.setTrack(prefs.track);
-    if (prefs.music !== false) Sound.setMusic(true);   // music ON by default (playback still waits for the first gesture)
+    // music ON by default (playback still waits for the first gesture), but never for automation
+    if (!agent && prefs.music !== false) Sound.setMusic(true);
   }
 }
 // PERF-02: on-demand script loader. editor.js and vendor-qrcode.js no longer load at boot — the

@@ -14,6 +14,9 @@ async function openGroupthink(page, names, { yolo = true, dismissIntro = true } 
   await page.locator(".ts-letplay").click();
   const choice = page.locator('.ts-ruleset[data-ruleset="groupthink"]');
   await expect(choice).toHaveAttribute("aria-label", "Play WHO? DO YOU THINK?");
+  // Focus carousel: a tap on an off-centre card only recentres it; the centred card is what launches.
+  await choice.click();
+  await expect(choice).toHaveClass(/is-focus/);
   await choice.click();
   await expect(page).toHaveTitle("WHO? DO YOU THINK?");
   await expect(page.locator(".ts-poster .ts-isit")).toHaveText("DO YOU THINK?");
@@ -75,20 +78,28 @@ test("two players score shared picks as one co-op sync total", async ({ page }, 
   await expect(page.locator(".gt-selection-tray")).toContainText("ADA'S PICKS");
   await expect(page.locator(".gt-selection-tray")).not.toContainText("selected");
   await expect(page.locator(".gt-selection-tray")).not.toContainText("saw");
-  await pick(page, [0, 1, 2]);
+  // Ballot size is dynamic (the board and crowd ramps decide it), so drive the test off the ballot the
+  // round actually dealt rather than a hard-coded three - identical ballots must read as a total match
+  // at any size. Read gt().pickCount, not resolvePickCount(): the round pins its size when it starts.
+  const picks = await page.evaluate(() => state.groupthink.pickCount);
+  const ballot = Array.from({ length: picks }, (_, index) => index);
+  const boardBefore = await page.locator("#characterBoard [data-id]").count();
+  await pick(page, ballot);
   await acceptHandoff(page, "Bea");
-  await pick(page, [0, 1, 2]);
+  await pick(page, ballot);
   await expect(page.locator(".gt-results")).toBeVisible();
-  await expect(page.locator(".gt-sync-result")).toContainText("+6");
+  // Every pick shared: two points a face, and the duo's top-of-the-range sync banner.
+  await expect(page.locator(".gt-sync-result")).toContainText(`+${picks * 2}`);
+  await expect(page.locator(".gt-sync-result")).toContainText("SHARED BRAIN CELL");
   await expect(page.locator(".gt-save-lock")).toContainText("ADA:");
   await saveCandidate(page, 0);
   await acceptHandoff(page, "Bea");
   await saveCandidate(page, 0);
   await expect(page.locator(".gt-saw-verdict")).toContainText("survived the vote");
   await expect(page.locator(".gt-result-face.is-saved")).toHaveCount(1);
-  await expect(page.locator(".gt-result-face.is-cut")).toHaveCount(2);
+  await expect(page.locator(".gt-result-face.is-cut")).toHaveCount(picks - 1);
   await page.locator(".gt-next").click();
-  await expect(page.locator("#characterBoard [data-id]")).toHaveCount(28);
+  await expect(page.locator("#characterBoard [data-id]")).toHaveCount(boardBefore - (picks - 1));
 });
 
 test("Groupthink opens with its own consensus splash", async ({ page }, testInfo) => {
@@ -153,16 +164,33 @@ test("desktop question rail compresses continuously without changing its grid", 
 test("standard scoring rewards matches and gives the no-match safety net", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "ruleset smoke runs once on desktop");
   await openGroupthink(page, ["Ada", "Bea", "Cal"]);
-  await pick(page, [0, 1, 2]);
+  // Three players sit in the middle crowd band, so the ballot narrows to two picks - a full board
+  // would otherwise hand out three, and consensus across three ballots would be a formality.
+  await expect.poll(() => page.evaluate(() => window.Groupthink.resolvePickCount())).toBe(2);
+  await pick(page, [0, 1]);
   await acceptHandoff(page, "Bea");
-  await pick(page, [0, 3, 4]);
+  await pick(page, [0, 3]);
   await acceptHandoff(page, "Cal");
-  await pick(page, [5, 6, 7]);
+  await pick(page, [5, 6]);
   await expect(page.locator(".gt-results")).toBeVisible();
   const rows = page.locator(".gt-score-row");
   await expect(rows.nth(0)).toContainText("+2");
   await expect(rows.nth(1)).toContainText("+2");
-  await expect(rows.nth(2)).toContainText("+3");
+  // The lone wolf's consolation is a flat floor of one - a single match (the other two seats) always
+  // beats it, so the isolated seat scores +1 regardless of ballot size.
+  await expect(rows.nth(2)).toContainText("+1");
+  await expect(rows.nth(2)).toContainText("LONE WOLF");
+});
+
+test("a big table narrows the ballot to a single pick", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "ruleset smoke runs once on desktop");
+  await openGroupthink(page, ["Ada", "Bea", "Cal", "Dee", "Eve", "Fay", "Gus"]);
+  await expect.poll(() => page.evaluate(() => window.Groupthink.resolvePickCount())).toBe(1);
+  // The prompt must read as a single accusation, never "the three ...".
+  const prompt = await page.locator("#questionPrompt").textContent();
+  expect(prompt).not.toMatch(/\bthree\b/i);
+  expect(prompt).not.toMatch(/\{n\}/);
+  await pick(page, [0]);
 });
 
 test("a refresh resumes the exact Groupthink ballot", async ({ page }, testInfo) => {

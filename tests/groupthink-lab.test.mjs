@@ -40,7 +40,7 @@ test("host payload records rounds and events while stripping identity fields", (
     pickCount: 3,
     picks: [["a", "b", "c"], ["a", "d", "e"], ["f", "g", "h"]],
     matchCounts: [1, 1, 0],
-    roundScores: [2, 2, 3],
+    roundScores: [2, 2, 1],
     doubleDowns: [null, null, null],
     doubleDownHits: [false, false, false],
     saveOutcome: { savedId: "a", tied: false, removedIds: ["b", "c", "d", "e", "f", "g", "h"] }

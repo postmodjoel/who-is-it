@@ -18,8 +18,14 @@
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const baseCharacters = () => (gt()?.baseBoard || []).map(hydrateSerializedCharacter).filter(Boolean);
   const yoloMode = () => state.settings.groupthinkYolo !== false;
-  const pickCountForBoard = (count) => Rules.pickCountForBoard(count, true);
-  const pickCount = () => yoloMode() ? (gt()?.pickCount || pickCountForBoard(state.board?.length || 0)) : 3;
+  // Ballot size is the tighter of the board ramp and the crowd ramp, and a prompt may pin its own.
+  const resolvePickCount = (promptPicks) => Rules.pickCountFor({
+    boardCount: state.board?.length || 0,
+    playerCount: state.players?.length || 0,
+    yolo: yoloMode(),
+    promptPicks
+  });
+  const pickCount = () => gt()?.pickCount || resolvePickCount(promptById(gt()?.promptId)?.picks);
   const doubleDownEnabled = () => productionRules.doubleDown && gt()?.variant !== "duo-coop";
   const pickWord = (count) => count === 1 ? "one" : count === 2 ? "two" : "three";
   const currentRevision = () => Math.max(0, Number(gt()?.revision) || 0);
@@ -238,7 +244,13 @@
       state.groupthink.baseBoard = state.board.map(serializeCharacter);
     }
     syncSurvivorBoard();
-    state.groupthink.pickCount = yoloMode() ? (Number(raw.pickCount) || pickCountForBoard(state.board.length)) : 3;
+    state.groupthink.pickCount = Number(raw.pickCount)
+      || Rules.pickCountFor({
+        boardCount: state.board.length,
+        playerCount: state.players?.length || 0,
+        yolo: yoloMode(),
+        promptPicks: promptById(raw.promptId)?.picks
+      });
     state.gameSalt = saved.salt || roundSalt(state.groupthink.roundIndex);
     assignRosterTeams({ preserveExisting: true });
     const taken = new Set();
@@ -321,7 +333,6 @@
     gt().roundIndex = index;
     gt().phase = "selecting";
     gt().effectId = null;
-    gt().pickCount = yoloMode() ? pickCountForBoard(state.board.length) : 3;
     gt().picks = Array.from({ length: state.players.length }, () => []);
     gt().doubleDowns = Array(state.players.length).fill(null);
     gt().locked = Array(state.players.length).fill(false);
@@ -332,9 +343,13 @@
     gt().roundScores = Array(state.players.length).fill(0);
     gt().lastResult = null;
     gt().rerolls = 0;
+    // The prompt is chosen before the ballot size because a prompt may pin its own pick count, and
+    // the resolved count then decides which phrasing of that prompt the table actually reads.
     const prompt = choosePrompt(config.promptId);
     gt().promptId = prompt?.id || "";
-    gt().promptText = prompt?.text || `Pick ${pickWord(gt().pickCount)} people who concern you.`;
+    gt().pickCount = resolvePickCount(prompt?.picks);
+    gt().promptText = Rules.promptTextFor(prompt, gt().pickCount)
+      || `Pick ${pickWord(gt().pickCount)} people who concern you.`;
     if (Number.isInteger(config.revision)) gt().revision = config.revision;
     else if (state.gameMode !== "online" || state.isHost) bumpRevision();
     state.currentPlayer = state.gameMode === "online" ? (state.mySeat || 0) : 0;
@@ -343,9 +358,13 @@
     scheduleSave();
   }
 
+  // promptText is already resolved to the round's ballot size (and synced to peers that way), so the
+  // only work left here is the location token. The legacy "pick three" rewrite stays as a safety net
+  // for saves written before prompts carried {n}.
   function formattedPrompt() {
     const word = pickWord(pickCount());
     return String(gt()?.promptText || `Pick ${word}.`)
+      .replace(/\{n\}/g, word)
       .replace(/\bpick three\b/gi, (match) => `${match[0] === "P" ? "Pick" : "pick"} ${word}`)
       .replace(/\{location\}/g, state.location ? `the ${state.location.name}` : "this place");
   }
@@ -1119,7 +1138,8 @@
     toggleSave,
     lockSave,
     calculate,
-    pickCountForBoard,
+    pickCountForBoard: (count) => Rules.pickCountForBoard(count, true),
+    resolvePickCount,
     skipDisconnectedSeat,
     onHostClaim,
     handleNetMessage,

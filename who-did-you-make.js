@@ -1,7 +1,7 @@
 // WHO? DID YOU MAKE? — the flesh draft, built on MakeRules.
 // Every player holds a secret commission (six body parts from the shared donor board).
-// Turns rotate snake-style; claimed parts leave the board forever and whatever you claim,
-// you wear. Three rounds, highest total wins. Picks are public, commissions are private.
+// Local play rotates a study/hidden-board memory draft; online play is a simultaneous Live Build.
+// Claimed parts leave the shared slab forever and whatever you claim, you wear.
 (function installWhoDidYouMake() {
   const RULESET = "whodidyoumake";
   const DISPLAY_NAME = "WHO? DID YOU MAKE?";
@@ -10,7 +10,7 @@
   if (!Make || !Genetics) throw new Error("make-rules.js must load before who-did-you-make.js");
 
   const ROUNDS_PER_SESSION = 3;
-  const PEEKS_PER_ROUND = 3;   // after the first look, memory is the resource being drafted
+  const LIVE_FIRST_BONUS = 10;
   const PHASES = ["commission-viewing", "drafting", "reveal", "round-score", "finale"];
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -20,11 +20,16 @@
   const playerCount = () => Math.max(2, Math.min(6, state.roster?.length || state.playerCount || 2));
   const portraitCache = new Map();
 
-  // Transient UI state (never saved): which donor's claim bar is open, whether the
-  // commission peek is currently held down, and the most recent claim (for feedback).
+  // Transient UI state (never saved): open donor, pending online claim, private-study cover,
+  // and the most recent claim (for feedback).
   let pickerDonorId = null;
-  let peeking = false;
+  let pendingClaimId = null;
+  let studyRevealed = true;
   let justClaimed = null;   // { donorId, part, playerIndex, count } — count pins it to one render
+
+  const online = () => state.gameMode === "online";
+  const ownPlayerIndex = () => online() ? Math.max(0, Number(state.myRosterIndex) || 0) : (Make.currentPicker(currentRound()) ?? 0);
+  const currentRevision = () => Math.max(0, Number(session()?.revision) || 0);
 
   const ping = (name) => { if (typeof sfx === "function") try { sfx(name); } catch (error) { /* muted */ } };
 
@@ -49,8 +54,7 @@
     return donor ? Make.strippedDonor(donor, [], { background: round.background }) : null;
   }
 
-  // The commission is a FACE and nothing else — no sources, no hints. You memorise it,
-  // you spend your rationed peeks, and you find its donors on the slab by eye.
+  // The commission is a face and nothing else—no donor sources or recipe hints.
   function commissionMarkup(round, playerIndex) {
     return `<img class="wdym-commission-face" src="${nodePortrait(round.targets[playerIndex])}" alt="Your commission">`;
   }
@@ -86,23 +90,26 @@
       donorSource: session().donorSource,
       characters: castCharacters()
     });
-    round.peeksLeft = Object.fromEntries(Array.from({ length: playerCount() }, (_, index) => [index, PEEKS_PER_ROUND]));
+    round.completedOrder = [];
     return round;
   }
 
   // ===================== session lifecycle =====================
 
-  function startSession(seedSalt) {
+  function startSession(seedSalt, opts = {}) {
     const sessionSeed = String(seedSalt || `fleshdraft-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const live = online();
     portraitCache.clear();
     pickerDonorId = null;
+    pendingClaimId = null;
+    studyRevealed = true;
     state.gameSalt = sessionSeed;
-    state.gameMode = "local";
+    if (!live) state.gameMode = "local";
     state.playMode = "solo";
     state.inLobby = false;
-    state.isHost = false;
-    state.isObserver = false;
-    state.currentPlayer = 0;
+    if (!live) state.isHost = false;
+    if (!live) state.isObserver = false;
+    state.currentPlayer = live ? ownPlayerIndex() : 0;
     state.location = null;
     state.global.mystery = null;
     state.board = [];
@@ -111,11 +118,13 @@
     }));
     state.whodidyoumake = {
       modeVersion: Make.MODE_VERSION,
+      format: live ? "live" : "memory",
+      revision: 0,
       sessionSeed,
       roundIndex: 0,
       roundCount: ROUNDS_PER_SESSION,
       donorSource: "cast",
-      phase: "commission-viewing",
+      phase: live ? "drafting" : "commission-viewing",
       viewingIndex: 0,
       revealIndex: 0,
       scores: Array(playerCount()).fill(0),
@@ -124,6 +133,12 @@
     session().rounds.push(makeRound(0));
     document.body.classList.remove("ruleset-groupthink");
     document.body.classList.add("ruleset-whodidyoumake");
+    if (live) {
+      netConnect();
+      if (!opts.remote && !opts.announced) {
+        netSend("start", { salt: sessionSeed, settings: state.settings, roster: rosterForWire(), playerCount: state.playerCount, playMode: "solo", ruleset: RULESET, first: true });
+      }
+    }
     render();
     scheduleSave();
   }
@@ -147,35 +162,40 @@
     }
     portraitCache.clear();
     pickerDonorId = null;
-    state.gameMode = "local";
+    pendingClaimId = null;
+    const live = (saved.gameMode || state.gameMode) === "online" || restored.format === "live";
+    state.gameMode = live ? "online" : "local";
     state.playMode = "solo";
     state.inLobby = false;
-    state.isHost = false;
+    if (!live) state.isHost = false;
     state.isObserver = false;
     state.location = null;
     state.global.mystery = null;
     state.board = [];
     state.whodidyoumake = clone(restored);
     const s = session();
+    s.format = live ? "live" : "memory";
+    s.revision = Math.max(0, Number(s.revision) || 0);
     const count = playerCount();
     s.roundIndex = Math.min(s.roundIndex || 0, s.rounds.length - 1);
     if (!PHASES.includes(s.phase)) s.phase = "commission-viewing";
     s.donorSource = s.donorSource === "strangers" ? "strangers" : "cast";
-    delete s.privacyMode;   // pre-ration saves: unlimited-peek toggle no longer exists
+    delete s.privacyMode;
     s.rounds.forEach((round) => {
-      if (!round.peeksLeft) {
-        round.peeksLeft = Object.fromEntries(Array.from({ length: count }, (_, index) => [index, PEEKS_PER_ROUND]));
-      }
+      round.completedOrder = Array.isArray(round.completedOrder) ? round.completedOrder.filter((seat) => Number.isInteger(seat)) : [];
+      delete round.peeksLeft;
     });
     while (s.scores.length < count) s.scores.push(0);
     s.viewingIndex = Math.min(s.viewingIndex || 0, count - 1);
     s.revealIndex = Math.min(s.revealIndex || 0, count - 1);
+    studyRevealed = live || s.phase !== "commission-viewing";
     state.gameSalt = s.sessionSeed;
     state.players = Array.from({ length: count }, (_, index) => ({
       pname: rosterName(index), secretId: null, eliminated: new Set(), mysteryUsed: false, secretVisible: true
     }));
     document.body.classList.remove("ruleset-groupthink");
     document.body.classList.add("ruleset-whodidyoumake");
+    if (live) netConnect();
     render();
   }
 
@@ -205,14 +225,9 @@
   }
 
   function commissionSeen() {
-    if (!active() || session().phase !== "commission-viewing") return;
+    if (!active() || online() || session().phase !== "commission-viewing") return;
     const s = session();
-    if (s.viewingIndex + 1 < playerCount()) {
-      s.viewingIndex += 1;
-    } else {
-      s.phase = "drafting";
-    }
-    peeking = false;
+    s.phase = "drafting";
     ping("blip");
     render();
     scheduleSave();
@@ -225,33 +240,73 @@
     render();
   }
 
-  function claimPart(donorId, part) {
-    if (!active() || session().phase !== "drafting") return;
+  function finishDraftIfReady(round) {
+    if (!Make.draftComplete(round)) return false;
+    round.results = Make.scoreRound(round);
+    round.results.finishOrder = (round.completedOrder || []).slice();
+    round.results.players.forEach((result) => {
+      result.finishRank = round.results.finishOrder.indexOf(result.playerIndex) + 1;
+      result.speedBonus = online() && result.finishRank === 1 ? LIVE_FIRST_BONUS : 0;
+      result.baseScore = result.score;
+      result.score += result.speedBonus;
+      session().scores[result.playerIndex] += result.score;
+    });
+    // Reveal worst build first so the round climbs toward its winner.
+    round.revealOrder = round.results.players.slice()
+      .sort((a, b) => a.score - b.score || b.finishRank - a.finishRank || a.playerIndex - b.playerIndex)
+      .map((result) => result.playerIndex);
+    session().phase = "reveal";
+    session().revealIndex = 0;
+    playRevealSting();
+    return true;
+  }
+
+  function broadcastState() {
+    if (!online() || !state.isHost) return;
+    session().revision = currentRevision() + 1;
+    netSend("wdym-state", { revision: session().revision, whodidyoumake: serialize() });
+  }
+
+  function acceptClaim(playerIndex, donorId, part) {
     const round = currentRound();
-    const picker = Make.currentPicker(round);
-    if (picker === null) return;
     try {
-      Make.applyClaim(round, picker, donorId, part);
+      if (online()) Make.applyLiveClaim(round, playerIndex, donorId, part);
+      else Make.applyClaim(round, playerIndex, donorId, part);
     } catch (error) {
-      return;   // illegal tap: slot filled or part gone - the UI disables these anyway
+      return false;
     }
+    const filled = Object.values(Make.claimsOf(round, playerIndex)).filter(Boolean).length;
+    if (filled === Make.PART_ORDER.length && !round.completedOrder.includes(playerIndex)) round.completedOrder.push(playerIndex);
     pickerDonorId = null;
+    pendingClaimId = null;
     // One uniform sound for every claim: an audible "steal!" sting would leak who wanted what.
     ping("pop");
-    justClaimed = { donorId, part, playerIndex: picker, count: round.claims.length };
-    if (Make.draftComplete(round)) {
-      round.results = Make.scoreRound(round);
-      round.results.players.forEach((result) => { session().scores[result.playerIndex] += result.score; });
-      // Reveal worst build first so the round climbs toward its winner.
-      round.revealOrder = round.results.players.slice()
-        .sort((a, b) => a.score - b.score || a.playerIndex - b.playerIndex)
-        .map((result) => result.playerIndex);
-      session().phase = "reveal";
-      session().revealIndex = 0;
-      playRevealSting();
+    justClaimed = { donorId, part, playerIndex, count: round.claims.length };
+    const finished = finishDraftIfReady(round);
+    if (!finished && !online()) {
+      session().phase = "commission-viewing";
+      session().viewingIndex = Make.currentPicker(round) ?? 0;
+      studyRevealed = false;
     }
     render();
     scheduleSave();
+    if (online()) broadcastState();
+    return true;
+  }
+
+  function claimPart(donorId, part) {
+    if (!active() || state.isObserver || session().phase !== "drafting" || pendingClaimId) return;
+    const playerIndex = online() ? ownPlayerIndex() : Make.currentPicker(currentRound());
+    if (playerIndex === null) return;
+    if (online() && !state.isHost) {
+      pendingClaimId = `${state.clientId}:${currentRound().roundIndex}:${currentRound().claims.length}:${donorId}:${part}`;
+      netSend("wdym-claim-request", {
+        for: netHostId(), requestId: pendingClaimId, roundIndex: currentRound().roundIndex, donorId, part
+      });
+      render();
+      return;
+    }
+    acceptClaim(playerIndex, donorId, part);
   }
 
   // Which seat is on the reveal stage right now (worst score first, winner last).
@@ -275,6 +330,7 @@
 
   function nextReveal() {
     if (!active() || session().phase !== "reveal") return;
+    if (online() && !state.isHost) return;
     const s = session();
     if (s.revealIndex + 1 < playerCount()) {
       s.revealIndex += 1;
@@ -285,27 +341,32 @@
     }
     render();
     scheduleSave();
+    broadcastState();
   }
 
   function nextRound() {
     if (!active() || session().phase !== "round-score") return;
+    if (online() && !state.isHost) return;
     const s = session();
     if (s.roundIndex + 1 >= s.roundCount) {
       s.phase = "finale";
       ping("win");
       render();
       scheduleSave();
+      broadcastState();
       return;
     }
     s.roundIndex += 1;
     s.rounds.push(makeRound(s.roundIndex));
-    s.phase = "commission-viewing";
-    s.viewingIndex = 0;
+    s.phase = online() ? "drafting" : "commission-viewing";
+    s.viewingIndex = online() ? ownPlayerIndex() : (Make.currentPicker(currentRound()) ?? 0);
+    studyRevealed = online();
     s.revealIndex = 0;
     portraitCache.clear();
     ping("magic");
     render();
     scheduleSave();
+    broadcastState();
   }
 
   function returnToMenu() {
@@ -335,11 +396,19 @@
     return round.claims.filter((claim) => claim.donorId === donorId).map((claim) => claim.part);
   }
 
+  function strippedPortrait(round, donor, taken) {
+    const shown = Make.strippedDonor(donor, taken, { background: round.background });
+    // The renderer suppresses these SVG groups entirely. That exposes the existing face
+    // surface beneath eyes/nose/mouth instead of covering them with a cosmetic blob.
+    shown.traits.hiddenParts = taken.slice();
+    return shown;
+  }
+
   function donorCardMarkup(round, donor) {
     const taken = partsTakenFrom(round, donor.id);
     // Always render through the assembler: cast donors get their glasses/outfit extras
     // on the card, and stripping visibly removes the furniture along with the anatomy.
-    const shown = Make.strippedDonor(donor, taken, { background: round.background });
+    const shown = strippedPortrait(round, donor, taken);
     const fresh = justClaimed && justClaimed.donorId === donor.id && justClaimed.count === round.claims.length;
     // Clean cards on a big slab: only CLAIMED parts get a ledger chip. Everything else is
     // implicitly available - the claim bar lists the full six when a donor is opened.
@@ -348,11 +417,16 @@
       const justThis = fresh && justClaimed.part === part;
       return `<i class="is-taken ${justThis ? "is-fresh" : ""}">${Make.PART_LABELS[part]} · ${escapeHtml(rosterName(owner).slice(0, 3).toUpperCase())}</i>`;
     }).join("");
+    const removedLabel = taken.length
+      ? ` Removed: ${taken.map((part) => Make.PART_LABELS[part].toLowerCase()).join(", ")}.`
+      : "";
     return `<button type="button" class="wdym-donor ${pickerDonorId === donor.id ? "is-open" : ""} ${taken.length >= Make.PART_ORDER.length ? "is-husk" : ""} ${fresh ? "is-fresh" : ""}"
-      data-donor="${escapeHtml(donor.id)}" aria-label="Donor ${escapeHtml(donor.label)} — choose a part">
+      data-donor="${escapeHtml(donor.id)}" data-removed-parts="${taken.join(" ")}" aria-label="Face ${escapeHtml(donor.label)} — choose a part.${removedLabel}">
       <span class="wdym-donor-letter">${escapeHtml(donor.label)}</span>
-      <img src="${nodePortrait(shown)}" alt="Donor ${escapeHtml(donor.label)}">
-      <span class="wdym-donor-name">${escapeHtml(round.donorSource === "cast" ? donor.name : `Donor ${donor.label}`)}</span>
+      <span class="wdym-donor-portrait">
+        <img src="${nodePortrait(shown)}" alt="Face ${escapeHtml(donor.label)}">
+      </span>
+      <span class="wdym-donor-name">${escapeHtml(round.donorSource === "cast" ? donor.name : `Face ${donor.label}`)}</span>
       <span class="wdym-donor-chips">${chips}</span>
     </button>`;
   }
@@ -376,17 +450,17 @@
   function claimBarMarkup(round) {
     const donor = Make.donorById(round, pickerDonorId);
     if (!donor) return "";
-    const picker = Make.currentPicker(round);
+    const picker = online() ? ownPlayerIndex() : Make.currentPicker(round);
     const slots = Make.claimsOf(round, picker);
-    const shown = Make.strippedDonor(donor, partsTakenFrom(round, donor.id), { background: round.background });
+    const shown = strippedPortrait(round, donor, partsTakenFrom(round, donor.id));
     return `<div class="wdym-claim-bar">
       <img src="${nodePortrait(shown)}" alt="">
       <div>
-        <b>DONOR ${escapeHtml(donor.label)}${round.donorSource === "cast" ? ` · ${escapeHtml(donor.name.toUpperCase())}` : ""}</b>
+        <b>FACE ${escapeHtml(donor.label)}${round.donorSource === "cast" ? ` · ${escapeHtml(donor.name.toUpperCase())}` : ""}</b>
         <div class="wdym-claim-parts">${Make.PART_ORDER.map((part) => {
           const owner = Make.takenBy(round, donor.id, part);
           const slotFull = !!slots[part];
-          const disabled = owner !== null || slotFull;
+          const disabled = owner !== null || slotFull || !!pendingClaimId || state.isObserver;
           const note = owner !== null ? `gone · ${escapeHtml(rosterName(owner).slice(0, 3))}` : slotFull ? "slot full" : "";
           return `<button type="button" class="wdym-claim-part" data-part="${part}" ${disabled ? "disabled" : ""}>
             ${Make.PART_LABELS[part]}${note ? `<small>${note}</small>` : ""}
@@ -403,57 +477,90 @@
     const round = currentRound();
     const playerIndex = s.viewingIndex;
     const target = round.targets[playerIndex];
+    const build = creatureFor(round, playerIndex);
+    const filled = Object.values(Make.claimsOf(round, playerIndex)).filter(Boolean).length;
+    if (!studyRevealed) return `<div class="wdym-handoff" role="dialog" aria-modal="true">
+      <div class="game-dialog-panel wdym-pass-cover">
+        <small>PRIVATE HANDOFF</small>
+        <b>PASS TO ${escapeHtml(rosterName(playerIndex).toUpperCase())}</b>
+        <p>The next commission is hidden until they take the device.</p>
+        <button type="button" class="button primary wdym-study-open">I'M ${escapeHtml(rosterName(playerIndex).toUpperCase())} →</button>
+      </div>
+    </div>`;
     return `<div class="wdym-handoff" role="dialog" aria-modal="true">
       ${s.roundIndex === 0 && playerIndex === 0 ? `<div class="wdym-cold-open" aria-hidden="true">
-        <p>THE MORGUE OPENS</p>
-        <b>${round.donors.length} DONORS · ${s.roundCount} ${s.roundCount === 1 ? "BODY" : "BODIES"}</b>
+        <p>TONIGHT</p>
+        <b>${round.donors.length} FACES · ${s.roundCount} TO BUILD</b>
         <span>six parts each · you wear what you take</span>
       </div>` : ""}
       <div class="game-dialog-panel">
-        <small>ROUND ${s.roundIndex + 1} · COMMISSION ${playerIndex + 1} OF ${playerCount()}</small>
+        <small>ROUND ${s.roundIndex + 1} · PRIVATE STUDY · ${filled}/6 PARTS</small>
         <b>${escapeHtml(rosterName(playerIndex))}</b>
-        <p>Memorise the face. <b>${PEEKS_PER_ROUND} peeks</b> later, then memory only.</p>
-        <div class="wdym-peek-stage ${peeking ? "is-showing" : ""}">
-          ${peeking ? commissionMarkup(round, playerIndex) : "<span>HOLD TO SEE IT</span>"}
+        <p>Study the commission and what you have built. On the board, <b>both disappear</b>.</p>
+        <div class="wdym-study-pair">
+          <figure>${commissionMarkup(round, playerIndex)}<figcaption>COMMISSION</figcaption></figure>
+          <figure><img src="${nodePortrait(build)}" alt="Your build so far"><figcaption>YOUR BUILD</figcaption></figure>
         </div>
-        <button type="button" class="button wdym-hold">${peeking ? "LOOKING…" : "HOLD TO LOOK"}</button>
-        <button type="button" class="button primary wdym-seen">I'VE SEEN IT →</button>
-        ${playerIndex === 0 && s.roundIndex === 0 ? `<button type="button" class="button ghost wdym-bodies">BODIES TONIGHT: ${s.roundCount}</button>
-        <button type="button" class="button ghost wdym-donors">DONORS: ${round.donorSource === "cast" ? "THE CAST" : "STRANGERS"}</button>` : ""}
+        <button type="button" class="button primary wdym-seen">READY →</button>
+        ${round.claims.length === 0 && playerIndex === 0 && s.roundIndex === 0 ? `<button type="button" class="button ghost wdym-bodies">TO BUILD: ${s.roundCount}</button>
+        <button type="button" class="button ghost wdym-donors">FACES: ${round.donorSource === "cast" ? "THE CAST" : "STRANGERS"}</button>` : ""}
       </div>
     </div>`;
+  }
+
+  function liveReferenceMarkup(round, playerIndex) {
+    if (state.isObserver) return "";
+    const target = round.targets[playerIndex];
+    const build = creatureFor(round, playerIndex);
+    const filled = Object.values(Make.claimsOf(round, playerIndex)).filter(Boolean).length;
+    return `<section class="wdym-live-reference" aria-label="Your live build">
+      <figure><img src="${nodePortrait(target)}" alt="Your commission"><figcaption>YOUR COMMISSION</figcaption></figure>
+      <span aria-hidden="true">→</span>
+      <figure><img src="${nodePortrait(build)}" alt="Your build so far"><figcaption>YOUR BUILD · ${filled}/6</figcaption></figure>
+    </section>`;
+  }
+
+  function liveProgressMarkup(round) {
+    return `<div class="wdym-live-progress">${state.roster.map((player, index) => {
+      const filled = Object.values(Make.claimsOf(round, index)).filter(Boolean).length;
+      const rank = (round.completedOrder || []).indexOf(index);
+      return `<span class="${index === ownPlayerIndex() && !state.isObserver ? "is-you" : ""} ${rank >= 0 ? "is-complete" : ""}">
+        <b>${escapeHtml(player.name)}</b><i>${rank >= 0 ? (rank === 0 ? "FIRST BUILT" : `FINISHED #${rank + 1}`) : `${filled}/6`}</i>
+      </span>`;
+    }).join("")}</div>`;
   }
 
   function draftingMarkup() {
     const s = session();
     const round = currentRound();
-    const picker = Make.currentPicker(round);
+    const picker = online() ? ownPlayerIndex() : Make.currentPicker(round);
     const pickNumber = round.claims.length + 1;
-    const lap = Math.floor(round.claims.length / playerCount()) + 1;
-    // The snake order confuses first-timers ("why do I pick twice?") — show the queue.
-    const upNext = round.turnOrder.slice(round.claims.length + 1, round.claims.length + 4).map((seat) => rosterName(seat));
+    const upNext = online() ? [] : round.turnOrder.slice(round.claims.length + 1, round.claims.length + 4).map((seat) => rosterName(seat));
     return `<div class="wdym-draft">
       <header class="wdym-screen-head">
-        <span>THE FLESH DRAFT · PICK ${pickNumber} OF ${round.turnOrder.length}</span>
-        <h2>${escapeHtml(rosterName(picker).toUpperCase())} IS CHOOSING</h2>
-        <p>Take a part. You wear it.</p>
+        <span>${online() ? `LIVE BUILD · ${round.claims.length} CLAIMS LOCKED` : `MEMORY DRAFT · PICK ${pickNumber} OF ${round.turnOrder.length}`}</span>
+        <h2>${online() ? "BUILD YOUR COMMISSION" : `${escapeHtml(rosterName(picker).toUpperCase())} IS CHOOSING`}</h2>
+        <p>${online() ? "Everyone is picking now. First tap accepted gets the part." : "One pick. No target, no build, no peeking."}</p>
         ${upNext.length ? `<div class="wdym-up-next"><b>THEN</b>${upNext.map((name) => `<span>${escapeHtml(name)}</span>`).join("<i>→</i>")}</div>` : ""}
       </header>
-      <div class="game-action-bar wdym-draft-actions">
-        <button type="button" class="button wdym-peek-hold" ${(round.peeksLeft?.[picker] ?? 0) > 0 ? "" : "disabled"}>
-          ${(round.peeksLeft?.[picker] ?? 0) > 0
-            ? `✂ ${escapeHtml(rosterName(picker).toUpperCase())} · PEEK — ${round.peeksLeft[picker]} LEFT`
-            : `${escapeHtml(rosterName(picker).toUpperCase())} · NO PEEKS LEFT`}
-        </button>
-      </div>
+      ${online() ? liveReferenceMarkup(round, picker) : ""}
+      ${online() ? liveProgressMarkup(round) : ""}
+      ${pendingClaimId ? `<p class="wdym-claim-pending" role="status">LOCKING YOUR PICK…</p>` : ""}
       <div class="wdym-panel wdym-donor-board">${round.donors.map((donor) => donorCardMarkup(round, donor)).join("")}</div>
       ${claimBarMarkup(round)}
-      <div class="wdym-panel wdym-trays-panel">
-        <b class="wdym-panel-label">THE BUILDS</b>
-        <div class="wdym-trays">${Array.from({ length: playerCount() }, (_, index) =>
-          trayMarkup(round, index, { current: index === picker })).join("")}</div>
-      </div>
-      ${peeking ? `<div class="wdym-peek-overlay">${commissionMarkup(round, picker)}<b>${escapeHtml(rosterName(picker))}'S COMMISSION</b></div>` : ""}
+    </div>`;
+  }
+
+  function matchFactorsMarkup(part, worn, wanted) {
+    if (part.exact) return `<div class="wdym-match-factors"><span class="wdym-match-factor is-exact">EXACT MATCH</span></div>`;
+    const factors = Array.isArray(part.factors) && part.factors.length
+      ? part.factors
+      : Make.partSimilarityBreakdown(worn, wanted, part.part).factors;
+    return `<div class="wdym-match-factors" aria-label="Why this part is ${Math.round(part.similarity * 100)} percent similar">
+      ${factors.map((factor) => `<span class="wdym-match-factor is-${factor.signal.length === 3 ? "near" : factor.signal.length === 2 ? "close" : factor.signal === "+" ? "some" : "far"}"
+        title="${escapeHtml(factor.label)}: ${Math.round(factor.similarity * 100)}% similar">
+        <b>${escapeHtml(factor.label)}</b><i aria-label="${Math.round(factor.similarity * 100)} percent similar">${factor.signal}</i>
+      </span>`).join("")}
     </div>`;
   }
 
@@ -474,42 +581,59 @@
         <h2>WHO? DID ${escapeHtml(rosterName(playerIndex).toUpperCase())} MAKE?</h2>
       </header>
       <div class="wdym-panel wdym-reveal-panel">
-      <div class="wdym-reveal-pair">
-        <div class="wdym-reveal-side">
-          <div ${delay()}>${sourcesStripMarkup(round, buildSources(round, playerIndex), "BUILT FROM")}</div>
-          <div class="wdym-reveal-person" ${delay()}><img src="${nodePortrait(creature)}" alt=""><b>THE BUILD</b></div>
+        <div class="wdym-reveal-pair">
+          <div class="wdym-reveal-side" ${delay()}>
+            <div class="wdym-reveal-person"><img src="${nodePortrait(creature)}" alt="${escapeHtml(rosterName(playerIndex))}'s completed build"><b>THE BUILD</b></div>
+            ${sourcesStripMarkup(round, buildSources(round, playerIndex), "BUILT FROM")}
+          </div>
+          <span class="wdym-reveal-vs" ${delay()}>VS</span>
+          <div class="wdym-reveal-side" ${delay()}>
+            <div class="wdym-reveal-person"><img src="${nodePortrait(target)}" alt="${escapeHtml(rosterName(playerIndex))}'s commission"><b>THE COMMISSION</b></div>
+            ${sourcesStripMarkup(round, Make.commissionDonors(round, playerIndex), "MADE FROM")}
+          </div>
         </div>
-        <span ${delay()}>vs</span>
-        <div class="wdym-reveal-side">
-          <div class="wdym-reveal-person" ${delay()}><img src="${nodePortrait(target)}" alt=""><b>THE COMMISSION</b></div>
-          <div ${delay()}>${sourcesStripMarkup(round, Make.commissionDonors(round, playerIndex), "MADE FROM")}</div>
+        <div class="wdym-match-key" ${delay()} aria-label="Match signal and substitution scoring guide">
+          <span><b>+++</b> NEAR</span><span><b>++</b> CLOSE</span><span><b>+</b> SOME</span><span><b>—</b> FAR</span>
+          <small>EXACT PART +15 · SUBSTITUTIONS SCORE ABOVE 40% · CAPPED AT +12</small>
         </div>
-      </div>
-      <div class="wdym-part-stamps">${result.parts.map((part) => {
-        const theft = theftsAgainst.find((entry) => entry.part === part.part);
-        const worn = fullDonor(round, part.claimedId);
-        const wanted = fullDonor(round, part.wantedId);
-        return `<div class="wdym-stamp ${part.exact ? "is-exact" : theft ? "is-stolen" : "is-sub"}" ${delay()}>
-          <b>${part.label}</b>
-          ${part.exact
-            ? `<span class="wdym-stamp-faces"><img src="${nodePortrait(worn)}" alt=""></span>
-               <span>Donor ${escapeHtml(donorLetter(round, part.claimedId))} · EXACT</span>`
-            : `<span class="wdym-stamp-faces">
-                 <img src="${nodePortrait(worn)}" alt="worn"><em>≠</em><img class="is-wanted" src="${nodePortrait(wanted)}" alt="wanted">
-               </span>
-               <span>wanted ${escapeHtml(donorLetter(round, part.wantedId))} · wears ${escapeHtml(donorLetter(round, part.claimedId))} · ${Math.round(part.similarity * 100)}%</span>`}
-          ${theft ? `<small>STOLEN by ${escapeHtml(rosterName(theft.thief))}${theft.contested ? "" : " · pure spite"}</small>` : ""}
-          <strong>+${part.points}</strong>
-        </div>`;
-      }).join("")}</div>
-      ${result.masterpiece ? `<p class="wdym-masterpiece" ${delay()}>MASTERPIECE · ALL SIX EXACT · +${Make.MASTERPIECE_BONUS}</p>` : ""}
-      ${theftsBy.length ? `<p class="wdym-theft-note" ${delay()}>Also robbed ${theftsBy.map((theft) =>
-        `${escapeHtml(rosterName(theft.victim))} of ${theft.label.toLowerCase()} ${escapeHtml(donorLetter(round, theft.donorId))}`).join(", ")}.</p>` : ""}
-      <div class="wdym-reveal-total" ${delay()}><b>${escapeHtml(rosterName(playerIndex))}</b><strong>+${result.score}</strong></div>
+        <div class="wdym-part-stamps" role="list" aria-label="Part score breakdown">${result.parts.map((part) => {
+          const theft = theftsAgainst.find((entry) => entry.part === part.part);
+          const worn = fullDonor(round, part.claimedId);
+          const wanted = fullDonor(round, part.wantedId);
+          return `<article class="wdym-stamp ${part.exact ? "is-exact" : theft ? "is-stolen" : "is-sub"}" role="listitem" ${delay()}>
+            <div class="wdym-stamp-heading">
+              <b>${part.label}</b>
+              <span>${part.exact
+                ? `FACE ${escapeHtml(donorLetter(round, part.claimedId))} · EXACT`
+                : `WANTED ${escapeHtml(donorLetter(round, part.wantedId))} · WEARS ${escapeHtml(donorLetter(round, part.claimedId))}`}</span>
+            </div>
+            <span class="wdym-stamp-faces">
+              <img class="is-wanted" src="${nodePortrait(wanted)}" alt="wanted donor">
+              <em aria-hidden="true">${part.exact ? "=" : "→"}</em>
+              <img src="${nodePortrait(worn)}" alt="worn donor">
+            </span>
+            ${matchFactorsMarkup(part, worn, wanted)}
+            <span class="wdym-match-percent">${part.exact ? "100" : Math.round(part.similarity * 100)}%</span>
+            <strong aria-label="${part.points} points">+${part.points}</strong>
+            ${theft ? `<small>STOLEN by ${escapeHtml(rosterName(theft.thief))}${theft.contested ? "" : " · pure spite"}</small>` : ""}
+          </article>`;
+        }).join("")}</div>
+        <footer class="wdym-reveal-total" ${delay()}>
+          <span><small>TOTAL FOR</small><b>${escapeHtml(rosterName(playerIndex))}</b></span>
+          <div class="wdym-reveal-notes">
+            ${result.masterpiece ? `<i class="wdym-masterpiece">MASTERPIECE · +${Make.MASTERPIECE_BONUS}</i>` : ""}
+            ${result.speedBonus ? `<i class="wdym-live-bonus">FIRST BUILT · +${result.speedBonus}</i>` : ""}
+            ${theftsBy.length ? `<i class="wdym-theft-note">Robbed ${theftsBy.map((theft) =>
+              `${escapeHtml(rosterName(theft.victim))} of ${theft.label.toLowerCase()} ${escapeHtml(donorLetter(round, theft.donorId))}`).join(", ")}.</i>` : ""}
+          </div>
+          <strong><small>POINTS</small>+${result.score}</strong>
+        </footer>
       </div>
       <div class="game-action-bar wdym-reveal-actions">
         <button type="button" class="button ghost wdym-replay">▶ SHOW THAT AGAIN</button>
-        <button type="button" class="button primary wdym-next-reveal">${s.revealIndex + 1 < playerCount() ? "NEXT BUILD →" : "ROUND STANDINGS →"}</button>
+        ${!online() || state.isHost
+          ? `<button type="button" class="button primary wdym-next-reveal">${s.revealIndex + 1 < playerCount() ? "NEXT BUILD →" : "ROUND STANDINGS →"}</button>`
+          : `<span class="wdym-wait-host">Waiting for the host…</span>`}
       </div>
     </div>`;
   }
@@ -521,7 +645,7 @@
     return `<div class="wdym-score">
       <header class="wdym-screen-head">
         <span>ROUND ${s.roundIndex + 1} OF ${s.roundCount}</span>
-        <h2>THE BUTCHER'S BILL</h2>
+        <h2>THE TALLY</h2>
       </header>
       <div class="wdym-score-list">${round.results.players.slice().sort((a, b) => b.score - a.score || a.playerIndex - b.playerIndex).map((result) => `<article class="game-card wdym-score-card ${result.masterpiece ? "is-masterpiece" : ""}">
         <span class="wdym-bill-pair">
@@ -530,13 +654,15 @@
         </span>
         <b>${escapeHtml(rosterName(result.playerIndex))}</b>
         <strong>+${result.score}</strong>
-        <span>${result.exactCount}/6 exact${result.masterpiece ? " · MASTERPIECE" : ""}</span>
+        <span>${result.exactCount}/6 exact${result.masterpiece ? " · MASTERPIECE" : ""}${result.speedBonus ? ` · FIRST BUILT +${result.speedBonus}` : ""}</span>
       </article>`).join("")}</div>
       <div class="wdym-standings">
         <b>STANDINGS</b>
         ${state.roster.map((player, index) => `<span><b>${escapeHtml(player.name)}</b><strong>${s.scores[index] || 0}</strong></span>`).join("")}
       </div>
-      <button type="button" class="button primary wdym-next-round">${lastRound ? "SEE THE FINAL RECKONING →" : "DEAL THE NEXT BODY BAG →"}</button>
+      ${!online() || state.isHost
+        ? `<button type="button" class="button primary wdym-next-round">${lastRound ? "FINAL SCORES →" : "NEXT COMMISSION →"}</button>`
+        : `<span class="wdym-wait-host">Waiting for the host…</span>`}
     </div>`;
   }
 
@@ -546,13 +672,13 @@
       .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
     const finished = s.rounds.filter((round) => round.results);
     return `<div class="wdym-finale">
-      <p>THE FLESH DRAFT IS OVER</p>
+      <p>THAT'S THE LAST BUILD</p>
       <h2>WHO? DID YOU MAKE?</h2>
       <div class="wdym-final-score">${ordered.map((player, rank) => `<span class="${rank === 0 ? "is-winner" : ""}">
         <small>${rank + 1}</small><b>${escapeHtml(player.name)}</b><strong>${player.score}</strong>
       </span>`).join("")}</div>
       <section class="wdym-gallery">
-        <b>TONIGHT'S BODIES OF WORK</b>
+        <b>TONIGHT'S BUILDS</b>
         ${ordered.map((player) => `<div class="wdym-gallery-row">
           <b>${escapeHtml(player.name)}</b>
           <div>${finished.map((round) => {
@@ -564,9 +690,9 @@
           }).join("")}</div>
         </div>`).join("")}
       </section>
-      <p class="wdym-final-note">${escapeHtml(ordered[0].name)} stitched closest to their commissions. Every donor tonight was a stylized invention—no real anatomy, ancestry, race, or ethnicity is depicted or inferred.</p>
+      <p class="wdym-final-note">${escapeHtml(ordered[0].name)} stitched closest to their commissions. Every face tonight was a stylized invention—no real anatomy, ancestry, race, or ethnicity is depicted or inferred.</p>
       <div class="game-action-bar wdym-final-actions">
-        <button type="button" class="button primary wdym-again">OPEN A NEW MORGUE</button>
+        ${!online() || state.isHost ? `<button type="button" class="button primary wdym-again">PLAY AGAIN</button>` : `<span class="wdym-wait-host">Waiting for the host…</span>`}
         <button type="button" class="button wdym-menu">MAIN MENU</button>
       </div>
     </div>`;
@@ -579,17 +705,19 @@
     const round = currentRound();
     switch (s.phase) {
       case "commission-viewing":
-        return { role: "PRIVATE COMMISSION", name: rosterName(s.viewingIndex), prompt: "Pass it on. No peeking.", thumb: null };
+        return { role: "PRIVATE STUDY", name: rosterName(s.viewingIndex), prompt: "Study. Hide. Pick. Pass.", thumb: null };
       case "drafting": {
-        const picker = Make.currentPicker(round);
-        return { role: "NOW CHOOSING", name: rosterName(picker), prompt: "You wear what you take.", thumb: null };
+        const picker = online() ? ownPlayerIndex() : Make.currentPicker(round);
+        return online()
+          ? { role: "LIVE BUILD", name: state.isObserver ? "WATCHING" : rosterName(picker), prompt: "First accepted pick gets the part.", thumb: null }
+          : { role: "NOW CHOOSING", name: rosterName(picker), prompt: "You wear what you take.", thumb: null };
       }
       case "reveal":
         return { role: "THE REVEAL", name: rosterName(revealSeat()), prompt: "Build against commission, part by part.", thumb: currentRound().targets[revealSeat()] };
       case "round-score":
         return { role: "ROUND SCORE", name: `ROUND ${s.roundIndex + 1}`, prompt: "Exact parts pay 15. Lookalikes pay less. Thefts pay in feelings.", thumb: null };
       default:
-        return { role: "THE MORGUE CLOSES", name: "COMPLETE", prompt: "Every commission has been judged.", thumb: null };
+        return { role: "ALL BUILT", name: "COMPLETE", prompt: "Every commission has been judged.", thumb: null };
     }
   }
 
@@ -597,25 +725,27 @@
     const s = session();
     const round = currentRound();
     const copy = sidebarCopy();
-    els.roomCode.textContent = `ROUND ${Math.min(s.roundIndex + 1, s.roundCount)} / ${s.roundCount}`;
+    els.roomCode.textContent = online() ? `ROOM #${state.roomCode}` : `ROUND ${Math.min(s.roundIndex + 1, s.roundCount)} / ${s.roundCount}`;
     els.secretCard.className = "secret-card wdym-secret-card";
     els.secretCard.innerHTML = `
       <div class="wdym-side-role">${copy.role}</div>
       ${copy.thumb ? `<img src="${nodePortrait(copy.thumb)}" alt="">` : `<span class="wdym-side-mark">✂</span>`}
       <b>${escapeHtml(copy.name)}</b>
-      <small>${s.phase === "drafting" ? `pick ${round.claims.length + 1} / ${round.turnOrder.length}` : " "}</small>`;
+      <small>${s.phase === "drafting" ? (online() ? `${Object.values(Make.claimsOf(round, ownPlayerIndex())).filter(Boolean).length} / 6 built` : `pick ${round.claims.length + 1} / ${round.turnOrder.length}`) : " "}</small>`;
     // Visual mode: the question card is hidden by CSS, and we blank its contents so
     // nothing else (aria-live, a future unhide) can resurrect question furniture here.
     els.questionPrompt.textContent = "";
     els.mysteryResult.textContent = "";
     els.opponentPanel.innerHTML = "";
-    const picker = s.phase === "drafting" ? Make.currentPicker(round) : null;
+    const picker = s.phase === "drafting" ? (online() ? ownPlayerIndex() : Make.currentPicker(round)) : null;
     els.seatRoster.innerHTML = state.roster.map((player, index) =>
       `<span class="wdym-roster-chip ${index === picker ? "is-picking" : ""}">
-        <b>${escapeHtml(player.name)}</b>${index === picker ? "<i>✂</i>" : ""}<small>${s.scores[index] || 0}</small>
+        <b>${escapeHtml(player.name)}</b>${s.phase === "drafting" && (online() || index === picker) ? "<i>✂</i>" : ""}<small>${s.scores[index] || 0}</small>
       </span>`
     ).join("");
-    els.roomStatus.textContent = s.phase === "drafting" ? "Picks public. Commissions secret." : "";
+    els.roomStatus.textContent = s.phase === "drafting"
+      ? (online() ? "Live claims. Your commission is private." : "Board only. No peeking until your next study.")
+      : "";
   }
 
   function renderMain() {
@@ -638,49 +768,11 @@
     if (s.phase === "commission-viewing") document.body.insertAdjacentHTML("beforeend", viewingMarkup());
   }
 
-  // Release listeners live on the DOCUMENT: showing the peek re-renders the board, which
-  // replaces the held button mid-press - a button-scoped pointerup would die with it and
-  // strand the overlay open.
-  function bindHold(button, onChange) {
-    if (!button) return;
-    button.addEventListener("pointerdown", (event) => {
-      event.preventDefault();
-      onChange(true);
-      const stop = () => {
-        document.removeEventListener("pointerup", stop);
-        document.removeEventListener("pointercancel", stop);
-        onChange(false);
-      };
-      document.addEventListener("pointerup", stop);
-      document.addEventListener("pointercancel", stop);
-    });
-  }
-
   function bindEvents() {
-    const setPeek = (value) => {
-      if (peeking === value) return;
-      peeking = value;
-      render();
-    };
-    // Draft peeks are a rationed resource: each hold burns one of the picker's charges.
-    const setDraftPeek = (value) => {
-      if (peeking === value) return;
-      const round = currentRound();
-      const picker = Make.currentPicker(round);
-      if (value) {
-        if (picker === null || (round.peeksLeft?.[picker] ?? 0) <= 0) return;
-        round.peeksLeft[picker] -= 1;
-        ping("magic");
-        scheduleSave();
-      }
-      peeking = value;
-      render();
-    };
-    document.querySelector(".wdym-seen")?.addEventListener("click", () => { peeking = false; commissionSeen(); });
+    document.querySelector(".wdym-study-open")?.addEventListener("click", () => { studyRevealed = true; ping("blip"); render(); });
+    document.querySelector(".wdym-seen")?.addEventListener("click", commissionSeen);
     document.querySelector(".wdym-bodies")?.addEventListener("click", cycleRoundCount);
     document.querySelector(".wdym-donors")?.addEventListener("click", toggleDonorSource);
-    bindHold(document.querySelector(".wdym-hold"), setPeek);
-    bindHold(els.characterBoard.querySelector(".wdym-peek-hold"), setDraftPeek);
     els.characterBoard.querySelectorAll(".wdym-donor").forEach((button) =>
       button.addEventListener("click", () => openClaimBar(button.dataset.donor)));
     els.characterBoard.querySelectorAll(".wdym-claim-part").forEach((button) =>
@@ -696,7 +788,8 @@
     if (!active() || !session()) return;
     document.title = DISPLAY_NAME;
     document.body.classList.add("ruleset-whodidyoumake");
-    document.body.classList.remove("ruleset-groupthink", "guess-mode", "observer");
+    document.body.classList.remove("ruleset-groupthink", "guess-mode");
+    document.body.classList.toggle("observer", !!state.isObserver);
     window.applyRulesetChrome?.(RULESET);
     renderSidebar();
     renderMain();
@@ -719,6 +812,55 @@
     return true;
   }
 
+  function isHostMessage(msg) {
+    const hostId = typeof netHostId === "function" ? netHostId() : null;
+    return !!hostId && msg?.clientId === hostId;
+  }
+
+  function handleNetMessage(msg) {
+    if (!msg?.type?.startsWith("wdym-")) return false;
+    if (!active()) return true;
+    if (msg.type === "wdym-claim-request") {
+      if (!state.isHost || session().format !== "live" || session().phase !== "drafting"
+        || (msg.for && msg.for !== state.clientId) || msg.roundIndex !== currentRound().roundIndex) return true;
+      const playerIndex = state.roster.findIndex((entry) => entry.clientId && entry.clientId === msg.clientId);
+      if (playerIndex < 0 || !acceptClaim(playerIndex, msg.donorId, msg.part)) {
+        netSend("wdym-claim-rejected", {
+          for: msg.clientId, requestId: msg.requestId, revision: currentRevision(), reason: "That part was just taken."
+        });
+      }
+      return true;
+    }
+    if (msg.type === "wdym-state") {
+      if (state.isHost || !isHostMessage(msg) || !looksLikeSession(msg.whodidyoumake)
+        || Number(msg.revision) <= currentRevision()) return true;
+      state.whodidyoumake = clone(msg.whodidyoumake);
+      pendingClaimId = null;
+      pickerDonorId = null;
+      portraitCache.clear();
+      render();
+      scheduleSave();
+      return true;
+    }
+    if (msg.type === "wdym-claim-rejected") {
+      if (msg.for !== state.clientId || msg.requestId !== pendingClaimId) return true;
+      pendingClaimId = null;
+      pickerDonorId = null;
+      if (typeof flashToast === "function") flashToast(msg.reason || "That part is no longer available.");
+      render();
+      return true;
+    }
+    return true;
+  }
+
+  function onHostClaim() {
+    if (!active() || !online() || !state.isHost) return;
+    pendingClaimId = null;
+    broadcastState();
+    render();
+    scheduleSave();
+  }
+
   window.WhoDidYouMake = {
     RULESET,
     DISPLAY_NAME,
@@ -736,6 +878,8 @@
     claimPart,
     nextReveal,
     nextRound,
-    returnToMenu
+    returnToMenu,
+    handleNetMessage,
+    onHostClaim
   };
 })();

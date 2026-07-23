@@ -176,6 +176,48 @@ test("cast donors carry their furniture with the right part", () => {
   assert.equal(pierced.extras.mouth.expression, "smug");
 });
 
+test("visible colours and furniture contribute to their owning part's similarity", () => {
+  const base = { hair: "cropped", hairColor: "black", skin: "tan", lips: "full", mouthScale: 1 };
+  const red = Make.castDonorFrom({ id: "red", name: "Red", traits: { ...base, lipColor: "#c94d61", shirt: "#2244aa" } });
+  const pink = Make.castDonorFrom({ id: "pink", name: "Pink", traits: { ...base, lipColor: "#d55b70", shirt: "#2b4eb0" } });
+  const dark = Make.castDonorFrom({ id: "dark", name: "Dark", traits: { ...base, lipColor: "#301820", shirt: "#ddaa22" } });
+  const recoloured = Make.castDonorFrom({ id: "recoloured", name: "Recoloured", traits: { ...base, skin: "deep", hairColor: "blonde", lipColor: "#c94d61", shirt: "#2244aa" } });
+  assert.ok(Make.partSimilarity(red, pink, "mouth") > Make.partSimilarity(red, dark, "mouth"), "nearby lip colours should score closer");
+  assert.ok(Make.partSimilarity(red, pink, "body") > Make.partSimilarity(red, dark, "body"), "nearby shirt colours should score closer");
+  assert.ok(Make.partSimilarity(red, recoloured, "skull") < 1, "skin colour should affect skull similarity");
+  assert.ok(Make.partSimilarity(red, recoloured, "hair") < 1, "hair colour should affect hair similarity");
+});
+
+test("similarity explanations preserve the scorer and use compact match signals", () => {
+  const round = round2("factor-breakdown");
+  for (const part of Make.PART_ORDER) {
+    const breakdown = Make.partSimilarityBreakdown(round.donors[0], round.donors[1], part);
+    assert.equal(breakdown.similarity, Make.partSimilarity(round.donors[0], round.donors[1], part));
+    assert.ok(breakdown.factors.length >= 1, `${part} has no readable factors`);
+    const explainedWeight = breakdown.factors.reduce((sum, factor) => sum + factor.weight, 0);
+    assert.ok(Math.abs(explainedWeight - breakdown.weight) < 0.01, `${part} leaves weighted traits unexplained`);
+    const recomposed = breakdown.factors.reduce((sum, factor) => sum + factor.similarity * factor.weight, 0) / explainedWeight;
+    assert.ok(Math.abs(recomposed - breakdown.similarity) < 0.002, `${part} factor scores drift from its percentage`);
+    breakdown.factors.forEach((factor) => assert.match(factor.signal, /^(\+\+\+|\+\+|\+|—)$/));
+  }
+  assert.equal(Make.similaritySignal(0.95), "+++");
+  assert.equal(Make.similaritySignal(0.8), "++");
+  assert.equal(Make.similaritySignal(0.6), "+");
+  assert.equal(Make.similaritySignal(0.2), "—");
+});
+
+test("live claims ignore turn order but keep donor parts and personal slots atomic", () => {
+  const round = round2("live-claims");
+  const donorA = round.donors[0].id;
+  const donorB = round.donors[1].id;
+  Make.applyLiveClaim(round, 1, donorA, "mouth");
+  assert.equal(Make.claimsOf(round, 1).mouth, donorA);
+  assert.throws(() => Make.applyLiveClaim(round, 0, donorA, "mouth"), /no longer available/);
+  assert.throws(() => Make.applyLiveClaim(round, 1, donorB, "mouth"), /no longer available/);
+  Make.applyLiveClaim(round, 0, donorB, "eyes");
+  assert.equal(Make.claimsOf(round, 0).eyes, donorB);
+});
+
 test("composed hair locks ride the HAIR part for cast donors and appear on strangers", () => {
   const locked = Make.castDonorFrom({
     id: "locks-1", name: "Locks", traits: { hair: "bob", hairLocks: [{ lock: "sideSwoop", x: 60, y: 30, scale: 0.4, rot: -50 }], lockBlend: "merged" }

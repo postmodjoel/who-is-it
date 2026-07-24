@@ -563,6 +563,13 @@ function newGame(seedSalt, opts = {}) {
   // Local mode just needs a display code, so it can track the salt.
   if (state.gameMode !== "online") state.roomCode = String((stableHash(state.gameSalt) % 9000) + 1000);
   assignRosterTeams({ preserveExisting: opts.resume || opts.preserveRosterSides });   // salt is final now; derive teams/seats
+  // Online: keep MY side aligned with the freshly (re)shuffled roster. Guests re-derive this in the
+  // start/sync handlers, but the HOST deals its own next round straight through newGame() - without
+  // this, team mode strands the host on last round's seat + secret from round two on (team desync).
+  if (state.gameMode === "online") {
+    const me = (state.roster || [])[state.myRosterIndex];
+    if (me && typeof me.side === "number") state.mySeat = me.side;
+  }
   if (state.roster && state.roster.length) state.playerCount = state.roster.length;
   const takenSecrets = new Set();
   const seats = gameSeatCount();

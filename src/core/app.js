@@ -417,7 +417,7 @@ function installStaticIcons() {
   setButtonIcon(els.setupButton, "settings", "Setup");
   setButtonIcon(els.almanacButton, "book", "The Almanac");
   setButtonIcon(els.editorButton, "palette", "Character editor");
-  setButtonIcon(els.soundButton, "speaker", "Sound & music");
+  setButtonIcon(els.soundButton, "speaker", "Sound effects");
   setButtonIcon(els.soundboardButton, "megaphone", "Soundboard");
   setButtonIcon(els.helpButton, "help", "How it works");
   [els.almanacButton, els.editorButton, els.soundButton, els.soundboardButton, els.helpButton].forEach((b) => b && b.classList.add("icon-only"));
@@ -472,19 +472,23 @@ function placeDesktopToolbar() {
 }
 if (desktopRailMq) desktopRailMq.addEventListener?.("change", placeDesktopToolbar);
 
-// Desktop: compress the sticky rail continuously as the board moves under it. The old implementation
-// flipped one class at 80px and swapped the entire CSS grid, which made the question and controls
-// visibly teleport. A scroll-progress value lets the stable layout interpolate instead.
+// Desktop: collapse the sticky rail at a deliberate scroll threshold, with a separate lower
+// threshold for expanding it again. The stable grid remains unchanged; only the two settled visual
+// states animate. This avoids tying font size and position to every intermediate scroll percentage.
 function initHudCollapse() {
   let ticking = false;
+  let collapsed = false;
   const apply = () => {
     ticking = false;
     const desktop = !desktopRailMq || desktopRailMq.matches;
     const scroll = window.scrollY || window.pageYOffset || 0;
-    const progress = desktop ? Math.max(0, Math.min(1, (scroll - 18) / 142)) : 0;
-    const helperProgress = Math.max(0, 1 - (progress * 2.4));
+    if (!desktop) collapsed = false;
+    else if (!collapsed && scroll >= 112) collapsed = true;
+    else if (collapsed && scroll <= 48) collapsed = false;
+    const progress = collapsed ? 1 : 0;
+    const helperProgress = collapsed ? 0 : 1;
     const root = document.documentElement;
-    root.style.setProperty("--hud-collapse-progress", progress.toFixed(3));
+    root.style.setProperty("--hud-collapse-progress", String(progress));
     root.style.setProperty("--hud-pad-top", `${12 - (progress * 4)}px`);
     root.style.setProperty("--hud-helper-height", `${14 * helperProgress}px`);
     root.style.setProperty("--hud-helper-opacity", String(helperProgress));
@@ -1323,8 +1327,19 @@ function renderPromptCard() {
   const cueCard = document.querySelector(".cue-card");
   if (!cueCard) return;
   const show = state.ruleset === "groupthink" || !!state.settings.prompts;
+  const clickable = show && state.ruleset === "whoisit" && !!state.settings.prompts;
   cueCard.hidden = !show;
   cueCard.setAttribute("aria-hidden", show ? "false" : "true");
+  cueCard.classList.toggle("is-clickable", clickable);
+  if (clickable) {
+    cueCard.setAttribute("role", "button");
+    cueCard.setAttribute("tabindex", "0");
+    cueCard.title = "Click for a new question";
+  } else {
+    cueCard.removeAttribute("role");
+    cueCard.removeAttribute("tabindex");
+    cueCard.removeAttribute("title");
+  }
   if (!show) {
     els.questionPrompt.textContent = "";
     els.mysteryResult.textContent = "";
@@ -1469,13 +1484,9 @@ function wireCueCardClick() {
   const cueCard = document.querySelector(".cue-card");
   if (!cueCard || cueCard.dataset.wired) return;
   cueCard.dataset.wired = "1";
-  cueCard.classList.add("is-clickable");
-  cueCard.setAttribute("role", "button");
-  cueCard.setAttribute("tabindex", "0");
-  cueCard.title = "Click for a new question";
   const reroll = () => {
     if (state.ruleset === "whodidyoumake") return;   // visual mode: there are no questions to draw
-    if (state.ruleset === "groupthink" && window.Groupthink) { Groupthink.rerollPrompt(); return; }
+    if (state.ruleset === "groupthink") return;       // shared prompt changes only between rounds
     if (!state.settings.prompts) return;
     cueCard.classList.add("is-fading");
     setTimeout(() => {
@@ -1921,7 +1932,7 @@ if (els.settingPG) els.settingPG.addEventListener("change", () => {
   });
 });
 
-// ===================== Sound & music controls =====================
+// ===================== Sound effects controls =====================
 // A SFX helper that plays locally AND (in online play) tells the peer to play it too, so a soundboard
 // press or a game event is heard by both seats.
 function sfx(name, opts) {
@@ -1948,22 +1959,14 @@ function toggleSoundPanel() {
   panel = document.createElement("div");
   panel.id = "soundPanel"; panel.className = "sound-panel";
   const S = window.Sound;
-  const host = state.gameMode !== "online" || state.isHost;
-  const trackOpts = S.trackNames().map((n, i) => `<option value="${i}" ${i === S.currentTrack() ? "selected" : ""}>${escapeHtml(n)}</option>`).join("");
-  // Settings only (FX / Music / Track). The soundboard has its own toolbar button, so this
-  // panel is a small settings card, and switches/select use the shared De Stijl controls (VC-04).
+  // Music is temporarily retired. Keep this panel to the one device-local Sound FX switch; the
+  // soundboard has its own toolbar button.
   panel.innerHTML = `
     <div class="sp-head"><b>Sound</b><button type="button" class="sp-x" aria-label="close">✕</button></div>
-    <label class="sp-row"><span>Sound FX</span><input type="checkbox" class="sp-master" ${S.isEnabled() ? "checked" : ""}></label>
-    <label class="sp-row"><span>Music${host ? "" : " (host controls)"}</span><input type="checkbox" class="sp-music" ${S.isMusicOn() ? "checked" : ""} ${host ? "" : "disabled"}></label>
-    <label class="sp-row"><span>Track</span><select class="sp-track" ${host ? "" : "disabled"}>${trackOpts}</select></label>`;
+    <label class="sp-row"><span>Sound FX</span><input type="checkbox" class="sp-master" ${S.isEnabled() ? "checked" : ""}></label>`;
   document.querySelector(".game-stage")?.appendChild(panel) || document.body.appendChild(panel);
   panel.querySelector(".sp-x").addEventListener("click", () => panel.remove());
   panel.querySelector(".sp-master").addEventListener("change", (e) => { S.setEnabled(e.target.checked); savePrefs({ sound: e.target.checked }); if (e.target.checked) sfx("blip"); });
-  const musicBox = panel.querySelector(".sp-music");
-  const trackSel = panel.querySelector(".sp-track");
-  const pushMusic = () => { S.setMusic(musicBox.checked); S.setTrack(Number(trackSel.value)); if (state.gameMode === "online") netSend("music", { on: musicBox.checked, track: Number(trackSel.value) }); };
-  if (host) { musicBox.addEventListener("change", pushMusic); trackSel.addEventListener("change", () => { if (!musicBox.checked) musicBox.checked = true; pushMusic(); }); }
 }
 if (els.soundButton) els.soundButton.addEventListener("click", toggleSoundPanel);
 
@@ -2407,7 +2410,7 @@ function maybeShowOnboarding() {
   };
   document.body.appendChild(layer);
   addTip(secR, "👆 Tap your card to hide / show your face");
-  addTip(cueR, "👆 Tap the question for a new one");
+  if (state.ruleset !== "groupthink") addTip(cueR, "👆 Tap the question for a new one");
   const dismiss = () => {
     try { localStorage.setItem(ONBOARD_KEY, "1"); } catch (e) { /* fine */ }
     document.removeEventListener("pointerdown", dismiss, true);
@@ -3771,15 +3774,11 @@ function showTitleSettings() {
   panel.className = "ts-settings-panel";
   const sizeBtns = BOARD_SIZES.map((n) =>
     `<button type="button" class="tsp-size ${state.settings.boardSize === n ? "on" : ""}" data-n="${n}">${n}</button>`).join("");
-  const trackOpts = (S ? S.trackNames() : []).map((t, i) =>
-    `<option value="${i}" ${S && S.currentTrack() === i ? "selected" : ""}>${escapeHtml(t)}</option>`).join("");
   panel.innerHTML = `
     <div class="tsp-box">
       <div class="tsp-head"><b>SETTINGS</b><button type="button" class="icon-button tsp-close" aria-label="Close">X</button></div>
       <div class="tsp-row"><span>Board size</span><span class="tsp-sizes">${sizeBtns}</span></div>
       <div class="tsp-row"><span>Sound</span><label class="tsp-toggle"><input type="checkbox" class="tsp-sound" ${S && S.isEnabled() ? "checked" : ""}><i></i></label></div>
-      <div class="tsp-row"><span>Music</span><label class="tsp-toggle"><input type="checkbox" class="tsp-music" ${S && S.isMusicOn() ? "checked" : ""}><i></i></label></div>
-      <div class="tsp-row"><span>Track</span><select class="tsp-track button ghost">${trackOpts}</select></div>
       <p class="tsp-note">Board size applies from the next deal. It can't be changed mid-game.</p>
     </div>`;
   document.body.appendChild(panel);
@@ -3791,8 +3790,6 @@ function showTitleSettings() {
     sfx("blip");
   }));
   panel.querySelector(".tsp-sound").addEventListener("change", (e) => { if (S) S.setEnabled(e.target.checked); savePrefs({ sound: e.target.checked }); });
-  panel.querySelector(".tsp-music").addEventListener("change", (e) => { if (S) { S.resume(); S.setMusic(e.target.checked); } savePrefs({ music: e.target.checked }); });
-  panel.querySelector(".tsp-track").addEventListener("change", (e) => { if (S) { S.setTrack(Number(e.target.value)); } savePrefs({ track: Number(e.target.value) }); });
 }
 // PG toggle now lives INSIDE the local/host setup steps (not the main menu), so it's chosen in
 // context right before a game. Same control markup in both places; a single handler keeps them synced.
@@ -3936,17 +3933,14 @@ function modeLineupMarkup() {
     <div class="mode-picker-wrap">${roundPick}<div class="mode-picker">${groups}</div></div>
   </div>`;
 }
-// Two independent settings rows: game sounds (FX) and music, each with an animated on/off glyph.
+// Music is temporarily disabled; the title setup exposes only the Sound FX switch.
 function audioToggleMarkup() {
-  // Initial states come from device prefs so they survive reloads (Sound.isMusicOn() also checks the
-  // track, so it can't seed the button).
   const prefs = loadPrefs();
   const agent = isAgentBrowser();
   const sfxOn = !agent && prefs.sound !== false;
-  const musicOn = !agent && prefs.music !== false;
   const row = (cls, kind, label, on) =>
     `<button type="button" class="ts-opt ts-audio ${cls} ${on ? "on" : ""}" aria-pressed="${on}">${tsAudioIconSlot(kind)}<span class="ts-opt-label">${label}</span><b class="ts-chip">${on ? "ON" : "OFF"}</b></button>`;
-  return row("ts-sound", "sound", "Sound", sfxOn) + row("ts-music", "music", "Music", musicOn);
+  return row("ts-sound", "sound", "Sound FX", sfxOn);
 }
 function showTitleScreen() {
   document.title = "WHO? KNOWS?";
@@ -3988,7 +3982,6 @@ function showTitleScreen() {
         <div class="ts-step ts-step-ruleset" hidden>
           <div class="ts-ruleset-head">
             <span>CHOOSE YOUR GAME</span>
-            <small>SAME FACES. DIFFERENT DAMAGE.</small>
           </div>
           <div class="ts-ruleset-carousel">
             <button type="button" class="ts-rs-arrow ts-rs-prev" aria-label="Previous game" tabindex="-1">‹</button>
@@ -3998,7 +3991,6 @@ function showTitleScreen() {
                 <span class="ts-rs-who">WHO?</span>
                 <span class="ts-rs-isit">IS IT?</span>
               </span>
-              <small><span>ASK.</span><span>ACCUSE.</span><span>UNMASK.</span></small>
               ${(() => {
                 // The mystery wheel belongs to WHO? IS IT?, so its discovery count rides on this card
                 // alone - never groupthink/whodidyoumake, never the poster. Hidden until 3+ unlocked so
@@ -4014,7 +4006,6 @@ function showTitleScreen() {
                 <span class="ts-rs-who">WHO?</span>
                 <span class="ts-rs-doyouthink">DO YOU THINK?</span>
               </span>
-              <small><span>LOOK.</span><span>POINT.</span><span>REGRET.</span></small>
               <span class="ts-ruleset-enter" aria-hidden="true">PLAY</span>
             </button>
             <button type="button" class="button ts-ruleset ts-ruleset-whodidyoumake" data-ruleset="whodidyoumake" aria-label="Play WHO? DID YOU MAKE?">
@@ -4022,7 +4013,6 @@ function showTitleScreen() {
                 <span class="ts-rs-who">WHO?</span>
                 <span class="ts-rs-didyoumake">DID YOU MAKE?</span>
               </span>
-              <small><span>STEAL.</span><span>STITCH.</span><span>WEAR IT.</span></small>
               <span class="ts-ruleset-enter" aria-hidden="true">PLAY</span>
             </button>
             </div>
@@ -4072,9 +4062,7 @@ function showTitleScreen() {
       </div>
     </div>`;
   document.body.appendChild(ov);
-  const close = () => { if (window.Sound) Sound.titleLoop(false); ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
-  // The title groove (bass + drums) can only start after a user gesture unlocks the AudioContext.
-  ov.addEventListener("pointerdown", () => { if (window.Sound) { Sound.resume(); Sound.titleLoop(true); } }, { once: true });
+  const close = () => { ov.classList.add("ts-out"); setTimeout(() => ov.remove(), 500); };
   // Every menu tap clicks (PG plays its own richer sound; mode-lineup chips get rebuilt so they play
   // their own click via the delegated handler below).
   ov.querySelectorAll("button:not(.ts-pg):not(.ts-yolo):not(.mode-policy-chip)").forEach((b) => b.addEventListener("click", () => sfx("click")));
@@ -4105,7 +4093,7 @@ function showTitleScreen() {
     paintYolo();
     sfx("blip");
   }));
-  // Inline settings (board size + sound + music) live in the local/host steps, mirrored across both.
+  // Inline board size and Sound FX settings live in the local/host steps.
   ov.querySelectorAll(".ts-size").forEach((btn) => btn.addEventListener("click", () => {
     const n = Number(btn.dataset.n);
     state.settings.boardSize = n;
@@ -4113,7 +4101,7 @@ function showTitleScreen() {
     ov.querySelectorAll(".ts-size").forEach((x) => x.classList.toggle("on", Number(x.dataset.n) === n));
     sfx("blip");
   }));
-  // Sound FX and music toggle independently; each keeps its twin (names + online steps) in sync.
+  // Sound FX keeps its twin (names + online steps) in sync.
   const paintAudio = (sel, on) => ov.querySelectorAll(sel).forEach((x) => {
     x.classList.toggle("on", on); x.setAttribute("aria-pressed", String(on)); x.querySelector("b").textContent = on ? "ON" : "OFF";
   });
@@ -4135,12 +4123,6 @@ function showTitleScreen() {
     if (window.Sound) { Sound.setEnabled(on); if (on) Sound.resume(); }
     savePrefs({ sound: on });
     paintAudio(".ts-sound", on);
-  }));
-  ov.querySelectorAll(".ts-music").forEach((btn) => btn.addEventListener("click", () => {
-    const on = !btn.classList.contains("on");
-    if (window.Sound) { if (on) Sound.resume(); Sound.setMusic(on); if (on) Sound.titleLoop(true); }
-    savePrefs({ music: on });
-    paintAudio(".ts-music", on);
   }));
   ov.querySelectorAll(".ts-mode-select").forEach((select) => select.addEventListener("change", () => setStartMode(select.value)));
   // Mode lineup: same picker as the setup gear. There are two instances (local + online steps); rather
@@ -4884,7 +4866,7 @@ installStaticIcons();
   } catch (e) { /* fine */ }
   verEl.textContent = `WHO? KNOWS?${build ? ` · build ${build}` : ""}`;
 })();
-// Device prefs (board size, sound/music) set from the title-screen settings panel.
+// Device prefs (board size and Sound FX) set from the title-screen settings panel.
 {
   const prefs = loadPrefs();
   if (BOARD_SIZES.includes(prefs.boardSize)) state.settings.boardSize = prefs.boardSize;
@@ -4896,9 +4878,7 @@ installStaticIcons();
   if (window.Sound) {
     const agent = isAgentBrowser();   // automation opens muted; see isAgentBrowser()
     if (agent || prefs.sound === false) Sound.setEnabled(false);
-    if (typeof prefs.track === "number") Sound.setTrack(prefs.track);
-    // music ON by default (playback still waits for the first gesture), but never for automation
-    if (!agent && prefs.music !== false) Sound.setMusic(true);
+    Sound.setMusic(false);
   }
 }
 // PERF-02: on-demand script loader. editor.js and vendor-qrcode.js no longer load at boot — the

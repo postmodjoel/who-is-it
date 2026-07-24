@@ -114,29 +114,23 @@ test("newborn and offer motion is soft, responsive, and reduced-motion aware", a
   expect(box.height).toBeLessThanOrEqual(720);
 });
 
-test("music tracks and ambient loops use long forms and rounded lead voices", async ({ page }) => {
+test("music remains disabled while sound effects stay available", async ({ page }) => {
   await openBareApp(page);
-  const profile = await page.evaluate(() => ({ tracks: Sound.trackInfo(), loops: Sound.loopInfo() }));
-  const music = profile.tracks.slice(1);
-  expect(music.length).toBeGreaterThanOrEqual(5);
-  for (const track of music) {
-    expect(track.bars, `${track.name} bars`).toBeGreaterThanOrEqual(24);
-    expect(track.loopSeconds, `${track.name} loop duration`).toBeGreaterThan(50);
-    expect(["square", "sawtooth"], `${track.name} lead voice`).not.toContain(track.lead);
-  }
-  expect(profile.loops.title.bars).toBeGreaterThanOrEqual(16);
-  expect(profile.loops.credits.bars).toBeGreaterThanOrEqual(16);
-
-  // Exercise every scheduler with a real browser AudioContext. Playback may remain suspended in
-  // headless mode, but node construction and track switching must still stay error-free.
-  const scheduled = await page.evaluate(async () => {
+  const state = await page.evaluate(() => {
     Sound.resume();
-    for (let i = 1; i < Sound.trackInfo().length; i += 1) {
-      Sound.setTrack(i); Sound.setMusic(true);
-      await new Promise((resolve) => setTimeout(resolve, 190));
-    }
-    Sound.setMusic(false);
-    return Sound.currentTrack();
+    Sound.setEnabled(true);
+    Sound.setTrack(1);
+    Sound.setMusic(true);
+    Sound.titleLoop(true);
+    Sound.creditsLoop(true);
+    Sound.play("click");
+    return {
+      enabled: Sound.isEnabled(),
+      music: Sound.isMusicOn(),
+      effects: Sound.sfxNames()
+    };
   });
-  expect(scheduled).toBe(music.length);
+  expect(state.enabled).toBe(true);
+  expect(state.music).toBe(false);
+  expect(state.effects).toContain("click");
 });

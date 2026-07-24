@@ -5935,23 +5935,6 @@ img.pol-mascot {
   transform: none;
   filter: none;
 }
-.title-screen.title-landing .ts-ruleset::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 180ms ease;
-  pointer-events: none;
-}
-.title-screen.title-landing .ts-ruleset-whoisit::before {
-  background: radial-gradient(circle at 45% 48%, rgba(31,78,220,.24), transparent 68%);
-}
-.title-screen.title-landing .ts-ruleset-groupthink::before {
-  background: radial-gradient(circle at 55% 48%, rgba(224,27,27,.18), transparent 68%);
-}
-/* The colour glow rides the FOCUSED card (not hover) so the centred game feels alive. */
-.title-screen.title-landing .ts-ruleset.is-focus::before { opacity: 1; }
 .title-screen.title-landing .ts-ruleset.is-focus:active { transform: scale(.985); }
 .title-screen.title-landing .ts-ruleset:focus-visible { outline: 3px solid #fffdf7; outline-offset: -5px; }
 .ts-ruleset-logo {
@@ -7305,9 +7288,15 @@ body[data-theme="light"] .rr-label.rr-them { color: var(--accent-blue); }
     padding: var(--hud-pad-top, 12px) 16px 46px;
   }
   .side-panel .side-head { display: none; }              /* logo trimmed on the in-game rail */
-  /* Scroll-collapse is continuous: the composition never swaps grids, so every element has a stable
-     anchor while the helper copy, padding and prompt scale fold away with scroll progress. */
+  /* The composition never swaps grids. A threshold toggles between two settled sizes and CSS
+     animates the change independently of intermediate scroll percentages. */
   .side-panel .cue-card { overflow: hidden; align-self: center; }
+  .side-panel {
+    transition: padding 220ms cubic-bezier(.2, .75, .25, 1);
+  }
+  .side-panel .question-prompt {
+    transition: font-size 220ms cubic-bezier(.2, .75, .25, 1);
+  }
   body.low-power .side-panel,
   body.low-power .side-panel .cue-card { transition: none; }
   /* Relocated toolbar: bottom strip of the rail, right-aligned; chips match the seat / end-round chips.
@@ -9082,11 +9071,13 @@ body.low-power .tsp-toggle i::after { transition: none; }
     opacity: var(--hud-helper-opacity, 1);
     overflow: hidden;
     transform: translateY(var(--hud-helper-shift, 0));
+    transition: max-height 180ms ease, opacity 160ms ease, transform 180ms ease;
   }
   .side-panel .mystery-result {
     max-height: calc(var(--hud-helper-height, 14px) * 2);
     opacity: var(--hud-helper-opacity, 1);
     overflow: hidden;
+    transition: max-height 180ms ease, opacity 160ms ease;
   }
   .side-panel .side-actions { align-self: center; }
 }

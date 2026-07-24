@@ -130,7 +130,7 @@ test("Groupthink splash fits the active viewport", async ({ page }) => {
   await page.locator(".gt-intro-skip").click();
 });
 
-test("desktop question rail compresses continuously without changing its grid", async ({ page }, testInfo) => {
+test("desktop question rail switches at stable scroll thresholds without changing its grid", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "desktop sticky rail regression");
   await openGroupthink(page, ["Ada", "Bea"]);
   const sample = () => page.evaluate(() => {
@@ -146,19 +146,39 @@ test("desktop question rail compresses continuously without changing its grid", 
   });
   const top = await sample();
   await page.evaluate(() => window.scrollTo(0, 90));
-  await page.waitForTimeout(100);
-  const middle = await sample();
-  await page.evaluate(() => window.scrollTo(0, 220));
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(260);
+  const belowThreshold = await sample();
+  await page.evaluate(() => window.scrollTo(0, 140));
+  await page.waitForTimeout(260);
   const collapsed = await sample();
+  await page.evaluate(() => window.scrollTo(0, 80));
+  await page.waitForTimeout(260);
+  const hysteresis = await sample();
+  await page.evaluate(() => window.scrollTo(0, 30));
+  await page.waitForTimeout(260);
+  const expanded = await sample();
   expect(top.progress).toBeLessThan(0.05);
-  expect(middle.progress).toBeGreaterThan(0.2);
-  expect(middle.progress).toBeLessThan(0.8);
+  expect(belowThreshold.progress).toBe(0);
   expect(collapsed.progress).toBeGreaterThan(0.95);
-  expect(new Set([top.areas, middle.areas, collapsed.areas]).size).toBe(1);
-  expect(middle.promptSize).toBeLessThan(top.promptSize);
-  expect(collapsed.promptSize).toBeLessThan(middle.promptSize);
-  expect(middle.height).toBeLessThan(top.height);
+  expect(hysteresis.progress).toBe(1);
+  expect(expanded.progress).toBe(0);
+  expect(new Set([top.areas, belowThreshold.areas, collapsed.areas, hysteresis.areas, expanded.areas]).size).toBe(1);
+  expect(collapsed.promptSize).toBeLessThan(top.promptSize);
+  expect(collapsed.height).toBeLessThan(top.height);
+  expect(expanded.promptSize).toBeCloseTo(top.promptSize, 1);
+});
+
+test("Groupthink presents its shared prompt as text, not a reroll button", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "desktop prompt affordance regression");
+  await openGroupthink(page, ["Ada", "Bea"]);
+  const cue = page.locator(".cue-card");
+  const prompt = await page.locator("#questionPrompt").textContent();
+  await expect(cue).not.toHaveClass(/is-clickable/);
+  await expect(cue).not.toHaveAttribute("role", "button");
+  await expect(cue).not.toHaveAttribute("tabindex");
+  await expect(cue).not.toHaveAttribute("title");
+  await cue.click();
+  await expect(page.locator("#questionPrompt")).toHaveText(prompt);
 });
 
 test("standard scoring rewards matches and gives the no-match safety net", async ({ page }, testInfo) => {

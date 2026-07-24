@@ -373,10 +373,7 @@
     if (!active() || !els.questionPrompt) return;
     els.questionPrompt.textContent = formattedPrompt();
     const cue = document.querySelector(".cue-card");
-    if (cue) {
-      const canReroll = state.gameMode !== "online" || state.isHost;
-      cue.title = canReroll && !gt().locked.some(Boolean) ? "Reroll before anybody locks" : `Shared ${DISPLAY_NAME} prompt`;
-    }
+    if (cue) cue.removeAttribute("title");
   }
 
   function rerollPrompt() {

@@ -340,14 +340,13 @@
     })),
     loopInfo: () => ({ title: { bars: 16, bpm: 96, loopSeconds: 40 }, credits: { bars: 16, bpm: 86, loopSeconds: 44.7 } }),
     currentTrack: () => track,
-    isMusicOn: () => musicOn && track > 0,
+    isMusicOn: () => false,
     setTrack(i) { track = Math.max(0, Math.min(TRACKS.length - 1, i | 0)); if (musicOn && track > 0) startMusic(); else stopMusic(); },
-    setMusic(on) { musicOn = !!on; if (musicOn && track > 0) { stopTitleLoop(); startMusic(); } else { stopMusic(); if (!musicOn) { stopTitleLoop(); stopCreditsLoop(); } } },
-    // The title-screen groove (bass + drums only). Suppressed while real music is playing; silent
-    // entirely when the music toggle is off.
-    titleLoop(on) { if (on && musicOn && !(track > 0)) startTitleLoop(); else stopTitleLoop(); },
-    // Tiki lounge under the end-of-session credits (pauses any other loop).
-    creditsLoop(on) { stopTitleLoop(); if (on) { stopMusic(); startCreditsLoop(); } else { stopCreditsLoop(); if (musicOn && track > 0) startMusic(); } },
+    // Music is intentionally disabled for now. Keep these API methods so old saves/peers remain
+    // compatible, but never start a track, title groove, or credits loop.
+    setMusic() { musicOn = false; stopMusic(); stopTitleLoop(); stopCreditsLoop(); },
+    titleLoop() { stopTitleLoop(); },
+    creditsLoop() { stopTitleLoop(); stopMusic(); stopCreditsLoop(); },
     printer(durationMs) { ac(); printerNoise(durationMs || 1500); },
     spinTicks(durationMs, fromGap, toGap) { ac(); return spinTicks(durationMs, fromGap, toGap); }
   };

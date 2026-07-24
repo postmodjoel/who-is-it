@@ -83,10 +83,9 @@ test("ruleset picker is stable, capped, and continuously painted at every target
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       tickerPosition: getComputedStyle(document.querySelector(".ts-ticker-field")).position,
       logoSizes: [...document.querySelectorAll(".ts-ruleset-logo")].map((node) => parseFloat(getComputedStyle(node).fontSize)),
-      descriptionRows: [...document.querySelectorAll(".ts-ruleset small")].map((node) => node.children.length),
-      // offsetHeight (layout height), not getBoundingClientRect (rendered) — non-focused cards are
-      // transform:scale(.82), so only the layout height is comparable across focused + peeking cards.
-      descriptionHeights: [...document.querySelectorAll(".ts-ruleset small")].map((node) => node.offsetHeight),
+      subtitleCount: document.querySelectorAll(".ts-ruleset small, .ts-ruleset-head small").length,
+      musicControlCount: document.querySelectorAll(".ts-music").length,
+      glowContent: getComputedStyle(document.querySelector(".ts-ruleset.is-focus"), "::before").content,
       // FOCUS CAROUSEL: exactly one game is centred (.is-focus) and only its PLAY sticker shows; the
       // neighbours blur/dim/peek with their CTA hidden. The track is a horizontal flex rail, not a grid.
       cardCount: document.querySelectorAll(".ts-ruleset").length,
@@ -97,8 +96,9 @@ test("ruleset picker is stable, capped, and continuously painted at every target
     expect(metrics.overflow).toBeLessThanOrEqual(1);
     expect(metrics.tickerPosition).toBe("fixed");
     expect(Math.max(...metrics.logoSizes)).toBeLessThanOrEqual(92);
-    expect(metrics.descriptionRows).toEqual([3, 3, 3]);
-    expect(new Set(metrics.descriptionHeights).size).toBe(1);
+    expect(metrics.subtitleCount).toBe(0);
+    expect(metrics.musicControlCount).toBe(0);
+    expect(metrics.glowContent).toBe("none");
     expect(metrics.cardCount).toBe(3);
     expect(metrics.focusCount).toBe(1);
     expect(metrics.visibleCtas).toBe(1);
